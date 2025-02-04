@@ -1,0 +1,121 @@
+# Global Settings
+[global]
+min_coverage = 80.0
+strict_mode = true
+fail_fast = true
+parallel_tests = true
+test_timeout = 5000
+
+# Phase 1: Core Engine & Memory Management
+[phase.core_engine]
+required_coverage = 90.0
+strict_typing = true
+memory_leak_check = true
+
+[milestone.memory_system]
+unit_tests = ["test_memory_allocation", "test_memory_protection", "test_circular_addressing", "test_bounds_checking"]
+integration_tests = ["test_memory_manager_lifecycle", "test_concurrent_access"]
+performance_tests = ["benchmark_memory_operations", "benchmark_protection_overhead"]
+
+[milestone.instruction_pipeline]
+unit_tests = ["test_instruction_decoder", "test_execution_unit", "test_addressing_modes", "test_alu_operations"]
+integration_tests = ["test_pipeline_flow", "test_instruction_cycle"]
+
+# Phase 2: Bot System
+[phase.bot_system]
+required_coverage = 85.0
+strict_parsing = true
+
+[milestone.bot_language]
+unit_tests = ["test_lexical_analysis", "test_syntax_validation", "test_code_generation", "test_symbol_resolution"]
+integration_tests = ["test_compilation_pipeline", "test_program_loading"]
+
+[milestone.battle_system]
+unit_tests = ["test_process_management", "test_scheduling", "test_battle_control", "test_victory_conditions"]
+integration_tests = ["test_multi_bot_battle", "test_state_persistence"]
+
+# Phase 3: Web Interface
+[phase.web_interface]
+required_coverage = 80.0
+browser_testing = true
+
+[milestone.visualization]
+unit_tests = ["test_memory_display", "test_update_cycle", "test_interaction_handlers"]
+integration_tests = ["test_realtime_updates", "test_user_interactions"]
+e2e_tests = ["test_visualization_flow", "test_control_operations"]
+
+[milestone.battle_interface]
+unit_tests = ["test_dashboard_components", "test_replay_system", "test_control_panel"]
+integration_tests = ["test_battle_flow", "test_replay_accuracy"]
+
+# Phase 4: Server Infrastructure
+[phase.server]
+required_coverage = 85.0
+api_validation = true
+security_scan = true
+
+[milestone.api_server]
+unit_tests = ["test_endpoints", "test_websockets", "test_request_validation"]
+integration_tests = ["test_api_flow", "test_realtime_updates"]
+security_tests = ["test_input_sanitization", "test_authentication", "test_rate_limiting"]
+
+[milestone.database]
+unit_tests = ["test_models", "test_queries", "test_transactions"]
+integration_tests = ["test_data_integrity", "test_concurrent_access"]
+
+# Phase 5: Platform Features
+[phase.platform]
+required_coverage = 85.0
+security_audit = true
+
+[milestone.authentication]
+unit_tests = ["test_user_management", "test_session_handling", "test_authorization"]
+integration_tests = ["test_auth_flow", "test_session_lifecycle"]
+security_tests = ["test_password_handling", "test_token_security", "test_access_control"]
+
+[milestone.leaderboard]
+unit_tests = ["test_ranking_system", "test_statistics", "test_achievements"]
+integration_tests = ["test_leaderboard_updates", "test_stats_aggregation"]
+
+# Phase 6: Production Release
+[phase.production]
+required_coverage = 90.0
+performance_check = true
+security_audit = true
+
+[milestone.optimization]
+performance_tests = ["benchmark_core_operations", "benchmark_memory_usage", "benchmark_battle_simulation", "benchmark_api_response"]
+load_tests = ["test_concurrent_users", "test_resource_limits", "test_scaling_behavior"]
+
+[milestone.deployment]
+integration_tests = ["test_ci_pipeline", "test_deployment_process", "test_monitoring_system"]
+security_tests = ["test_production_config", "test_secure_communications", "test_vulnerability_scan"]
+
+# Validation Rules
+[quality]
+max_complexity = 10
+max_file_lines = 500
+max_function_lines = 50
+naming_convention = "strict"
+documentation_required = true
+
+[testing]
+assert_count_min = 3
+mock_coverage_min = 70.0
+integration_coverage_min = 60.0
+e2e_coverage_min = 40.0
+performance_threshold_ms = 100
+
+[security]
+dependency_scan = true
+sast_scan = true
+dast_scan = true
+audit_frequency = "weekly"
+vulnerability_threshold = "high"
+
+[documentation]
+api_coverage = 100.0
+example_coverage = 100.0
+architecture_docs = true
+deployment_docs = true
+contribution_docs = true
