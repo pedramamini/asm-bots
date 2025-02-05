@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run test:watch
+    environment:
+      - NODE_ENV=development
+    ports:
+      - "3000:3000"  # For future web interface
