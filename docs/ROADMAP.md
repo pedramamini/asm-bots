@@ -2,10 +2,10 @@
 
 ## Phase 1: Core Engine & Memory Management
 ### Milestone 1.1: Memory System
-- [ ] Memory Space Implementation
-  - [ ] 16-bit addressable memory array
-  - [ ] Circular addressing logic
-  - [ ] Memory protection system
+- [x] Memory Space Implementation
+  - [x] 16-bit addressable memory array
+  - [x] Circular addressing logic
+  - [x] Memory protection system
   ```typescript
   // Test Assertions
   test('memory.allocate(0x1000) returns valid address')
@@ -13,10 +13,10 @@
   test('memory.protect(0x100, 0x200) prevents writes')
   ```
 
-- [ ] Memory Access Controls
-  - [ ] Read/Write operations
-  - [ ] Bounds checking
-  - [ ] Access violation handling
+- [x] Memory Access Controls
+  - [x] Read/Write operations
+  - [x] Bounds checking
+  - [x] Access violation handling
   ```typescript
   // Test Assertions
   test('memory.read() validates address bounds')
@@ -25,10 +25,10 @@
   ```
 
 ### Milestone 1.2: Instruction Pipeline
-- [ ] Instruction Decoder
-  - [ ] Opcode parsing
-  - [ ] Operand extraction
-  - [ ] Addressing mode resolution
+- [x] Instruction Decoder
+  - [x] Opcode parsing
+  - [x] Operand extraction
+  - [x] Addressing mode resolution
   ```typescript
   // Test Assertions
   test('decoder.parse() handles all instruction formats')
@@ -36,10 +36,10 @@
   test('decoder.resolveAddress() handles all modes')
   ```
 
-- [ ] Execution Unit
-  - [ ] ALU operations
-  - [ ] Control flow handling
-  - [ ] Status flag management
+- [x] Execution Unit
+  - [x] ALU operations
+  - [x] Control flow handling
+  - [x] Status flag management
   ```typescript
   // Test Assertions
   test('executor.perform() updates registers correctly')
