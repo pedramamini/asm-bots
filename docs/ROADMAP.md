@@ -107,4 +107,176 @@
   test('display.highlight() marks active regions')
   ```
 
-[Rest of roadmap unchanged...]
+- [ ] Interactive Controls
+  - [ ] Memory inspection
+  - [ ] Execution control
+  - [ ] State navigation
+  ```typescript
+  // Test Assertions
+  test('controls.inspect() shows cell details')
+  test('controls.pause() halts execution')
+  test('controls.step() advances single instruction')
+  ```
+
+### Milestone 3.2: Battle Interface
+- [ ] Battle Dashboard
+  - [ ] Bot status display
+  - [ ] Performance metrics
+  - [ ] Control panel
+  ```typescript
+  // Test Assertions
+  test('dashboard.update() shows current status')
+  test('dashboard.metrics() calculates correctly')
+  test('dashboard.controls() affect battle state')
+  ```
+
+- [ ] Replay System
+  - [ ] State recording
+  - [ ] Playback controls
+  - [ ] Export/Import
+  ```typescript
+  // Test Assertions
+  test('replay.record() captures all events')
+  test('replay.playback() reproduces battle')
+  test('replay.export() includes all data')
+  ```
+
+## Phase 4: Server Infrastructure
+### Milestone 4.1: API Server
+- [ ] RESTful Endpoints
+  - [ ] Bot management
+  - [ ] Battle operations
+  - [ ] User services
+  ```typescript
+  // Test Assertions
+  test('api.createBot() validates input')
+  test('api.startBattle() initializes correctly')
+  test('api.getResults() returns complete data')
+  ```
+
+- [ ] WebSocket Server
+  - [ ] Real-time updates
+  - [ ] Event broadcasting
+  - [ ] Connection management
+  ```typescript
+  // Test Assertions
+  test('ws.connect() establishes session')
+  test('ws.broadcast() reaches all clients')
+  test('ws.handleDisconnect() cleans up')
+  ```
+
+### Milestone 4.2: Database Layer
+- [ ] Data Models
+  - [ ] Bot storage
+  - [ ] Battle history
+  - [ ] User profiles
+  ```typescript
+  // Test Assertions
+  test('models.bot.save() persists all fields')
+  test('models.battle.query() retrieves history')
+  test('models.user.update() maintains integrity')
+  ```
+
+- [ ] Query System
+  - [ ] CRUD operations
+  - [ ] Index optimization
+  - [ ] Transaction handling
+  ```typescript
+  // Test Assertions
+  test('query.create() handles constraints')
+  test('query.read() uses indexes')
+  test('query.transaction() maintains ACID')
+  ```
+
+## Phase 5: Platform Features
+### Milestone 5.1: Authentication
+- [ ] User Management
+  - [ ] Registration
+  - [ ] Authentication
+  - [ ] Authorization
+  ```typescript
+  // Test Assertions
+  test('auth.register() validates data')
+  test('auth.login() verifies credentials')
+  test('auth.authorize() checks permissions')
+  ```
+
+- [ ] Session Management
+  - [ ] Token handling
+  - [ ] Session persistence
+  - [ ] Security measures
+  ```typescript
+  // Test Assertions
+  test('session.create() sets proper tokens')
+  test('session.validate() checks expiration')
+  test('session.refresh() updates properly')
+  ```
+
+### Milestone 5.2: Leaderboard System
+- [ ] Ranking System
+  - [ ] Score calculation
+  - [ ] Rank updates
+  - [ ] History tracking
+  ```typescript
+  // Test Assertions
+  test('ranking.calculate() uses correct formula')
+  test('ranking.update() maintains order')
+  test('ranking.history() tracks changes')
+  ```
+
+- [ ] Statistics Engine
+  - [ ] Performance metrics
+  - [ ] Achievement system
+  - [ ] Analytics
+  ```typescript
+  // Test Assertions
+  test('stats.collect() gathers all metrics')
+  test('stats.achieve() awards correctly')
+  test('stats.analyze() provides insights')
+  ```
+
+## Final Phase: Production Release
+### Milestone 6.1: Performance Optimization
+- [ ] Code Optimization
+  - [ ] Performance profiling
+  - [ ] Memory optimization
+  - [ ] Cache implementation
+  ```typescript
+  // Test Assertions
+  test('profile.measure() meets benchmarks')
+  test('memory.usage() stays within limits')
+  test('cache.hit() exceeds 80% ratio')
+  ```
+
+- [ ] Load Testing
+  - [ ] Stress testing
+  - [ ] Scalability validation
+  - [ ] Resource monitoring
+  ```typescript
+  // Test Assertions
+  test('load.concurrent() handles 1000 users')
+  test('load.response() stays under 100ms')
+  test('load.resources() stay within budget')
+  ```
+
+### Milestone 6.2: Documentation & Deployment
+- [ ] Documentation
+  - [ ] API documentation
+  - [ ] User guides
+  - [ ] Development guides
+  ```typescript
+  // Test Assertions
+  test('docs.coverage() includes all APIs')
+  test('docs.validate() finds no dead links')
+  test('docs.examples() all execute')
+  ```
+
+- [ ] Deployment Pipeline
+  - [ ] CI/CD setup
+  - [ ] Container orchestration
+  - [ ] Monitoring system
+  ```typescript
+  // Test Assertions
+  test('ci.build() succeeds on all platforms')
+  test('cd.deploy() maintains uptime')
+  test('monitor.alerts() detect issues')
