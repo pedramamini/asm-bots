@@ -1,0 +1,32 @@
+{
+  "tasks": {
+    "dev": "deno run --allow-net --allow-read --watch src/server/api.ts",
+    "test": "deno test --allow-net --allow-read",
+    "build": "deno bundle src/server/api.ts dist/server.js"
+  },
+  "imports": {
+    "@/": "./src/"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "allowJs": true,
+    "lib": ["deno.window", "dom", "dom.iterable", "dom.asynciterable"],
+    "jsx": "react-jsx",
+    "allowImportingTsExtensions": true,
+    "checkJs": false,
+    "module": "esnext",
+    "target": "esnext",
+    "moduleResolution": "bundler"
+  },
+  "fmt": {
+    "files": {
+      "include": ["src/"]
+    },
+    "options": {
+      "useTabs": false,
+      "lineWidth": 80,
+      "indentWidth": 2,
+      "singleQuote": true
+    }
+  }
+}

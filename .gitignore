@@ -1,0 +1,104 @@
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+.deno/
+
+# Build output
+dist/
+build/
+*.bundle.*
+
+# Database
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+data/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+.temp/
+
+# Debug files
+*.debug
+*.dump
+
+# Certificates and keys
+*.pem
+*.key
+*.crt
+*.csr
+*.srl
+
+# Monitoring data
+monitoring/prometheus/data/
+monitoring/grafana/data/
+
+# Docker volumes
+docker/data/
+docker/logs/
+
+# Test files
+__snapshots__/
+*.test.js.snap
+
+# Documentation generated files
+docs/_site/
+docs/.jekyll-cache/
+docs/.sass-cache/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Local development files
+.localrc
+.local/
+.history/
+
+# Performance profiling
+*.heapprofile
+*.cpuprofile
+*.heapsnapshot
+
+# Misc
+*.pid
+*.seed
+*.pid.lock
+.env.*.local

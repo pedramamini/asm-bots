@@ -1,0 +1,136 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.38.x
+
+      - name: Verify formatting
+        run: deno fmt --check
+
+      - name: Run linter
+        run: deno lint
+
+      - name: Run tests
+        run: deno task test
+
+      - name: Run type check
+        run: deno check src/**/*.ts
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.38.x
+
+      - name: Build project
+        run: deno task build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: dist
+          path: dist
+
+  deploy-staging:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: dist
+          path: dist
+
+      - name: Deploy to staging
+        run: |
+          echo "Deploying to staging environment"
+          # Add deployment commands here
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests"
+          # Add smoke test commands here
+
+  deploy-production:
+    needs: deploy-staging
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://asm-bots.example.com
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: dist
+          path: dist
+
+      - name: Deploy to production
+        run: |
+          echo "Deploying to production environment"
+          # Add deployment commands here
+
+      - name: Verify deployment
+        run: |
+          echo "Verifying production deployment"
+          # Add verification commands here
+
+      - name: Configure monitoring
+        run: |
+          echo "Setting up monitoring alerts"
+          # Add monitoring setup commands here
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.38.x
+
+      - name: Validate OpenAPI spec
+        run: |
+          deno install -A -f -n openapi-validator https://deno.land/x/openapi_validator/cli.ts
+          openapi-validator src/docs/openapi.yaml
+
+      - name: Check documentation links
+        run: |
+          deno install -A -f -n linkcheck https://deno.land/x/linkcheck/cli.ts
+          linkcheck src/docs/
+
+      - name: Build documentation
+        run: |
+          echo "Building documentation site"
+          # Add documentation build commands here
+
+      - name: Deploy documentation
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "Deploying documentation site"
+          # Add documentation deployment commands here

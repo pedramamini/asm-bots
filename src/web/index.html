@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASM Bots - Battle Arena</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .memory-section, .battle-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .memory-section {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            gap: 20px;
+        }
+        .battle-section {
+            display: grid;
+            grid-template-rows: auto auto 1fr;
+            gap: 20px;
+        }
+        canvas {
+            width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        h2 {
+            margin: 0 0 20px 0;
+            color: #333;
+        }
+        .memory-controls, .battle-dashboard, .replay-system {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+        }
+        .execution-controls, .control-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .memory-inspector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .execution-status {
+            font-family: monospace;
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .bot-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .bot-item {
+            background: #fff;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .bot-item.running { border-left: 4px solid #28a745; }
+        .bot-item.waiting { border-left: 4px solid #ffc107; }
+        .bot-item.terminated { border-left: 4px solid #dc3545; }
+        .bot-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        .bot-details {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .metric {
+            background: #fff;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .metric label {
+            display: block;
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .timeline {
+            margin: 15px 0;
+        }
+        .timeline input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        #timeDisplay {
+            font-family: monospace;
+            color: #666;
+        }
+        .recording {
+            background: #dc3545 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="memory-section">
+            <h2>Memory Visualization</h2>
+            <canvas id="memoryCanvas" width="512" height="512"></canvas>
+            <div id="controlsContainer"></div>
+        </div>
+        <div class="battle-section">
+            <h2>Battle Arena</h2>
+            <div id="battleDashboard"></div>
+            <div id="replaySystem"></div>
+        </div>
+    </div>
+    <script type="module">
+        import { MemoryControls } from './components/MemoryControls.ts';
+        import { BattleDashboard } from './components/BattleDashboard.ts';
+        import { ReplaySystem } from './components/ReplaySystem.ts';
+
+        // Initialize components
+        const canvas = document.getElementById('memoryCanvas');
+        const controlsContainer = document.getElementById('controlsContainer');
+        const battleDashboard = document.getElementById('battleDashboard');
+        const replaySystem = document.getElementById('replaySystem');
+
+        if (canvas && controlsContainer && battleDashboard && replaySystem) {
+            const controls = new MemoryControls(controlsContainer, canvas);
+            const dashboard = new BattleDashboard(battleDashboard);
+            const replay = new ReplaySystem(replaySystem);
+
+            // Example: Add a test bot
+            dashboard.updateBotStatus({
+                id: 'test-bot',
+                name: 'Test Bot',
+                memoryUsage: 45,
+                cyclesExecuted: 1000,
+                state: 'running',
+                lastInstruction: 'MOV A, B'
+            });
+
+            // Example: Update performance metrics
+            dashboard.updateMetrics({
+                executionSpeed: 1000,
+                memoryEfficiency: 75,
+                battleProgress: 30
+            });
+        }
+    </script>
+</body>
+</html>
