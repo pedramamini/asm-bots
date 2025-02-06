@@ -4,17 +4,11 @@ FROM denoland/deno:1.38.0
 # Set working directory
 WORKDIR /app
 
-# Copy dependency files
-COPY deno.json deno.lock* ./
-
-# Cache dependencies
-RUN deno cache --lock=deno.lock $(find . -name "*.ts")
-
-# Copy source code
+# Copy entire project for dependency caching
 COPY . .
 
-# Compile the project
-RUN deno task build
+# Cache dependencies
+RUN deno cache --unstable src/server/api.ts
 
 # Create data directory for SQLite
 RUN mkdir -p /app/data
@@ -30,7 +24,7 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8080/health || exit 1
 
-# Start the application
+# Start the application with necessary permissions
 CMD ["deno", "task", "start"]
 
 # Add labels

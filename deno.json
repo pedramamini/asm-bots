@@ -1,11 +1,13 @@
 {
   "tasks": {
-    "dev": "deno run --allow-net --allow-read --watch src/server/api.ts",
-    "test": "deno test --allow-net --allow-read",
-    "build": "deno bundle src/server/api.ts dist/server.js"
+    "dev": "deno run --unstable --allow-net --allow-read --allow-env --watch src/server/api.ts",
+    "test": "deno test --unstable --allow-net --allow-read --allow-env",
+    "build": "deno bundle --unstable src/server/api.ts dist/server.js",
+    "start": "deno run --unstable --allow-net --allow-read --allow-env src/server/api.ts"
   },
   "imports": {
-    "@/": "./src/"
+    "@/": "./src/",
+    "ws": "npm:ws@8.14.2"
   },
   "compilerOptions": {
     "strict": true,

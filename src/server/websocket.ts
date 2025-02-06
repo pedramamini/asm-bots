@@ -1,5 +1,4 @@
 import { WebSocketClient, WebSocketEvent, Storage } from "./types.ts";
-import { isWebSocketCloseEvent } from "https://deno.land/std@0.208.0/ws/mod.ts";
 
 export class WebSocketServer {
   private storage: Storage;
@@ -19,32 +18,21 @@ export class WebSocketServer {
     this.storage.clients.set(clientId, client);
 
     try {
-      for await (const event of this.getWebSocketEvents(socket)) {
-        if (isWebSocketCloseEvent(event)) {
-          this.handleDisconnect(clientId);
-          break;
-        }
+      socket.onmessage = async (e) => {
+        await this.handleWebSocketMessage(clientId, e.data);
+      };
 
-        await this.handleWebSocketMessage(clientId, event as string);
-      }
+      socket.onclose = () => {
+        this.handleDisconnect(clientId);
+      };
+
+      socket.onerror = (e) => {
+        console.error(`WebSocket error:`, e);
+        this.handleDisconnect(clientId);
+      };
     } catch (err) {
       console.error(`WebSocket error:`, err);
       this.handleDisconnect(clientId);
-    }
-  }
-
-  private async *getWebSocketEvents(socket: WebSocket): AsyncIterableIterator<string | CloseEvent> {
-    while (true) {
-      try {
-        const event = await new Promise<string | CloseEvent>((resolve) => {
-          socket.onmessage = (e) => resolve(e.data);
-          socket.onclose = (e) => resolve(e);
-        });
-        yield event;
-      } catch (err) {
-        console.error(`Error reading WebSocket message:`, err);
-        break;
-      }
     }
   }
 
