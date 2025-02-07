@@ -159,39 +159,6 @@
             <div id="replaySystem"></div>
         </div>
     </div>
-    <script type="module">
-        import { MemoryControls } from './components/MemoryControls.ts';
-        import { BattleDashboard } from './components/BattleDashboard.ts';
-        import { ReplaySystem } from './components/ReplaySystem.ts';
-
-        // Initialize components
-        const canvas = document.getElementById('memoryCanvas');
-        const controlsContainer = document.getElementById('controlsContainer');
-        const battleDashboard = document.getElementById('battleDashboard');
-        const replaySystem = document.getElementById('replaySystem');
-
-        if (canvas && controlsContainer && battleDashboard && replaySystem) {
-            const controls = new MemoryControls(controlsContainer, canvas);
-            const dashboard = new BattleDashboard(battleDashboard);
-            const replay = new ReplaySystem(replaySystem);
-
-            // Example: Add a test bot
-            dashboard.updateBotStatus({
-                id: 'test-bot',
-                name: 'Test Bot',
-                memoryUsage: 45,
-                cyclesExecuted: 1000,
-                state: 'running',
-                lastInstruction: 'MOV A, B'
-            });
-
-            // Example: Update performance metrics
-            dashboard.updateMetrics({
-                executionSpeed: 1000,
-                memoryEfficiency: 75,
-                battleProgress: 30
-            });
-        }
-    </script>
+    <script src="/app.js" type="module"></script>
 </body>
 </html>

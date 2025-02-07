@@ -1,10 +1,12 @@
-version: '3.8'
-
 services:
   app:
-    build: .
+    build:
+      context: .
+      platforms:
+        - linux/arm64
     ports:
-      - "8080:8080"
+      - "8080:8080"  # API port
+      - "8000:8000"  # Web interface port
     environment:
       - DENO_ENV=production
       - DB_PATH=/app/data/database.sqlite
@@ -36,6 +38,7 @@ services:
 
   prometheus:
     image: prom/prometheus:latest
+    platform: linux/arm64
     volumes:
       - ./monitoring/prometheus:/etc/prometheus
       - prometheus_data:/prometheus
@@ -52,6 +55,7 @@ services:
 
   grafana:
     image: grafana/grafana:latest
+    platform: linux/arm64
     volumes:
       - ./monitoring/grafana:/etc/grafana/provisioning
       - grafana_data:/var/lib/grafana
@@ -60,7 +64,7 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
     ports:
-      - "3000:3000"
+      - "3001:3000"
     networks:
       - asm-bots-net
     restart: unless-stopped

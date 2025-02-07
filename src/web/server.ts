@@ -1,29 +1,39 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
-import { serveDir } from "https://deno.land/std@0.208.0/http/file_server.ts";
 
 const port = 8000;
 
-async function handleRequest(request: Request): Promise<Response> {
-  const url = new URL(request.url);
+async function handler(req: Request): Promise<Response> {
+  const url = new URL(req.url);
+  console.log(`Serving ${url.pathname}`);
 
-  // Serve static files from public directory
-  if (url.pathname.startsWith("/static/")) {
-    return await serveDir(request, {
-      fsRoot: "public",
-      urlRoot: "static",
+  try {
+    // Add CORS headers
+    const headers = new Headers({
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
     });
-  }
 
-  // Serve main HTML page
-  if (url.pathname === "/" || url.pathname === "/index.html") {
-    const html = await Deno.readTextFile("src/web/index.html");
-    return new Response(html, {
-      headers: { "content-type": "text/html; charset=utf-8" },
-    });
-  }
+    // Serve index.html
+    if (url.pathname === "/" || url.pathname === "/index.html") {
+      const html = await Deno.readTextFile("/app/src/web/index.html");
+      headers.set("content-type", "text/html; charset=utf-8");
+      return new Response(html, { headers });
+    }
 
-  return new Response("Not Found", { status: 404 });
+    // Serve app.js
+    if (url.pathname === "/app.js") {
+      const js = await Deno.readTextFile("/app/src/web/app.js");
+      headers.set("content-type", "application/javascript");
+      return new Response(js, { headers });
+    }
+
+    // 404 for everything else
+    return new Response("Not Found", { status: 404 });
+  } catch (error) {
+    console.error(`Error handling request:`, error);
+    return new Response("Internal Server Error", { status: 500 });
+  }
 }
 
 console.log(`HTTP webserver running at http://localhost:${port}/`);
-await serve(handleRequest, { port });
+await serve(handler, { port });

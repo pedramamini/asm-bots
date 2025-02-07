@@ -1,40 +1,14 @@
 {
   "name": "asm-bots",
   "version": "1.0.0",
-  "description": "A web-based Core Wars arena with real-time memory visualization, battle simulation, and global leaderboards",
-  "main": "dist/index.js",
-  "directories": {
-    "doc": "docs"
-  },
+  "description": "ASM Bots - Core Wars Platform",
+  "main": "src/server/server.js",
   "scripts": {
-    "build": "tsc",
-    "test": "jest",
-    "test:coverage": "jest --coverage",
-    "test:watch": "jest --watch",
-    "type-check": "tsc --noEmit",
-    "clean": "rm -rf dist",
-    "prebuild": "npm run clean"
+    "start": "node src/server/server.js",
+    "dev": "nodemon src/server/server.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/pedramamini/asm-bots.git"
-  },
-  "keywords": [
-    "core-wars",
-    "assembly",
-    "game",
-    "simulation"
-  ],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/pedramamini/asm-bots/issues"
-  },
-  "homepage": "https://github.com/pedramamini/asm-bots#readme",
-  "devDependencies": {
-    "@types/jest": "^29.5.12",
-    "jest": "^29.7.0",
-    "ts-jest": "^29.1.2",
-    "typescript": "^5.3.3"
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.14.2"
   }
 }
