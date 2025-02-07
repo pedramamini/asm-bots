@@ -53,7 +53,8 @@ export class ProcessManager {
         },
         memory: options.memorySegments,
         cycles: 0,
-        state: ProcessState.Ready
+        state: ProcessState.Ready,
+        currentInstruction: ''
       }
     };
 
@@ -64,6 +65,34 @@ export class ProcessManager {
 
     this.processes.set(processId, process);
     return processId;
+  }
+
+  reset(processId: ProcessId): void {
+    const process = this.getProcess(processId);
+
+    // Reset process state
+    process.context.state = ProcessState.Ready;
+    process.context.cycles = 0;
+    process.cyclesUsed = 0;
+    process.lastRun = 0;
+
+    // Reset registers
+    process.context.registers = {
+      r0: 0,
+      r1: 0,
+      r2: 0,
+      r3: 0,
+      sp: 0xFFFF,
+      pc: process.context.memory[0]?.start || 0, // Reset to entry point using start property
+      flags: 0
+    };
+
+    // Reset current instruction
+    process.context.currentInstruction = '';
+
+    if (this.runningProcess === processId) {
+      this.runningProcess = null;
+    }
   }
 
   terminate(processId: ProcessId, reason?: string): void {
@@ -215,5 +244,8 @@ export class ProcessManager {
     Object.keys(process.context.registers).forEach(reg => {
       (process.context.registers as any)[reg] = 0;
     });
+
+    // Clear current instruction
+    process.context.currentInstruction = '';
   }
 }

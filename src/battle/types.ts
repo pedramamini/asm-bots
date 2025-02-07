@@ -20,6 +20,7 @@ export interface ProcessContext {
   memory: MemorySegment[];
   cycles: number;
   state: ProcessState;
+  currentInstruction: string;  // Track current instruction being executed
 }
 
 export interface Process {

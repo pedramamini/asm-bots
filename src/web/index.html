@@ -72,11 +72,18 @@
             background: #6c757d;
             cursor: not-allowed;
         }
-        input {
+        input, textarea {
             padding: 8px;
             border: 1px solid #ddd;
             border-radius: 4px;
             font-family: monospace;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 100px;
         }
         .memory-inspector {
             display: flex;
@@ -130,19 +137,59 @@
             color: #666;
             margin-bottom: 5px;
         }
-        .timeline {
-            margin: 15px 0;
+        .execution-log {
+            margin-top: 15px;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
         }
-        .timeline input[type="range"] {
-            width: 100%;
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 5px;
+        }
+        .upload-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            grid-column: span 2;
+        }
+        #botUploadForm {
+            display: grid;
+            gap: 15px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .file-upload {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .file-upload input[type="file"] {
+            flex: 1;
+        }
+        .memory-legend {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .memory-legend-item {
+            display: flex;
+            align-items: center;
             margin-bottom: 5px;
         }
-        #timeDisplay {
-            font-family: monospace;
-            color: #666;
-        }
-        .recording {
-            background: #dc3545 !important;
+        .memory-legend-color {
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            border-radius: 2px;
         }
     </style>
 </head>
@@ -150,13 +197,52 @@
     <div class="container">
         <div class="memory-section">
             <h2>Memory Visualization</h2>
-            <canvas id="memoryCanvas" width="512" height="512"></canvas>
-            <div id="controlsContainer"></div>
+            <canvas id="memoryCanvas"></canvas>
+            <div class="memory-legend">
+                <h3>Memory Map</h3>
+                <div id="botLegend"></div>
+                <div class="memory-legend-item">
+                    <div class="memory-legend-color" style="background: #ffeb3b"></div>
+                    <span>Instruction Pointer</span>
+                </div>
+            </div>
         </div>
         <div class="battle-section">
             <h2>Battle Arena</h2>
-            <div id="battleDashboard"></div>
-            <div id="replaySystem"></div>
+            <div id="battleDashboard">
+                <div class="control-buttons">
+                    <button id="startBattle">Start Battle</button>
+                    <button id="pauseBattle">Pause</button>
+                    <button id="resetBattle">Reset</button>
+                </div>
+                <div class="bot-list" id="botList"></div>
+                <div class="metrics-grid">
+                    <div class="metric">
+                        <label>Execution Speed</label>
+                        <div id="executionSpeed">0 IPS</div>
+                    </div>
+                    <div class="metric">
+                        <label>Memory Efficiency</label>
+                        <div id="memoryEfficiency">0%</div>
+                    </div>
+                    <div class="metric">
+                        <label>Battle Progress</label>
+                        <div id="battleProgress">0%</div>
+                    </div>
+                </div>
+                <div id="executionLog" class="execution-log"></div>
+            </div>
+        </div>
+        <div class="upload-section">
+            <h2>Upload Bot</h2>
+            <form id="botUploadForm">
+                <div class="file-upload">
+                    <input type="text" id="botName" placeholder="Bot Name" required>
+                    <input type="file" id="botFile" accept=".asm,.txt">
+                </div>
+                <textarea id="botCode" placeholder="Or paste your bot code here..." required></textarea>
+                <button type="submit">Upload Bot</button>
+            </form>
         </div>
     </div>
     <script src="/app.js" type="module"></script>

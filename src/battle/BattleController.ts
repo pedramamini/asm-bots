@@ -3,7 +3,7 @@ import { ProcessId, Process, ProcessState } from './types';
 
 export interface BattleState {
   id: string;
-  status: 'pending' | 'running' | 'completed';
+  status: 'pending' | 'running' | 'paused' | 'completed';
   turn: number;
   maxTurns: number;
   processes: ProcessId[];
@@ -11,12 +11,21 @@ export interface BattleState {
   startTime: number;
   endTime: number | null;
   scores: Map<ProcessId, number>;
+  logs: ExecutionLog[];
+}
+
+export interface ExecutionLog {
+  timestamp: number;
+  processId: ProcessId;
+  instruction: string;
+  pc: number;
 }
 
 export interface BattleOptions {
   maxTurns: number;
   maxCyclesPerTurn: number;
   maxMemoryPerProcess: number;
+  maxLogEntries?: number;
 }
 
 export class BattleController {
@@ -26,7 +35,10 @@ export class BattleController {
 
   constructor(processManager: ProcessManager, options: BattleOptions) {
     this.processManager = processManager;
-    this.options = options;
+    this.options = {
+      ...options,
+      maxLogEntries: options.maxLogEntries || 1000
+    };
     this.state = this.createInitialState();
   }
 
@@ -40,13 +52,14 @@ export class BattleController {
       winner: null,
       startTime: Date.now(),
       endTime: null,
-      scores: new Map()
+      scores: new Map(),
+      logs: []
     };
   }
 
   addProcess(processId: ProcessId): void {
-    if (this.state.status !== 'pending') {
-      throw new Error('Cannot add processes after battle has started');
+    if (this.state.status !== 'pending' && this.state.status !== 'paused') {
+      throw new Error('Cannot add processes while battle is running or completed');
     }
 
     const process = this.processManager.getProcess(processId);
@@ -57,17 +70,43 @@ export class BattleController {
   }
 
   start(): void {
-    if (this.state.processes.length < 2) {
-      throw new Error('At least two processes are required for a battle');
+    if (this.state.processes.length < 1) {
+      throw new Error('At least one process is required for a battle');
+    }
+
+    if (this.state.status === 'completed') {
+      throw new Error('Battle is already completed');
     }
 
     this.state.status = 'running';
-    this.state.startTime = Date.now();
+    if (this.state.turn === 0) {
+      this.state.startTime = Date.now();
+    }
+  }
+
+  pause(): void {
+    if (this.state.status === 'running') {
+      this.state.status = 'paused';
+    }
+  }
+
+  reset(): void {
+    // Reset all processes
+    for (const processId of this.state.processes) {
+      this.processManager.reset(processId);
+    }
+
+    // Reset battle state
+    this.state = {
+      ...this.createInitialState(),
+      processes: [...this.state.processes], // Keep existing processes
+      scores: new Map(this.state.processes.map(pid => [pid, 0]))
+    };
   }
 
   nextTurn(): boolean {
     if (this.state.status !== 'running') {
-      throw new Error('Battle is not running');
+      return false;
     }
 
     if (this.state.turn >= this.state.maxTurns) {
@@ -86,6 +125,10 @@ export class BattleController {
       if (runningProcess === null) {
         break;
       }
+
+      // Log execution
+      const process = this.processManager.getProcess(runningProcess);
+      this.logExecution(runningProcess, process);
 
       // Update score and cycles
       const currentScore = this.state.scores.get(runningProcess) || 0;
@@ -113,6 +156,22 @@ export class BattleController {
     }
 
     return true;
+  }
+
+  private logExecution(processId: ProcessId, process: Process): void {
+    const log: ExecutionLog = {
+      timestamp: Date.now(),
+      processId,
+      instruction: process.context.currentInstruction,
+      pc: process.context.registers.pc
+    };
+
+    this.state.logs.push(log);
+
+    // Keep log size under control
+    if (this.state.logs.length > this.options.maxLogEntries!) {
+      this.state.logs = this.state.logs.slice(-this.options.maxLogEntries!);
+    }
   }
 
   checkVictory(): boolean {

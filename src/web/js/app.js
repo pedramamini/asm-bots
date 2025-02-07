@@ -1,186 +1,226 @@
-class BattleDashboard {
-  constructor(container) {
-    this.container = container;
-    this.bots = new Map();
-    this.metrics = {
-      executionSpeed: 0,
-      memoryEfficiency: 0,
-      battleProgress: 0,
+class BattleManager {
+  constructor() {
+    this.ws = null;
+    this.battleId = null;
+    this.memoryDisplay = null;
+    this.battleDashboard = null;
+    this.executionLog = [];
+    this.setupWebSocket();
+  }
+
+  setupWebSocket() {
+    this.ws = new WebSocket(`ws://${window.location.hostname}:8000/ws`);
+
+    this.ws.onopen = () => {
+      console.log('WebSocket connected');
+      // Subscribe to battle updates immediately
+      this.sendMessage('subscribe', { battleId: 'default' });
     };
-    this.initializeDashboard();
+
+    this.ws.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      this.handleWebSocketMessage(message);
+    };
+
+    this.ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    this.ws.onclose = () => {
+      console.log('WebSocket disconnected');
+      // Attempt to reconnect after a delay
+      setTimeout(() => this.setupWebSocket(), 5000);
+    };
   }
 
-  initializeDashboard() {
-    const dashboard = document.createElement('div');
-    dashboard.className = 'battle-dashboard';
-    dashboard.innerHTML = `
-      <div class="bot-status-container">
-        <h3>Bot Status</h3>
-        <div id="botList" class="bot-list"></div>
-      </div>
-      <div class="metrics-container">
-        <h3>Performance Metrics</h3>
-        <div class="metrics-grid">
-          <div class="metric">
-            <label>Execution Speed</label>
-            <span id="execSpeed">0 IPS</span>
-          </div>
-          <div class="metric">
-            <label>Memory Efficiency</label>
-            <span id="memEfficiency">0%</span>
-          </div>
-          <div class="metric">
-            <label>Battle Progress</label>
-            <span id="battleProgress">0%</span>
-          </div>
-        </div>
-      </div>
-      <div class="control-panel">
-        <h3>Control Panel</h3>
-        <div class="control-buttons">
-          <button id="startBattle">Start Battle</button>
-          <button id="pauseBattle">Pause</button>
-          <button id="resetBattle">Reset</button>
-        </div>
-      </div>
-    `;
-    this.container.appendChild(dashboard);
-    this.setupEventListeners();
+  handleWebSocketMessage(message) {
+    switch (message.type) {
+      case 'battleUpdate':
+        this.handleBattleUpdate(message.data);
+        break;
+      case 'botUploaded':
+        this.handleBotUploaded(message.data);
+        break;
+      case 'executionLog':
+        this.handleExecutionLog(message.data);
+        break;
+      case 'error':
+        this.handleError(message.data);
+        break;
+    }
   }
 
-  setupEventListeners() {
-    const startBtn = document.getElementById('startBattle');
-    const pauseBtn = document.getElementById('pauseBattle');
-    const resetBtn = document.getElementById('resetBattle');
+  handleBattleUpdate(battle) {
+    if (!this.battleId) {
+      this.battleId = battle.id;
+    }
 
-    startBtn?.addEventListener('click', () => this.startBattle());
-    pauseBtn?.addEventListener('click', () => this.pauseBattle());
-    resetBtn?.addEventListener('click', () => this.resetBattle());
-  }
-
-  updateBotStatus(bot) {
-    this.bots.set(bot.id, bot);
-    this.renderBotList();
-  }
-
-  updateMetrics(metrics) {
-    Object.assign(this.metrics, metrics);
-    this.renderMetrics();
-  }
-
-  renderBotList() {
-    const botList = document.getElementById('botList');
-    if (!botList) return;
-
-    botList.innerHTML = '';
-    this.bots.forEach(bot => {
-      const botElement = document.createElement('div');
-      botElement.className = `bot-item ${bot.state}`;
-      botElement.innerHTML = `
-        <div class="bot-header">
-          <span class="bot-name">${bot.name}</span>
-          <span class="bot-state">${bot.state}</span>
-        </div>
-        <div class="bot-details">
-          <div>Memory: ${bot.memoryUsage}%</div>
-          <div>Cycles: ${bot.cyclesExecuted}</div>
-          <div>Last: ${bot.lastInstruction}</div>
-        </div>
-      `;
-      botList.appendChild(botElement);
+    // Update memory display for each bot
+    battle.bots.forEach(bot => {
+      // Assign a color if not already assigned
+      if (!bot.color) {
+        bot.color = this.getRandomColor();
+      }
+      this.memoryDisplay.updateBot(bot);
     });
+
+    // Update battle dashboard
+    this.battleDashboard.updateBotStatus(battle.bots);
+    this.battleDashboard.updateMetrics({
+      executionSpeed: battle.executionSpeed || 0,
+      memoryEfficiency: battle.memoryEfficiency || 0,
+      battleProgress: battle.progress || 0
+    });
+
+    // Update execution log display
+    this.updateExecutionLogDisplay();
   }
 
-  renderMetrics() {
-    const execSpeed = document.getElementById('execSpeed');
-    const memEfficiency = document.getElementById('memEfficiency');
-    const battleProgress = document.getElementById('battleProgress');
+  handleExecutionLog(data) {
+    this.executionLog.push(data);
+    this.updateExecutionLogDisplay();
+  }
 
-    if (execSpeed) execSpeed.textContent = `${this.metrics.executionSpeed.toFixed(1)} IPS`;
-    if (memEfficiency) memEfficiency.textContent = `${this.metrics.memoryEfficiency.toFixed(1)}%`;
-    if (battleProgress) battleProgress.textContent = `${this.metrics.battleProgress.toFixed(1)}%`;
+  updateExecutionLogDisplay() {
+    const logContainer = document.getElementById('executionLog');
+    if (logContainer) {
+      logContainer.innerHTML = this.executionLog
+        .slice(-100) // Keep last 100 entries
+        .map(entry => `
+          <div class="log-entry" style="color: ${entry.bot.color}">
+            [${entry.bot.name}] IP: ${entry.instructionPointer} - ${entry.instruction}
+          </div>
+        `)
+        .join('');
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+  }
+
+  handleBotUploaded(data) {
+    console.log(`Bot uploaded: ${data.name} (${data.botId})`);
+  }
+
+  handleError(data) {
+    console.error('Error:', data.message);
+    alert(data.message); // Show error in UI
+  }
+
+  sendMessage(type, data = {}) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type, ...data }));
+    }
   }
 
   startBattle() {
-    this.updateMetrics({ battleProgress: 0 });
-    this.container.dispatchEvent(new CustomEvent('battleStart'));
+    this.sendMessage('startBattle', { battleId: this.battleId });
   }
 
   pauseBattle() {
-    this.container.dispatchEvent(new CustomEvent('battlePause'));
+    this.sendMessage('pauseBattle', { battleId: this.battleId });
   }
 
   resetBattle() {
-    this.bots.clear();
-    this.updateMetrics({
-      executionSpeed: 0,
-      memoryEfficiency: 0,
-      battleProgress: 0,
-    });
-    this.renderBotList();
-    this.container.dispatchEvent(new CustomEvent('battleReset'));
-  }
-}
-
-class MemoryDisplay {
-  constructor(canvas) {
-    this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
-    this.initializeDisplay();
+    this.sendMessage('resetBattle', { battleId: this.battleId });
   }
 
-  initializeDisplay() {
-    // Set up initial canvas state
-    this.ctx.fillStyle = '#f0f0f0';
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+  uploadBot(name, code) {
+    this.sendMessage('uploadBot', { botData: { name, code } });
   }
 
-  updateMemory(data) {
-    // Example visualization - each byte as a colored pixel
-    const imageData = this.ctx.createImageData(512, 512);
-    for (let i = 0; i < data.length; i++) {
-      const value = data[i];
-      const offset = i * 4;
-      imageData.data[offset] = value;     // R
-      imageData.data[offset + 1] = value; // G
-      imageData.data[offset + 2] = value; // B
-      imageData.data[offset + 3] = 255;   // A
-    }
-    this.ctx.putImageData(imageData, 0, 0);
+  getRandomColor() {
+    const colors = [
+      '#FF4136', // Red
+      '#2ECC40', // Green
+      '#0074D9', // Blue
+      '#FF851B', // Orange
+      '#B10DC9', // Purple
+      '#01FF70', // Lime
+      '#7FDBFF', // Aqua
+      '#F012BE', // Fuchsia
+      '#39CCCC', // Teal
+      '#FFDC00'  // Yellow
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
   }
 }
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+  const battleManager = new BattleManager();
+
+  // Initialize components
   const canvas = document.getElementById('memoryCanvas');
   const battleDashboard = document.getElementById('battleDashboard');
+  const uploadForm = document.getElementById('botUploadForm');
 
   if (canvas && battleDashboard) {
-    const display = new MemoryDisplay(canvas);
-    const dashboard = new BattleDashboard(battleDashboard);
+    battleManager.memoryDisplay = new MemoryDisplay(canvas);
+    battleManager.battleDashboard = new BattleDashboard(battleDashboard);
 
-    // Example: Add a test bot
-    dashboard.updateBotStatus({
-      id: 'test-bot',
-      name: 'Test Bot',
-      memoryUsage: 45,
-      cyclesExecuted: 1000,
-      state: 'running',
-      lastInstruction: 'MOV A, B'
-    });
+    // Set up battle control buttons
+    const startButton = document.getElementById('startBattle');
+    const pauseButton = document.getElementById('pauseBattle');
+    const resetButton = document.getElementById('resetBattle');
 
-    // Example: Update performance metrics
-    dashboard.updateMetrics({
-      executionSpeed: 1000,
-      memoryEfficiency: 75,
-      battleProgress: 30
-    });
+    if (startButton) startButton.addEventListener('click', () => battleManager.startBattle());
+    if (pauseButton) pauseButton.addEventListener('click', () => battleManager.pauseBattle());
+    if (resetButton) resetButton.addEventListener('click', () => battleManager.resetBattle());
 
-    // Example: Update memory display with random data
-    const randomData = new Uint8Array(512 * 512);
-    for (let i = 0; i < randomData.length; i++) {
-      randomData[i] = Math.random() * 255;
+    // Create execution log container if it doesn't exist
+    if (!document.getElementById('executionLog')) {
+      const logContainer = document.createElement('div');
+      logContainer.id = 'executionLog';
+      logContainer.style.cssText = `
+        height: 200px;
+        overflow-y: auto;
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 4px;
+        border: 1px solid #e9ecef;
+        font-family: monospace;
+        margin-top: 15px;
+      `;
+      battleDashboard.appendChild(logContainer);
     }
-    display.updateMemory(randomData);
+  }
+
+  // Set up bot upload form
+  if (uploadForm) {
+    const fileInput = document.getElementById('botFile');
+    const nameInput = document.getElementById('botName');
+    const codeTextarea = document.getElementById('botCode');
+
+    // Handle file upload
+    fileInput.addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const code = await file.text();
+        codeTextarea.value = code;
+      }
+    });
+
+    // Handle form submission
+    uploadForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const name = nameInput.value.trim();
+      const code = codeTextarea.value.trim();
+
+      if (!name) {
+        alert('Please enter a bot name');
+        return;
+      }
+
+      if (!code) {
+        alert('Please provide bot code');
+        return;
+      }
+
+      battleManager.uploadBot(name, code);
+
+      // Clear form
+      nameInput.value = '';
+      fileInput.value = '';
+      codeTextarea.value = '';
+    });
   }
 });

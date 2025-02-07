@@ -1,4 +1,4 @@
-import { WebSocketClient, WebSocketEvent, Storage } from "./types.ts";
+import { WebSocketClient, WebSocketEvent, Storage } from "./types";
 
 export class WebSocketServer {
   private storage: Storage;
@@ -59,12 +59,98 @@ export class WebSocketServer {
           }
           break;
 
+        case 'startBattle':
+          if (event.battleId) {
+            await this.handleStartBattle(event.battleId);
+          }
+          break;
+
+        case 'pauseBattle':
+          if (event.battleId) {
+            await this.handlePauseBattle(event.battleId);
+          }
+          break;
+
+        case 'resetBattle':
+          if (event.battleId) {
+            await this.handleResetBattle(event.battleId);
+          }
+          break;
+
+        case 'uploadBot':
+          if (event.botData) {
+            await this.handleBotUpload(client.id, event.botData);
+          }
+          break;
+
         default:
           console.warn(`Unknown WebSocket event type: ${event.type}`);
       }
     } catch (err) {
-      console.error(`Error handling WebSocket message:`, err);
-      await this.sendError(clientId, 'Invalid message format');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      console.error(`Error handling WebSocket message:`, errorMessage);
+      await this.sendError(clientId, errorMessage);
+    }
+  }
+
+  private async handleStartBattle(battleId: string): Promise<void> {
+    const battle = this.storage.battles.get(battleId);
+    if (!battle) {
+      console.error(`Battle ${battleId} not found`);
+      return;
+    }
+
+    battle.start();
+    await this.broadcastBattleUpdate(battleId);
+  }
+
+  private async handlePauseBattle(battleId: string): Promise<void> {
+    const battle = this.storage.battles.get(battleId);
+    if (!battle) {
+      console.error(`Battle ${battleId} not found`);
+      return;
+    }
+
+    battle.pause();
+    await this.broadcastBattleUpdate(battleId);
+  }
+
+  private async handleResetBattle(battleId: string): Promise<void> {
+    const battle = this.storage.battles.get(battleId);
+    if (!battle) {
+      console.error(`Battle ${battleId} not found`);
+      return;
+    }
+
+    battle.reset();
+    await this.broadcastBattleUpdate(battleId);
+  }
+
+  private async handleBotUpload(clientId: string, botData: { name: string; code: string }): Promise<void> {
+    try {
+      // Create a new process for the bot
+      const processId = await this.storage.createProcess(botData.code, botData.name);
+
+      // Add process to default battle
+      const battle = this.storage.battles.get('default');
+      if (battle) {
+        battle.addProcess(processId);
+      }
+
+      // Send confirmation to client
+      await this.sendMessage(clientId, {
+        type: 'botUploaded',
+        data: {
+          botId: processId,
+          name: botData.name
+        }
+      });
+
+      // Broadcast battle update to all subscribers
+      await this.broadcastBattleUpdate('default');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to upload bot';
+      await this.sendError(clientId, errorMessage);
     }
   }
 
@@ -76,10 +162,21 @@ export class WebSocketServer {
     }
 
     client.subscriptions.add(battleId);
+
+    // Send initial state
     await this.sendMessage(client.id, {
       type: 'battleUpdate',
-      data: battle,
+      data: battle.getState()
     });
+
+    // Send execution logs if any
+    const logs = battle.getState().logs;
+    if (logs.length > 0) {
+      await this.sendMessage(client.id, {
+        type: 'executionLog',
+        data: logs
+      });
+    }
   }
 
   private async handleUnsubscribe(client: WebSocketClient, battleId: string): Promise<void> {
@@ -98,16 +195,25 @@ export class WebSocketServer {
     const battle = this.storage.battles.get(battleId);
     if (!battle) return;
 
-    const message = JSON.stringify({
+    const battleState = battle.getState();
+    const battleUpdate = {
       type: 'battleUpdate',
-      data: battle,
-    });
+      data: battleState
+    };
+
+    const executionLogUpdate = {
+      type: 'executionLog',
+      data: battleState.logs
+    };
 
     const promises: Promise<void>[] = [];
 
     for (const [clientId, client] of this.storage.clients) {
       if (client.subscriptions.has(battleId)) {
-        promises.push(this.sendMessage(clientId, message));
+        promises.push(
+          this.sendMessage(clientId, battleUpdate),
+          this.sendMessage(clientId, executionLogUpdate)
+        );
       }
     }
 
@@ -122,7 +228,8 @@ export class WebSocketServer {
       const messageStr = typeof message === 'string' ? message : JSON.stringify(message);
       await client.socket.send(messageStr);
     } catch (err) {
-      console.error(`Error sending message to client ${clientId}:`, err);
+      const errorMessage = err instanceof Error ? err.message : 'Error sending message';
+      console.error(`Error sending message to client ${clientId}:`, errorMessage);
       this.handleDisconnect(clientId);
     }
   }

@@ -1,4 +1,5 @@
-import { Context } from "https://deno.land/x/oak@v12.6.1/mod.ts";
+import { BattleState } from "../battle/BattleController";
+import { ProcessId } from "../battle/types";
 
 export interface Bot {
   id: string;
@@ -7,16 +8,28 @@ export interface Bot {
   owner: string;
   created: Date;
   updated: Date;
+  memory: Uint8Array;
+  pc: number;  // Changed from instructionPointer to pc
+  cyclesExecuted: number;
+  color: string;
+  currentInstruction: string;
 }
 
 export interface Battle {
   id: string;
-  bots: string[];
-  status: 'pending' | 'running' | 'completed';
+  bots: Bot[];
+  status: 'pending' | 'running' | 'paused' | 'completed';
   winner?: string;
   startTime?: Date;
   endTime?: Date;
   events: BattleEvent[];
+  memorySize: number;
+  // Add battle controller methods
+  start(): void;
+  pause(): void;
+  reset(): void;
+  getState(): BattleState;
+  addProcess(processId: ProcessId): void;
 }
 
 export interface BattleEvent {
@@ -33,11 +46,14 @@ export interface BattleEvent {
 }
 
 export interface WebSocketMessage {
-  type: 'battleUpdate' | 'botUpdate' | 'error';
-  data: Battle | Bot | { message: string };
+  type: 'battleUpdate' | 'botUpdate' | 'error' | 'botUploaded' | 'executionLog';
+  data: Battle | Bot | { message: string } | { botId: string; name: string } | BattleEvent[];
 }
 
-export type RouterContext = Context;
+export interface RouterContext {
+  request: Request;
+  response: Response;
+}
 
 export interface BotCreateRequest {
   name: string;
@@ -67,18 +83,28 @@ export interface Storage {
   bots: Map<string, Bot>;
   battles: Map<string, Battle>;
   clients: Map<string, WebSocketClient>;
+  createProcess(code: string, name: string): Promise<ProcessId>;
 }
 
 // Event types for WebSocket messages
 export type WebSocketEventType =
-  | 'subscribe'   // Subscribe to battle updates
-  | 'unsubscribe' // Unsubscribe from battle updates
-  | 'battleUpdate'// Battle state has changed
-  | 'botUpdate'   // Bot state has changed
-  | 'error';      // Error occurred
+  | 'subscribe'    // Subscribe to battle updates
+  | 'unsubscribe'  // Unsubscribe from battle updates
+  | 'battleUpdate' // Battle state has changed
+  | 'botUpdate'    // Bot state has changed
+  | 'startBattle'  // Start a battle
+  | 'pauseBattle'  // Pause a battle
+  | 'resetBattle'  // Reset a battle
+  | 'uploadBot'    // Upload a new bot
+  | 'executionLog' // Execution log update
+  | 'error';       // Error occurred
 
 export interface WebSocketEvent {
   type: WebSocketEventType;
   battleId?: string;
   data?: unknown;
+  botData?: {
+    name: string;
+    code: string;
+  };
 }
