@@ -1,24 +1,24 @@
 {
-  "tasks": {
-    "dev": "deno run --unstable --allow-net --allow-read --allow-env --watch src/server/api.ts",
-    "test": "deno test --unstable --allow-net --allow-read --allow-env",
-    "build": "deno bundle --unstable src/server/api.ts dist/server.js",
-    "start": "deno run --unstable --allow-net --allow-read --allow-env src/server/api.ts"
-  },
-  "imports": {
-    "@/": "./src/",
-    "ws": "npm:ws@8.14.2"
-  },
   "compilerOptions": {
-    "strict": true,
     "allowJs": true,
-    "lib": ["deno.window", "dom", "dom.iterable", "dom.asynciterable"],
-    "jsx": "react-jsx",
-    "allowImportingTsExtensions": true,
-    "checkJs": false,
-    "module": "esnext",
-    "target": "esnext",
-    "moduleResolution": "bundler"
+    "lib": ["deno.window", "deno.ns", "dom"],
+    "strict": true
+  },
+  "importMap": {
+    "imports": {
+      "https://deno.land/std@0.208.0/": "https://deno.land/std@0.208.0/"
+    }
+  },
+  "tasks": {
+    "test": "deno test --allow-read --allow-write --allow-net src/**/*_test.ts"
+  },
+  "lint": {
+    "files": {
+      "include": ["src/"]
+    },
+    "rules": {
+      "tags": ["recommended"]
+    }
   },
   "fmt": {
     "files": {
@@ -28,7 +28,8 @@
       "useTabs": false,
       "lineWidth": 80,
       "indentWidth": 2,
-      "singleQuote": true
+      "singleQuote": true,
+      "proseWrap": "preserve"
     }
   }
 }

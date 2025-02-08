@@ -175,11 +175,28 @@ export class PerformanceMonitor {
   }
 
   getResourceUsage(): ResourceUsage {
-    const memoryUsage = performance.memory?.usedJSHeapSize || 0;
-    const totalMemory = performance.memory?.jsHeapSizeLimit || 1;
+    // Get memory usage with fallback for environments where performance.memory is not available
+    let memoryUsage = 0;
+    let totalMemory = 1;
+
+    try {
+      if (typeof performance !== 'undefined' && performance.memory) {
+        memoryUsage = performance.memory.usedJSHeapSize;
+        totalMemory = performance.memory.jsHeapSizeLimit;
+      } else if (typeof process !== 'undefined' && process.memoryUsage) {
+        // Node.js fallback
+        const mem = process.memoryUsage();
+        memoryUsage = mem.heapUsed;
+        totalMemory = mem.heapTotal;
+      }
+    } catch {
+      // If all methods fail, return a safe default
+      memoryUsage = 0;
+      totalMemory = 1;
+    }
 
     return {
-      cpu: 0, // Not available in Deno
+      cpu: 0, // Not consistently available across environments
       memory: memoryUsage / totalMemory,
       timestamp: Date.now(),
     };
@@ -205,11 +222,11 @@ export class PerformanceMonitor {
       const duration = performance.now() - start;
       this.recordMetric(name, duration, metadata);
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       const duration = performance.now() - start;
       this.recordMetric(name, duration, {
         ...metadata,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         status: 'error',
       });
       throw error;
@@ -227,11 +244,11 @@ export class PerformanceMonitor {
       const duration = performance.now() - start;
       this.recordMetric(name, duration, metadata);
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       const duration = performance.now() - start;
       this.recordMetric(name, duration, {
         ...metadata,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         status: 'error',
       });
       throw error;
