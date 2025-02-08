@@ -2,11 +2,11 @@
   "name": "asm-bots",
   "version": "1.0.0",
   "description": "ASM Bots - Core Wars Platform",
-  "main": "src/server/server.js",
+  "main": "dist/server/server.js",
   "type": "module",
   "scripts": {
-    "start": "node src/server/server.js",
-    "dev": "nodemon src/server/server.js",
+    "start": "node dist/server/server.js",
+    "dev": "nodemon --watch src --ext ts,js --exec 'npm run build && node dist/server/server.js'",
     "build": "tsc",
     "watch": "tsc -w"
   },

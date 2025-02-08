@@ -102,31 +102,35 @@ export interface QueryResult {
 }
 
 export interface AuthQueries {
-  createUser(user: UserRow): Promise<QueryResult>;
-  getUserById(id: string): Promise<UserRow | null>;
-  getUserByUsername(username: string): Promise<UserRow | null>;
-  getUserByEmail(email: string): Promise<UserRow | null>;
-  updateUser(id: string, updates: Partial<UserRow>): Promise<QueryResult>;
-  deleteUser(id: string): Promise<QueryResult>;
+  createUser(user: UserRow): QueryResult;
+  getUserById(id: string): UserRow | null;
+  getUserByUsername(username: string): UserRow | null;
+  getUserByEmail(email: string): UserRow | null;
+  updateUser(id: string, updates: Partial<UserRow>): QueryResult;
+  deleteUser(id: string): QueryResult;
 
-  createSession(session: SessionRow): Promise<QueryResult>;
-  getSessionByToken(token: string): Promise<SessionRow | null>;
-  getSessionsByUserId(userId: string): Promise<SessionRow[]>;
-  updateSession(id: string, updates: Partial<SessionRow>): Promise<QueryResult>;
-  deleteSession(id: string): Promise<QueryResult>;
-  deleteExpiredSessions(): Promise<QueryResult>;
+  createSession(session: SessionRow): QueryResult;
+  getSessionByToken(token: string): SessionRow | null;
+  getSessionsByUserId(userId: string): SessionRow[];
+  updateSession(id: string, updates: Partial<SessionRow>): QueryResult;
+  deleteSession(id: string): QueryResult;
+  deleteExpiredSessions(): QueryResult;
 }
 
 export interface RankingQueries {
-  getRanking(userId: string): Promise<RankingRow | null>;
-  getLeaderboard(limit?: number, offset?: number): Promise<(RankingRow & { username: string })[]>;
-  updateRanking(ranking: RankingRow): Promise<QueryResult>;
-  addRankingHistory(history: Omit<RankingHistoryRow, 'id'>): Promise<QueryResult>;
-  getRankingHistory(userId: string, limit?: number): Promise<RankingHistoryRow[]>;
-  getTopPerformers(orderBy: string, limit?: number): Promise<(RankingRow & { username: string })[]>;
+  getRanking(userId: string): RankingRow | null;
+  getLeaderboard(limit?: number, offset?: number): (RankingRow & { username: string })[];
+  updateRanking(ranking: RankingRow): QueryResult;
+  addRankingHistory(history: Omit<RankingHistoryRow, 'id'>): QueryResult;
+  getRankingHistory(userId: string, limit?: number): RankingHistoryRow[];
+  getTopPerformers(orderBy: string, limit?: number): (RankingRow & { username: string })[];
+  getWinRate(userId: string): number;
+  getAverageScore(): number;
+  getRankPosition(userId: string): number;
+  getRecentBattles(userId: string, limit?: number): { wins: number; losses: number };
 }
 
 export interface DatabaseQueries extends AuthQueries, RankingQueries {
-  query<T = unknown>(sql: string, params?: unknown[]): Promise<T[]>;
+  query<T = unknown>(sql: string, params?: unknown[]): T[];
   execute(sql: string): void;
 }

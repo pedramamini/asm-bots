@@ -1,13 +1,18 @@
 import { BattleState } from "../battle/BattleController";
 import { ProcessId } from "../battle/types";
 
-export interface Bot {
+// Database Bot type without runtime properties
+export interface BotData {
   id: string;
   name: string;
   code: string;
   owner: string;
   created: Date;
   updated: Date;
+}
+
+// Full Bot type with runtime properties
+export interface Bot extends BotData {
   memory: Uint8Array;
   pc: number;  // Changed from instructionPointer to pc
   cyclesExecuted: number;
@@ -15,16 +20,21 @@ export interface Bot {
   currentInstruction: string;
 }
 
-export interface Battle {
+// Database Battle type without runtime methods
+export interface BattleData {
   id: string;
-  bots: Bot[];
+  bots: string[];  // Array of bot IDs
   status: 'pending' | 'running' | 'paused' | 'completed';
   winner?: string;
   startTime?: Date;
   endTime?: Date;
   events: BattleEvent[];
-  memorySize: number;
-  // Add battle controller methods
+  memorySize?: number;
+}
+
+// Full Battle type with runtime methods
+export interface Battle extends BattleData {
+  memorySize: number;  // Required in runtime
   start(): void;
   pause(): void;
   reset(): void;

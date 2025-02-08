@@ -1,8 +1,8 @@
-import { DB } from "https://deno.land/x/sqlite@v3.8/mod.ts";
-import { SCHEMA, UserRow, SessionRow, QueryResult, AuthQueries } from "./schema.ts";
+import { Database } from "./database";
+import { SCHEMA, UserRow, SessionRow, QueryResult, AuthQueries } from "./schema";
 
 export class SQLiteAuthQueries implements AuthQueries {
-  constructor(private db: DB) {
+  constructor(private db: Database) {
     this.initializeSchema();
   }
 
@@ -12,8 +12,8 @@ export class SQLiteAuthQueries implements AuthQueries {
     SCHEMA.INDEXES.forEach(index => this.db.execute(index));
   }
 
-  async createUser(user: UserRow): Promise<QueryResult> {
-    return await this.db.query(
+  createUser(user: UserRow): QueryResult {
+    return this.db.query<QueryResult>(
       `INSERT INTO users (id, username, email, password_hash, created, updated)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [
@@ -24,34 +24,34 @@ export class SQLiteAuthQueries implements AuthQueries {
         user.created,
         user.updated,
       ]
-    ) as QueryResult;
+    )[0];
   }
 
-  async getUserById(id: string): Promise<UserRow | null> {
-    const result = await this.db.query<UserRow>(
+  getUserById(id: string): UserRow | null {
+    const result = this.db.query<UserRow>(
       "SELECT * FROM users WHERE id = ?",
       [id]
     );
     return result[0] || null;
   }
 
-  async getUserByUsername(username: string): Promise<UserRow | null> {
-    const result = await this.db.query<UserRow>(
+  getUserByUsername(username: string): UserRow | null {
+    const result = this.db.query<UserRow>(
       "SELECT * FROM users WHERE username = ?",
       [username]
     );
     return result[0] || null;
   }
 
-  async getUserByEmail(email: string): Promise<UserRow | null> {
-    const result = await this.db.query<UserRow>(
+  getUserByEmail(email: string): UserRow | null {
+    const result = this.db.query<UserRow>(
       "SELECT * FROM users WHERE email = ?",
       [email]
     );
     return result[0] || null;
   }
 
-  async updateUser(id: string, updates: Partial<UserRow>): Promise<QueryResult> {
+  updateUser(id: string, updates: Partial<UserRow>): QueryResult {
     const fields = Object.keys(updates)
       .filter(key => key !== 'id') // Prevent ID updates
       .map(key => `${key} = ?`)
@@ -61,21 +61,21 @@ export class SQLiteAuthQueries implements AuthQueries {
       .filter(([key]) => key !== 'id')
       .map(([_, value]) => value);
 
-    return await this.db.query(
+    return this.db.query<QueryResult>(
       `UPDATE users SET ${fields} WHERE id = ?`,
       [...values, id]
-    ) as QueryResult;
+    )[0];
   }
 
-  async deleteUser(id: string): Promise<QueryResult> {
-    return await this.db.query(
+  deleteUser(id: string): QueryResult {
+    return this.db.query<QueryResult>(
       "DELETE FROM users WHERE id = ?",
       [id]
-    ) as QueryResult;
+    )[0];
   }
 
-  async createSession(session: SessionRow): Promise<QueryResult> {
-    return await this.db.query(
+  createSession(session: SessionRow): QueryResult {
+    return this.db.query<QueryResult>(
       `INSERT INTO sessions (id, user_id, token, expires, created)
        VALUES (?, ?, ?, ?, ?)`,
       [
@@ -85,25 +85,25 @@ export class SQLiteAuthQueries implements AuthQueries {
         session.expires,
         session.created,
       ]
-    ) as QueryResult;
+    )[0];
   }
 
-  async getSessionByToken(token: string): Promise<SessionRow | null> {
-    const result = await this.db.query<SessionRow>(
+  getSessionByToken(token: string): SessionRow | null {
+    const result = this.db.query<SessionRow>(
       "SELECT * FROM sessions WHERE token = ?",
       [token]
     );
     return result[0] || null;
   }
 
-  async getSessionsByUserId(userId: string): Promise<SessionRow[]> {
-    return await this.db.query<SessionRow>(
+  getSessionsByUserId(userId: string): SessionRow[] {
+    return this.db.query<SessionRow>(
       "SELECT * FROM sessions WHERE user_id = ?",
       [userId]
     );
   }
 
-  async updateSession(id: string, updates: Partial<SessionRow>): Promise<QueryResult> {
+  updateSession(id: string, updates: Partial<SessionRow>): QueryResult {
     const fields = Object.keys(updates)
       .filter(key => key !== 'id') // Prevent ID updates
       .map(key => `${key} = ?`)
@@ -113,23 +113,23 @@ export class SQLiteAuthQueries implements AuthQueries {
       .filter(([key]) => key !== 'id')
       .map(([_, value]) => value);
 
-    return await this.db.query(
+    return this.db.query<QueryResult>(
       `UPDATE sessions SET ${fields} WHERE id = ?`,
       [...values, id]
-    ) as QueryResult;
+    )[0];
   }
 
-  async deleteSession(id: string): Promise<QueryResult> {
-    return await this.db.query(
+  deleteSession(id: string): QueryResult {
+    return this.db.query<QueryResult>(
       "DELETE FROM sessions WHERE id = ?",
       [id]
-    ) as QueryResult;
+    )[0];
   }
 
-  async deleteExpiredSessions(): Promise<QueryResult> {
-    return await this.db.query(
+  deleteExpiredSessions(): QueryResult {
+    return this.db.query<QueryResult>(
       "DELETE FROM sessions WHERE expires <= ?",
       [new Date().toISOString()]
-    ) as QueryResult;
+    )[0];
   }
 }

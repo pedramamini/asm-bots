@@ -1,7 +1,7 @@
-import { Database } from "./database.ts";
-import { SQLiteAuthQueries } from "./auth_queries.ts";
-import { SQLiteRankingQueries } from "./ranking_queries.ts";
-import type { Bot, Battle, BattleEvent } from "../types.ts";
+import { Database } from "./database";
+import { SQLiteAuthQueries } from "./auth_queries";
+import { SQLiteRankingQueries } from "./ranking_queries";
+import type { Bot, BotData, Battle, BattleData, BattleEvent } from "../types";
 import type {
   AuthQueries,
   RankingQueries,
@@ -14,18 +14,18 @@ import type {
 
 export interface DatabaseService extends DatabaseQueries {
   // Bot operations
-  createBot(bot: Omit<Bot, "id" | "created" | "updated">): Promise<Bot>;
-  getBot(id: string): Promise<Bot>;
-  listBots(owner?: string): Promise<Bot[]>;
-  updateBot(id: string, bot: Partial<Bot>): Promise<Bot>;
-  deleteBot(id: string): Promise<void>;
+  createBot(bot: Omit<BotData, "id" | "created" | "updated">): Bot;
+  getBot(id: string): Bot;
+  listBots(owner?: string): Bot[];
+  updateBot(id: string, bot: Partial<BotData>): Bot;
+  deleteBot(id: string): void;
 
   // Battle operations
-  createBattle(bots: string[]): Promise<Battle>;
-  getBattle(id: string): Promise<Battle>;
-  listBattles(status?: string): Promise<Battle[]>;
-  updateBattle(id: string, battle: Partial<Battle>): Promise<Battle>;
-  addBattleEvent(battleId: string, event: Omit<BattleEvent, "timestamp">): Promise<void>;
+  createBattle(bots: string[]): BattleData;
+  getBattle(id: string): BattleData;
+  listBattles(status?: string): BattleData[];
+  updateBattle(id: string, battle: Partial<BattleData>): BattleData;
+  addBattleEvent(battleId: string, event: Omit<BattleEvent, "timestamp">): void;
 
   // Database operations
   close(): void;
@@ -33,18 +33,80 @@ export interface DatabaseService extends DatabaseQueries {
 }
 
 export class SQLiteDatabaseService implements DatabaseService {
+  private createBotFromData(botData: BotData): Bot {
+    return {
+      ...botData,
+      memory: new Uint8Array(256), // Default memory size
+      pc: 0,
+      cyclesExecuted: 0,
+      color: '#' + Math.floor(Math.random()*16777215).toString(16), // Random color
+      currentInstruction: '',
+    };
+  }
   private db: Database;
   private authQueries: SQLiteAuthQueries;
   private rankingQueries: SQLiteRankingQueries;
+
+  // Auth operations
+  createUser: AuthQueries['createUser'];
+  getUserById: AuthQueries['getUserById'];
+  getUserByUsername: AuthQueries['getUserByUsername'];
+  getUserByEmail: AuthQueries['getUserByEmail'];
+  updateUser: AuthQueries['updateUser'];
+  deleteUser: AuthQueries['deleteUser'];
+  createSession: AuthQueries['createSession'];
+  getSessionByToken: AuthQueries['getSessionByToken'];
+  getSessionsByUserId: AuthQueries['getSessionsByUserId'];
+  updateSession: AuthQueries['updateSession'];
+  deleteSession: AuthQueries['deleteSession'];
+  deleteExpiredSessions: AuthQueries['deleteExpiredSessions'];
+
+  // Ranking operations
+  getRanking: RankingQueries['getRanking'];
+  getLeaderboard: RankingQueries['getLeaderboard'];
+  updateRanking: RankingQueries['updateRanking'];
+  addRankingHistory: RankingQueries['addRankingHistory'];
+  getRankingHistory: RankingQueries['getRankingHistory'];
+  getTopPerformers: RankingQueries['getTopPerformers'];
+  getWinRate: RankingQueries['getWinRate'];
+  getAverageScore: RankingQueries['getAverageScore'];
+  getRankPosition: RankingQueries['getRankPosition'];
+  getRecentBattles: RankingQueries['getRecentBattles'];
 
   constructor(dbPath: string) {
     this.db = new Database(dbPath);
     this.authQueries = new SQLiteAuthQueries(this.db);
     this.rankingQueries = new SQLiteRankingQueries(this.db);
+
+    // Initialize auth operations
+    this.createUser = this.authQueries.createUser.bind(this.authQueries);
+    this.getUserById = this.authQueries.getUserById.bind(this.authQueries);
+    this.getUserByUsername = this.authQueries.getUserByUsername.bind(this.authQueries);
+    this.getUserByEmail = this.authQueries.getUserByEmail.bind(this.authQueries);
+    this.updateUser = this.authQueries.updateUser.bind(this.authQueries);
+    this.deleteUser = this.authQueries.deleteUser.bind(this.authQueries);
+    this.createSession = this.authQueries.createSession.bind(this.authQueries);
+    this.getSessionByToken = this.authQueries.getSessionByToken.bind(this.authQueries);
+    this.getSessionsByUserId = this.authQueries.getSessionsByUserId.bind(this.authQueries);
+    this.updateSession = this.authQueries.updateSession.bind(this.authQueries);
+    this.deleteSession = this.authQueries.deleteSession.bind(this.authQueries);
+    this.deleteExpiredSessions = this.authQueries.deleteExpiredSessions.bind(this.authQueries);
+
+    // Initialize ranking operations
+    this.getRanking = this.rankingQueries.getRanking.bind(this.rankingQueries);
+    this.getLeaderboard = this.rankingQueries.getLeaderboard.bind(this.rankingQueries);
+    this.updateRanking = this.rankingQueries.updateRanking.bind(this.rankingQueries);
+    this.addRankingHistory = this.rankingQueries.addRankingHistory.bind(this.rankingQueries);
+    this.getRankingHistory = this.rankingQueries.getRankingHistory.bind(this.rankingQueries);
+    this.getTopPerformers = this.rankingQueries.getTopPerformers.bind(this.rankingQueries);
+    this.getWinRate = this.rankingQueries.getWinRate.bind(this.rankingQueries);
+    this.getAverageScore = this.rankingQueries.getAverageScore.bind(this.rankingQueries);
+    this.getRankPosition = this.rankingQueries.getRankPosition.bind(this.rankingQueries);
+    this.getRecentBattles = this.rankingQueries.getRecentBattles.bind(this.rankingQueries);
   }
 
   // Implement DatabaseQueries interface
-  query<T = unknown>(sql: string, params?: unknown[]): Promise<T[]> {
+  query<T = unknown>(sql: string, params?: unknown[]): T[] {
     return this.db.query(sql, params);
   }
 
@@ -52,142 +114,121 @@ export class SQLiteDatabaseService implements DatabaseService {
     this.db.execute(sql);
   }
 
-  // Auth operations
-  createUser = this.authQueries.createUser.bind(this.authQueries);
-  getUserById = this.authQueries.getUserById.bind(this.authQueries);
-  getUserByUsername = this.authQueries.getUserByUsername.bind(this.authQueries);
-  getUserByEmail = this.authQueries.getUserByEmail.bind(this.authQueries);
-  updateUser = this.authQueries.updateUser.bind(this.authQueries);
-  deleteUser = this.authQueries.deleteUser.bind(this.authQueries);
-  createSession = this.authQueries.createSession.bind(this.authQueries);
-  getSessionByToken = this.authQueries.getSessionByToken.bind(this.authQueries);
-  getSessionsByUserId = this.authQueries.getSessionsByUserId.bind(this.authQueries);
-  updateSession = this.authQueries.updateSession.bind(this.authQueries);
-  deleteSession = this.authQueries.deleteSession.bind(this.authQueries);
-  deleteExpiredSessions = this.authQueries.deleteExpiredSessions.bind(this.authQueries);
-
-  // Ranking operations
-  getRanking = this.rankingQueries.getRanking.bind(this.rankingQueries);
-  getLeaderboard = this.rankingQueries.getLeaderboard.bind(this.rankingQueries);
-  updateRanking = this.rankingQueries.updateRanking.bind(this.rankingQueries);
-  addRankingHistory = this.rankingQueries.addRankingHistory.bind(this.rankingQueries);
-  getRankingHistory = this.rankingQueries.getRankingHistory.bind(this.rankingQueries);
-  getTopPerformers = this.rankingQueries.getTopPerformers.bind(this.rankingQueries);
-  getWinRate = this.rankingQueries.getWinRate.bind(this.rankingQueries);
-  getAverageScore = this.rankingQueries.getAverageScore.bind(this.rankingQueries);
-  getRankPosition = this.rankingQueries.getRankPosition.bind(this.rankingQueries);
-  getRecentBattles = this.rankingQueries.getRecentBattles.bind(this.rankingQueries);
-
   // Bot operations
-  async createBot(botData: Omit<Bot, "id" | "created" | "updated">): Promise<Bot> {
-    const bot: Bot = {
+  createBot(botData: Omit<BotData, "id" | "created" | "updated">): Bot {
+    const bot: BotData = {
       id: crypto.randomUUID(),
       ...botData,
       created: new Date(),
       updated: new Date(),
     };
 
-    await this.db.saveBot(bot);
-    const savedBot = await this.db.getBot(bot.id);
+    this.db.saveBot(bot);
+    const savedBot = this.db.getBot(bot.id);
     if (!savedBot) {
       throw new Error("Failed to create bot");
     }
-    return savedBot;
+    return this.createBotFromData(savedBot);
   }
 
-  async getBot(id: string): Promise<Bot> {
-    const bot = await this.db.getBot(id);
-    if (!bot) {
+  getBot(id: string): Bot {
+    const botData = this.db.getBot(id);
+    if (!botData) {
       throw new Error(`Bot not found: ${id}`);
     }
-    return bot;
+    return this.createBotFromData(botData);
   }
 
-  async listBots(owner?: string): Promise<Bot[]> {
-    return await this.db.listBots(owner);
+  listBots(owner?: string): Bot[] {
+    const botDataList = this.db.listBots(owner);
+    return botDataList.map(botData => this.createBotFromData(botData));
   }
 
-  async updateBot(id: string, botData: Partial<Bot>): Promise<Bot> {
-    const existingBot = await this.getBot(id);
-    const updatedBot: Bot = {
-      ...existingBot,
+  updateBot(id: string, botData: Partial<BotData>): Bot {
+    const existingBotData = this.db.getBot(id);
+    if (!existingBotData) {
+      throw new Error(`Bot not found: ${id}`);
+    }
+
+    const updatedBotData: BotData = {
+      ...existingBotData,
       ...botData,
       id, // Ensure ID doesn't change
       updated: new Date(),
     };
 
-    await this.db.saveBot(updatedBot);
-    const savedBot = await this.db.getBot(id);
-    if (!savedBot) {
+    this.db.saveBot(updatedBotData);
+    const savedBotData = this.db.getBot(id);
+    if (!savedBotData) {
       throw new Error("Failed to update bot");
     }
-    return savedBot;
+    return this.createBotFromData(savedBotData);
   }
 
-  async deleteBot(id: string): Promise<void> {
-    const success = await this.db.deleteBot(id);
+  deleteBot(id: string): void {
+    const success = this.db.deleteBot(id);
     if (!success) {
       throw new Error(`Bot not found: ${id}`);
     }
   }
 
   // Battle operations
-  async createBattle(botIds: string[]): Promise<Battle> {
+  createBattle(botIds: string[]): BattleData {
     // Verify all bots exist
-    await Promise.all(botIds.map(id => this.getBot(id)));
+    botIds.forEach(id => this.getBot(id));
 
-    const battle: Battle = {
+    const battle: BattleData = {
       id: crypto.randomUUID(),
       bots: botIds,
       status: "pending",
       events: [],
     };
 
-    await this.db.saveBattle(battle);
-    const savedBattle = await this.db.getBattle(battle.id);
+    this.db.saveBattle(battle);
+    const savedBattle = this.db.getBattle(battle.id);
     if (!savedBattle) {
       throw new Error("Failed to create battle");
     }
     return savedBattle;
   }
 
-  async getBattle(id: string): Promise<Battle> {
-    const battle = await this.db.getBattle(id);
+  getBattle(id: string): BattleData {
+    const battle = this.db.getBattle(id);
     if (!battle) {
       throw new Error(`Battle not found: ${id}`);
     }
     return battle;
   }
 
-  async listBattles(status?: string): Promise<Battle[]> {
-    return await this.db.listBattles(status);
+  listBattles(status?: string): BattleData[] {
+    return this.db.listBattles(status);
   }
 
-  async updateBattle(id: string, battleData: Partial<Battle>): Promise<Battle> {
-    const existingBattle = await this.getBattle(id);
-    const updatedBattle: Battle = {
+  updateBattle(id: string, battleData: Partial<BattleData>): BattleData {
+    const existingBattle = this.getBattle(id);
+    const updatedBattle: BattleData = {
       ...existingBattle,
       ...battleData,
       id, // Ensure ID doesn't change
     };
 
-    await this.db.saveBattle(updatedBattle);
-    const savedBattle = await this.db.getBattle(id);
+    this.db.saveBattle(updatedBattle);
+    const savedBattle = this.db.getBattle(id);
     if (!savedBattle) {
       throw new Error("Failed to update battle");
     }
     return savedBattle;
   }
 
-  async addBattleEvent(battleId: string, event: Omit<BattleEvent, "timestamp">): Promise<void> {
-    const battle = await this.getBattle(battleId);
+  addBattleEvent(battleId: string, event: Omit<BattleEvent, "timestamp">): void {
+    const battle = this.getBattle(battleId);
     const newEvent: BattleEvent = {
       ...event,
       timestamp: Date.now(),
     };
 
     battle.events.push(newEvent);
-    await this.db.saveBattle(battle);
+    this.db.saveBattle(battle);
   }
 
   // Database operations

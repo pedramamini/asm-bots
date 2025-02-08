@@ -1,12 +1,53 @@
-import { DB } from "https://deno.land/x/sqlite@v3.8/mod.ts";
-import { Bot, Battle, BattleEvent } from "../types.ts";
+import Database from 'better-sqlite3';
+import type { Database as SQLiteDB } from 'better-sqlite3';
+import { BotData, BattleData, BattleEvent } from "../types";
+
+type BotRow = {
+  id: string;
+  name: string;
+  code: string;
+  owner: string;
+  created: string;
+  updated: string;
+};
+
+type BattleRow = {
+  id: string;
+  status: 'pending' | 'running' | 'paused' | 'completed';
+  winner: string | null;
+  start_time: string | null;
+  end_time: string | null;
+};
+
+type BattleParticipantRow = {
+  battle_id: string;
+  bot_id: string;
+};
+
+type BattleEventRow = {
+  battle_id: string;
+  bot_id: string;
+  type: 'instruction' | 'memory' | 'status' | 'victory';
+  timestamp: number;
+  data: string;
+};
 
 export class Database {
-  private db: DB;
+  private db: SQLiteDB;
 
   constructor(dbPath: string) {
-    this.db = new DB(dbPath);
+    this.db = new Database(dbPath);
     this.initializeTables();
+  }
+
+  // Expose query and execute methods
+  query<T = unknown>(sql: string, params?: unknown[]): T[] {
+    const stmt = this.db.prepare(sql);
+    return stmt.all(params || []) as T[];
+  }
+
+  execute(sql: string): void {
+    this.db.exec(sql);
   }
 
   private initializeTables() {
@@ -66,12 +107,12 @@ export class Database {
   }
 
   // Bot operations
-  async saveBot(bot: Bot): Promise<void> {
+  saveBot(bot: BotData): void {
     const query = `
       INSERT OR REPLACE INTO bots (id, name, code, owner, created, updated)
       VALUES (?, ?, ?, ?, ?, ?)
     `;
-    await this.db.query(query, [
+    this.query(query, [
       bot.id,
       bot.name,
       bot.code,
@@ -81,45 +122,45 @@ export class Database {
     ]);
   }
 
-  async getBot(id: string): Promise<Bot | null> {
-    const result = await this.db.query(
+  getBot(id: string): BotData | null {
+    const result = this.query<BotRow>(
       "SELECT * FROM bots WHERE id = ?",
       [id]
     );
 
     if (!result.length) return null;
 
-    const [botRow] = result;
+    const botRow = result[0];
     return {
-      id: botRow[0],
-      name: botRow[1],
-      code: botRow[2],
-      owner: botRow[3],
-      created: new Date(botRow[4]),
-      updated: new Date(botRow[5]),
+      id: botRow.id,
+      name: botRow.name,
+      code: botRow.code,
+      owner: botRow.owner,
+      created: new Date(botRow.created),
+      updated: new Date(botRow.updated),
     };
   }
 
-  async listBots(owner?: string): Promise<Bot[]> {
+  listBots(owner?: string): BotData[] {
     const query = owner
       ? "SELECT * FROM bots WHERE owner = ? ORDER BY created DESC"
       : "SELECT * FROM bots ORDER BY created DESC";
 
     const params = owner ? [owner] : [];
-    const results = await this.db.query(query, params);
+    const results = this.query<BotRow>(query, params);
 
     return results.map((row) => ({
-      id: row[0],
-      name: row[1],
-      code: row[2],
-      owner: row[3],
-      created: new Date(row[4]),
-      updated: new Date(row[5]),
+      id: row.id,
+      name: row.name,
+      code: row.code,
+      owner: row.owner,
+      created: new Date(row.created),
+      updated: new Date(row.updated),
     }));
   }
 
-  async deleteBot(id: string): Promise<boolean> {
-    const result = await this.db.query(
+  deleteBot(id: string): boolean {
+    const result = this.query(
       "DELETE FROM bots WHERE id = ?",
       [id]
     );
@@ -127,13 +168,13 @@ export class Database {
   }
 
   // Battle operations
-  async saveBattle(battle: Battle): Promise<void> {
+  saveBattle(battle: BattleData): void {
     // Start a transaction
-    this.db.execute("BEGIN TRANSACTION");
+    this.execute("BEGIN TRANSACTION");
 
     try {
       // Insert battle record
-      await this.db.query(
+      this.query(
         `INSERT OR REPLACE INTO battles (id, status, winner, start_time, end_time)
          VALUES (?, ?, ?, ?, ?)`,
         [
@@ -146,14 +187,14 @@ export class Database {
       );
 
       // Clear existing participants
-      await this.db.query(
+      this.query(
         "DELETE FROM battle_participants WHERE battle_id = ?",
         [battle.id]
       );
 
       // Insert participants
       for (const botId of battle.bots) {
-        await this.db.query(
+        this.query<BattleParticipantRow>(
           "INSERT INTO battle_participants (battle_id, bot_id) VALUES (?, ?)",
           [battle.id, botId]
         );
@@ -161,7 +202,7 @@ export class Database {
 
       // Save events
       for (const event of battle.events) {
-        await this.db.query(
+        this.query<BattleEventRow>(
           `INSERT INTO battle_events (battle_id, bot_id, type, timestamp, data)
            VALUES (?, ?, ?, ?, ?)`,
           [
@@ -174,62 +215,62 @@ export class Database {
         );
       }
 
-      this.db.execute("COMMIT");
+      this.execute("COMMIT");
     } catch (error) {
-      this.db.execute("ROLLBACK");
+      this.execute("ROLLBACK");
       throw error;
     }
   }
 
-  async getBattle(id: string): Promise<Battle | null> {
-    const battleRow = await this.db.query(
+  getBattle(id: string): BattleData | null {
+    const battleRows = this.query<BattleRow>(
       "SELECT * FROM battles WHERE id = ?",
       [id]
     );
 
-    if (!battleRow.length) return null;
+    if (!battleRows.length) return null;
 
-    const [battle] = battleRow;
+    const battle = battleRows[0];
 
     // Get participants
-    const participants = await this.db.query(
+    const participants = this.query<BattleParticipantRow>(
       "SELECT bot_id FROM battle_participants WHERE battle_id = ?",
       [id]
     );
 
     // Get events
-    const events = await this.db.query(
+    const events = this.query<BattleEventRow>(
       "SELECT bot_id, type, timestamp, data FROM battle_events WHERE battle_id = ? ORDER BY timestamp",
       [id]
     );
 
     return {
-      id: battle[0],
-      status: battle[1],
-      winner: battle[2] || undefined,
-      startTime: battle[3] ? new Date(battle[3]) : undefined,
-      endTime: battle[4] ? new Date(battle[4]) : undefined,
-      bots: participants.map((row) => row[0]),
-      events: events.map((row) => ({
-        botId: row[0],
-        type: row[1],
-        timestamp: row[2],
-        data: JSON.parse(row[3]),
+      id: battle.id,
+      status: battle.status,
+      winner: battle.winner || undefined,
+      startTime: battle.start_time ? new Date(battle.start_time) : undefined,
+      endTime: battle.end_time ? new Date(battle.end_time) : undefined,
+      bots: participants.map(row => row.bot_id),
+      events: events.map(row => ({
+        botId: row.bot_id,
+        type: row.type,
+        timestamp: row.timestamp,
+        data: JSON.parse(row.data),
       })),
     };
   }
 
-  async listBattles(status?: string): Promise<Battle[]> {
+  listBattles(status?: string): BattleData[] {
     const query = status
       ? "SELECT id FROM battles WHERE status = ? ORDER BY start_time DESC"
       : "SELECT id FROM battles ORDER BY start_time DESC";
 
     const params = status ? [status] : [];
-    const results = await this.db.query(query, params);
+    const results = this.query<{ id: string }>(query, params);
 
-    const battles: Battle[] = [];
-    for (const [id] of results) {
-      const battle = await this.getBattle(id);
+    const battles: BattleData[] = [];
+    for (const { id } of results) {
+      const battle = this.getBattle(id);
       if (battle) battles.push(battle);
     }
 
