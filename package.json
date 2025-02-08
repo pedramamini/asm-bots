@@ -3,13 +3,22 @@
   "version": "1.0.0",
   "description": "ASM Bots - Core Wars Platform",
   "main": "src/server/server.js",
+  "type": "module",
   "scripts": {
     "start": "node src/server/server.js",
-    "dev": "nodemon src/server/server.js"
+    "dev": "nodemon src/server/server.js",
+    "build": "tsc",
+    "watch": "tsc -w"
   },
   "dependencies": {
     "express": "^4.18.2",
     "nodemon": "^3.1.9",
     "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.17",
+    "@types/ws": "^8.5.10",
+    "typescript": "^5.3.3"
   }
 }

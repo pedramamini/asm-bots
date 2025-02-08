@@ -1,13 +1,59 @@
-const express = require('express');
-const path = require('path');
-const WebSocket = require('ws');
+import express from 'express';
+import path from 'path';
+import { WebSocket, WebSocketServer as WS } from 'ws';
+import { fileURLToPath } from 'url';
+import { WebSocketServer } from './websocket.js';
+import { BattleController } from '../battle/BattleController.js';
+import { ProcessManager } from '../battle/ProcessManager.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const port = 8000;
 
-// In-memory storage for bots and battles
-const bots = new Map();
-const battles = new Map();
-const clients = new Set();
+// Initialize storage
+const storage = {
+  bots: new Map(),
+  battles: new Map(),
+  clients: new Map(),
+  async createProcess(code, name) {
+    const processManager = new ProcessManager({
+      defaultQuantum: 100,
+      defaultPriority: 1,
+      maxProcesses: 10
+    });
+
+    // Create process with the bot's code
+    const processId = processManager.create({
+      name,
+      owner: 'user',
+      memorySegments: [], // TODO: Parse and compile code to get memory segments
+      entryPoint: 0
+    });
+
+    return processId;
+  }
+};
+
+// Create default battle
+const processManager = new ProcessManager({
+  defaultQuantum: 100,
+  defaultPriority: 1,
+  maxProcesses: 10
+});
+
+const battleController = new BattleController(processManager, {
+  maxTurns: 1000,
+  maxCyclesPerTurn: 100,
+  maxMemoryPerProcess: 1024,
+  maxLogEntries: 1000
+});
+
+storage.battles.set('default', battleController);
+
+// Create WebSocket server instance
+const wsServer = new WebSocketServer(storage);
 
 // Add logging middleware
 app.use((req, res, next) => {
@@ -19,98 +65,16 @@ app.use((req, res, next) => {
 app.use(express.json());
 
 // Serve static files from the web directory
-app.use(express.static('/app/src/web'));
+app.use(express.static(path.join(__dirname, '../web')));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  console.log('Health check request received');
   res.send('OK');
-});
-
-// API endpoint to upload a bot
-app.post('/api/bots', (req, res) => {
-  console.log('Uploading bot:', req.body.name);
-  const { name, code } = req.body;
-  if (!name || !code) {
-    return res.status(400).json({ error: 'Name and code are required' });
-  }
-
-  const botId = Date.now().toString();
-  const bot = { id: botId, name, code, state: 'waiting' };
-  bots.set(botId, bot);
-
-  // Notify all clients about the new bot
-  broadcastToClients({
-    type: 'bots',
-    data: Array.from(bots.values())
-  });
-
-  res.status(201).json(bot);
-});
-
-// API endpoint to list bots
-app.get('/api/bots', (req, res) => {
-  res.json(Array.from(bots.values()));
-});
-
-// API endpoint to start a battle
-app.post('/api/battles', (req, res) => {
-  console.log('Starting battle:', req.body);
-  const { botIds } = req.body;
-  if (!botIds || !Array.isArray(botIds) || botIds.length < 2) {
-    return res.status(400).json({ error: 'At least two bot IDs are required' });
-  }
-
-  // Verify all bots exist
-  const battleBots = botIds.map(id => bots.get(id)).filter(Boolean);
-  if (battleBots.length !== botIds.length) {
-    return res.status(400).json({ error: 'One or more bots not found' });
-  }
-
-  const battleId = Date.now().toString();
-  const battle = {
-    id: battleId,
-    bots: battleBots,
-    status: 'running',
-    memory: new Array(0xFFFF).fill(0),
-    cycles: 0,
-    maxCycles: 80000
-  };
-
-  battles.set(battleId, battle);
-
-  // Update bot states
-  battleBots.forEach(bot => {
-    bot.state = 'running';
-    bots.set(bot.id, bot);
-  });
-
-  // Notify all clients about the battle and updated bot states
-  broadcastToClients({
-    type: 'battles',
-    data: Array.from(battles.values())
-  });
-  broadcastToClients({
-    type: 'bots',
-    data: Array.from(bots.values())
-  });
-
-  res.status(201).json(battle);
-});
-
-// API endpoint to get battle status
-app.get('/api/battles/:id', (req, res) => {
-  const battle = battles.get(req.params.id);
-  if (!battle) {
-    return res.status(404).json({ error: 'Battle not found' });
-  }
-  res.json(battle);
 });
 
 // Serve index.html for all other routes
 app.get('*', (req, res) => {
-  console.log('Serving index.html');
-  res.sendFile('/app/src/web/index.html');
+  res.sendFile(path.join(__dirname, '../web/index.html'));
 });
 
 // Create HTTP server
@@ -119,59 +83,9 @@ const server = app.listen(port, '0.0.0.0', () => {
 });
 
 // Create WebSocket server
-const wss = new WebSocket.Server({ server });
+const wss = new WS({ server });
 
-// Broadcast to all connected clients
-function broadcastToClients(message) {
-  const data = JSON.stringify(message);
-  console.log('Broadcasting:', data);
-  clients.forEach(client => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(data);
-    }
-  });
-}
-
-wss.on('connection', (ws) => {
-  console.log('WebSocket client connected');
-  clients.add(ws);
-
-  // Send initial data
-  ws.send(JSON.stringify({
-    type: 'bots',
-    data: Array.from(bots.values())
-  }));
-
-  ws.send(JSON.stringify({
-    type: 'battles',
-    data: Array.from(battles.values())
-  }));
-
-  ws.on('message', (message) => {
-    try {
-      const data = JSON.parse(message);
-      console.log('Received:', data);
-
-      switch (data.type) {
-        case 'pause':
-          // Handle pause
-          break;
-        case 'reset':
-          // Handle reset
-          break;
-      }
-    } catch (error) {
-      console.error('Error handling message:', error);
-    }
-  });
-
-  ws.on('close', () => {
-    console.log('Client disconnected');
-    clients.delete(ws);
-  });
-
-  ws.on('error', (error) => {
-    console.error('WebSocket error:', error);
-    clients.delete(ws);
-  });
+// Handle WebSocket connections
+wss.on('connection', (socket) => {
+  wsServer.handleConnection(socket).catch(console.error);
 });
