@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ES2022",
-    "moduleResolution": "bundler",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "strict": true,
     "esModuleInterop": true,
@@ -14,18 +14,13 @@
     "sourceMap": true,
     "allowJs": true,
     "checkJs": true,
-    "allowImportingTsExtensions": true,
-    "noEmit": true,
     "isolatedModules": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "typeRoots": [
       "./node_modules/@types",
       "./src/types"
-    ],
-    "paths": {
-      "https://deno.land/std@0.208.0/*": ["./node_modules/@types/node/*"]
-    }
+    ]
   },
   "ts-node": {
     "esm": true,

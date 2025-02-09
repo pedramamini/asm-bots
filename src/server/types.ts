@@ -1,5 +1,6 @@
-import { BattleState } from "../battle/BattleController";
-import { ProcessId } from "../battle/types";
+import { BattleState } from "../battle/BattleController.js";
+import { ProcessId } from "../battle/types.js";
+import { WebSocket } from 'ws';
 
 // Database Bot type without runtime properties
 export interface BotData {
@@ -58,11 +59,6 @@ export interface BattleEvent {
 export interface WebSocketMessage {
   type: 'battleUpdate' | 'botUpdate' | 'error' | 'botUploaded' | 'executionLog';
   data: Battle | Bot | { message: string } | { botId: string; name: string } | BattleEvent[];
-}
-
-export interface RouterContext {
-  request: Request;
-  response: Response;
 }
 
 export interface BotCreateRequest {

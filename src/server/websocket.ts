@@ -1,4 +1,5 @@
-import { WebSocketClient, WebSocketEvent, Storage } from "./types";
+import { WebSocket } from 'ws';
+import { WebSocketClient, WebSocketEvent, Storage } from "./types.js";
 
 export class WebSocketServer {
   private storage: Storage;
@@ -18,18 +19,18 @@ export class WebSocketServer {
     this.storage.clients.set(clientId, client);
 
     try {
-      socket.onmessage = async (e) => {
-        await this.handleWebSocketMessage(clientId, e.data);
-      };
+      socket.on('message', async (data) => {
+        await this.handleWebSocketMessage(clientId, data.toString());
+      });
 
-      socket.onclose = () => {
+      socket.on('close', () => {
         this.handleDisconnect(clientId);
-      };
+      });
 
-      socket.onerror = (e) => {
+      socket.on('error', (e) => {
         console.error(`WebSocket error:`, e);
         this.handleDisconnect(clientId);
-      };
+      });
     } catch (err) {
       console.error(`WebSocket error:`, err);
       this.handleDisconnect(clientId);
@@ -226,7 +227,7 @@ export class WebSocketServer {
 
     try {
       const messageStr = typeof message === 'string' ? message : JSON.stringify(message);
-      await client.socket.send(messageStr);
+      client.socket.send(messageStr);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error sending message';
       console.error(`Error sending message to client ${clientId}:`, errorMessage);

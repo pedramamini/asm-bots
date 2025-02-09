@@ -1,43 +1,71 @@
-import { Application, Router } from "https://deno.land/x/oak@v12.6.1/mod.ts";
-import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
-import { WebSocketServer } from "./websocket.ts";
+import express from 'express';
+import { WebSocket, WebSocketServer as WSServer } from 'ws';
+import { WebSocketServer } from "./websocket.js";
 import type {
-  RouterContext,
   Storage,
   Bot,
   Battle,
   BotCreateRequest,
   BattleCreateRequest,
   ApiResponse,
-} from "./types.ts";
+} from "./types.js";
+import { BattleController, type BattleOptions } from "../battle/BattleController.js";
+import { ProcessManager } from "../battle/ProcessManager.js";
+import type { SchedulerOptions } from "../battle/types.js";
+
+// Initialize ProcessManager with scheduler options
+const schedulerOptions: SchedulerOptions = {
+  maxProcesses: 100,
+  defaultPriority: 1,
+  defaultQuantum: 10
+};
+
+const processManager = new ProcessManager(schedulerOptions);
 
 // Initialize storage
 const storage: Storage = {
   bots: new Map<string, Bot>(),
   battles: new Map<string, Battle>(),
   clients: new Map(),
+  async createProcess(code: string, name: string) {
+    return processManager.create({
+      name,
+      code,
+      owner: 'system',
+      entryPoint: 0,
+      memorySegments: [{ start: 0, size: 256, data: new Uint8Array(256) }]
+    });
+  }
 };
 
-const router = new Router();
-const wsServer = new WebSocketServer(storage);
+export const app = express();
+export const wsServer = new WebSocketServer(storage);
+
+// Middleware
+app.use(express.json());
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+});
 
 // Bot Management Endpoints
-router.get("/api/bots", (ctx: RouterContext) => {
+app.get("/api/bots", (req, res) => {
   const response: ApiResponse<Bot[]> = {
     success: true,
     data: Array.from(storage.bots.values()),
   };
-  ctx.response.body = response;
+  res.json(response);
 });
 
-router.get("/api/bots/:id", (ctx: RouterContext) => {
-  const bot = storage.bots.get(ctx.params.id);
+app.get("/api/bots/:id", (req, res) => {
+  const bot = storage.bots.get(req.params.id);
   if (!bot) {
-    ctx.response.status = 404;
-    ctx.response.body = {
+    res.status(404).json({
       success: false,
       error: "Bot not found",
-    };
+    });
     return;
   }
 
@@ -45,37 +73,33 @@ router.get("/api/bots/:id", (ctx: RouterContext) => {
     success: true,
     data: bot,
   };
-  ctx.response.body = response;
+  res.json(response);
 });
 
-router.post("/api/bots", async (ctx: RouterContext) => {
-  const body = ctx.request.body();
-  if (body.type !== "json") {
-    ctx.response.status = 400;
-    ctx.response.body = {
-      success: false,
-      error: "Content-Type must be application/json",
-    };
-    return;
-  }
+app.post("/api/bots", (req, res) => {
+  const body = req.body as BotCreateRequest;
 
-  const botData = await body.value as BotCreateRequest;
-  if (!botData.name || !botData.code) {
-    ctx.response.status = 400;
-    ctx.response.body = {
+  if (!body || !body.name || !body.code) {
+    res.status(400).json({
       success: false,
       error: "Name and code are required",
-    };
+    });
     return;
   }
 
+  // Create bot with runtime properties
   const bot: Bot = {
     id: crypto.randomUUID(),
-    name: botData.name,
-    code: botData.code,
-    owner: botData.owner || "anonymous",
+    name: body.name,
+    code: body.code,
+    owner: body.owner || "anonymous",
     created: new Date(),
     updated: new Date(),
+    memory: new Uint8Array(256), // Default memory size
+    pc: 0,
+    cyclesExecuted: 0,
+    color: `#${Math.floor(Math.random()*16777215).toString(16)}`, // Random color
+    currentInstruction: "",
   };
 
   storage.bots.set(bot.id, bot);
@@ -84,61 +108,63 @@ router.post("/api/bots", async (ctx: RouterContext) => {
     success: true,
     data: bot,
   };
-  ctx.response.status = 201;
-  ctx.response.body = response;
+  res.status(201).json(response);
 });
 
-router.delete("/api/bots/:id", (ctx: RouterContext) => {
-  if (!storage.bots.delete(ctx.params.id)) {
-    ctx.response.status = 404;
-    ctx.response.body = {
+app.delete("/api/bots/:id", (req, res) => {
+  if (!storage.bots.delete(req.params.id)) {
+    res.status(404).json({
       success: false,
       error: "Bot not found",
-    };
+    });
     return;
   }
-  ctx.response.status = 204;
+  res.status(204).send();
 });
 
 // Battle Operations Endpoints
-router.post("/api/battles", async (ctx: RouterContext) => {
-  const body = ctx.request.body();
-  if (body.type !== "json") {
-    ctx.response.status = 400;
-    ctx.response.body = {
-      success: false,
-      error: "Content-Type must be application/json",
-    };
-    return;
-  }
+app.post("/api/battles", (req, res) => {
+  const body = req.body as BattleCreateRequest;
 
-  const battleData = await body.value as BattleCreateRequest;
-  if (!battleData.bots || !Array.isArray(battleData.bots) || battleData.bots.length < 2) {
-    ctx.response.status = 400;
-    ctx.response.body = {
+  if (!body || !body.bots || !Array.isArray(body.bots) || body.bots.length < 2) {
+    res.status(400).json({
       success: false,
       error: "At least two bots are required",
-    };
+    });
     return;
   }
 
   // Validate that all bots exist
-  for (const botId of battleData.bots) {
+  for (const botId of body.bots) {
     if (!storage.bots.has(botId)) {
-      ctx.response.status = 400;
-      ctx.response.body = {
+      res.status(400).json({
         success: false,
         error: `Bot ${botId} not found`,
-      };
+      });
       return;
     }
   }
 
+  // Create battle controller with runtime methods
+  const battleOptions: BattleOptions = {
+    maxTurns: 1000,
+    maxCyclesPerTurn: 100,
+    maxMemoryPerProcess: 256,
+    maxLogEntries: 1000
+  };
+
+  const battleController = new BattleController(processManager, battleOptions);
   const battle: Battle = {
     id: crypto.randomUUID(),
-    bots: battleData.bots,
+    bots: body.bots,
     status: 'pending',
     events: [],
+    memorySize: 256, // Default memory size
+    start: () => battleController.start(),
+    pause: () => battleController.pause(),
+    reset: () => battleController.reset(),
+    getState: () => battleController.getState(),
+    addProcess: (processId) => battleController.addProcess(processId),
   };
 
   storage.battles.set(battle.id, battle);
@@ -147,18 +173,16 @@ router.post("/api/battles", async (ctx: RouterContext) => {
     success: true,
     data: battle,
   };
-  ctx.response.status = 201;
-  ctx.response.body = response;
+  res.status(201).json(response);
 });
 
-router.get("/api/battles/:id", (ctx: RouterContext) => {
-  const battle = storage.battles.get(ctx.params.id);
+app.get("/api/battles/:id", (req, res) => {
+  const battle = storage.battles.get(req.params.id);
   if (!battle) {
-    ctx.response.status = 404;
-    ctx.response.body = {
+    res.status(404).json({
       success: false,
       error: "Battle not found",
-    };
+    });
     return;
   }
 
@@ -166,31 +190,30 @@ router.get("/api/battles/:id", (ctx: RouterContext) => {
     success: true,
     data: battle,
   };
-  ctx.response.body = response;
+  res.json(response);
 });
 
-router.post("/api/battles/:id/start", async (ctx: RouterContext) => {
-  const battle = storage.battles.get(ctx.params.id);
+app.post("/api/battles/:id/start", async (req, res) => {
+  const battle = storage.battles.get(req.params.id);
   if (!battle) {
-    ctx.response.status = 404;
-    ctx.response.body = {
+    res.status(404).json({
       success: false,
       error: "Battle not found",
-    };
+    });
     return;
   }
 
   if (battle.status !== 'pending') {
-    ctx.response.status = 400;
-    ctx.response.body = {
+    res.status(400).json({
       success: false,
       error: "Battle is not in pending state",
-    };
+    });
     return;
   }
 
   battle.status = 'running';
   battle.startTime = new Date();
+  battle.start();
 
   // Notify WebSocket clients about battle start
   await wsServer.broadcastBattleUpdate(battle.id);
@@ -199,49 +222,28 @@ router.post("/api/battles/:id/start", async (ctx: RouterContext) => {
     success: true,
     data: battle,
   };
-  ctx.response.body = response;
+  res.json(response);
 });
 
-// WebSocket endpoint
-router.get("/ws", async (ctx: RouterContext) => {
-  if (!ctx.isUpgradable) {
-    ctx.response.status = 400;
-    ctx.response.body = {
-      success: false,
-      error: "WebSocket upgrade required",
-    };
-    return;
-  }
+// Create WebSocket server
+const wss = new WSServer({ noServer: true });
 
-  const socket = await ctx.upgrade();
-  await wsServer.handleConnection(socket);
+// Handle WebSocket upgrade
+export const server = app.listen(8080, () => {
+  console.log('API server running on http://localhost:8080');
 });
 
-// Create the application
-const app = new Application();
+server.on('upgrade', (request, socket, head) => {
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wsServer.handleConnection(ws);
+  });
+});
 
 // Error handling
-app.use(async (ctx: RouterContext, next) => {
-  try {
-    await next();
-  } catch (err) {
-    console.error(err);
-    ctx.response.status = 500;
-    ctx.response.body = {
-      success: false,
-      error: "Internal server error",
-    };
-  }
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error(err);
+  res.status(500).json({
+    success: false,
+    error: "Internal server error",
+  });
 });
-
-// CORS middleware
-app.use(oakCors());
-
-// Router middleware
-app.use(router.routes());
-app.use(router.allowedMethods());
-
-// Start the server
-const port = 8080;
-console.log(`API server running on http://localhost:${port}`);
-await app.listen({ port });
