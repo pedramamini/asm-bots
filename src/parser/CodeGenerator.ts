@@ -30,6 +30,10 @@ export class CodeGenerator {
     'jnz': 0x32,
     'je': 0x33,
     'jne': 0x34,
+    'jl': 0x35,
+    'jg': 0x36,
+    'jge': 0x37,
+    'jle': 0x38,
     'push': 0x40,
     'pop': 0x41,
     'call': 0x42,
@@ -41,7 +45,13 @@ export class CodeGenerator {
     'inc': 0x60,
     'dec': 0x61,
     'nop': 0x00,
-    'halt': 0xFF
+    'halt': 0xFF,
+    'cmp': 0x70,  // Compare instruction
+    'spl': 0xA0,  // Split process
+    'dat': 0xF0,  // Data (used as a bomb)
+    'test': 0x71, // Test bits
+    'lea': 0x80,  // Load effective address
+    'xchg': 0x11  // Exchange values
   };
 
   private static readonly REGISTERS: { [key: string]: number } = {
@@ -51,8 +61,18 @@ export class CodeGenerator {
     'r3': 0x03,
     'sp': 0x04,
     'pc': 0x05,
-    'flags': 0x06
+    'flags': 0x06,
+    // Add x86-style registers
+    'ax': 0x10,
+    'bx': 0x11,
+    'cx': 0x12,
+    'dx': 0x13,
+    'si': 0x14,
+    'di': 0x15
   };
+
+  // Set of valid registers for memory access checking
+  private static readonly VALID_REGISTERS = new Set(Object.keys(CodeGenerator.REGISTERS));
 
   private symbols: SymbolTable;
   private baseAddress: number;
@@ -127,7 +147,7 @@ export class CodeGenerator {
     }
 
     // Jump instructions always have size 3
-    if ((opcode >= 0x30 && opcode <= 0x34) || opcode === 0x42) {
+    if ((opcode >= 0x30 && opcode <= 0x38) || opcode === 0x42) {
       return 3;
     }
 
@@ -147,13 +167,55 @@ export class CodeGenerator {
   private encodeOperand(token: Token): number {
     switch (token.type) {
       case TokenType.Register:
-        return CodeGenerator.REGISTERS[token.value];
+        return CodeGenerator.REGISTERS[token.value] || 0;
+      
       case TokenType.Immediate:
-        return parseInt(token.value.startsWith('0x') ? token.value : token.value, 0);
+        if (token.value.startsWith('0x')) {
+          return parseInt(token.value.slice(2), 16);
+        } else if (token.value.startsWith('$')) {
+          return parseInt(token.value.slice(1), 16);
+        } else {
+          return parseInt(token.value, 10);
+        }
+      
       case TokenType.Address:
         return parseInt(token.value.slice(1), 16);
+      
       case TokenType.Symbol:
         return this.symbols[token.value] || 0;
+      
+      case TokenType.MemoryAccess:
+        // Memory access needs special encoding:
+        // We'll mark it with a high bit to indicate memory access
+        const memContents = token.value;
+        if (memContents.includes('+')) {
+          // Indexed addressing [reg+offset]
+          const parts = memContents.split('+').map(p => p.trim());
+          if (parts.length === 2) {
+            const reg = parts[0].toLowerCase();
+            const offset = parts[1];
+            
+            // For simplicity, we'll encode as (reg_code << 8 | offset)
+            const regCode = CodeGenerator.REGISTERS[reg] || 0;
+            const offsetVal = this.validateNumber(offset) 
+              ? parseInt(offset, 0) 
+              : (this.symbols[offset] || 0);
+              
+            return 0x8000 | (regCode << 8) | (offsetVal & 0xFF);
+          }
+        } else if (CodeGenerator.VALID_REGISTERS.has(memContents.toLowerCase())) {
+          // Simple register indirect [reg]
+          const regCode = CodeGenerator.REGISTERS[memContents.toLowerCase()] || 0;
+          return 0x8000 | regCode;
+        } else if (this.validateNumber(memContents)) {
+          // Direct memory access [address]
+          return 0x8000 | (parseInt(memContents, 0) & 0x7FFF);
+        } else {
+          // Symbol reference
+          return 0x8000 | (this.symbols[memContents] || 0);
+        }
+        return 0;
+      
       default:
         throw new Error(`Invalid operand type: ${token.type} at line ${token.line}`);
     }
@@ -163,7 +225,12 @@ export class CodeGenerator {
     return token.type === TokenType.Register ||
            token.type === TokenType.Immediate ||
            token.type === TokenType.Address ||
-           token.type === TokenType.Symbol;
+           token.type === TokenType.Symbol ||
+           token.type === TokenType.MemoryAccess;
+  }
+  
+  private validateNumber(str: string): boolean {
+    return /^-?\d+$/.test(str) || /^0x[0-9a-fA-F]+$/.test(str);
   }
 
   layout(instructions: Instruction[], symbols: SymbolTable): GeneratedCode {
@@ -214,7 +281,7 @@ export class CodeGenerator {
       for (let i = 0; i < data.length; i++) {
         const opcode = data[i];
         // Check if this is a jump or call instruction
-        if ((opcode >= 0x30 && opcode <= 0x34) || opcode === 0x42) {
+        if ((opcode >= 0x30 && opcode <= 0x38) || opcode === 0x42) {
           // Next value is an address, adjust it
           if (i + 1 < data.length) {
             data[i + 1] += offset;

@@ -5,7 +5,11 @@ export enum TokenType {
   Address = 'Address',
   Symbol = 'Symbol',
   Register = 'Register',
-  Delimiter = 'Delimiter'
+  Delimiter = 'Delimiter',
+  Directive = 'Directive',
+  MemoryAccess = 'MemoryAccess',
+  StringLiteral = 'StringLiteral',
+  DataDefinition = 'DataDefinition'
 }
 
 export interface Token {
