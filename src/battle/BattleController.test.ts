@@ -1,6 +1,6 @@
-import { BattleController, BattleOptions } from './BattleController';
-import { ProcessManager } from './ProcessManager';
-import { ProcessCreateOptions, ProcessState } from './types';
+import { BattleController, BattleOptions } from './BattleController.js';
+import { ProcessManager } from './ProcessManager.js';
+import { ProcessCreateOptions, ProcessState } from './types.js';
 
 describe('BattleController', () => {
   let controller: BattleController;
@@ -15,7 +15,7 @@ describe('BattleController', () => {
   const defaultProcessOptions: ProcessCreateOptions = {
     name: 'test-process',
     owner: 'test-owner',
-    memorySegments: [{ name: 'code', start: 0, size: 100, data: [] }],
+    memorySegments: [{ name: 'code', start: 0, size: 100, data: new Uint8Array(100) }],
     entryPoint: 0,
     quantum: 2 // Small quantum for testing
   };
@@ -204,7 +204,7 @@ describe('BattleController', () => {
     it('enforces memory limits for processes', () => {
       const largeProcess = processManager.create({
         ...defaultProcessOptions,
-        memorySegments: [{ name: 'code', start: 0, size: 2000, data: [] }]
+        memorySegments: [{ name: 'code', start: 0, size: 2000, data: new Uint8Array(2000) }]
       });
 
       expect(() => controller.addProcess(largeProcess))

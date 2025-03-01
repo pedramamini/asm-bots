@@ -1,4 +1,4 @@
-import { MemorySegment } from '../parser/CodeGenerator';
+import { MemorySegment } from '../parser/CodeGenerator.js';
 
 export enum ProcessState {
   Ready = 'Ready',

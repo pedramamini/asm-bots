@@ -1,5 +1,5 @@
-import { ProcessManager } from './ProcessManager';
-import { ProcessState, ProcessCreateOptions } from './types';
+import { ProcessManager } from './ProcessManager.js';
+import { ProcessState, ProcessCreateOptions } from './types.js';
 
 describe('ProcessManager', () => {
   let manager: ProcessManager;
@@ -13,7 +13,7 @@ describe('ProcessManager', () => {
   const defaultProcessOptions: ProcessCreateOptions = {
     name: 'test-process',
     owner: 'test-owner',
-    memorySegments: [{ name: 'code', start: 0, size: 100, data: [] }],
+    memorySegments: [{ name: 'code', start: 0, size: 100, data: new Uint8Array(100) }],
     entryPoint: 0
   };
 

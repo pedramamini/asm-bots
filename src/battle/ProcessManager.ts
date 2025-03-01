@@ -8,7 +8,7 @@ import {
   SchedulerStats,
   ResourceUsage,
   ResourceLimits
-} from './types';
+} from './types.js';
 
 export class ProcessManager {
   private processes: Map<ProcessId, Process>;

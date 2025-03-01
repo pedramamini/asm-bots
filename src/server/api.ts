@@ -1,5 +1,6 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { WebSocket, WebSocketServer as WSServer } from 'ws';
+import { randomUUID } from 'node:crypto';
 import { WebSocketServer } from "./websocket.js";
 import type {
   Storage,
@@ -10,8 +11,11 @@ import type {
   ApiResponse,
 } from "./types.js";
 import { BattleController, type BattleOptions } from "../battle/BattleController.js";
+import { BattleSystem } from "../battle/BattleSystem.js";
 import { ProcessManager } from "../battle/ProcessManager.js";
 import type { SchedulerOptions } from "../battle/types.js";
+import { AssemblyParser } from "../parser/AssemblyParser.js";
+import { CodeGenerator } from "../parser/CodeGenerator.js";
 
 // Initialize ProcessManager with scheduler options
 const schedulerOptions: SchedulerOptions = {
@@ -20,7 +24,18 @@ const schedulerOptions: SchedulerOptions = {
   defaultQuantum: 10
 };
 
+// Default battle options
+const defaultBattleOptions: BattleOptions = {
+  maxTurns: 1000,
+  maxCyclesPerTurn: 100,
+  maxMemoryPerProcess: 256,
+  maxLogEntries: 1000
+};
+
 const processManager = new ProcessManager(schedulerOptions);
+const parser = new AssemblyParser();
+const codeGenerator = new CodeGenerator();
+const battleSystem = new BattleSystem(defaultBattleOptions);
 
 // Initialize storage
 const storage: Storage = {
@@ -28,12 +43,22 @@ const storage: Storage = {
   battles: new Map<string, Battle>(),
   clients: new Map(),
   async createProcess(code: string, name: string) {
+    // Parse assembly code
+    const parseResult = parser.parse(code);
+    if (parseResult.errors.length > 0) {
+      throw new Error(`Assembly parsing error: ${parseResult.errors[0].message} at line ${parseResult.errors[0].line}`);
+    }
+
+    // Generate code
+    const instructions = codeGenerator.encode(parseResult.tokens);
+    const generatedCode = codeGenerator.layout(instructions, parseResult.symbols);
+
+    // Create process
     return processManager.create({
       name,
-      code,
       owner: 'system',
-      entryPoint: 0,
-      memorySegments: [{ start: 0, size: 256, data: new Uint8Array(256) }]
+      entryPoint: generatedCode.entryPoint,
+      memorySegments: generatedCode.segments,
     });
   }
 };
@@ -43,7 +68,7 @@ export const wsServer = new WebSocketServer(storage);
 
 // Middleware
 app.use(express.json());
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
@@ -51,7 +76,7 @@ app.use((req, res, next) => {
 });
 
 // Bot Management Endpoints
-app.get("/api/bots", (req, res) => {
+app.get("/api/bots", (req: Request, res: Response) => {
   const response: ApiResponse<Bot[]> = {
     success: true,
     data: Array.from(storage.bots.values()),
@@ -59,7 +84,7 @@ app.get("/api/bots", (req, res) => {
   res.json(response);
 });
 
-app.get("/api/bots/:id", (req, res) => {
+app.get("/api/bots/:id", (req: Request, res: Response) => {
   const bot = storage.bots.get(req.params.id);
   if (!bot) {
     res.status(404).json({
@@ -76,7 +101,7 @@ app.get("/api/bots/:id", (req, res) => {
   res.json(response);
 });
 
-app.post("/api/bots", (req, res) => {
+app.post("/api/bots", (req: Request, res: Response) => {
   const body = req.body as BotCreateRequest;
 
   if (!body || !body.name || !body.code) {
@@ -89,7 +114,7 @@ app.post("/api/bots", (req, res) => {
 
   // Create bot with runtime properties
   const bot: Bot = {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     name: body.name,
     code: body.code,
     owner: body.owner || "anonymous",
@@ -111,7 +136,7 @@ app.post("/api/bots", (req, res) => {
   res.status(201).json(response);
 });
 
-app.delete("/api/bots/:id", (req, res) => {
+app.delete("/api/bots/:id", (req: Request, res: Response) => {
   if (!storage.bots.delete(req.params.id)) {
     res.status(404).json({
       success: false,
@@ -123,7 +148,7 @@ app.delete("/api/bots/:id", (req, res) => {
 });
 
 // Battle Operations Endpoints
-app.post("/api/battles", (req, res) => {
+app.post("/api/battles", async (req: Request, res: Response) => {
   const body = req.body as BattleCreateRequest;
 
   if (!body || !body.bots || !Array.isArray(body.bots) || body.bots.length < 2) {
@@ -145,38 +170,73 @@ app.post("/api/battles", (req, res) => {
     }
   }
 
-  // Create battle controller with runtime methods
-  const battleOptions: BattleOptions = {
-    maxTurns: 1000,
-    maxCyclesPerTurn: 100,
-    maxMemoryPerProcess: 256,
-    maxLogEntries: 1000
-  };
+  try {
+    // Create a new battle system instance for this battle
+    const battleSystem = new BattleSystem(defaultBattleOptions);
+    
+    // Get battle controller from battle system
+    const battleController = battleSystem.getBattleController();
+    
+    
+    // Create processes for each bot and add to battle
+    const processes = [];
+    for (const botId of body.bots) {
+      const bot = storage.bots.get(botId)!;
+      
+      try {
+        // Create process from bot code
+        const processId = await storage.createProcess(bot.code, bot.name);
+        battleController.addProcess(processId);
+        processes.push(processId);
+      } catch (error) {
+        console.error(`Error creating process for bot ${botId}:`, error);
+        res.status(400).json({
+          success: false,
+          error: `Error creating process for bot ${bot.name}: ${error instanceof Error ? error.message : String(error)}`
+        });
+        return;
+      }
+    }
+    
+    // Create battle object
+    const battle: Battle = {
+      id: randomUUID(),
+      bots: body.bots,
+      status: 'pending',
+      events: [],
+      memorySize: defaultBattleOptions.maxMemoryPerProcess,
+      processes: processes,
+      battleSystem: battleSystem, // Store battle system for later use
+      start: () => {
+        battleController.start();
+        return battleSystem.runBattle(10); // Run 10 turns initially
+      },
+      pause: () => battleController.pause(),
+      reset: () => {
+        battleController.reset();
+        battleSystem.reset();
+      },
+      getState: () => battleController.getState(),
+      addProcess: (processId) => battleController.addProcess(processId),
+    };
 
-  const battleController = new BattleController(processManager, battleOptions);
-  const battle: Battle = {
-    id: crypto.randomUUID(),
-    bots: body.bots,
-    status: 'pending',
-    events: [],
-    memorySize: 256, // Default memory size
-    start: () => battleController.start(),
-    pause: () => battleController.pause(),
-    reset: () => battleController.reset(),
-    getState: () => battleController.getState(),
-    addProcess: (processId) => battleController.addProcess(processId),
-  };
+    storage.battles.set(battle.id, battle);
 
-  storage.battles.set(battle.id, battle);
-
-  const response: ApiResponse<Battle> = {
-    success: true,
-    data: battle,
-  };
-  res.status(201).json(response);
+    const response: ApiResponse<Battle> = {
+      success: true,
+      data: battle,
+    };
+    res.status(201).json(response);
+  } catch (error) {
+    console.error('Error creating battle:', error);
+    res.status(500).json({
+      success: false,
+      error: `Failed to create battle: ${error instanceof Error ? error.message : String(error)}`
+    });
+  }
 });
 
-app.get("/api/battles/:id", (req, res) => {
+app.get("/api/battles/:id", (req: Request, res: Response) => {
   const battle = storage.battles.get(req.params.id);
   if (!battle) {
     res.status(404).json({
@@ -193,7 +253,7 @@ app.get("/api/battles/:id", (req, res) => {
   res.json(response);
 });
 
-app.post("/api/battles/:id/start", async (req, res) => {
+app.post("/api/battles/:id/start", async (req: Request, res: Response) => {
   const battle = storage.battles.get(req.params.id);
   if (!battle) {
     res.status(404).json({
@@ -211,18 +271,115 @@ app.post("/api/battles/:id/start", async (req, res) => {
     return;
   }
 
-  battle.status = 'running';
-  battle.startTime = new Date();
-  battle.start();
+  try {
+    battle.status = 'running';
+    battle.startTime = new Date();
+    
+    // Run battle with the battle system
+    const results = await battle.start();
+    
+    // Update battle with results
+    battle.results = results;
+    
+    // If battle completed, update status
+    if (results.turns >= defaultBattleOptions.maxTurns || results.winner !== null) {
+      battle.status = 'completed';
+      battle.endTime = new Date();
+    }
 
-  // Notify WebSocket clients about battle start
-  await wsServer.broadcastBattleUpdate(battle.id);
+    // Notify WebSocket clients about battle start/update
+    await wsServer.broadcastBattleUpdate(battle.id);
 
-  const response: ApiResponse<Battle> = {
-    success: true,
-    data: battle,
-  };
-  res.json(response);
+    const response: ApiResponse<Battle> = {
+      success: true,
+      data: battle,
+    };
+    res.json(response);
+  } catch (error) {
+    console.error(`Error starting battle ${battle.id}:`, error);
+    res.status(500).json({
+      success: false,
+      error: `Failed to start battle: ${error instanceof Error ? error.message : String(error)}`
+    });
+  }
+});
+
+// Add an endpoint to run additional turns
+app.post("/api/battles/:id/turn", async (req: Request, res: Response) => {
+  const battle = storage.battles.get(req.params.id);
+  if (!battle) {
+    res.status(404).json({
+      success: false,
+      error: "Battle not found",
+    });
+    return;
+  }
+
+  if (battle.status !== 'running') {
+    res.status(400).json({
+      success: false,
+      error: "Battle is not running",
+    });
+    return;
+  }
+
+  try {
+    // Get number of turns to run from request body
+    const turns = req.body.turns || 1;
+    
+    // Run specified number of turns using the battle system
+    const battleSystem = battle.battleSystem;
+    
+    
+    const battleController = battleSystem.getBattleController();
+    
+    // Run turns
+    let running = true;
+    let completedTurns = 0;
+    
+    while (running && completedTurns < turns) {
+      running = battleController.nextTurn();
+      completedTurns++;
+      
+      if (!running) {
+        // Battle has ended
+        battle.status = 'completed';
+        battle.endTime = new Date();
+        break;
+      }
+    }
+    
+    // Get battle state
+    const state = battleController.getState();
+    const results = battleController.getBattleResults();
+    
+    // Update battle with latest results
+    battle.results = results;
+    
+    // Notify WebSocket clients about battle update
+    await wsServer.broadcastBattleUpdate(battle.id);
+    
+    const response: ApiResponse<{
+      state: any;
+      turns: number;
+      status: string;
+    }> = {
+      success: true,
+      data: {
+        state: state,
+        turns: completedTurns,
+        status: battle.status
+      },
+    };
+    
+    res.json(response);
+  } catch (error) {
+    console.error(`Error running turn for battle ${battle.id}:`, error);
+    res.status(500).json({
+      success: false,
+      error: `Failed to run battle turn: ${error instanceof Error ? error.message : String(error)}`
+    });
+  }
 });
 
 // Create WebSocket server
@@ -240,7 +397,7 @@ server.on('upgrade', (request, socket, head) => {
 });
 
 // Error handling
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err);
   res.status(500).json({
     success: false,

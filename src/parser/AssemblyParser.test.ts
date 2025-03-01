@@ -1,5 +1,5 @@
-import { AssemblyParser } from './AssemblyParser';
-import { TokenType } from './types';
+import { AssemblyParser } from './AssemblyParser.js';
+import { TokenType } from './types.js';
 
 describe('AssemblyParser', () => {
   let parser: AssemblyParser;

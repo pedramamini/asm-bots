@@ -1,4 +1,4 @@
-import { MemorySystem, AccessViolation } from './MemorySystem';
+import { MemorySystem, AccessViolation } from './MemorySystem.js';
 
 describe('MemorySystem', () => {
     let memory: MemorySystem;
@@ -157,8 +157,8 @@ describe('MemorySystem', () => {
 
             const log = memory.getAccessLog();
             expect(log).toHaveLength(3);
-            expect(log.every(v => v.type === 'protection')).toBe(true);
-            expect(log.every(v => v.address === address)).toBe(true);
+            expect(log.every((v: AccessViolation) => v.type === 'protection')).toBe(true);
+            expect(log.every((v: AccessViolation) => v.address === address)).toBe(true);
         });
     });
 

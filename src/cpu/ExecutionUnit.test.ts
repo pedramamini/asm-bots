@@ -1,6 +1,6 @@
-import { ExecutionUnit, Opcode, StatusFlag } from './ExecutionUnit';
-import { AddressingMode, Instruction } from './InstructionDecoder';
-import { MemorySystem } from '../memory/MemorySystem';
+import { ExecutionUnit, Opcode, StatusFlag } from './ExecutionUnit.js';
+import { AddressingMode, Instruction } from './InstructionDecoder.js';
+import { MemorySystem } from '../memory/MemorySystem.js';
 
 describe('ExecutionUnit', () => {
     let memory: MemorySystem;

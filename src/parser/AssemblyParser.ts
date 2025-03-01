@@ -1,4 +1,4 @@
-import { Token, TokenType, ParseError, ParseResult, SymbolTable } from './types';
+import { Token, TokenType, ParseError, ParseResult, SymbolTable } from './types.js';
 
 export class AssemblyParser {
   private source: string = '';

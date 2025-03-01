@@ -3,8 +3,8 @@
  * Handles ALU operations, control flow, and status flags
  */
 
-import { AddressingMode, Instruction } from './InstructionDecoder';
-import { MemorySystem } from '../memory/MemorySystem';
+import { AddressingMode, Instruction } from './InstructionDecoder.js';
+import { MemorySystem } from '../memory/MemorySystem.js';
 
 export enum StatusFlag {
     Zero = 1 << 0,     // Result was zero

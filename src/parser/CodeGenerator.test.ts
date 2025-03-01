@@ -1,5 +1,5 @@
-import { CodeGenerator } from './CodeGenerator';
-import { Token, TokenType } from './types';
+import { CodeGenerator } from './CodeGenerator.js';
+import { Token, TokenType } from './types.js';
 
 describe('CodeGenerator', () => {
   let generator: CodeGenerator;

@@ -27,8 +27,17 @@
     "experimentalSpecifierResolution": "node"
   },
   "include": [
-    "src/**/*",
-    "src/types/*.d.ts"
+    "src/battle/BattleSystem.ts",
+    "src/battle/BattleRunner.ts",
+    "src/battle/BattleController.ts",
+    "src/battle/ProcessManager.ts",
+    "src/battle/types.ts",
+    "src/parser/types.ts",
+    "src/parser/AssemblyParser.ts",
+    "src/parser/CodeGenerator.ts",
+    "src/memory/MemorySystem.ts",
+    "src/cpu/ExecutionUnit.ts",
+    "src/cpu/InstructionDecoder.ts"
   ],
   "exclude": ["node_modules", "dist"]
 }

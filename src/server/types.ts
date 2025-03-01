@@ -1,5 +1,6 @@
 import { BattleState } from "../battle/BattleController.js";
 import { ProcessId } from "../battle/types.js";
+import { BattleSystem } from "../battle/BattleSystem.js";
 import { WebSocket } from 'ws';
 
 // Database Bot type without runtime properties
@@ -33,10 +34,14 @@ export interface BattleData {
   memorySize?: number;
 }
 
+
 // Full Battle type with runtime methods
 export interface Battle extends BattleData {
   memorySize: number;  // Required in runtime
-  start(): void;
+  processes?: ProcessId[]; // Process IDs
+  battleSystem: BattleSystem; // Reference to battle system
+  results?: any; // Battle results
+  start(): any; // Returns battle results
   pause(): void;
   reset(): void;
   getState(): BattleState;

@@ -1,4 +1,4 @@
-import { InstructionDecoder, AddressingMode } from './InstructionDecoder';
+import { InstructionDecoder, AddressingMode } from './InstructionDecoder.js';
 
 describe('InstructionDecoder', () => {
     let decoder: InstructionDecoder;

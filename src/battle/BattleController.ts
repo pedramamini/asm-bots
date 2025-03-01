@@ -1,5 +1,5 @@
-import { ProcessManager } from './ProcessManager';
-import { ProcessId, Process, ProcessState } from './types';
+import { ProcessManager } from './ProcessManager.js';
+import { ProcessId, Process, ProcessState } from './types.js';
 
 export interface BattleState {
   id: string;
@@ -130,11 +130,22 @@ export class BattleController {
       const process = this.processManager.getProcess(runningProcess);
       this.logExecution(runningProcess, process);
 
+      // Emit pre-execution event (if implemented)
+      this.onBeforeExecution?.(runningProcess);
+
+      // The actual instruction execution would happen here via ExecutionUnit
+      // in the BattleSystem class. Since this class doesn't have direct
+      // access to the ExecutionUnit, we'll just update the program counter
+      // and state here, and let the BattleSystem handle the actual execution.
+
       // Update score and cycles
       const currentScore = this.state.scores.get(runningProcess) || 0;
       this.state.scores.set(runningProcess, currentScore + 1);
       cyclesThisTurn++;
       processesRun.add(runningProcess);
+
+      // Emit post-execution event (if implemented)
+      this.onAfterExecution?.(runningProcess);
 
       // If all processes have run and we've used at least one cycle per process, break
       if (processesRun.size === this.state.processes.length && cyclesThisTurn >= this.state.processes.length) {
@@ -157,6 +168,10 @@ export class BattleController {
 
     return true;
   }
+
+  // Event handlers for instruction execution
+  public onBeforeExecution?: (processId: ProcessId) => void;
+  public onAfterExecution?: (processId: ProcessId) => void;
 
   private logExecution(processId: ProcessId, process: Process): void {
     const log: ExecutionLog = {
@@ -251,5 +266,51 @@ export class BattleController {
 
   private generateBattleId(): string {
     return `battle-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  public getBattleResults(): {
+    winner: ProcessId | null;
+    scores: Map<ProcessId, number>;
+    duration: number;
+    turns: number;
+  } {
+    return {
+      winner: this.state.winner,
+      scores: new Map(this.state.scores),
+      duration: this.state.endTime 
+        ? this.state.endTime - this.state.startTime 
+        : Date.now() - this.state.startTime,
+      turns: this.state.turn
+    };
+  }
+
+  public getProcessInfo(processId: ProcessId): {
+    id: ProcessId;
+    name: string;
+    owner: string;
+    cycles: number;
+    state: ProcessState;
+    memoryUsed: number;
+  } {
+    const process = this.processManager.getProcess(processId);
+    return {
+      id: process.id,
+      name: process.name,
+      owner: process.owner,
+      cycles: process.cyclesUsed,
+      state: process.context.state,
+      memoryUsed: process.memoryUsed
+    };
+  }
+
+  public getAllProcessInfo(): Array<{
+    id: ProcessId;
+    name: string;
+    owner: string;
+    cycles: number;
+    state: ProcessState;
+    memoryUsed: number;
+  }> {
+    return this.state.processes.map(id => this.getProcessInfo(id));
   }
 }

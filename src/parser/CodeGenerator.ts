@@ -1,4 +1,4 @@
-import { Token, TokenType, SymbolTable } from './types';
+import { Token, TokenType, SymbolTable } from './types.js';
 
 export interface Instruction {
   opcode: number;
@@ -10,7 +10,7 @@ export interface MemorySegment {
   name: string;
   start: number;
   size: number;
-  data: number[];
+  data: Uint8Array;  // Changed from number[] to Uint8Array
 }
 
 export interface GeneratedCode {
@@ -176,15 +176,18 @@ export class CodeGenerator {
       name: 'code',
       start: this.currentAddress,
       size: 0,
-      data: []
+      data: new Uint8Array()  // Initialize with empty Uint8Array
     };
 
     // Layout instructions
+    const tempData: number[] = [];
     for (const instruction of instructions) {
-      codeSegment.data.push(instruction.opcode);
-      codeSegment.data.push(...instruction.operands);
+      tempData.push(instruction.opcode);
+      tempData.push(...instruction.operands);
     }
 
+    // Convert to Uint8Array
+    codeSegment.data = new Uint8Array(tempData);
     codeSegment.size = codeSegment.data.length;
     this.segments.push(codeSegment);
 
@@ -207,17 +210,19 @@ export class CodeGenerator {
       segment.start += offset;
 
       // Update absolute addresses in code
-      for (let i = 0; i < segment.data.length; i++) {
-        const opcode = segment.data[i];
+      const data = Array.from(segment.data);  // Convert to array for easier manipulation
+      for (let i = 0; i < data.length; i++) {
+        const opcode = data[i];
         // Check if this is a jump or call instruction
         if ((opcode >= 0x30 && opcode <= 0x34) || opcode === 0x42) {
           // Next value is an address, adjust it
-          if (i + 1 < segment.data.length) {
-            segment.data[i + 1] += offset;
+          if (i + 1 < data.length) {
+            data[i + 1] += offset;
             i++; // Skip the adjusted address
           }
         }
       }
+      segment.data = new Uint8Array(data);  // Convert back to Uint8Array
     }
 
     // Relocate symbols
