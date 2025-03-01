@@ -72,6 +72,19 @@ export class BattleSystem {
     const memoryBase = Math.floor(Math.random() * 0xE000); // Random location in memory
     this.codeGenerator.relocate(memoryBase);
     
+    // Fix the entry point - make sure it points to the start of the first segment
+    if (generatedCode.segments.length > 0) {
+      generatedCode.entryPoint = generatedCode.segments[0].start;
+    }
+    
+    // Debug output - log the generated code segments
+    console.log(`Bot ${botName} generated code:`);
+    for (const segment of generatedCode.segments) {
+      console.log(`  Segment: ${segment.name}, Start: 0x${segment.start.toString(16)}, Size: ${segment.size}`);
+      console.log(`  Data (hex): ${Array.from(segment.data).map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
+    }
+    console.log(`  Entry point: 0x${generatedCode.entryPoint.toString(16).toUpperCase()}`);
+    
     // Create process
     const processOptions: ProcessCreateOptions = {
       name: botName,
@@ -125,10 +138,26 @@ export class BattleSystem {
           // PC is within this segment
           const offset = pc - segment.start;
           if (offset < segment.data.length) {
-            // For demonstration, use the byte at PC as a simple operation identifier
-            // 0x00 = nop, 0xFF = halt, others would map to different operations
+            // Make a better attempt to map opcodes to instructions
             const opcodeByte = segment.data[offset];
-            instructionStr = opcodeByte === 0x00 ? "nop" : "halt";
+            
+            // Map opcodes to instruction names
+            switch (opcodeByte) {
+              case 0x00: instructionStr = "nop"; break;
+              case 0xFF: instructionStr = "halt"; break;
+              case 0x10: instructionStr = "mov"; break;
+              case 0x20: instructionStr = "add"; break;
+              case 0x21: instructionStr = "sub"; break;
+              case 0x22: instructionStr = "mul"; break;
+              case 0x23: instructionStr = "div"; break;
+              case 0x30: instructionStr = "jmp"; break;
+              case 0x31: instructionStr = "jz"; break;
+              case 0x32: instructionStr = "jnz"; break;
+              case 0x60: instructionStr = "inc"; break;
+              case 0x61: instructionStr = "dec"; break;
+              case 0x70: instructionStr = "cmp"; break;
+              default:   instructionStr = "nop"; break; // Default to nop for unknown opcodes
+            }
           }
           break;
         }
@@ -141,6 +170,9 @@ export class BattleSystem {
       
       // Advance PC (simplified - in a real system, PC would advance based on instruction length)
       process.context.registers.pc = (pc + 1) & 0xFFFF;
+      
+      // Log which instruction is being executed
+      console.log(`Process ${currentProcessId} executing: ${instructionStr} at PC=${pc.toString(16)}`);
       
       // If this is a halt instruction, terminate the process
       if (instructionStr === "halt") {

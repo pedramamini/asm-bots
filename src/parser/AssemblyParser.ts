@@ -5,8 +5,9 @@ export class AssemblyParser {
   private tokens: Token[] = [];
   private errors: ParseError[] = [];
   private symbols: SymbolTable = {};
-  private currentAddress: number = 0;
   private botMetadata: { [key: string]: string } = {};
+  private currentAddress: number = 0;
+  private inDataSection: boolean = false;
 
   // Valid instructions for our assembly language
   private static readonly VALID_INSTRUCTIONS = new Set([
@@ -24,7 +25,7 @@ export class AssemblyParser {
     'r0', 'r1', 'r2', 'r3',
     'sp', 'pc', 'flags',
     'ax', 'bx', 'cx', 'dx',  // Add x86-style registers
-    'si', 'di'              // Additional index registers
+    'si', 'di', 'word'       // Additional index registers and modifiers
   ]);
   
   // Valid directives
@@ -38,245 +39,232 @@ export class AssemblyParser {
   private static readonly VALID_DATA_DEFS = new Set([
     'db', 'dw', 'equ', 'dq'
   ]);
-  
-  // Valid colon-style label data definitions
-  private static readonly VALID_DATA_LABELS = new Set([
-    'step:', 'bomb:', 'dart:', 'code_size', 'trap:', 'dat:'
-  ]);
 
-  tokenize(source: string): Token[] {
+  // Some symbols to initialize with default values
+  private static readonly PREDEFINED_SYMBOLS: { [key: string]: number } = {
+    'defense_start': 0x300,
+    '$': 0, // Special $ symbol for current address
+  };
+
+  public parse(source: string): ParseResult {
+    this.reset();
     this.source = source;
+    
+    // First pass to collect labels, directives, and symbols
+    this.collectSymbols();
+    
+    // Second pass to tokenize the code
+    this.tokenize();
+    
+    // Return the parse result
+    return {
+      tokens: this.tokens,
+      errors: this.errors,
+      symbols: this.symbols
+    };
+  }
+
+  private reset(): void {
     this.tokens = [];
     this.errors = [];
-    this.symbols = {};
+    this.symbols = { ...AssemblyParser.PREDEFINED_SYMBOLS };
     this.botMetadata = {};
     this.currentAddress = 0;
+    this.inDataSection = false;
+  }
 
-    const lines = source.split('\n');
-    const lineAddresses = new Map<number, number>();
-    const labelLines = new Set<number>();
-
-    // First pass: collect labels, directives, and calculate addresses
-    let addr = 0;
+  private collectSymbols(): void {
+    const lines = this.source.split('\n');
+    let currentAddress = 0;
+    
+    // Track the start label for code_size calculation
+    let startLabelAddress = 0;
+    
     for (let lineNum = 0; lineNum < lines.length; lineNum++) {
-      const rawLine = lines[lineNum];
-      const line = rawLine.trim();
-
+      const line = lines[lineNum].trim();
+      
       // Skip empty lines and comments
       if (!line || line.startsWith(';')) {
         continue;
       }
-
-      const currentLineNum = lineNum + 1;
-      lineAddresses.set(currentLineNum, addr);
-
+      
+      // Store the $ symbol's current value
+      this.symbols['$'] = currentAddress;
+      
+      // Handle label declarations (ending with :)
       if (line.endsWith(':')) {
-        // Handle label
         const label = line.slice(0, -1).trim();
         if (this.validateIdentifier(label)) {
-          this.symbols[label] = addr;
-          labelLines.add(currentLineNum);
-        } else if (AssemblyParser.VALID_DATA_LABELS.has(line)) {
-          // Handle data label like step: dw 0x37
-          const parts = line.split(/\s+/);
-          if (parts.length > 1) {
-            const dataType = parts[1].toLowerCase();
-            if (AssemblyParser.VALID_DATA_DEFS.has(dataType)) {
-              const label = parts[0].slice(0, -1); // Remove colon
-              this.symbols[label] = addr;
-              addr++;  // Increment address for data definition
-            }
-          }
-        }
-      } else {
-        // Parse directive, data definition, or instruction
-        let parts = this.splitLine(line);
-        if (parts.length === 0) continue;
-
-        const firstToken = parts[0].toLowerCase();
-
-        // Handle directives (starting with .)
-        if (firstToken.startsWith('.')) {
-          if (AssemblyParser.VALID_DIRECTIVES.has(firstToken)) {
-            // Parse metadata directives
-            if (firstToken === '.name' || firstToken === '.author' || 
-                firstToken === '.version' || firstToken === '.strategy') {
-              if (parts.length > 1) {
-                const metadataValue = this.extractQuotedString(rawLine);
-                this.botMetadata[firstToken.substring(1)] = metadataValue || parts[1];
-              }
-            }
-            // Don't increment address for directives
-          } else {
-            this.errors.push({
-              message: `Invalid directive: ${firstToken}`,
-              line: currentLineNum
-            });
-          }
-        } 
-        // Handle data definitions
-        else if (AssemblyParser.VALID_DATA_DEFS.has(firstToken)) {
-          // Calculate size of data (estimate for now)
-          if (firstToken === 'dw') {
-            addr += parts.length - 1; // Each word is 1 address unit for our simple model
-          } else if (firstToken === 'db') {
-            addr += Math.ceil((parts.length - 1) / 2); // Estimate bytes to words
-          }
-          // For equ, don't increment address
-        }
-        // Handle instructions
-        else if (AssemblyParser.VALID_INSTRUCTIONS.has(firstToken)) {
-          addr++;
-        } else {
-          this.errors.push({
-            message: `Invalid instruction: ${firstToken}`,
-            line: currentLineNum
-          });
-        }
-      }
-    }
-
-    // Second pass: tokenize instructions and operands
-    for (let lineNum = 0; lineNum < lines.length; lineNum++) {
-      const rawLine = lines[lineNum];
-      const line = rawLine.trim();
-
-      // Skip empty lines and comments
-      if (!line || line.startsWith(';')) {
-        continue;
-      }
-
-      const currentLineNum = lineNum + 1;
-      this.currentAddress = lineAddresses.get(currentLineNum) || 0;
-
-      try {
-        if (labelLines.has(currentLineNum)) {
-          // Handle label
-          const label = line.slice(0, -1).trim();
+          this.symbols[label] = currentAddress;
           
-          // Check if this is a data label (e.g., "step: dw 0x37")
-          if (AssemblyParser.VALID_DATA_LABELS.has(line)) {
-            const parts = line.split(/\s+/);
-            if (parts.length > 1) {
-              const dataLabel = parts[0].slice(0, -1); // Remove colon
-              // Add label token
-              this.tokens.push({
-                type: TokenType.Label,
-                value: dataLabel,
-                line: currentLineNum
-              });
-              
-              // Add the data definition token
-              if (parts.length > 1 && AssemblyParser.VALID_DATA_DEFS.has(parts[1].toLowerCase())) {
-                this.tokens.push({
-                  type: TokenType.DataDefinition,
-                  value: parts[1].toLowerCase(),
-                  line: currentLineNum
-                });
-                
-                // Add any remaining values as operands
-                for (let i = 2; i < parts.length; i++) {
-                  this.tokenizeOperand(parts[i], currentLineNum);
+          // If this is the 'start' label, remember its address
+          if (label === 'start') {
+            startLabelAddress = currentAddress;
+          }
+        }
+      }
+      // Handle directives
+      else if (line.startsWith('.')) {
+        const parts = this.splitLine(line);
+        const directive = parts[0].toLowerCase();
+        
+        // Section directives can affect address
+        if (directive === '.code') {
+          this.inDataSection = false;
+        } else if (directive === '.data' || directive === '.const') {
+          this.inDataSection = true;
+        }
+        // Handle metadata directives
+        else if (directive === '.name' || directive === '.author' || 
+                directive === '.version' || directive === '.strategy') {
+          if (parts.length > 1) {
+            const metadataValue = this.extractQuotedString(line);
+            this.botMetadata[directive.substring(1)] = metadataValue || parts[1];
+          }
+        }
+      }
+      // Handle data definitions
+      else if (!line.startsWith(';')) { // Not a comment
+        const parts = this.splitLine(line);
+        if (parts.length >= 2) {
+          // Check for data definitions like "trap: dw 0xAAAA"
+          if (parts[0].endsWith(':') && parts.length > 2) {
+            const label = parts[0].slice(0, -1).trim();
+            if (this.validateIdentifier(label)) {
+              this.symbols[label] = currentAddress;
+              const defType = parts[1].toLowerCase();
+              if (AssemblyParser.VALID_DATA_DEFS.has(defType)) {
+                // For actual data allocations, increment address
+                if (defType === 'dw' || defType === 'db' || defType === 'dq') {
+                  currentAddress++;
                 }
               }
             }
           }
-          // Normal label
-          else if (this.validateIdentifier(label)) {
+          // Check for "name equ value" pattern
+          else if (parts.length >= 3 && parts[1].toLowerCase() === 'equ') {
+            const symbol = parts[0];
+            if (this.validateIdentifier(symbol)) {
+              // Special handling for "code_size equ $ - start"
+              if (symbol === 'code_size' && parts[2] === '$' && parts.length >= 5 && parts[3] === '-' && parts[4] === 'start') {
+                // Calculate the actual code size
+                this.symbols[symbol] = currentAddress - startLabelAddress;
+              }
+              // Handle "defense_start equ 0x300" pattern
+              else if (parts[2].startsWith('0x')) {
+                this.symbols[symbol] = parseInt(parts[2].slice(2), 16);
+              }
+              // Other equ definitions
+              else if (this.validateNumber(parts[2])) {
+                this.symbols[symbol] = parseInt(parts[2], 0);
+              }
+            }
+          }
+          // Check for simple "name dw value" pattern
+          else if (AssemblyParser.VALID_DATA_DEFS.has(parts[1].toLowerCase())) {
+            const symbol = parts[0];
+            if (this.validateIdentifier(symbol)) {
+              this.symbols[symbol] = currentAddress;
+              // For actual data allocations, increment address
+              if (parts[1].toLowerCase() === 'dw' || parts[1].toLowerCase() === 'db' || parts[1].toLowerCase() === 'dq') {
+                currentAddress++;
+              }
+            }
+          }
+          // Normal instructions increment address
+          else if (AssemblyParser.VALID_INSTRUCTIONS.has(parts[0].toLowerCase())) {
+            currentAddress++;
+          }
+        }
+        // Single token lines might be instructions without operands
+        else if (parts.length === 1 && AssemblyParser.VALID_INSTRUCTIONS.has(parts[0].toLowerCase())) {
+          currentAddress++;
+        }
+      }
+    }
+  }
+
+  private tokenize(): void {
+    const lines = this.source.split('\n');
+    
+    for (let lineNum = 0; lineNum < lines.length; lineNum++) {
+      const line = lines[lineNum].trim();
+      const currentLineNum = lineNum + 1;
+      
+      // Skip empty lines and comments
+      if (!line || line.startsWith(';')) {
+        continue;
+      }
+      
+      try {
+        // Handle labels (ending with :)
+        if (line.endsWith(':')) {
+          const label = line.slice(0, -1).trim();
+          if (this.validateIdentifier(label)) {
             this.tokens.push({
               type: TokenType.Label,
               value: label,
               line: currentLineNum
             });
           }
-        } else {
-          // Split line into parts
+        }
+        // Handle directives
+        else if (line.startsWith('.')) {
+          this.tokenizeDirective(line, currentLineNum);
+        }
+        // Handle data definitions and instructions
+        else {
           const parts = this.splitLine(line);
           if (parts.length === 0) continue;
           
           const firstToken = parts[0].toLowerCase();
-
-          // Handle code_size equ pattern
-          if (firstToken === 'code_size' && parts.length > 2 && parts[1].toLowerCase() === 'equ') {
-            // This is a special pattern for calculating code size
-            // Just add a placeholder value
-            this.symbols['code_size'] = 100; // Placeholder value
+          
+          // Check for "name equ value" pattern (data definition)
+          if (parts.length >= 3 && parts[1].toLowerCase() === 'equ') {
             this.tokens.push({
               type: TokenType.Label,
-              value: 'code_size',
+              value: parts[0],
               line: currentLineNum
             });
+            
             this.tokens.push({
               type: TokenType.DataDefinition,
               value: 'equ',
               line: currentLineNum
             });
-            this.tokens.push({
-              type: TokenType.Immediate,
-              value: '100',
-              line: currentLineNum
-            });
-          }
-          // Handle directives
-          else if (firstToken.startsWith('.')) {
-            if (AssemblyParser.VALID_DIRECTIVES.has(firstToken)) {
+            
+            // Special handling for "code_size equ $ - start" pattern
+            if (parts[2] === '$' && parts.length >= 5 && parts[3] === '-' && parts[4] === 'start') {
               this.tokens.push({
-                type: TokenType.Directive,
-                value: firstToken,
+                type: TokenType.Immediate,
+                value: this.symbols['code_size'].toString(),
                 line: currentLineNum
               });
-              
-              if (parts.length > 1) {
-                if (firstToken === '.name' || firstToken === '.author' || 
-                    firstToken === '.version' || firstToken === '.strategy') {
-                  // Handle quoted string
-                  const stringValue = this.extractQuotedString(rawLine);
-                  if (stringValue) {
-                    this.tokens.push({
-                      type: TokenType.StringLiteral,
-                      value: stringValue,
-                      line: currentLineNum
-                    });
-                  } else {
-                    this.tokenizeOperand(parts[1], currentLineNum);
-                  }
-                } else {
-                  // Handle other directive parameters
-                  for (let i = 1; i < parts.length; i++) {
-                    this.tokenizeOperand(parts[i], currentLineNum);
-                  }
-                }
-              }
+            } else {
+              // Normal value
+              this.tokenizeOperand(parts[2], currentLineNum);
             }
           }
-          // Handle data definitions
-          else if (AssemblyParser.VALID_DATA_DEFS.has(firstToken)) {
+          // Check for "name dw value" pattern (data definition)
+          else if (parts.length >= 2 && AssemblyParser.VALID_DATA_DEFS.has(parts[1].toLowerCase())) {
             this.tokens.push({
-              type: TokenType.DataDefinition,
-              value: firstToken,
+              type: TokenType.Label,
+              value: parts[0],
               line: currentLineNum
             });
             
-            // Handle data values
-            for (let i = 1; i < parts.length; i++) {
-              if (parts[i].startsWith('"')) {
-                // String data
-                const stringValue = this.extractQuotedString(rawLine, parts.slice(0, i).join(' ').length);
-                if (stringValue) {
-                  this.tokens.push({
-                    type: TokenType.StringLiteral,
-                    value: stringValue,
-                    line: currentLineNum
-                  });
-                  break; // Stop after string
-                }
-              } else {
-                // Numeric data or symbol
-                this.tokenizeOperand(parts[i], currentLineNum);
-              }
+            this.tokens.push({
+              type: TokenType.DataDefinition,
+              value: parts[1].toLowerCase(),
+              line: currentLineNum
+            });
+            
+            // Add values
+            for (let i = 2; i < parts.length; i++) {
+              this.tokenizeOperand(parts[i], currentLineNum);
             }
           }
-          // Handle instructions
+          // Normal instruction
           else if (AssemblyParser.VALID_INSTRUCTIONS.has(firstToken)) {
             this.tokens.push({
               type: TokenType.Instruction,
@@ -284,14 +272,12 @@ export class AssemblyParser {
               line: currentLineNum
             });
             
-            // Parse operands
+            // Tokenize operands
             for (let i = 1; i < parts.length; i++) {
-              const operand = parts[i].trim();
-              if (operand) {
-                this.tokenizeOperand(operand, currentLineNum);
-              }
+              this.tokenizeOperand(parts[i], currentLineNum);
             }
-          } else {
+          }
+          else {
             this.errors.push({
               message: `Invalid instruction: ${firstToken}`,
               line: currentLineNum
@@ -305,8 +291,150 @@ export class AssemblyParser {
         });
       }
     }
+  }
 
-    return this.tokens;
+  private tokenizeDirective(line: string, lineNum: number): void {
+    const parts = this.splitLine(line);
+    const directive = parts[0].toLowerCase();
+    
+    if (!AssemblyParser.VALID_DIRECTIVES.has(directive)) {
+      this.errors.push({
+        message: `Invalid directive: ${directive}`,
+        line: lineNum
+      });
+      return;
+    }
+    
+    this.tokens.push({
+      type: TokenType.Directive,
+      value: directive,
+      line: lineNum
+    });
+    
+    // Handle directive parameters
+    if (parts.length > 1) {
+      if (directive === '.name' || directive === '.author' || 
+          directive === '.version' || directive === '.strategy') {
+        // String value
+        const stringValue = this.extractQuotedString(line);
+        if (stringValue) {
+          this.tokens.push({
+            type: TokenType.StringLiteral,
+            value: stringValue,
+            line: lineNum
+          });
+        } else {
+          // Just use the raw value
+          this.tokenizeOperand(parts[1], lineNum);
+        }
+      } else {
+        // Other directive parameters
+        for (let i = 1; i < parts.length; i++) {
+          this.tokenizeOperand(parts[i], lineNum);
+        }
+      }
+    }
+  }
+
+  private tokenizeOperand(operand: string, lineNum: number): void {
+    // Memory access syntax [register] or [register+offset]
+    if (operand.startsWith('[') && operand.endsWith(']')) {
+      const memContents = operand.slice(1, -1).trim();
+      this.tokens.push({
+        type: TokenType.MemoryAccess,
+        value: memContents,
+        line: lineNum
+      });
+      return;
+    }
+    
+    // Handle word prefix (for memory access)
+    if (operand.toLowerCase() === 'word' && lineNum < this.tokens.length && this.tokens[this.tokens.length - 1].type === TokenType.Register) {
+      // This is a modifier for the memory access, just ignore it
+      return;
+    }
+    
+    // Immediate value with # prefix
+    if (operand.startsWith('#')) {
+      const value = operand.slice(1);
+      if (!this.validateNumber(value)) {
+        this.errors.push({
+          message: `Invalid immediate value: ${value}`,
+          line: lineNum
+        });
+        return;
+      }
+      this.tokens.push({
+        type: TokenType.Immediate,
+        value: value,
+        line: lineNum
+      });
+      return;
+    } 
+    
+    // Hexadecimal values with 0x prefix or $ prefix
+    if (operand.startsWith('0x') || operand.startsWith('$')) {
+      const value = operand.startsWith('$') ? operand.slice(1) : operand.slice(2);
+      if (!this.validateHexAddress(value)) {
+        this.errors.push({
+          message: `Invalid hexadecimal value: ${value}`,
+          line: lineNum
+        });
+        return;
+      }
+      this.tokens.push({
+        type: TokenType.Immediate,
+        value: operand,
+        line: lineNum
+      });
+      return;
+    }
+    
+    // Decimal numbers
+    if (/^-?\d+$/.test(operand)) {
+      this.tokens.push({
+        type: TokenType.Immediate,
+        value: operand,
+        line: lineNum
+      });
+      return;
+    }
+    
+    // Special $ symbol (current address)
+    if (operand === '$') {
+      this.tokens.push({
+        type: TokenType.Symbol, // Treat as a symbol for simplicity
+        value: operand,
+        line: lineNum
+      });
+      return;
+    }
+    
+    // Register
+    if (AssemblyParser.VALID_REGISTERS.has(operand.toLowerCase())) {
+      this.tokens.push({
+        type: TokenType.Register,
+        value: operand.toLowerCase(),
+        line: lineNum
+      });
+      return;
+    }
+    
+    // Symbol reference (label)
+    if (this.validateIdentifier(operand)) {
+      this.tokens.push({
+        type: TokenType.Symbol,
+        value: operand,
+        line: lineNum
+      });
+      return;
+    }
+    
+    // If we got here, it's an invalid operand
+    this.errors.push({
+      message: `Invalid operand: ${operand}`,
+      line: lineNum
+    });
   }
   
   // Helper to extract a quoted string from a line
@@ -360,145 +488,7 @@ export class AssemblyParser {
     
     return result;
   }
-
-  private tokenizeOperand(operand: string, lineNum: number): void {
-    // Memory access syntax [register] or [register+offset]
-    if (operand.startsWith('[') && operand.endsWith(']')) {
-      const memContents = operand.slice(1, -1).trim();
-      this.tokens.push({
-        type: TokenType.MemoryAccess,
-        value: memContents,
-        line: lineNum
-      });
-      
-      // Parse inner expression for better validation
-      if (memContents.includes('+')) {
-        // Indexed addressing [reg+offset]
-        const parts = memContents.split('+').map(p => p.trim());
-        if (parts.length === 2) {
-          const reg = parts[0].toLowerCase();
-          const offset = parts[1];
-          
-          if (!AssemblyParser.VALID_REGISTERS.has(reg)) {
-            this.errors.push({
-              message: `Invalid register in memory access: ${reg}`,
-              line: lineNum
-            });
-          }
-          
-          if (!this.validateNumber(offset) && !this.validateIdentifier(offset)) {
-            this.errors.push({
-              message: `Invalid offset in memory access: ${offset}`,
-              line: lineNum
-            });
-          }
-        }
-      } else {
-        // Simple memory access [reg]
-        if (!AssemblyParser.VALID_REGISTERS.has(memContents.toLowerCase()) && 
-            !this.validateNumber(memContents) && 
-            !this.validateIdentifier(memContents)) {
-          this.errors.push({
-            message: `Invalid memory reference: ${memContents}`,
-            line: lineNum
-          });
-        }
-      }
-      return;
-    }
-    
-    // Immediate value with # prefix
-    if (operand.startsWith('#')) {
-      const value = operand.slice(1);
-      if (!this.validateNumber(value)) {
-        this.errors.push({
-          message: `Invalid immediate value: ${value}`,
-          line: lineNum
-        });
-        return;
-      }
-      this.tokens.push({
-        type: TokenType.Immediate,
-        value: value,
-        line: lineNum
-      });
-      return;
-    } 
-    
-    // Hexadecimal values with 0x prefix or $ prefix
-    if (operand.startsWith('0x') || operand.startsWith('$')) {
-      const value = operand.startsWith('$') ? operand.slice(1) : operand.slice(2);
-      if (!this.validateHexAddress(value)) {
-        this.errors.push({
-          message: `Invalid hexadecimal value: ${value}`,
-          line: lineNum
-        });
-        return;
-      }
-      this.tokens.push({
-        type: TokenType.Immediate,
-        value: operand,
-        line: lineNum
-      });
-      return;
-    }
-    
-    // Decimal numbers
-    if (/^-?\d+$/.test(operand)) {
-      this.tokens.push({
-        type: TokenType.Immediate,
-        value: operand,
-        line: lineNum
-      });
-      return;
-    }
-    
-    // Register
-    if (AssemblyParser.VALID_REGISTERS.has(operand.toLowerCase())) {
-      this.tokens.push({
-        type: TokenType.Register,
-        value: operand.toLowerCase(),
-        line: lineNum
-      });
-      return;
-    }
-    
-    // Symbol reference (label)
-    if (this.validateIdentifier(operand)) {
-      this.tokens.push({
-        type: TokenType.Symbol,
-        value: operand,
-        line: lineNum
-      });
-      return;
-    }
-    
-    // If we got here, it's an invalid operand
-    this.errors.push({
-      message: `Invalid operand: ${operand}`,
-      line: lineNum
-    });
-  }
-
-  validate(): ParseError[] {
-    return [...this.errors];
-  }
-
-  resolveSymbols(): SymbolTable {
-    return { ...this.symbols };
-  }
-
-  parse(source: string): ParseResult {
-    this.tokenize(source);
-    const errors = this.validate();
-
-    return {
-      tokens: this.tokens,
-      errors: errors,
-      symbols: this.symbols
-    };
-  }
-
+  
   private validateIdentifier(id: string): boolean {
     return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(id);
   }

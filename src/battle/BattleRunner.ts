@@ -12,7 +12,7 @@ import path from 'path';
 // Default battle options
 const DEFAULT_OPTIONS: BattleOptions = {
   maxTurns: 1000,
-  maxCyclesPerTurn: 1000,
+  maxCyclesPerTurn: 1000000, // More cycles per turn
   maxMemoryPerProcess: 4096,
   maxLogEntries: 10000
 };
