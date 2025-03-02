@@ -37,7 +37,13 @@
     "src/parser/CodeGenerator.ts",
     "src/memory/MemorySystem.ts",
     "src/cpu/ExecutionUnit.ts",
-    "src/cpu/InstructionDecoder.ts"
+    "src/cpu/InstructionDecoder.ts",
+    "src/server/api.ts",
+    "src/server/server.ts",
+    "src/server/types.ts",
+    "src/server/websocket.ts",
+    "src/index.ts",
+    "src/runBattle.ts"
   ],
   "exclude": ["node_modules", "dist"]
 }

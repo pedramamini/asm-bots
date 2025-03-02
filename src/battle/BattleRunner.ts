@@ -69,14 +69,18 @@ export class BattleRunner {
       throw new Error('At least two bots are required for a battle');
     }
     
-    // Run the battle
+    // Run the battle with multiple turns for more interesting battles
     const startTime = Date.now();
     
     if (this.verbose) {
       console.log('Starting battle...');
     }
     
-    const results = this.battleSystem.runBattle();
+    // Increase minimum turns for a more interesting battle
+    const maxTurnsToRun = Math.max(5, Math.min(this.options.maxTurns, 500));
+    
+    // Run the battle for a specific number of turns or until completion
+    const results = this.battleSystem.runBattle(maxTurnsToRun);
     const endTime = Date.now();
     
     // Print results

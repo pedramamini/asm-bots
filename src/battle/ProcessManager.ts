@@ -98,9 +98,15 @@ export class ProcessManager {
   terminate(processId: ProcessId, reason?: string): void {
     const process = this.getProcess(processId);
     process.context.state = ProcessState.Terminated;
+    process.lastRun = Date.now(); // Record termination time for winner determination
 
     if (this.runningProcess === processId) {
       this.runningProcess = null;
+    }
+
+    // Log termination reason if provided
+    if (reason) {
+      console.log(`Process ${processId} (${process.name}) terminated: ${reason}`);
     }
 
     // Clean up resources

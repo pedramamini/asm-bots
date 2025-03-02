@@ -15,9 +15,13 @@ export class MemorySystem {
     private protectedRegions: Set<number>;
     private allocatedRegions: Map<number, number>; // start -> size
     private accessLog: AccessViolation[];
-    private readonly SIZE: number = 65536; // 16-bit address space (0x0000 to 0xFFFF)
+    private readonly SIZE: number;
 
-    constructor() {
+    constructor(size?: number) {
+        // Allow customizing memory size, default to 64KB
+        this.SIZE = size || 65536; 
+        console.log(`Initializing memory system with ${this.SIZE} bytes`);
+        
         this.memory = new Uint8Array(this.SIZE);
         this.protectedRegions = new Set();
         this.allocatedRegions = new Map();

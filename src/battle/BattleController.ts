@@ -26,6 +26,10 @@ export interface BattleOptions {
   maxCyclesPerTurn: number;
   maxMemoryPerProcess: number;
   maxLogEntries?: number;
+  memorySize?: number;     // Total memory size for the battle
+  coreDump?: boolean;      // Whether to dump core memory on crash
+  cycleLimit?: number;     // Maximum cycles a process can execute
+  timeLimit?: number;      // Maximum time in milliseconds for the battle
 }
 
 export class BattleController {
@@ -110,6 +114,7 @@ export class BattleController {
     }
 
     if (this.state.turn >= this.state.maxTurns) {
+      console.log(`Reached maximum turns (${this.state.maxTurns})`);
       this.endBattle();
       return false;
     }
@@ -117,12 +122,30 @@ export class BattleController {
     // Execute each process for their turn
     let cyclesThisTurn = 0;
     let processesRun = new Set<ProcessId>();
+    
+    // Get active processes
+    const activeProcessCount = this.state.processes.filter(pid => {
+      const process = this.processManager.getProcess(pid);
+      return process.context.state !== ProcessState.Terminated;
+    }).length;
+    
+    // If no active processes, end the battle
+    if (activeProcessCount === 0) {
+      console.log("No active processes remaining - ending battle");
+      this.endBattle();
+      return false;
+    }
 
-    // Run until we hit max cycles or all processes have run
+    // Run at least one cycle per active process, if possible
+    const minCyclesPerProcess = 5; // Run at least 5 cycles per active process
+    const targetMinCycles = activeProcessCount * minCyclesPerProcess;
+
+    // Run until we hit max cycles or all processes have run enough cycles
     while (cyclesThisTurn < this.options.maxCyclesPerTurn) {
       // Schedule next process
       const runningProcess = this.processManager.schedule();
       if (runningProcess === null) {
+        // No processes ready to run
         break;
       }
 
@@ -133,10 +156,8 @@ export class BattleController {
       // Emit pre-execution event (if implemented)
       this.onBeforeExecution?.(runningProcess);
 
-      // The actual instruction execution would happen here via ExecutionUnit
-      // in the BattleSystem class. Since this class doesn't have direct
-      // access to the ExecutionUnit, we'll just update the program counter
-      // and state here, and let the BattleSystem handle the actual execution.
+      // The actual instruction execution happens in BattleSystem
+      // via the onBeforeExecution event
 
       // Update score and cycles
       const currentScore = this.state.scores.get(runningProcess) || 0;
@@ -147,18 +168,33 @@ export class BattleController {
       // Emit post-execution event (if implemented)
       this.onAfterExecution?.(runningProcess);
 
-      // If all processes have run and we've used at least one cycle per process, break
-      if (processesRun.size === this.state.processes.length && cyclesThisTurn >= this.state.processes.length) {
+      // Break conditions:
+      
+      // 1. If we've executed at least the target minimum cycles and all active processes
+      // have had a chance to run, we can end the turn early
+      if (cyclesThisTurn >= targetMinCycles && 
+          processesRun.size >= activeProcessCount) {
         break;
       }
 
-      // If we've hit max cycles, break
+      // 2. If we've hit max cycles, always break
       if (cyclesThisTurn >= this.options.maxCyclesPerTurn) {
         break;
       }
     }
 
+    // Update turn count
     this.state.turn++;
+
+    // Debug output on some turns
+    if (this.state.turn % 10 === 0) {
+      const activeProcesses = this.state.processes.filter(pid => {
+        const process = this.processManager.getProcess(pid);
+        return process.context.state !== ProcessState.Terminated;
+      });
+      
+      console.log(`Turn ${this.state.turn} completed: ${activeProcesses.length} active processes, ${cyclesThisTurn} cycles executed`);
+    }
 
     // Check victory conditions after each turn
     if (this.checkVictory()) {
@@ -213,16 +249,50 @@ export class BattleController {
 
   private determineWinnerByScore(): void {
     let highestScore = -1;
-    let winner: ProcessId | null = null;
+    let lastActiveProcess: ProcessId | null = null;
+    let highestScoringProcess: ProcessId | null = null;
 
+    // First check if any processes are still active
+    const activeProcesses = this.state.processes.filter(pid => {
+      const process = this.processManager.getProcess(pid);
+      return process.context.state !== ProcessState.Terminated;
+    });
+
+    if (activeProcesses.length === 1) {
+      // Only one active process - it's the winner
+      this.state.winner = activeProcesses[0];
+      return;
+    }
+
+    // If all processes terminated in the same turn, use the score to determine winner
     this.state.scores.forEach((score, processId) => {
+      const process = this.processManager.getProcess(processId);
+      
+      // Track the last active process (the one that survived the longest)
+      if (process.lastRun > 0) {
+        if (lastActiveProcess === null || 
+            process.lastRun > this.processManager.getProcess(lastActiveProcess).lastRun) {
+          lastActiveProcess = processId;
+        }
+      }
+      
+      // Also track the highest scoring process
       if (score > highestScore) {
         highestScore = score;
-        winner = processId;
+        highestScoringProcess = processId;
       }
     });
 
-    this.state.winner = winner;
+    // Prefer the process that survived longest, but if they all terminated at the same time,
+    // use the highest scoring one
+    this.state.winner = lastActiveProcess !== null ? lastActiveProcess : highestScoringProcess;
+    
+    console.log("Winner determination:", {
+      activeProcesses: activeProcesses.length,
+      lastActiveProcess,
+      highestScoringProcess,
+      winner: this.state.winner
+    });
   }
 
   private endBattle(): void {

@@ -20,11 +20,14 @@ export interface GeneratedCode {
 
 export class CodeGenerator {
   private static readonly OPCODES: { [key: string]: number } = {
+    // Basic instructions
     'mov': 0x10,
     'add': 0x20,
     'sub': 0x21,
     'mul': 0x22,
     'div': 0x23,
+    
+    // Jump/branch instructions
     'jmp': 0x30,
     'jz': 0x31,
     'jnz': 0x32,
@@ -34,20 +37,44 @@ export class CodeGenerator {
     'jg': 0x36,
     'jge': 0x37,
     'jle': 0x38,
+    
+    // Stack operations
     'push': 0x40,
     'pop': 0x41,
     'call': 0x42,
     'ret': 0x43,
+    
+    // Logical operations
     'and': 0x50,
     'or': 0x51,
     'xor': 0x52,
     'not': 0x53,
+    
+    // Simple operations
     'inc': 0x60,
     'dec': 0x61,
     'nop': 0x00,
     'halt': 0xFF,
+    
+    // Comparison and special instructions
     'cmp': 0x70,  // Compare instruction
     'spl': 0xA0,  // Split process
+    
+    // Register handling aliases
+    'load': 0x90, // Load from memory to register
+    'store': 0x91, // Store from register to memory
+    
+    // X86-style aliases (map to the same opcodes for compatibility)
+    'mov ax': 0x10,
+    'mov bx': 0x10,
+    'mov cx': 0x10,
+    'mov dx': 0x10,
+    'add ax': 0x20,
+    'add bx': 0x20,
+    'add cx': 0x20,
+    'add dx': 0x20,
+    'jz loop': 0x31,
+    'jnz loop': 0x32,
     'dat': 0xF0,  // Data (used as a bomb)
     'test': 0x71, // Test bits
     'lea': 0x80,  // Load effective address
