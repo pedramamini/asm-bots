@@ -1,4 +1,5 @@
 # ASM Bots
+**Note: This project is a work in progress. It's a long time dream of mine and currently my litmus test for major iterations in vibe coding. Some day, the machines will get intelligent enough to build this game for me.**
 
 A web-based Core Wars arena with real-time memory visualization, battle simulation, and global leaderboards.
 
