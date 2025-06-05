@@ -216,16 +216,64 @@ class MemoryDisplay {
   }
 }
 
+// Bot management class
+class BotManager {
+  constructor() {
+    this.bots = new Map(); // Store uploaded bots
+    this.nextId = 1;
+  }
+
+  addBot(name, code, size = null) {
+    const botId = `bot_${this.nextId++}`;
+    const bot = {
+      id: botId,
+      name: name,
+      code: code,
+      size: size || code.length,
+      uploadTime: new Date()
+    };
+    this.bots.set(botId, bot);
+    return bot;
+  }
+
+  removeBot(botId) {
+    return this.bots.delete(botId);
+  }
+
+  clearBots() {
+    this.bots.clear();
+    this.nextId = 1;
+  }
+
+  getBots() {
+    return Array.from(this.bots.values());
+  }
+
+  getBotCount() {
+    return this.bots.size;
+  }
+}
+
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
   console.log('Initializing application...');
   const canvas = document.getElementById('memoryCanvas');
   const battleDashboard = document.getElementById('battleDashboard');
+  const botManager = new BotManager();
 
   if (canvas && battleDashboard) {
     console.log('Found required elements, creating components...');
     const display = new MemoryDisplay(canvas);
     const dashboard = new BattleDashboard(battleDashboard);
+
+    // Set up the drag and drop functionality
+    setupDragAndDrop(botManager);
+    
+    // Set up manual bot entry
+    setupManualEntry(botManager);
+    
+    // Set up battle creation
+    setupBattleCreation(botManager, display, dashboard);
 
     // Example: Update memory display with random data
     const randomData = new Uint8Array(512 * 512);
@@ -237,3 +285,249 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('Required elements not found:', { canvas, battleDashboard });
   }
 });
+
+// Set up drag and drop functionality
+function setupDragAndDrop(botManager) {
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('botFiles');
+  
+  if (!dropZone || !fileInput) return;
+  
+  // Handle drag events
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, preventDefaults, false);
+  });
+  
+  function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  
+  // Highlight drop zone when file is dragged over it
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropZone.addEventListener(eventName, highlight, false);
+  });
+  
+  ['dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, unhighlight, false);
+  });
+  
+  function highlight() {
+    dropZone.classList.add('highlight');
+  }
+  
+  function unhighlight() {
+    dropZone.classList.remove('highlight');
+  }
+  
+  // Handle dropped files
+  dropZone.addEventListener('drop', handleDrop, false);
+  
+  function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    handleFiles(files);
+  }
+  
+  // Handle files from the file input
+  fileInput.addEventListener('change', function() {
+    handleFiles(this.files);
+  });
+  
+  function handleFiles(files) {
+    if (files.length === 0) return;
+    
+    Array.from(files).forEach(file => {
+      if (file.name.endsWith('.asm') || file.name.endsWith('.txt')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const code = e.target.result;
+          // Extract bot name from filename (remove extension)
+          const botName = file.name.replace(/\.(asm|txt)$/, '');
+          const bot = botManager.addBot(botName, code, file.size);
+          displayBot(bot);
+          updateCreateBattleButton();
+        };
+        reader.readAsText(file);
+      }
+    });
+  }
+  
+  // Make the dropZone clickable to trigger file input
+  dropZone.addEventListener('click', () => {
+    fileInput.click();
+  });
+}
+
+// Set up manual bot entry
+function setupManualEntry(botManager) {
+  const botNameInput = document.getElementById('botName');
+  const botCodeInput = document.getElementById('botCode');
+  const addButton = document.getElementById('addManualBot');
+  const clearButton = document.getElementById('clearBots');
+  
+  if (!botNameInput || !botCodeInput || !addButton || !clearButton) return;
+  
+  addButton.addEventListener('click', () => {
+    const name = botNameInput.value.trim();
+    const code = botCodeInput.value.trim();
+    
+    if (name && code) {
+      const bot = botManager.addBot(name, code);
+      displayBot(bot);
+      
+      // Clear input fields
+      botNameInput.value = '';
+      botCodeInput.value = '';
+      
+      updateCreateBattleButton();
+    } else {
+      alert('Please enter a bot name and code.');
+    }
+  });
+  
+  clearButton.addEventListener('click', () => {
+    botManager.clearBots();
+    const uploadedBotsContainer = document.getElementById('uploadedBots');
+    if (uploadedBotsContainer) {
+      uploadedBotsContainer.innerHTML = '';
+    }
+    updateCreateBattleButton();
+  });
+}
+
+// Display a bot in the UI
+function displayBot(bot) {
+  const uploadedBotsContainer = document.getElementById('uploadedBots');
+  if (!uploadedBotsContainer) return;
+  
+  const botCard = document.createElement('div');
+  botCard.className = 'bot-card';
+  botCard.dataset.botId = bot.id;
+  
+  botCard.innerHTML = `
+    <h4>${bot.name}</h4>
+    <div class="bot-info">
+      <div>Size: ${formatSize(bot.size)}</div>
+      <div>Uploaded: ${formatTime(bot.uploadTime)}</div>
+    </div>
+    <button class="remove-bot" title="Remove bot">×</button>
+  `;
+  
+  // Add remove functionality
+  const removeButton = botCard.querySelector('.remove-bot');
+  removeButton.addEventListener('click', () => {
+    if (window.botManager.removeBot(bot.id)) {
+      botCard.remove();
+      updateCreateBattleButton();
+    }
+  });
+  
+  uploadedBotsContainer.appendChild(botCard);
+}
+
+// Helper for formatting file size
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' bytes';
+  return (bytes / 1024).toFixed(1) + ' KB';
+}
+
+// Helper for formatting time
+function formatTime(date) {
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+// Set up battle creation
+function setupBattleCreation(botManager, display, dashboard) {
+  const createBattleButton = document.getElementById('createBattle');
+  
+  if (!createBattleButton) return;
+  
+  window.botManager = botManager; // Make available globally for event handlers
+  
+  createBattleButton.addEventListener('click', () => {
+    const bots = botManager.getBots();
+    if (bots.length < 2) {
+      alert('You need at least 2 bots to create a battle.');
+      return;
+    }
+    
+    // Create the battle
+    createBattle(bots, display, dashboard);
+  });
+}
+
+// Update the Create Battle button state
+function updateCreateBattleButton() {
+  const createBattleButton = document.getElementById('createBattle');
+  if (!createBattleButton) return;
+  
+  const botCount = window.botManager.getBotCount();
+  createBattleButton.disabled = botCount < 2;
+  
+  // Update button text
+  if (botCount < 2) {
+    createBattleButton.textContent = `Need ${2 - botCount} more bot${botCount === 1 ? '' : 's'}`;
+  } else {
+    createBattleButton.textContent = `Create Battle with ${botCount} Bots`;
+  }
+}
+
+// Create a battle with the selected bots
+function createBattle(bots, display, dashboard) {
+  console.log('Creating battle with bots:', bots);
+  
+  // Create bot data to send to API
+  const botData = bots.map(bot => ({
+    name: bot.name,
+    code: bot.code
+  }));
+  
+  // First, create the bots via the API
+  Promise.all(botData.map(bot => 
+    fetch('/api/bots', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bot)
+    }).then(response => response.json())
+  ))
+  .then(results => {
+    // Extract the bot IDs from the results
+    const botIds = results.map(result => result.data.id);
+    
+    // Now create a battle with these bots
+    return fetch('/api/battles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bots: botIds })
+    });
+  })
+  .then(response => response.json())
+  .then(battleData => {
+    console.log('Battle created:', battleData);
+    // Scroll to battle section
+    document.querySelector('.battle-section').scrollIntoView({ 
+      behavior: 'smooth' 
+    });
+    
+    // Start the battle automatically
+    if (battleData.success && battleData.data.id) {
+      setTimeout(() => {
+        fetch(`/api/battles/${battleData.data.id}/start`, {
+          method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Battle started:', data);
+        })
+        .catch(error => {
+          console.error('Error starting battle:', error);
+        });
+      }, 1000);
+    }
+  })
+  .catch(error => {
+    console.error('Error creating battle:', error);
+    alert('Error creating battle. Check console for details.');
+  });
+}

@@ -30,6 +30,7 @@ export interface BattleOptions {
   coreDump?: boolean;      // Whether to dump core memory on crash
   cycleLimit?: number;     // Maximum cycles a process can execute
   timeLimit?: number;      // Maximum time in milliseconds for the battle
+  roundRobin?: boolean;    // Whether to use round-robin scheduling
 }
 
 export class BattleController {
@@ -140,6 +141,13 @@ export class BattleController {
     const minCyclesPerProcess = 5; // Run at least 5 cycles per active process
     const targetMinCycles = activeProcessCount * minCyclesPerProcess;
 
+    // Ensure fair scheduling for all processes:
+    // First, ensure all processes get at least one cycle
+    let allProcessesScheduled = false;
+    
+    // Track how many cycles each process has used in this turn
+    const cyclesPerProcess = new Map<ProcessId, number>();
+    
     // Run until we hit max cycles or all processes have run enough cycles
     while (cyclesThisTurn < this.options.maxCyclesPerTurn) {
       // Schedule next process
@@ -149,9 +157,16 @@ export class BattleController {
         break;
       }
 
+      // Track cycles per process
+      const processCurrentCycles = cyclesPerProcess.get(runningProcess) || 0;
+      cyclesPerProcess.set(runningProcess, processCurrentCycles + 1);
+
       // Log execution
       const process = this.processManager.getProcess(runningProcess);
       this.logExecution(runningProcess, process);
+
+      // Debug - log which process is being scheduled (now more concise)
+      console.log(`[Turn ${this.state.turn}] Bot ${runningProcess} (${process.name}) - Cycle ${cyclesThisTurn+1}`);
 
       // Emit pre-execution event (if implemented)
       this.onBeforeExecution?.(runningProcess);
@@ -168,18 +183,31 @@ export class BattleController {
       // Emit post-execution event (if implemented)
       this.onAfterExecution?.(runningProcess);
 
+      // Check if all processes have run at least once
+      if (processesRun.size >= activeProcessCount) {
+        allProcessesScheduled = true;
+      }
+
       // Break conditions:
       
       // 1. If we've executed at least the target minimum cycles and all active processes
       // have had a chance to run, we can end the turn early
-      if (cyclesThisTurn >= targetMinCycles && 
-          processesRun.size >= activeProcessCount) {
+      if (cyclesThisTurn >= targetMinCycles && allProcessesScheduled) {
         break;
       }
 
       // 2. If we've hit max cycles, always break
       if (cyclesThisTurn >= this.options.maxCyclesPerTurn) {
         break;
+      }
+      
+      // After each cycle, output the cycle count status for all processes
+      if (cyclesThisTurn % 5 === 0) {
+        console.log("Cycles per process in this turn:");
+        cyclesPerProcess.forEach((cycles, pid) => {
+          const p = this.processManager.getProcess(pid);
+          console.log(`- Process ${pid} (${p.name}): ${cycles} cycles`); 
+        });
       }
     }
 

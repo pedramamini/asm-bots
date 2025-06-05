@@ -114,6 +114,12 @@ export class ProcessManager {
   }
 
   schedule(): ProcessId | null {
+    // Debug output - current process state
+    console.log("\nProcess State Before Scheduling:");
+    for (const [pid, process] of this.processes.entries()) {
+      console.log(`- Process ${pid} (${process.name}): State=${process.context.state}, Cycles=${process.context.cycles}/${process.quantum}`);
+    }
+    
     // If there's a running process, handle its cycle
     if (this.runningProcess !== null) {
       const runningProcess = this.processes.get(this.runningProcess)!;
@@ -124,6 +130,8 @@ export class ProcessManager {
 
       // Check if quantum has expired
       if (runningProcess.context.cycles >= runningProcess.quantum) {
+        console.log(`Process ${this.runningProcess} quantum expired (${runningProcess.context.cycles}/${runningProcess.quantum})`);
+        
         // Move to ready state and clear running process
         runningProcess.context.state = ProcessState.Ready;
         runningProcess.context.cycles = 0;
@@ -157,19 +165,103 @@ export class ProcessManager {
     return this.runningProcess;
   }
 
+  // Track the last scheduled process ID to implement round-robin
+  private lastScheduledId: ProcessId | null = null;
+  
   private findNextProcess(): ProcessId | null {
-    let nextProcess: Process | null = null;
+    // If there are no processes, return null
+    if (this.processes.size === 0) {
+      return null;
+    }
+    
+    // If round-robin is disabled, use the original priority-based scheduling
+    if (this.schedulerOptions.roundRobin === false) {
+      // Just find the highest priority ready process
+      let nextProcess: Process | null = null;
+      let highestPriority = -1;
+      
+      for (const process of this.processes.values()) {
+        if (process.context.state === ProcessState.Ready && process.priority > highestPriority) {
+          nextProcess = process;
+          highestPriority = process.priority;
+        }
+      }
+      
+      return nextProcess?.id ?? null;
+    }
+    
+    // Below is the round-robin implementation
+    // Track highest priority
     let highestPriority = -1;
-
-    // Find highest priority ready process
+    // Map of processes by priority
+    const readyProcessesByPriority = new Map<number, ProcessId[]>();
+    
+    // Debug output - log all processes and their states
+    console.log("\nDebug Scheduling:");
+    console.log("All Processes:");
+    for (const [pid, process] of this.processes.entries()) {
+      console.log(`- Process ${pid} (${process.name}): Priority=${process.priority}, State=${process.context.state}`);
+    }
+    
+    // Group processes by priority
     for (const process of this.processes.values()) {
-      if (process.context.state === ProcessState.Ready && process.priority > highestPriority) {
-        nextProcess = process;
-        highestPriority = process.priority;
+      if (process.context.state === ProcessState.Ready) {
+        if (!readyProcessesByPriority.has(process.priority)) {
+          readyProcessesByPriority.set(process.priority, []);
+        }
+        readyProcessesByPriority.get(process.priority)!.push(process.id);
+        
+        // Track highest priority
+        if (process.priority > highestPriority) {
+          highestPriority = process.priority;
+        }
       }
     }
-
-    return nextProcess?.id ?? null;
+    
+    // If no ready processes, return null
+    if (highestPriority === -1) {
+      return null;
+    }
+    
+    // Get ready processes at highest priority
+    const highestPriorityProcesses = readyProcessesByPriority.get(highestPriority)!;
+    
+    // If there's only one process at highest priority, return it
+    if (highestPriorityProcesses.length === 1) {
+      this.lastScheduledId = highestPriorityProcesses[0];
+      console.log(`Scheduling: Only one process available - Bot ${this.lastScheduledId}`);
+      return this.lastScheduledId;
+    }
+    
+    // Implement round-robin for processes at the same priority level
+    // Additional debug output
+    console.log("Round-Robin Details:");
+    console.log(`- Highest priority processes: ${JSON.stringify(highestPriorityProcesses)}`);
+    console.log(`- Last scheduled ID: ${this.lastScheduledId}`);
+    
+    // Fixed round-robin algorithm:
+    // If no last ID, start with first process
+    if (this.lastScheduledId === null) {
+      this.lastScheduledId = highestPriorityProcesses[0];
+      console.log(`Scheduling: Bot ${this.lastScheduledId} selected from ${highestPriorityProcesses.length} ready processes (first run)`);
+      return this.lastScheduledId;
+    }
+    
+    // If last scheduled process is in the list, pick the next one
+    const currentIndex = highestPriorityProcesses.indexOf(this.lastScheduledId);
+    if (currentIndex !== -1) {
+      // Get the next process in the list, wrapping around to the beginning
+      const nextIndex = (currentIndex + 1) % highestPriorityProcesses.length;
+      this.lastScheduledId = highestPriorityProcesses[nextIndex];
+      console.log(`Scheduling: Bot ${this.lastScheduledId} selected from ${highestPriorityProcesses.length} ready processes (rotating from ${currentIndex} to ${nextIndex})`);
+      return this.lastScheduledId;
+    }
+    
+    // The last scheduled process is no longer in the list
+    // Just pick the first available process and start a new round-robin cycle
+    this.lastScheduledId = highestPriorityProcesses[0];
+    console.log(`Scheduling: Bot ${this.lastScheduledId} selected from ${highestPriorityProcesses.length} ready processes (previous process no longer available)`);
+    return this.lastScheduledId;
   }
 
   getStats(): SchedulerStats {

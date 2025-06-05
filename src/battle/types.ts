@@ -74,4 +74,5 @@ export interface SchedulerOptions {
   defaultQuantum: number;
   defaultPriority: number;
   maxProcesses: number;
+  roundRobin?: boolean;  // Added to control the scheduling algorithm
 }

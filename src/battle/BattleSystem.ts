@@ -41,7 +41,8 @@ export class BattleSystem {
     this.processManager = new ProcessManager({
       defaultQuantum: 100,
       defaultPriority: 1,
-      maxProcesses: 32 // Allow up to 32 processes in battle for more complicated strategies
+      maxProcesses: 32, // Allow up to 32 processes in battle for more complicated strategies
+      roundRobin: options.roundRobin ?? true // Enable round-robin scheduling by default
     });
     
     this.battleController = new BattleController(this.processManager, options);
@@ -97,11 +98,12 @@ export class BattleSystem {
     }
     console.log(`  Entry point: 0x${generatedCode.entryPoint.toString(16).toUpperCase()}`);
     
-    // Create process with higher priority for more complex bots
+    // Create all processes with same priority and small quantum to test round-robin
     const processOptions: ProcessCreateOptions = {
       name: botName,
       owner: owner,
-      priority: Math.floor(Math.random() * 3) + 1,  // Random priority between 1-3
+      priority: 1,  // Same priority for all bots
+      quantum: 5,   // Very small quantum to force frequent process switching
       memorySegments: generatedCode.segments,
       entryPoint: generatedCode.entryPoint
     };

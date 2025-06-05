@@ -112,6 +112,18 @@ app.post("/api/bots", (req: Request, res: Response) => {
     return;
   }
 
+  // Predefined distinct colors for better visualization
+  const botColors = [
+    "#FF5733", // Red-Orange
+    "#33A1FF", // Blue
+    "#33FF57", // Green
+    "#F033FF", // Purple
+    "#FFDD33", // Yellow
+    "#33FFF9", // Cyan
+    "#FF33A8", // Pink
+    "#8933FF", // Violet
+  ];
+  
   // Create bot with runtime properties
   const bot: Bot = {
     id: randomUUID(),
@@ -123,7 +135,7 @@ app.post("/api/bots", (req: Request, res: Response) => {
     memory: new Uint8Array(256), // Default memory size
     pc: 0,
     cyclesExecuted: 0,
-    color: `#${Math.floor(Math.random()*16777215).toString(16)}`, // Random color
+    color: botColors[storage.bots.size % botColors.length], // Assign distinct color based on bot count
     currentInstruction: "",
   };
 
