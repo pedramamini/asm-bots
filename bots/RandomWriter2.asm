@@ -35,7 +35,7 @@ main_loop:
     
     ; Continue in current direction
     cmp r0, 0x8000  ; Check if random value is high
-    jb move_forward
+    jl move_forward
     
 move_backward:
     sub r1, 5       ; Move backward 5 bytes

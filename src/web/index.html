@@ -108,6 +108,40 @@
             border-radius: 4px;
             border: 1px solid var(--border-color);
         }
+        .memory-controls {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .memory-controls label {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+        .memory-controls input[type="range"] {
+            flex: 1;
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        .memory-controls input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #007bff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .memory-controls input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #007bff;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
         .execution-controls, .control-buttons, .actions {
             display: flex;
             gap: 10px;
@@ -440,6 +474,10 @@
         <div class="memory-section">
             <h2>Memory Visualization</h2>
             <canvas id="memoryCanvas"></canvas>
+            <div class="memory-controls">
+                <label for="pixelSizeSlider">Pixel Size: <span id="pixelSizeValue">8</span>x<span id="pixelSizeValue2">8</span></label>
+                <input type="range" id="pixelSizeSlider" min="2" max="16" value="8" step="1">
+            </div>
             <div class="memory-legend">
                 <h3>Memory Map</h3>
                 <div id="botLegend"></div>

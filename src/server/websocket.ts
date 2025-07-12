@@ -112,7 +112,7 @@ export class WebSocketServer {
     // Parse assembly code
     const parseResult = this.parser.parse(code);
     if (parseResult.errors.length > 0) {
-      throw new Error(`Assembly parsing error: ${parseResult.errors[0].message} at line ${parseResult.errors[0].line}`);
+      throw new Error(`Assembly parsing error for bot "${name}": ${parseResult.errors[0].message} at line ${parseResult.errors[0].line}`);
     }
 
     // Generate code
@@ -154,12 +154,16 @@ export class WebSocketServer {
     
     // Load the code into the battle's memory system
     const memorySystem = battle.battleSystem.getMemorySystem();
+    // Set ownership for initial code
+    memorySystem.setCurrentProcess(processId);
     for (const segment of generatedCode.segments) {
       for (let i = 0; i < segment.data.length; i++) {
         const address = segment.start + i;
         memorySystem.write(address, segment.data[i]);
       }
     }
+    // Clear current process
+    memorySystem.setCurrentProcess(null);
     
     return processId;
   }
@@ -462,34 +466,21 @@ export class WebSocketServer {
     const state = battle.getState();
     
     // Send memory updates - more comprehensive sampling
-    const memoryUpdates: Array<{address: number, value: number, owner: number}> = [];
     const memory = battle.getMemory();
     const processManager = battle.battleSystem.getProcessManager();
     
-    // Track which process owns which memory regions
-    const memoryOwnership = new Map<number, number>();
+    // Get ownership information from tracked memory system
+    const memorySystem = battle.battleSystem.getMemorySystem();
+    const owners = memorySystem.getOwners();
     
-    // Build ownership map from process memory segments
-    for (const processId of state.processes) {
-      try {
-        const process = processManager.getProcess(processId);
-        for (const segment of process.context.memory) {
-          for (let addr = segment.start; addr < segment.start + segment.size; addr++) {
-            memoryOwnership.set(addr, processId);
-          }
-        }
-      } catch (error) {
-        // Process might be terminated, skip
-      }
-    }
-    
-    // Send all memory updates for bot regions (not sampled)
-    for (const [addr, owner] of memoryOwnership.entries()) {
-      if (memory[addr] !== 0) {
+    // Send memory updates with actual ownership
+    const memoryUpdates: Array<{address: number, value: number, owner: number}> = [];
+    for (let addr = 0; addr < memory.length; addr++) {
+      if (memory[addr] !== 0 && owners[addr] !== 0) {
         memoryUpdates.push({
           address: addr,
           value: memory[addr],
-          owner: owner
+          owner: owners[addr]
         });
       }
     }

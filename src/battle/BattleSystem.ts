@@ -8,7 +8,7 @@ import { BattleController, BattleOptions } from './BattleController.js';
 import { ProcessState, ProcessId, ProcessCreateOptions } from './types.js';
 import { ExecutionUnit, Opcode } from '../cpu/ExecutionUnit.js';
 import { InstructionDecoder, AddressingMode } from '../cpu/InstructionDecoder.js';
-import { MemorySystem } from '../memory/MemorySystem.js';
+import { TrackedMemorySystem } from '../memory/TrackedMemorySystem.js';
 import { AssemblyParser } from '../parser/AssemblyParser.js';
 import { CodeGenerator } from '../parser/CodeGenerator.js';
 import fs from 'fs';
@@ -23,7 +23,7 @@ interface BotLoadResult {
 }
 
 export class BattleSystem {
-  private memorySystem: MemorySystem;
+  private memorySystem: TrackedMemorySystem;
   private processManager: ProcessManager;
   private battleController: BattleController;
   private instructionDecoder: InstructionDecoder;
@@ -35,7 +35,7 @@ export class BattleSystem {
   constructor(options: BattleOptions) {
     // Initialize memory system with custom size if provided
     const memorySize = options.memorySize || 65536; // Default to 64KB if not specified
-    this.memorySystem = new MemorySystem(memorySize);
+    this.memorySystem = new TrackedMemorySystem(memorySize);
     
     // Process manager configuration
     this.processManager = new ProcessManager({
@@ -111,6 +111,8 @@ export class BattleSystem {
     const processId = this.processManager.create(processOptions);
     
     // Load the process code into the shared memory system
+    // Set ownership for initial code load
+    this.memorySystem.setCurrentProcess(processId);
     for (const segment of generatedCode.segments) {
       for (let i = 0; i < segment.data.length; i++) {
         const address = segment.start + i;
@@ -118,6 +120,8 @@ export class BattleSystem {
       }
       console.log(`Loaded ${segment.name} segment at 0x${segment.start.toString(16)} (${segment.size} bytes)`);
     }
+    // Clear current process after loading
+    this.memorySystem.setCurrentProcess(null);
     
     // Add to battle
     this.battleController.addProcess(processId);
@@ -143,6 +147,9 @@ export class BattleSystem {
     
     const process = this.processManager.getProcess(currentProcessId);
     if (process.context.state !== ProcessState.Running) return false;
+    
+    // Set current process for ownership tracking
+    this.memorySystem.setCurrentProcess(currentProcessId);
     
     // Get current PC value
     const pc = process.context.registers.pc;
@@ -266,16 +273,23 @@ export class BattleSystem {
       // This helps make battles more interesting by having processes run longer
       if (instruction.opcode === 0xFF) {
         this.processManager.terminate(currentProcessId, "Halt instruction executed");
+        this.memorySystem.setCurrentProcess(null);
         return false;
       }
       
       // Keep the battle going for demonstration purposes by having unknown opcodes
       // just advance PC rather than failing the whole process
+      
+      // Clear current process after execution
+      this.memorySystem.setCurrentProcess(null);
       return true;
     } catch (error) {
       // Handle execution errors
       console.error(`Execution error for process ${currentProcessId}: ${error}`);
       this.processManager.terminate(currentProcessId, `Execution error: ${error}`);
+      
+      // Clear current process on error too
+      this.memorySystem.setCurrentProcess(null);
       return false;
     }
   }
@@ -925,7 +939,7 @@ export class BattleSystem {
   /**
    * Get access to the memory system for visualization
    */
-  public getMemorySystem(): MemorySystem {
+  public getMemorySystem(): TrackedMemorySystem {
     return this.memorySystem;
   }
 
@@ -942,7 +956,7 @@ export class BattleSystem {
   public reset(): void {
     // Reset all components
     this.battleController.reset();
-    this.memorySystem = new MemorySystem(); // Create fresh memory system
+    this.memorySystem = new TrackedMemorySystem(); // Create fresh memory system
     this.execUnit = new ExecutionUnit(this.memorySystem); // Create new execution unit
   }
 }

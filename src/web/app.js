@@ -109,6 +109,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Start memory animation
     memoryViz.startAnimation();
     
+    // Set up pixel size slider
+    const pixelSizeSlider = document.getElementById('pixelSizeSlider');
+    const pixelSizeValue = document.getElementById('pixelSizeValue');
+    const pixelSizeValue2 = document.getElementById('pixelSizeValue2');
+    
+    if (pixelSizeSlider) {
+      pixelSizeSlider.addEventListener('input', (e) => {
+        const newSize = parseInt(e.target.value);
+        pixelSizeValue.textContent = newSize;
+        pixelSizeValue2.textContent = newSize;
+        memoryViz.setCellSize(newSize);
+      });
+    }
+    
     // Connect to server
     battleClient.connect();
 

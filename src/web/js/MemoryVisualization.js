@@ -6,7 +6,7 @@ export class MemoryVisualization {
     this.memorySize = memorySize;
     
     // Visualization parameters
-    this.cellSize = 4; // Size of each memory cell in pixels - increased for better visibility
+    this.cellSize = 8; // Default size of each memory cell in pixels
     this.columns = 256; // Memory cells per row
     this.rows = Math.ceil(memorySize / this.columns);
     this.leftMargin = 50; // Space for hex addresses
@@ -35,8 +35,7 @@ export class MemoryVisualization {
   
   setupCanvas() {
     // Set canvas size based on memory visualization needs with margins
-    this.canvas.width = this.columns * this.cellSize + this.leftMargin;
-    this.canvas.height = this.rows * this.cellSize + this.topMargin;
+    this.updateCanvasSize();
     
     // Initial render
     this.render();
@@ -77,6 +76,16 @@ export class MemoryVisualization {
     for (let i = 0; i < data.length; i++) {
       const addr = (startAddress + i) % this.memorySize;
       this.updateMemory(addr, data[i], ownerId);
+    }
+  }
+  
+  // Mark a memory access for visualization
+  markAccess(address, type) {
+    if (address >= 0 && address < this.memorySize) {
+      this.accessMap.set(address, {
+        time: Date.now(),
+        type: type
+      });
     }
   }
   
@@ -150,6 +159,28 @@ export class MemoryVisualization {
       }
       
       this.ctx.fillText(hexAddr, this.leftMargin - 5, y);
+    }
+    
+    // Draw grid lines for better visibility
+    this.ctx.strokeStyle = isDarkMode ? '#333' : '#ddd';
+    this.ctx.lineWidth = 0.5;
+    
+    // Vertical grid lines
+    for (let col = 0; col <= this.columns; col++) {
+      const x = col * this.cellSize + this.leftMargin;
+      this.ctx.beginPath();
+      this.ctx.moveTo(x, this.topMargin);
+      this.ctx.lineTo(x, this.rows * this.cellSize + this.topMargin);
+      this.ctx.stroke();
+    }
+    
+    // Horizontal grid lines
+    for (let row = 0; row <= this.rows; row++) {
+      const y = row * this.cellSize + this.topMargin;
+      this.ctx.beginPath();
+      this.ctx.moveTo(this.leftMargin, y);
+      this.ctx.lineTo(this.columns * this.cellSize + this.leftMargin, y);
+      this.ctx.stroke();
     }
     
     // Render memory cells
@@ -274,5 +305,19 @@ export class MemoryVisualization {
     this.missingDebugDone = false;
     console.log('Memory visualization cleared');
     this.render();
+  }
+  
+  // Update cell size and re-render
+  setCellSize(newSize) {
+    this.cellSize = newSize;
+    // Keep the same grid layout, just change cell size
+    this.updateCanvasSize();
+    this.render();
+  }
+  
+  // Update canvas dimensions based on cell size
+  updateCanvasSize() {
+    this.canvas.width = this.columns * this.cellSize + this.leftMargin;
+    this.canvas.height = this.rows * this.cellSize + this.topMargin;
   }
 }
