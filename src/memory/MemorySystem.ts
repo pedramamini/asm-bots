@@ -204,4 +204,12 @@ export class MemorySystem {
         // Ensure positive value and wrap around
         return ((address % this.SIZE) + this.SIZE) % this.SIZE;
     }
+
+    /**
+     * Get the raw memory array for visualization
+     * @returns copy of the memory array
+     */
+    public getMemory(): Uint8Array {
+        return new Uint8Array(this.memory);
+    }
 }

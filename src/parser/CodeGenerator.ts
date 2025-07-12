@@ -89,13 +89,13 @@ export class CodeGenerator {
     'sp': 0x04,
     'pc': 0x05,
     'flags': 0x06,
-    // Add x86-style registers
-    'ax': 0x10,
-    'bx': 0x11,
-    'cx': 0x12,
-    'dx': 0x13,
-    'si': 0x14,
-    'di': 0x15
+    // Map x86-style registers to r0-r3 for compatibility
+    'ax': 0x00, // Map to r0
+    'bx': 0x01, // Map to r1  
+    'cx': 0x02, // Map to r2
+    'dx': 0x03, // Map to r3
+    'si': 0x01, // Map to r1
+    'di': 0x02  // Map to r2
   };
 
   // Set of valid registers for memory access checking
@@ -113,7 +113,8 @@ export class CodeGenerator {
     this.segments = [];
   }
 
-  encode(tokens: Token[]): Instruction[] {
+  encode(tokens: Token[], symbols: SymbolTable): Instruction[] {
+    this.symbols = symbols; // Set symbols before encoding
     const instructions: Instruction[] = [];
     let i = 0;
 
@@ -124,6 +125,13 @@ export class CodeGenerator {
         const instruction = this.encodeInstruction(tokens, i);
         instructions.push(instruction);
         i += this.getInstructionLength(tokens, i);
+      } else if (token.type === TokenType.DataDefinition) {
+        // Handle data definitions (dw, db, etc.)
+        const dataInstruction = this.encodeDataDefinition(tokens, i);
+        if (dataInstruction) {
+          instructions.push(dataInstruction);
+        }
+        i += this.getDataDefinitionLength(tokens, i);
       } else {
         i++;
       }
@@ -260,6 +268,56 @@ export class CodeGenerator {
     return /^-?\d+$/.test(str) || /^0x[0-9a-fA-F]+$/.test(str);
   }
 
+  private getDataDefinitionLength(tokens: Token[], startIndex: number): number {
+    let length = 1; // Start with label token
+    let i = startIndex + 1;
+    
+    // Skip data definition token (dw, db, etc.)
+    if (i < tokens.length && tokens[i].type === TokenType.DataDefinition) {
+      length++;
+      i++;
+    }
+    
+    // Count all immediate values
+    while (i < tokens.length && tokens[i].type === TokenType.Immediate) {
+      length++;
+      i++;
+    }
+    
+    return length;
+  }
+  
+  private encodeDataDefinition(tokens: Token[], startIndex: number): Instruction | null {
+    // Skip label if present
+    let i = startIndex;
+    if (tokens[i].type === TokenType.Label) {
+      i++;
+    }
+    
+    if (i >= tokens.length || tokens[i].type !== TokenType.DataDefinition) {
+      return null;
+    }
+    
+    const defType = tokens[i].value.toLowerCase();
+    i++;
+    
+    if (i >= tokens.length || tokens[i].type !== TokenType.Immediate) {
+      return null;
+    }
+    
+    // For data definitions, we'll use special opcodes
+    const value = this.encodeOperand(tokens[i]);
+    
+    switch (defType) {
+      case 'dw': // Data word
+        return { opcode: 0xF0, operands: [value & 0xFF, (value >> 8) & 0xFF], size: 2 };
+      case 'db': // Data byte
+        return { opcode: 0xF1, operands: [value & 0xFF], size: 1 };
+      default:
+        return null;
+    }
+  }
+
   layout(instructions: Instruction[], symbols: SymbolTable): GeneratedCode {
     this.symbols = symbols;
     this.segments = [];
@@ -273,11 +331,43 @@ export class CodeGenerator {
       data: new Uint8Array()  // Initialize with empty Uint8Array
     };
 
-    // Layout instructions
+    // Layout instructions with proper encoding
     const tempData: number[] = [];
     for (const instruction of instructions) {
+      // Add opcode
       tempData.push(instruction.opcode);
-      tempData.push(...instruction.operands);
+      
+      // Handle operands based on instruction type
+      if (instruction.opcode >= 0x30 && instruction.opcode <= 0x38) {
+        // Jump instructions - encode address as 16-bit value (will be relocated later)
+        if (instruction.operands.length > 0) {
+          const addr = instruction.operands[0];
+          tempData.push(addr & 0xFF);         // Low byte
+          tempData.push((addr >> 8) & 0xFF);  // High byte
+        }
+      } else if (instruction.opcode === 0x42) {
+        // Call instruction - encode address as 16-bit value (will be relocated later)
+        if (instruction.operands.length > 0) {
+          const addr = instruction.operands[0];
+          tempData.push(addr & 0xFF);         // Low byte
+          tempData.push((addr >> 8) & 0xFF);  // High byte
+        }
+      } else if (instruction.opcode === 0xF0 || instruction.opcode === 0xF1) {
+        // Data definitions - already properly encoded
+        tempData.push(...instruction.operands);
+      } else {
+        // Other instructions - add operands as-is
+        for (const operand of instruction.operands) {
+          if (operand > 255) {
+            // 16-bit value
+            tempData.push(operand & 0xFF);         // Low byte
+            tempData.push((operand >> 8) & 0xFF);  // High byte
+          } else {
+            // 8-bit value
+            tempData.push(operand);
+          }
+        }
+      }
     }
 
     // Convert to Uint8Array
@@ -301,18 +391,23 @@ export class CodeGenerator {
 
     // Relocate segments
     for (const segment of this.segments) {
+      const oldStart = segment.start;
       segment.start += offset;
 
       // Update absolute addresses in code
       const data = Array.from(segment.data);  // Convert to array for easier manipulation
       for (let i = 0; i < data.length; i++) {
         const opcode = data[i];
-        // Check if this is a jump or call instruction
-        if ((opcode >= 0x30 && opcode <= 0x38) || opcode === 0x42) {
-          // Next value is an address, adjust it
-          if (i + 1 < data.length) {
-            data[i + 1] += offset;
-            i++; // Skip the adjusted address
+        // Check if this is a jump, call, or spl instruction
+        if ((opcode >= 0x30 && opcode <= 0x38) || opcode === 0x42 || opcode === 0xA0) {
+          // Next 2 bytes are a 16-bit address relative to segment start
+          if (i + 2 < data.length) {
+            const relativeAddr = data[i + 1] | (data[i + 2] << 8);
+            // Convert to absolute address: segment start + relative offset
+            const absoluteAddr = segment.start + relativeAddr;
+            data[i + 1] = absoluteAddr & 0xFF;        // Low byte
+            data[i + 2] = (absoluteAddr >> 8) & 0xFF; // High byte
+            i += 2; // Skip the address bytes
           }
         }
       }

@@ -74,7 +74,7 @@ export class BattleSystem {
     // Generate code
     const tokens = parseResult.tokens;
     const symbols = parseResult.symbols;
-    const instructions = this.codeGenerator.encode(tokens);
+    const instructions = this.codeGenerator.encode(tokens, symbols);
     const generatedCode = this.codeGenerator.layout(instructions, symbols);
     
     // Get the memory system size to distribute bots more evenly
@@ -110,6 +110,15 @@ export class BattleSystem {
     
     const processId = this.processManager.create(processOptions);
     
+    // Load the process code into the shared memory system
+    for (const segment of generatedCode.segments) {
+      for (let i = 0; i < segment.data.length; i++) {
+        const address = segment.start + i;
+        this.memorySystem.write(address, segment.data[i]);
+      }
+      console.log(`Loaded ${segment.name} segment at 0x${segment.start.toString(16)} (${segment.size} bytes)`);
+    }
+    
     // Add to battle
     this.battleController.addProcess(processId);
     
@@ -139,54 +148,39 @@ export class BattleSystem {
     const pc = process.context.registers.pc;
     
     try {
-      // Get memory segments for this process
-      const segments = process.context.memory;
+      // Read instruction from shared memory
       let instruction: { opcode: number; operandBytes: number[] } = { opcode: 0x00, operandBytes: [] }; // Default to NOP if not found
       let instructionStr = "nop"; // Default to NOP instruction name
       let instructionSize = 1;
       
-      // Find the segment that contains the PC
-      for (const segment of segments) {
-        if (pc >= segment.start && pc < segment.start + segment.size) {
-          // PC is within this segment
-          const offset = pc - segment.start;
-          if (offset < segment.data.length) {
-            // Read the opcode
-            const opcodeByte = segment.data[offset];
-            instruction.opcode = opcodeByte;
+      // Read the opcode from shared memory
+      const opcodeByte = this.memorySystem.read(pc);
+      instruction.opcode = opcodeByte;
+      // Decode operands based on opcode format (simplified)
+      const isJumpInstruction = (opcodeByte >= 0x30 && opcodeByte <= 0x38);
+      const isCallInstruction = (opcodeByte === 0x42);
+      const isSplInstruction = (opcodeByte === 0xA0);
+      const isAluInstruction = (opcodeByte >= 0x20 && opcodeByte <= 0x2F);
+      const isMovInstruction = (opcodeByte >= 0x10 && opcodeByte <= 0x1F);
+      
+      // Most instructions are 3 bytes: opcode, operand1, operand2
+      if (isMovInstruction || isAluInstruction) {
+        instructionSize = 3;
+        instruction.operandBytes = [
+          this.memorySystem.read(pc + 1),
+          this.memorySystem.read(pc + 2)
+        ];
+      } 
+      // Jump, Call, and SPL instructions are 3 bytes: opcode, low byte, high byte
+      else if (isJumpInstruction || isCallInstruction || isSplInstruction) {
+        instructionSize = 3;
+        // Read 16-bit address (little-endian)
+        const lowByte = this.memorySystem.read(pc + 1);
+        const highByte = this.memorySystem.read(pc + 2);
+        const address = lowByte | (highByte << 8);
+        instruction.operandBytes = [address];
+      }
             
-            // Decode operands based on opcode format (simplified)
-            const isJumpInstruction = (opcodeByte >= 0x30 && opcodeByte <= 0x3F);
-            const isAluInstruction = (opcodeByte >= 0x20 && opcodeByte <= 0x2F);
-            const isMovInstruction = (opcodeByte >= 0x10 && opcodeByte <= 0x1F);
-            
-            // Most instructions are 3 bytes: opcode, operand1, operand2
-            if (isMovInstruction || isAluInstruction) {
-              instructionSize = 3;
-              if (offset + 2 < segment.data.length) {
-                instruction.operandBytes = [
-                  segment.data[offset + 1],
-                  segment.data[offset + 2]
-                ];
-              }
-            } 
-            // Jump instructions are 2 bytes: opcode, target
-            else if (isJumpInstruction) {
-              instructionSize = 2;
-              if (offset + 1 < segment.data.length) {
-                instruction.operandBytes = [segment.data[offset + 1]];
-              }
-            }
-            
-            // Check special case for JUMP to entry point
-            if (opcodeByte === 0x30 && offset + 1 < segment.data.length) {
-              const jumpTarget = segment.data[offset + 1];
-              // If this is a jump to zero (the traditional starting point), 
-              // interpret it as a jump to the bot's entry point
-              if (jumpTarget === 0) {
-                instruction.operandBytes = [segment.start & 0xFF];
-              }
-            }
             
             // Map opcodes to instruction names for logging
             switch (opcodeByte) {
@@ -248,10 +242,6 @@ export class BattleSystem {
                 instruction.opcode = 0x00; // Treat as NOP
                 break;
             }
-          }
-          break;
-        }
-      }
       
       // Store instruction for logging
       process.context.currentInstruction = instructionStr;
@@ -268,6 +258,9 @@ export class BattleSystem {
       
       // Log which instruction is being executed
       console.log(`Process ${currentProcessId} executing: ${instructionStr} at PC=0x${pc.toString(16)}`);
+      if (instruction.operandBytes.length > 0) {
+        console.log(`  Operands: ${instruction.operandBytes.map(b => '0x' + b.toString(16)).join(', ')}`);
+      }
       
       // If this is a halt instruction OR we hit too many unknown opcodes, terminate the process
       // This helps make battles more interesting by having processes run longer
@@ -562,9 +555,9 @@ export class BattleSystem {
       case 0x42: // CALL - Call subroutine
         if (operands.length >= 1) {
           const target = operands[0];
-          // Push current PC + instructionSize to stack
+          // Push current PC + 3 (size of CALL instruction) to stack
           registers.sp = (registers.sp - 2) & 0xFFFF;
-          safeMemoryWrite(registers.sp, registers.pc + 2);
+          safeMemoryWrite(registers.sp, registers.pc + 3);
           // Jump to target (preserve high bits of PC)
           const highBytes = process.context.registers.pc & 0xFFFF0000;
           const targetAddress = highBytes | (target & 0xFFFF);
@@ -671,10 +664,57 @@ export class BattleSystem {
       // Special operations  
       case 0xA0: // SPL - Split process
         if (operands.length >= 1) {
-          const target = operands[0];
-          // In a real implementation, this would create a new process
-          // For now, we'll just log that a split was attempted
-          console.log(`Process ${processId} attempted to split to ${target.toString(16)}`);
+          // SPL operand is an absolute address after relocation
+          const targetAddr = operands[0];
+          
+          console.log(`SPL instruction: creating child process at 0x${targetAddr.toString(16)}`);
+          
+          // Get the current process to copy its context
+          const parentProcess = this.processManager.getProcess(processId);
+          
+          // Check if we've hit the process limit by counting active processes in battle
+          if (this.battleController) {
+            const battleState = this.battleController.getState();
+            const activeCount = battleState.processes.filter(pid => {
+              const p = this.processManager.getProcess(pid);
+              return p.context.state !== ProcessState.Terminated;
+            }).length;
+            
+            if (activeCount >= 32) {
+              console.log(`Process ${processId} failed to split: process limit reached`);
+              break;
+            }
+          }
+          
+          // Create a new process with the same memory segments and owner
+          const childOptions: ProcessCreateOptions = {
+            name: `${parentProcess.name}_child${Date.now()}`,
+            owner: parentProcess.owner,
+            priority: parentProcess.priority,
+            quantum: parentProcess.quantum,
+            memorySegments: parentProcess.context.memory, // Share memory segments
+            entryPoint: targetAddr // New process starts at target address
+          };
+          
+          try {
+            const childId = this.processManager.create(childOptions);
+            
+            // Add the new process to the battle if battleController is available
+            if (this.battleController) {
+              const battleState = this.battleController.getState();
+              if (battleState.status === 'running') {
+                this.battleController.addProcess(childId);
+              }
+            }
+            
+            console.log(`Process ${processId} split: created child process ${childId} at 0x${targetAddr.toString(16)}`);
+            
+            // Both parent and child continue execution
+            // Parent continues at next instruction (normal PC advance)
+            // Child starts at targetAddr
+          } catch (error) {
+            console.warn(`Failed to split process ${processId}: ${error}`);
+          }
         }
         break;
         
@@ -852,7 +892,10 @@ export class BattleSystem {
     // Before each instruction execution
     this.battleController.onBeforeExecution = (processId: ProcessId) => {
       // Execute the instruction for this process
-      this.executeInstruction();
+      const executed = this.executeInstruction();
+      if (!executed) {
+        console.log(`Failed to execute instruction for process ${processId}`);
+      }
     };
     
     // After each instruction execution
@@ -884,6 +927,13 @@ export class BattleSystem {
    */
   public getMemorySystem(): MemorySystem {
     return this.memorySystem;
+  }
+
+  /**
+   * Get access to the process manager
+   */
+  public getProcessManager(): ProcessManager {
+    return this.processManager;
   }
   
   /**

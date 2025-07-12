@@ -46,6 +46,9 @@ export interface Battle extends BattleData {
   reset(): void;
   getState(): BattleState;
   addProcess(processId: ProcessId): void;
+  getMemory(): Uint8Array;
+  executeStep(): void;
+  getProcessManager(): any; // Returns the battle's ProcessManager
 }
 
 export interface BattleEvent {
@@ -95,6 +98,7 @@ export interface Storage {
   battles: Map<string, Battle>;
   clients: Map<string, WebSocketClient>;
   createProcess(code: string, name: string): Promise<ProcessId>;
+  createBattle(battleId: string): Battle;
 }
 
 // Event types for WebSocket messages
@@ -108,12 +112,23 @@ export type WebSocketEventType =
   | 'resetBattle'  // Reset a battle
   | 'uploadBot'    // Upload a new bot
   | 'executionLog' // Execution log update
-  | 'error';       // Error occurred
+  | 'error'        // Error occurred
+  | 'battle.create' // Create a new battle
+  | 'battle.start'  // Start a battle
+  | 'battle.pause'  // Pause a battle
+  | 'battle.reset'  // Reset a battle
+  | 'battle.step';  // Step through battle
 
 export interface WebSocketEvent {
   type: WebSocketEventType;
   battleId?: string;
-  data?: unknown;
+  data?: {
+    battleId?: string;
+    bots?: Array<{name: string, code: string, owner: string}>;
+    events?: string[];
+    steps?: number;
+    [key: string]: any;
+  };
   botData?: {
     name: string;
     code: string;

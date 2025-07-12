@@ -63,8 +63,8 @@ export class BattleController {
   }
 
   addProcess(processId: ProcessId): void {
-    if (this.state.status !== 'pending' && this.state.status !== 'paused') {
-      throw new Error('Cannot add processes while battle is running or completed');
+    if (this.state.status === 'completed') {
+      throw new Error('Cannot add processes to a completed battle');
     }
 
     const process = this.processManager.getProcess(processId);
@@ -72,6 +72,11 @@ export class BattleController {
 
     this.state.processes.push(processId);
     this.state.scores.set(processId, 0);
+    
+    // Log when a process is added during runtime
+    if (this.state.status === 'running') {
+      console.log(`Process ${processId} added to running battle at turn ${this.state.turn}`);
+    }
   }
 
   start(): void {

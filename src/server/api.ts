@@ -13,9 +13,13 @@ import type {
 import { BattleController, type BattleOptions } from "../battle/BattleController.js";
 import { BattleSystem } from "../battle/BattleSystem.js";
 import { ProcessManager } from "../battle/ProcessManager.js";
-import type { SchedulerOptions } from "../battle/types.js";
+import type { SchedulerOptions, ProcessId } from "../battle/types.js";
 import { AssemblyParser } from "../parser/AssemblyParser.js";
 import { CodeGenerator } from "../parser/CodeGenerator.js";
+import { VERSION_INFO } from '../version.js';
+
+// Constants
+const MEMORY_SIZE = 65536; // 64KB
 
 // Initialize ProcessManager with scheduler options
 const schedulerOptions: SchedulerOptions = {
@@ -32,10 +36,10 @@ const defaultBattleOptions: BattleOptions = {
   maxLogEntries: 1000
 };
 
-const processManager = new ProcessManager(schedulerOptions);
 const parser = new AssemblyParser();
 const codeGenerator = new CodeGenerator();
 const battleSystem = new BattleSystem(defaultBattleOptions);
+const processManager = battleSystem.getProcessManager();
 
 // Initialize storage
 const storage: Storage = {
@@ -50,7 +54,7 @@ const storage: Storage = {
     }
 
     // Generate code
-    const instructions = codeGenerator.encode(parseResult.tokens);
+    const instructions = codeGenerator.encode(parseResult.tokens, parseResult.symbols);
     const generatedCode = codeGenerator.layout(instructions, parseResult.symbols);
 
     // Create process
@@ -60,6 +64,55 @@ const storage: Storage = {
       entryPoint: generatedCode.entryPoint,
       memorySegments: generatedCode.segments,
     });
+  },
+  createBattle(battleId: string) {
+    // Create a new battle system for each battle
+    const newBattleSystem = new BattleSystem(defaultBattleOptions);
+    const battleController = newBattleSystem.getBattleController();
+    const memorySystem = newBattleSystem.getMemorySystem();
+    const battleProcessManager = newBattleSystem.getProcessManager();
+    
+    const battle: Battle = {
+      id: battleId,
+      bots: [],
+      status: 'pending',
+      events: [],
+      memorySize: MEMORY_SIZE,
+      processes: [],
+      battleSystem: newBattleSystem,
+      start() {
+        this.status = 'running';
+        battleController.start();
+        return battleController.getState();
+      },
+      pause() {
+        this.status = 'paused';
+        battleController.pause();
+      },
+      reset() {
+        this.status = 'pending';
+        battleController.reset();
+      },
+      getState() {
+        return battleController.getState();
+      },
+      addProcess(processId: ProcessId) {
+        this.processes?.push(processId);
+        battleController.addProcess(processId);
+      },
+      getMemory() {
+        return memorySystem.getMemory();
+      },
+      executeStep() {
+        battleController.nextTurn();
+      },
+      getProcessManager() {
+        return battleProcessManager;
+      }
+    };
+    
+    storage.battles.set(battleId, battle);
+    return battle;
   }
 };
 
@@ -73,6 +126,15 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
   next();
+});
+
+// Version endpoint
+app.get("/api/version", (req: Request, res: Response) => {
+  const response: ApiResponse<typeof VERSION_INFO> = {
+    success: true,
+    data: VERSION_INFO,
+  };
+  res.json(response);
 });
 
 // Bot Management Endpoints
@@ -230,6 +292,9 @@ app.post("/api/battles", async (req: Request, res: Response) => {
       },
       getState: () => battleController.getState(),
       addProcess: (processId) => battleController.addProcess(processId),
+      getMemory: () => battleSystem.getMemorySystem().getMemory(),
+      executeStep: () => battleController.nextTurn(),
+      getProcessManager: () => battleSystem.getProcessManager()
     };
 
     storage.battles.set(battle.id, battle);

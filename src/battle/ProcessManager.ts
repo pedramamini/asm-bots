@@ -76,14 +76,25 @@ export class ProcessManager {
     process.cyclesUsed = 0;
     process.lastRun = 0;
 
-    // Reset registers
+    // Generate new random PC within the code segment
+    let newPC = 0;
+    if (process.context.memory.length > 0) {
+      const codeSegment = process.context.memory[0];
+      // Random offset within the code segment (aligned to 3-byte boundary)
+      const maxOffset = Math.max(0, codeSegment.size - 3);
+      const randomOffset = Math.floor(Math.random() * (maxOffset / 3)) * 3;
+      newPC = codeSegment.start + randomOffset;
+      console.log(`Reset process ${processId}: new random PC = 0x${newPC.toString(16)}`);
+    }
+
+    // Reset registers with new PC
     process.context.registers = {
       r0: 0,
       r1: 0,
       r2: 0,
       r3: 0,
       sp: 0xFFFF,
-      pc: process.context.memory[0]?.start || 0, // Reset to entry point using start property
+      pc: newPC,
       flags: 0
     };
 

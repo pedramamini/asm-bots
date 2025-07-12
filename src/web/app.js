@@ -1,220 +1,3 @@
-class BattleDashboard {
-  constructor(container) {
-    this.container = container;
-    this.bots = new Map();
-    this.metrics = {
-      executionSpeed: 0,
-      memoryEfficiency: 0,
-      battleProgress: 0,
-    };
-    this.connectWebSocket();
-    this.initializeDashboard();
-  }
-
-  connectWebSocket() {
-    console.log('Connecting to WebSocket...');
-    this.ws = new WebSocket(`ws://${window.location.host}`);
-
-    this.ws.onopen = () => {
-      console.log('WebSocket connected');
-    };
-
-    this.ws.onmessage = (event) => {
-      console.log('WebSocket message received:', event.data);
-      try {
-        const message = JSON.parse(event.data);
-        switch (message.type) {
-          case 'bots':
-            console.log('Updating bots:', message.data);
-            message.data.forEach(bot => this.updateBotStatus(bot));
-            break;
-          case 'battles':
-            console.log('Updating battles:', message.data);
-            message.data.forEach(battle => this.updateBattleStatus(battle));
-            break;
-          case 'metrics':
-            console.log('Updating metrics:', message.data);
-            this.updateMetrics(message.data);
-            break;
-          default:
-            console.log('Unknown message type:', message.type);
-        }
-      } catch (error) {
-        console.error('Error handling WebSocket message:', error);
-      }
-    };
-
-    this.ws.onclose = (event) => {
-      console.log('WebSocket closed:', event.code, event.reason);
-      setTimeout(() => this.connectWebSocket(), 1000);
-    };
-
-    this.ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-  }
-
-  initializeDashboard() {
-    const dashboard = document.createElement('div');
-    dashboard.className = 'battle-dashboard';
-    dashboard.innerHTML = `
-      <div class="bot-status-container">
-        <h3>Bot Status</h3>
-        <div id="botList" class="bot-list"></div>
-      </div>
-      <div class="metrics-container">
-        <h3>Performance Metrics</h3>
-        <div class="metrics-grid">
-          <div class="metric">
-            <label>Execution Speed</label>
-            <span id="execSpeed">0 IPS</span>
-          </div>
-          <div class="metric">
-            <label>Memory Efficiency</label>
-            <span id="memEfficiency">0%</span>
-          </div>
-          <div class="metric">
-            <label>Battle Progress</label>
-            <span id="battleProgress">0%</span>
-          </div>
-        </div>
-      </div>
-      <div class="control-panel">
-        <h3>Control Panel</h3>
-        <div class="control-buttons">
-          <button id="startBattle">Start Battle</button>
-          <button id="pauseBattle">Pause</button>
-          <button id="resetBattle">Reset</button>
-        </div>
-      </div>
-    `;
-    this.container.appendChild(dashboard);
-    this.setupEventListeners();
-  }
-
-  setupEventListeners() {
-    const startBtn = document.getElementById('startBattle');
-    const pauseBtn = document.getElementById('pauseBattle');
-    const resetBtn = document.getElementById('resetBattle');
-
-    startBtn?.addEventListener('click', () => this.startBattle());
-    pauseBtn?.addEventListener('click', () => this.pauseBattle());
-    resetBtn?.addEventListener('click', () => this.resetBattle());
-  }
-
-  updateBotStatus(bot) {
-    console.log('Updating bot status:', bot);
-    this.bots.set(bot.id, bot);
-    this.renderBotList();
-  }
-
-  updateBattleStatus(battle) {
-    console.log('Updating battle status:', battle);
-    if (battle.status === 'running') {
-      this.updateMetrics({
-        executionSpeed: 1000,
-        memoryEfficiency: 75,
-        battleProgress: 30
-      });
-    }
-  }
-
-  updateMetrics(metrics) {
-    console.log('Updating metrics:', metrics);
-    Object.assign(this.metrics, metrics);
-    this.renderMetrics();
-  }
-
-  renderBotList() {
-    const botList = document.getElementById('botList');
-    if (!botList) return;
-
-    botList.innerHTML = '';
-    this.bots.forEach(bot => {
-      const botElement = document.createElement('div');
-      botElement.className = `bot-item ${bot.state || 'waiting'}`;
-      botElement.innerHTML = `
-        <div class="bot-header">
-          <span class="bot-name">${bot.name}</span>
-          <span class="bot-state">${bot.state || 'waiting'}</span>
-        </div>
-        <div class="bot-details">
-          <div>Memory: ${bot.memoryUsage || 0}%</div>
-          <div>Cycles: ${bot.cyclesExecuted || 0}</div>
-          <div>Last: ${bot.lastInstruction || 'None'}</div>
-        </div>
-      `;
-      botList.appendChild(botElement);
-    });
-  }
-
-  renderMetrics() {
-    const execSpeed = document.getElementById('execSpeed');
-    const memEfficiency = document.getElementById('memEfficiency');
-    const battleProgress = document.getElementById('battleProgress');
-
-    if (execSpeed) execSpeed.textContent = `${this.metrics.executionSpeed.toFixed(1)} IPS`;
-    if (memEfficiency) memEfficiency.textContent = `${this.metrics.memoryEfficiency.toFixed(1)}%`;
-    if (battleProgress) battleProgress.textContent = `${this.metrics.battleProgress.toFixed(1)}%`;
-  }
-
-  startBattle() {
-    if (this.bots.size < 2) {
-      alert('Need at least 2 bots to start a battle');
-      return;
-    }
-
-    console.log('Starting battle with bots:', Array.from(this.bots.keys()));
-    const botIds = Array.from(this.bots.keys());
-    fetch('/api/battles', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ botIds: botIds.slice(0, 2) })
-    }).then(response => response.json())
-      .then(data => console.log('Battle created:', data))
-      .catch(error => console.error('Error creating battle:', error));
-  }
-
-  pauseBattle() {
-    console.log('Pausing battle');
-    if (this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({ type: 'pause' }));
-    }
-  }
-
-  resetBattle() {
-    console.log('Resetting battle');
-    if (this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({ type: 'reset' }));
-    }
-  }
-}
-
-class MemoryDisplay {
-  constructor(canvas) {
-    this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
-    this.initializeDisplay();
-  }
-
-  initializeDisplay() {
-    this.ctx.fillStyle = '#f0f0f0';
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-  }
-
-  updateMemory(data) {
-    const imageData = this.ctx.createImageData(512, 512);
-    for (let i = 0; i < data.length; i++) {
-      const value = data[i];
-      const offset = i * 4;
-      imageData.data[offset] = value;     // R
-      imageData.data[offset + 1] = value; // G
-      imageData.data[offset + 2] = value; // B
-      imageData.data[offset + 3] = 255;   // A
-    }
-    this.ctx.putImageData(imageData, 0, 0);
-  }
-}
 
 // Bot management class
 class BotManager {
@@ -254,17 +37,80 @@ class BotManager {
   }
 }
 
+// Import the new modules dynamically
+let MemoryVisualization, BattleClient, Dashboard;
+
+async function loadModules() {
+  try {
+    const memVizModule = await import('./js/MemoryVisualization.js');
+    const battleClientModule = await import('./js/BattleClient.js');
+    const dashboardModule = await import('./js/Dashboard.js');
+    
+    MemoryVisualization = memVizModule.MemoryVisualization;
+    BattleClient = battleClientModule.BattleClient;
+    Dashboard = dashboardModule.Dashboard;
+    
+    return true;
+  } catch (error) {
+    console.error('Failed to load modules:', error);
+    return false;
+  }
+}
+
+// Function to fetch and display version
+async function fetchVersion() {
+  try {
+    const response = await fetch('/api/version');
+    const data = await response.json();
+    if (data.success && data.data) {
+      const versionElement = document.getElementById('versionInfo');
+      if (versionElement) {
+        versionElement.textContent = `v${data.data.version}`;
+        versionElement.title = `${data.data.name} - ${new Date(data.data.date).toLocaleDateString()}`;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to fetch version:', error);
+  }
+}
+
 // Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   console.log('Initializing application...');
+  
+  // Fetch and display version
+  fetchVersion();
+  
+  // Load modules first
+  const modulesLoaded = await loadModules();
+  if (!modulesLoaded) {
+    console.error('Failed to load required modules');
+    return;
+  }
+  
   const canvas = document.getElementById('memoryCanvas');
   const battleDashboard = document.getElementById('battleDashboard');
   const botManager = new BotManager();
+  
+  // Make botManager globally accessible first
+  window.botManager = botManager;
 
-  if (canvas && battleDashboard) {
+  if (canvas) {
     console.log('Found required elements, creating components...');
-    const display = new MemoryDisplay(canvas);
-    const dashboard = new BattleDashboard(battleDashboard);
+    
+    // Initialize new enhanced components
+    const memoryViz = new MemoryVisualization(canvas);
+    const dashboard = new Dashboard();
+    const battleClient = new BattleClient(memoryViz, dashboard);
+    
+    // Connect dashboard to battle client
+    dashboard.setBattleClient(battleClient);
+    
+    // Start memory animation
+    memoryViz.startAnimation();
+    
+    // Connect to server
+    battleClient.connect();
 
     // Set up the drag and drop functionality
     setupDragAndDrop(botManager);
@@ -272,17 +118,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set up manual bot entry
     setupManualEntry(botManager);
     
-    // Set up battle creation
-    setupBattleCreation(botManager, display, dashboard);
-
-    // Example: Update memory display with random data
-    const randomData = new Uint8Array(512 * 512);
-    for (let i = 0; i < randomData.length; i++) {
-      randomData[i] = Math.random() * 255;
-    }
-    display.updateMemory(randomData);
+    // Set up battle creation with new system
+    setupEnhancedBattleCreation(botManager, battleClient);
+    
+    // Store references for global access
+    window.memoryViz = memoryViz;
+    window.dashboard = dashboard;
+    window.battleClient = battleClient;
   } else {
-    console.error('Required elements not found:', { canvas, battleDashboard });
+    console.error('Required elements not found:', { canvas });
   }
 });
 
@@ -331,30 +175,44 @@ function setupDragAndDrop(botManager) {
   
   // Handle files from the file input
   fileInput.addEventListener('change', function() {
+    console.log('File input changed, files:', this.files.length);
     handleFiles(this.files);
   });
   
   function handleFiles(files) {
+    console.log('handleFiles called with', files.length, 'files');
     if (files.length === 0) return;
     
     Array.from(files).forEach(file => {
+      console.log('Processing file:', file.name);
       if (file.name.endsWith('.asm') || file.name.endsWith('.txt')) {
         const reader = new FileReader();
         reader.onload = function(e) {
           const code = e.target.result;
+          console.log('File loaded:', file.name, 'code length:', code.length);
           // Extract bot name from filename (remove extension)
           const botName = file.name.replace(/\.(asm|txt)$/, '');
           const bot = botManager.addBot(botName, code, file.size);
+          console.log('Bot added:', bot);
           displayBot(bot);
           updateCreateBattleButton();
         };
+        reader.onerror = function(e) {
+          console.error('Error reading file:', file.name, e);
+        };
         reader.readAsText(file);
+      } else {
+        console.log('Skipping non-.asm/.txt file:', file.name);
       }
     });
   }
   
   // Make the dropZone clickable to trigger file input
-  dropZone.addEventListener('click', () => {
+  dropZone.addEventListener('click', (e) => {
+    // Don't trigger if clicking on the label or file input
+    if (e.target.tagName === 'LABEL' || e.target.tagName === 'INPUT') {
+      return;
+    }
     fileInput.click();
   });
 }
@@ -437,25 +295,6 @@ function formatTime(date) {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-// Set up battle creation
-function setupBattleCreation(botManager, display, dashboard) {
-  const createBattleButton = document.getElementById('createBattle');
-  
-  if (!createBattleButton) return;
-  
-  window.botManager = botManager; // Make available globally for event handlers
-  
-  createBattleButton.addEventListener('click', () => {
-    const bots = botManager.getBots();
-    if (bots.length < 2) {
-      alert('You need at least 2 bots to create a battle.');
-      return;
-    }
-    
-    // Create the battle
-    createBattle(bots, display, dashboard);
-  });
-}
 
 // Update the Create Battle button state
 function updateCreateBattleButton() {
@@ -473,61 +312,75 @@ function updateCreateBattleButton() {
   }
 }
 
-// Create a battle with the selected bots
-function createBattle(bots, display, dashboard) {
-  console.log('Creating battle with bots:', bots);
+// Set up enhanced battle creation and controls
+function setupEnhancedBattleCreation(botManager, battleClient) {
+  const createBattleButton = document.getElementById('createBattle');
+  const startBattleButton = document.getElementById('startBattle');
+  const pauseBattleButton = document.getElementById('pauseBattle');
+  const resetBattleButton = document.getElementById('resetBattle');
   
-  // Create bot data to send to API
-  const botData = bots.map(bot => ({
-    name: bot.name,
-    code: bot.code
-  }));
+  if (!createBattleButton) return;
   
-  // First, create the bots via the API
-  Promise.all(botData.map(bot => 
-    fetch('/api/bots', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(bot)
-    }).then(response => response.json())
-  ))
-  .then(results => {
-    // Extract the bot IDs from the results
-    const botIds = results.map(result => result.data.id);
-    
-    // Now create a battle with these bots
-    return fetch('/api/battles', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bots: botIds })
-    });
-  })
-  .then(response => response.json())
-  .then(battleData => {
-    console.log('Battle created:', battleData);
-    // Scroll to battle section
-    document.querySelector('.battle-section').scrollIntoView({ 
-      behavior: 'smooth' 
-    });
-    
-    // Start the battle automatically
-    if (battleData.success && battleData.data.id) {
-      setTimeout(() => {
-        fetch(`/api/battles/${battleData.data.id}/start`, {
-          method: 'POST'
-        })
-        .then(response => response.json())
-        .then(data => {
-          console.log('Battle started:', data);
-        })
-        .catch(error => {
-          console.error('Error starting battle:', error);
-        });
-      }, 1000);
+  createBattleButton.addEventListener('click', async () => {
+    const bots = botManager.getBots();
+    if (bots.length < 2) {
+      window.dashboard.showError('You need at least 2 bots to create a battle.');
+      return;
     }
-  })
-  .catch(error => {
-    console.error('Error creating battle:', error);
-    alert('Error creating battle. Check console for details.');
+    
+    try {
+      // Create bot data to send to API
+      const botData = bots.map(bot => ({
+        name: bot.name,
+        code: bot.code,
+        owner: 'Player'
+      }));
+      
+      // Create battle via WebSocket
+      battleClient.createBattle(botData);
+      
+      // Clear uploaded bots
+      botManager.clearBots();
+      const uploadedBotsContainer = document.getElementById('uploadedBots');
+      if (uploadedBotsContainer) {
+        uploadedBotsContainer.innerHTML = '';
+      }
+      updateCreateBattleButton();
+      
+      // Scroll to battle section
+      document.querySelector('.battle-section').scrollIntoView({ 
+        behavior: 'smooth' 
+      });
+      
+    } catch (error) {
+      console.error('Error creating battle:', error);
+      window.dashboard.showError('Error creating battle. Check console for details.');
+    }
   });
+  
+  // Set up start battle button
+  if (startBattleButton) {
+    startBattleButton.addEventListener('click', () => {
+      // Check if button text is "Resume" to handle resume action
+      if (startBattleButton.textContent === 'Resume') {
+        battleClient.startBattle(); // Resume is just starting again
+      } else {
+        battleClient.startBattle();
+      }
+    });
+  }
+  
+  // Set up pause battle button
+  if (pauseBattleButton) {
+    pauseBattleButton.addEventListener('click', () => {
+      battleClient.pauseBattle();
+    });
+  }
+  
+  // Set up reset battle button
+  if (resetBattleButton) {
+    resetBattleButton.addEventListener('click', () => {
+      battleClient.resetBattle();
+    });
+  }
 }
