@@ -50,7 +50,7 @@ const storage: Storage = {
     // Parse assembly code
     const parseResult = parser.parse(code);
     if (parseResult.errors.length > 0) {
-      throw new Error(`Assembly parsing error: ${parseResult.errors[0].message} at line ${parseResult.errors[0].line}`);
+      throw new Error(`Assembly parsing error for bot "${name}": ${parseResult.errors[0].message} at line ${parseResult.errors[0].line}`);
     }
 
     // Generate code

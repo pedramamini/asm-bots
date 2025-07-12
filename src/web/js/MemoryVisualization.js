@@ -6,7 +6,7 @@ export class MemoryVisualization {
     this.memorySize = memorySize;
     
     // Visualization parameters
-    this.cellSize = 2; // Size of each memory cell in pixels
+    this.cellSize = 4; // Size of each memory cell in pixels - increased for better visibility
     this.columns = 256; // Memory cells per row
     this.rows = Math.ceil(memorySize / this.columns);
     this.leftMargin = 50; // Space for hex addresses
@@ -50,8 +50,10 @@ export class MemoryVisualization {
     this.owners[address] = ownerId;
     
     // Debug logging for first few updates
-    if (this.debugCount < 5) {
+    if (this.debugCount < 10) {
       console.log(`Memory update: addr=0x${address.toString(16)}, value=${value}, owner=${ownerId}`);
+      console.log(`ProcessMap has:`, Array.from(this.processMap.keys()));
+      console.log(`Process for owner ${ownerId}:`, this.processMap.get(ownerId));
       this.debugCount = (this.debugCount || 0) + 1;
     }
     
@@ -160,20 +162,22 @@ export class MemoryVisualization {
       
       if (this.memory[i] !== 0) {
         const ownerId = this.owners[i];
-        if (ownerId > 0) {
+        if (ownerId !== undefined && ownerId !== null) {
           // Find process color by exact ID match
           const process = this.processMap.get(ownerId);
           if (process) {
             color = this.hexToRgba(process.color, 0.7);
             // Debug first colored cell
             if (!this.colorDebugDone) {
-              console.log(`Coloring cell ${i} with owner ${ownerId}, process found:`, process);
+              console.log(`SUCCESS: Coloring cell ${i} with owner ${ownerId}, process found:`, process);
+              console.log(`Cell color will be:`, color);
               this.colorDebugDone = true;
             }
           } else {
             // Debug missing process
-            if (!this.missingDebugDone) {
-              console.log(`Owner ${ownerId} not found in processMap. Available processes:`, Array.from(this.processMap.keys()));
+            if (!this.missingDebugDone && ownerId !== 0) {
+              console.log(`ERROR: Owner ${ownerId} not found in processMap!`);
+              console.log(`Available processes:`, Array.from(this.processMap.entries()));
               this.missingDebugDone = true;
             }
           }
@@ -205,9 +209,9 @@ export class MemoryVisualization {
         }
       }
       
-      // Draw cell
+      // Draw cell with slight gap for grid visibility
       this.ctx.fillStyle = color;
-      this.ctx.fillRect(x, y, this.cellSize - 0.5, this.cellSize - 0.5);
+      this.ctx.fillRect(x, y, this.cellSize - 1, this.cellSize - 1);
       
       // Draw bright outline for current PC
       if (isPC) {
