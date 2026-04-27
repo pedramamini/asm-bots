@@ -1,6 +1,74 @@
 import { tokenize } from '../lexer';
 import { parse } from '../main';
 
+function assert(condition: boolean, message: string) {
+  if (!condition) {
+    throw new Error(`Assertion failed: ${message}`);
+  }
+}
+
+const describe = (name: string, fn: () => void) => {
+  console.log(`Running suite: ${name}`);
+  fn();
+};
+
+const it = (name: string, fn: () => void) => {
+  console.log(`  Testing: ${name}`);
+  try {
+    fn();
+    console.log(`    ✅ PASSED`);
+  } catch (e: any) {
+    console.error(`    ❌ FAILED: ${e.message}`);
+    throw e;
+  }
+};
+
+const expect = (actual: any) => ({
+  toBe: (expected: any) => {
+    if (actual !== expected) {
+      throw new Error(`Expected ${expected} but got ${actual}`);
+    }
+  },
+});
+
+describe('Parser', () => {
+  it('should calculate symbol addresses correctly', () => {
+    const source = `
+      .org 0x100
+      start:
+        mov r0, 1
+        inc r0
+        jmp start
+    `;
+    const result = parse(source);
+    expect(result.symbols['start']).toBe(0x100);
+  });
+
+  it('should handle .org', () => {
+    const source = `
+      .org 0x200
+      label1:
+        nop
+    `;
+    const result = parse(source);
+    expect(result.symbols['label1']).toBe(0x200);
+  });
+
+  it('should handle DB/DW for address calculation', () => {
+    const source = `
+      start:
+        db 1, 2, 3
+        dw 0x1000, 0x2000
+        label2:
+        nop
+    `;
+    const result = parse(source);
+    expect(result.symbols['start']).toBe(0);
+    expect(result.symbols['label2']).toBe(3 + 2 * 2); // 3 bytes + 4 bytes = 7
+  });
+});
+
+
 describe('Parser', () => {
   it('should calculate symbol addresses correctly', () => {
     const source = `

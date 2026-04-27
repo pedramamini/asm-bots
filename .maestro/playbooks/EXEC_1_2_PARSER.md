@@ -31,7 +31,8 @@ This is the granular execution plan for implementing the Lexer and Parser for th
   - [x] Track `currentAddress` and calculate instruction sizes using the rules in `specs/04-instruction-set.md`.
   - [x] Populate the symbol table with label addresses.
   - [x] Handle `.org` and `equ` directives.
-- [ ] Create unit tests for the symbol table and address calculation.
+- [x] Create unit tests for the symbol table and address calculation.
+
 
 ### Phase 3: Pass 2 (Emission and Parsing)
 - [ ] Implement the "Second Pass" logic.

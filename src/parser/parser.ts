@@ -86,10 +86,6 @@ export function firstPass(tokens: Token[]): { symbols: Record<string, number>, c
       i += 3;
       continue;
     }
-      }
-      i += 3;
-      continue;
-    }
 
     // Handle Instructions
     if (token.type === 'Instruction') {
