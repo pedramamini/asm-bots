@@ -33,6 +33,7 @@ const INSTRUCTION_SIZES: Record<string, number> = {
   'lea': 3,
   'xchg': 3,
   'dat': 3,
+  'word': 0,
 };
 
 export function firstPass(tokens: Token[]): { symbols: Record<string, number>, currentAddress: number } {
@@ -53,12 +54,21 @@ export function firstPass(tokens: Token[]): { symbols: Record<string, number>, c
       if (token.value === '.org' && i + 1 < tokens.length && tokens[i + 1].type === 'Immediate') {
         currentAddress = parseImmediate(tokens[i + 1].value);
         i += 2;
+      } else if (token.value === '.space' && i + 1 < tokens.length && tokens[i + 1].type === 'Immediate') {
+        currentAddress += parseImmediate(tokens[i + 1].value);
+        i += 2;
+      } else if (token.value === '.align' && i + 1 < tokens.length && tokens[i + 1].type === 'Immediate') {
+        const align = parseImmediate(tokens[i + 1].value);
+        if (align > 0) {
+          currentAddress = Math.ceil(currentAddress / align) * align;
+        }
+        i += 2;
       } else if (['.name', '.author', '.version', '.strategy'].includes(token.value)) {
         i++;
         while (i < tokens.length && tokens[i].line === token.line && (tokens[i].type === 'Symbol' || tokens[i].type === 'StringLiteral')) {
           i++;
         }
-      } else if (token.value === '.code') {
+      } else if (token.value === '.code' || token.value === '.data' || token.value === '.const') {
         i++;
       } else {
         i++;
@@ -67,36 +77,45 @@ export function firstPass(tokens: Token[]): { symbols: Record<string, number>, c
     }
 
     if (token.type === 'Instruction' && token.value.toLowerCase() === 'equ') {
-      if (i + 1 < tokens.length) {
+      if (i > 0 && i + 1 < tokens.length) {
         const symbolToken = tokens[i - 1];
         if (symbolToken && symbolToken.type === 'Symbol') {
-          const valueToken = tokens[i + 1];
-          if (!valueToken) {
-            i++;
-            continue;
+          let left = 0;
+          let j = i + 1;
+          
+          if (j < tokens.length) {
+            const t = tokens[j];
+            if (t.type === 'Immediate') left = parseImmediate(t.value);
+            else if (t.type === 'Symbol') {
+              if (t.value === '$') left = currentAddress;
+              else left = symbols[t.value] || 0;
+            }
+            j++;
           }
-          if (valueToken.type === 'Immediate') {
-            symbols[symbolToken.value] = parseImmediate(valueToken.value);
-          } else if (valueToken.type === 'Symbol' && valueToken.value === '$') {
-            symbols[symbolToken.value] = currentAddress;
-          } else if (valueToken.type === 'Punctuation' && valueToken.value === '$') {
-            symbols[symbolToken.value] = currentAddress;
-          } else if (valueToken.type === 'Symbol') {
-            symbols[symbolToken.value] = symbols[valueToken.value] || 0;
-          } else if (valueToken.type === 'Punctuation' && valueToken.value === '-') {
-            if (i + 2 < tokens.length && (tokens[i + 2].type === 'Symbol' || tokens[i + 2].type === 'Immediate')) {
-              const nextToken = tokens[i + 2];
-              const val = nextToken.type === 'Immediate' ? parseImmediate(nextToken.value) : (symbols[nextToken.value] || 0);
-              symbols[symbolToken.value] = -val;
-            } else {
-              symbols[symbolToken.value] = 0;
+          
+          if (j < tokens.length && tokens[j].type === 'Punctuation' && tokens[j].value === '-') {
+            j++;
+            if (j < tokens.length) {
+              const t = tokens[j];
+              let right = 0;
+              if (t.type === 'Immediate') right = parseImmediate(t.value);
+              else if (t.type === 'Symbol') {
+                if (t.value === '$') right = currentAddress;
+                else right = symbols[t.value] || 0;
+              }
+              symbols[symbolToken.value] = left - right;
+              j++;
             }
           } else {
-            symbols[symbolToken.value] = 0;
+            symbols[symbolToken.value] = left;
           }
+          i = j;
+        } else {
+          i++;
         }
+      } else {
+        i++;
       }
-      i++;
       continue;
     }
 
@@ -134,6 +153,9 @@ export function firstPass(tokens: Token[]): { symbols: Record<string, number>, c
 function parseImmediate(val: string): number {
   if (val.startsWith('0x')) {
     return parseInt(val.substring(2), 16);
+  }
+  if (val.startsWith('$')) {
+    return parseInt(val.substring(1), 16);
   }
   return parseInt(val, 10);
 }

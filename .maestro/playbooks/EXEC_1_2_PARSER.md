@@ -48,9 +48,12 @@ This is the granular execution plan for implementing the Lexer and Parser for th
   - [x] Verify that the tokens and resolved symbol addresses match the baseline.
   - [x] Implement the error reporting system (line numbers, error messages).
 }
-- [ ] Finalize documentation and update `CLAUDE.md`.
+- [x] Finalize documentation and update `CLAUDE.md`.
+
 
 ## 🏁 Completion Criteria
-- [ ] The parser must be able to process all files in `specs/bots/` without errors.
-- [ ] The symbol table must correctly resolve all forward and backward references.
+- [x] The parser must be able to process all files in `specs/bots/` without errors.
+
+- [x] The symbol table must correctly resolve all forward and backward references.
+
 - [ ] [x] Grammar rules must align with `specs/04-instruction-set.md` and `specs/05-assembly-language.md`.

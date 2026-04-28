@@ -87,10 +87,19 @@ export function tokenize(source: string): Token[] {
         continue;
       }
 
-      // Hex with $ (Must come before numbers check to avoid $ being caught)
+      // Hex with $ (Handle $FF as immediate, $ as current address symbol)
       if (char === '$') {
-        tokens.push({ type: 'Symbol', value: '$', line: lineNum });
-        cursor++;
+        if (cursor + 1 < line.length && /[0-9a-fA-F]/.test(line[cursor + 1])) {
+          let value = '$';
+          cursor++;
+          while (cursor < line.length && /[0-9a-fA-F]/.test(line[cursor])) {
+            value += line[cursor++];
+          }
+          tokens.push({ type: 'Immediate', value, line: lineNum });
+        } else {
+          tokens.push({ type: 'Symbol', value: '$', line: lineNum });
+          cursor++;
+        }
         continue;
       }
 
