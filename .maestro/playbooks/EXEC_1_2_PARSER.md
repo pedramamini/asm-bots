@@ -35,18 +35,18 @@ This is the granular execution plan for implementing the Lexer and Parser for th
 
 
 ### Phase 3: Pass 2 (Emission and Parsing)
-- [ ] Implement the "Second Pass" logic.
-  - [ ] Use the symbol table to resolve all label references.
-  - [ ] Implement the logic to emit a `ParseResult` containing the token stream.
-  - [ ] Implement the memory access syntax parsing (`[reg]`, `[reg + offset]`, `[addr]`).
-- [ ] Create unit tests to verify the full source-to-tokens flow.
+- [x] Implement the "Second Pass" logic.
+  - [x] Use the symbol table to resolve all label references.
+  - [x] Implement the logic to emit a `ParseResult` containing the token stream.
+  - [x] Implement the memory access syntax parsing (`[reg]`, `[reg + offset]`, `[addr]`).
+- [x] Create unit tests to verify the full source-to-tokens flow.
 
 ### Phase 4: Integration and Validation
-- [ ] {
-  - [ ] Load a set of existing bots from `specs/bots/`.
-  - [ ] Pass them through the new parser.
-  - [ ] Verify that the tokens and resolved symbol addresses match the baseline.
-  - [ ] Implement the error reporting system (line numbers, error messages).
+- [x] {
+  - [x] Load a set of existing bots from `specs/bots/`.
+  - [x] Pass them through the new parser.
+  - [x] Verify that the tokens and resolved symbol addresses match the baseline.
+  - [x] Implement the error reporting system (line numbers, error messages).
 }
 - [ ] Finalize documentation and update `CLAUDE.md`.
 

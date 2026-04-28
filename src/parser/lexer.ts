@@ -24,7 +24,8 @@ const INSTRUCTIONS = new Set([
   'inc', 'dec', 'nop', 'halt',
   'cmp', 'spl', 'dat',
   'test', 'lea', 'xchg',
-  'db', 'dw', 'dq' // Including data definitions as instructions for the lexer
+  'db', 'dw', 'dq',
+  'word' // Accepted as a no-op modifier per spec
 ]);
 
 export function tokenize(source: string): Token[] {
@@ -52,7 +53,7 @@ export function tokenize(source: string): Token[] {
       }
 
       // Punctuation
-      if ([':', ',', '[', ']', '+'].includes(char)) {
+      if ([':', ',', '[', ']', '+', '-'].includes(char)) {
         tokens.push({ type: 'Punctuation', value: char, line: lineNum });
         cursor++;
         continue;
@@ -131,7 +132,7 @@ export function tokenize(source: string): Token[] {
         
         if (REGISTER_MAP[lowerValue]) {
           tokens.push({ type: 'Register', value: REGISTER_MAP[lowerValue], line: lineNum });
-        } else if (INSTRUCTIONS.has(lowerValue)) {
+        } else if (INSTRUCTIONS.has(lowerValue) || lowerValue === 'equ') {
           tokens.push({ type: 'Instruction', value: lowerValue, line: lineNum });
         } else {
           // It's either a Label or a Symbol. 
