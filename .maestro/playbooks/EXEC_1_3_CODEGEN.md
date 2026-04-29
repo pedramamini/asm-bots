@@ -23,22 +23,22 @@ Implement the logic to transform tokens/symbols into a binary byte stream and ha
 ## 📋 Execution Steps
 
 ### Phase 1: The Encoder
-- [ ] **Create `Instruction` class/type**: Define a structure that holds the opcode, operands, and calculated size.
-- [ ] **Implement `calculateInstructionSize()`**: Use the mapping from [[CODEGEN_SPEC]] to return the correct byte length for a given opcode.
-- [ ] **Implement `encode()`**: 
+- [x] **Create `Instruction` class/type**: Define a structure that holds the opcode, operands, and calculated size.
+- [x] **Implement `calculateInstructionSize()`**: Use the mapping from [[CODEGEN_SPEC]] to return the correct byte length for a given opcode.
+- [x] **Implement `encode()`**: 
     - Map mnemonics to opcodes.
     - Encode operands based on the "Operand Encoding" rules in [[CODEGEN_SPEC]].
     - Handle the conversion of scalars to byte streams.
-- [ ] **Implement `layout()`**: 
+- [x] **Implement `layout()`**: 
     - Calculate the total size of the binary.
     - Pack `Instruction` objects into a `Uint8Array`.
 
 ### Phase 2: The Relocator
-- [ ] **Implement `relocate(M)`**: 
+- [x] **Implement `relocate(M)`**: 
     - Take the random base address `M` as input.
     - The `relocate` function should update all jump targets.
     - Ensure the result is applied to the binary bytes in little-endian format.
-- [ ] **Verification**: 
+- [x] **Verification**: 
     - Create a test bot with a simple jump loop.
     - Relay the bot at three different base addresses $M \in \{0x100, 0x500, 0x2000\}$.
     - Verify that the jump target bytes in the binary are correctly updated to $M + O_{target}$.
