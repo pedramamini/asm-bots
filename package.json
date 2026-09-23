@@ -12,7 +12,8 @@
     "format": "biome format --write .",
     "test": "bun test",
     "build": "bun run --filter '*' build",
-    "golden": "exit 0"
+    "golden": "exit 0",
+    "version": "bun run scripts/version.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14"
