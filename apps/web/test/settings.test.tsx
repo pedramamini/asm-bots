@@ -19,6 +19,7 @@ import {
 } from '../src/store/local-bots'
 import {
   DEFAULT_SETTINGS,
+  motionReduced,
   SETTINGS_STORAGE_KEY,
   sanitizeSettings,
   useSettings,
@@ -93,6 +94,12 @@ describe('useSettings', () => {
   it('ignores stored junk', () => {
     expect(sanitizeSettings('nope')).toEqual({})
     expect(sanitizeSettings({ lastArenaConfig: { rounds: -1 } })).toEqual({})
+  })
+
+  it('reduces motion when asked, or when the system asks under `system`', () => {
+    expect([true, false].map((system) => motionReduced('system', system))).toEqual([true, false])
+    expect([true, false].map((system) => motionReduced('reduce', system))).toEqual([true, true])
+    expect([true, false].map((system) => motionReduced('full', system))).toEqual([false, false])
   })
 
   it('cycles from the chosen theme, not a previewed one', () => {

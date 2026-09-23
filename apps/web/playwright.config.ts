@@ -4,6 +4,8 @@ import { defineConfig, devices } from '@playwright/test'
 const PREVIEW = 'http://localhost:4173'
 /** The dev server: the gallery spec's, since `/_gallery` is a development route. */
 const DEV = 'http://localhost:5173'
+/** The frame-rate spec: it runs alone, since specs beside it on the same CPU slow the frames. */
+const PERF = /arena-perf\.spec\.ts$/
 
 export default defineConfig({
   testDir: './e2e',
@@ -17,7 +19,16 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: PERF },
+    // After the rest; `--project perf --no-deps` runs it on its own.
+    {
+      name: 'perf',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: PERF,
+      dependencies: ['chromium'],
+    },
+  ],
   webServer: [
     {
       command: 'bun run build && bun run preview',

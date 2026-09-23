@@ -1,3 +1,4 @@
+import { useReducedMotion } from '@asmbots/ui'
 import {
   applyTheme,
   DEFAULT_THEME,
@@ -23,6 +24,11 @@ export interface ArenaEffects {
 /** Reduced motion: `system` follows `prefers-reduced-motion`; `reduce` and `full` override it. */
 export type MotionPreference = 'system' | 'reduce' | 'full'
 export const MOTION_PREFERENCES = ['system', 'reduce', 'full'] as const
+
+/** Whether to reduce motion: the user's preference, or the system's (`systemReduced`) under `system`. */
+export function motionReduced(motion: MotionPreference, systemReduced: boolean): boolean {
+  return motion === 'reduce' || (motion === 'system' && systemReduced)
+}
 
 /** The sound cues (DESIGN_SYSTEM §7): off by default. */
 export interface SoundSettings {
@@ -212,4 +218,10 @@ function isArenaConfig(value: unknown): value is ArenaConfig {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/** Whether to reduce motion now (DESIGN_SYSTEM §8): the setting, or the system's under `system`. */
+export function useMotionReduced(): boolean {
+  const motion = useSettings((state) => state.motion)
+  return motionReduced(motion, useReducedMotion())
 }

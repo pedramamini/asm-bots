@@ -14,6 +14,15 @@ Query, Zustand, and the `@asmbots/ui` kit.
 Docs pages are MDX in `src/docs/`, listed in `src/docs/index.ts`. The arena lives in
 `src/features/arena/`: `worker/protocol.ts` has the Worker's messages, `worker/session.ts` the
 battle and its keyframes, and `worker/client.ts` the `ArenaClient` and the `useArena` store.
+`ArenaCanvas.tsx` draws a client's frames: `render/scene.ts` keeps the core mirror and the glows,
+`render/gl.ts` and `render/shaders.ts` draw it with WebGL2 (bloom, scanlines, and vignette from
+`render/post.ts`), `render/canvas2d.ts` is the 2D fallback, `render/camera.ts` zooms and pans, and
+`render/overlay.ts` draws the rulers.
+
+The renderer's Playwright specs drive `e2e/harness/arena.html`, a page only the dev server serves.
+`e2e/arena-perf.spec.ts` (16 roster bots at 2,000 cycles a frame, p95 frame gap at most 20 ms) is
+its own project and runs after the rest: `bunx playwright test --project perf --no-deps` runs it
+alone.
 
 ## Lighthouse
 
