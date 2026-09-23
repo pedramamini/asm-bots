@@ -1,0 +1,46 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Panel draws the title row over the body 1`] = `
+"<div>
+  <section
+    aria-labelledby="id-1"
+    class="flex min-w-0 flex-col rounded-md border border-border bg-panel text-body text-text p-3"
+  >
+    <header
+      class="flex min-h-3.5 items-center gap-3 border-b border-border mb-3 pb-2"
+    >
+      <h2
+        class="min-w-0 truncate text-panel-title text-accent"
+        id="id-1"
+      >
+        traffic distribution
+      </h2>
+      <div
+        class="ml-auto flex shrink-0 items-center gap-3"
+      >
+        <span
+          class="text-panel-status text-muted"
+        >
+          loading
+        </span>
+        <div
+          class="-my-1.5 flex items-center gap-1"
+        >
+          <button
+            type="button"
+          >
+            refresh
+          </button>
+        </div>
+      </div>
+    </header>
+    <div
+      class="min-h-0 flex-1"
+    >
+      <p>
+        no rows yet
+      </p>
+    </div>
+  </section>
+</div>"
+`;

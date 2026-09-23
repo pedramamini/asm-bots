@@ -1,0 +1,161 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Ticker draws the line with a · between items and the → link after it 1`] = `
+"<div>
+  <div
+    aria-live="off"
+    class="group/ticker relative z-ticker flex h-6 items-center justify-center gap-2 border-b border-border bg-panel px-3 text-ticker text-text"
+    role="marquee"
+  >
+    <div
+      class="min-w-0 overflow-hidden"
+    >
+      <div
+        class="flex"
+      >
+        <span
+          class="min-w-0"
+        >
+          <span
+            class="block truncate"
+          >
+            <b>
+              ▍LIVE
+            </b>
+             
+            <span
+              aria-hidden="true"
+            >
+              ·
+            </span>
+             
+            HILL "MAIN"
+             
+            <span
+              aria-hidden="true"
+            >
+              ·
+            </span>
+             
+            dwarf-v3 took #1
+             
+            <span
+              aria-hidden="true"
+            >
+              ·
+            </span>
+             
+            12,480 cycles
+          </span>
+        </span>
+      </div>
+    </div>
+    <a
+      aria-label="open the main hill"
+      class="shrink-0 text-text transition-colors duration-120 ease-out hover:text-accent focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      href="/hills/main"
+    >
+      →
+    </a>
+  </div>
+</div>"
+`;
+
+exports[`Ticker scrolls a line wider than the bar as a marquee, at 50 px/s with a 48 px gap 1`] = `
+"<div>
+  <div
+    aria-live="off"
+    class="group/ticker relative z-ticker flex h-6 items-center justify-center gap-2 border-b border-border bg-panel px-3 text-ticker text-text"
+    role="marquee"
+    style="--marquee-duration: 18.96s;"
+  >
+    <div
+      class="min-w-0 overflow-hidden flex-1"
+    >
+      <div
+        class="flex w-max animate-marquee group-focus-within/ticker:[animation-play-state:paused] group-hover/ticker:[animation-play-state:paused]"
+      >
+        <span
+          class="shrink-0 pr-12"
+        >
+          <span
+            class="block truncate"
+          >
+            <b>
+              ▍LIVE
+            </b>
+             
+            <span
+              aria-hidden="true"
+            >
+              ·
+            </span>
+             
+            HILL "MAIN"
+             
+            <span
+              aria-hidden="true"
+            >
+              ·
+            </span>
+             
+            dwarf-v3 took #1
+             
+            <span
+              aria-hidden="true"
+            >
+              ·
+            </span>
+             
+            12,480 cycles
+          </span>
+        </span>
+        <span
+          aria-hidden="true"
+          class="shrink-0 pr-12"
+          inert=""
+        >
+          <span
+            class="block truncate"
+          >
+            <b>
+              ▍LIVE
+            </b>
+             
+            <span
+              aria-hidden="true"
+            >
+              ·
+            </span>
+             
+            HILL "MAIN"
+             
+            <span
+              aria-hidden="true"
+            >
+              ·
+            </span>
+             
+            dwarf-v3 took #1
+             
+            <span
+              aria-hidden="true"
+            >
+              ·
+            </span>
+             
+            12,480 cycles
+          </span>
+        </span>
+      </div>
+    </div>
+    <a
+      aria-label="open the main hill"
+      class="shrink-0 text-text transition-colors duration-120 ease-out hover:text-accent focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      href="/hills/main"
+    >
+      →
+    </a>
+  </div>
+</div>"
+`;

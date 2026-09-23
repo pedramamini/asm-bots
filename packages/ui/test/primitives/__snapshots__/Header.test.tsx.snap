@@ -1,0 +1,58 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Header draws brand, stat, nav, and the right slot 1`] = `
+"<div>
+  <header
+    class="relative z-header flex h-10 items-center gap-3 border-b border-border bg-bg px-3"
+  >
+    <div
+      class="shrink-0 text-brand text-accent"
+    >
+      <a
+        href="/"
+      >
+        ASM BOTS 
+        <span
+          class="text-muted"
+        >
+          // ARENA
+        </span>
+      </a>
+    </div>
+    <div
+      class="flex min-w-0 flex-1 justify-center"
+    >
+      <div
+        class="min-w-0 truncate text-data text-muted"
+      >
+        8 bots · 41 procs · cycle 12,480
+      </div>
+    </div>
+    <nav
+      aria-label="primary"
+      class="flex shrink-0 items-center gap-1"
+    >
+      <a
+        aria-current="page"
+        href="/arena"
+      >
+        arena
+      </a>
+      <a
+        href="/editor"
+      >
+        editor
+      </a>
+    </nav>
+    <div
+      class="flex shrink-0 items-center gap-1"
+    >
+      <button
+        type="button"
+      >
+        theme
+      </button>
+    </div>
+  </header>
+</div>"
+`;

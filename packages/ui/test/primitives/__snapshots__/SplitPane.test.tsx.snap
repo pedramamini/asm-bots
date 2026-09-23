@@ -1,0 +1,41 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`SplitPane draws two panes with the divider between them 1`] = `
+"<div>
+  <div
+    class="flex min-h-0 min-w-0 flex-row"
+    style="--split: 0.5;"
+  >
+    <div
+      class="min-h-0 min-w-0 shrink-0 grow-0 basis-[calc((100%-var(--space-3))*var(--split))] overflow-auto"
+      id="id-1"
+    >
+      <p>
+        editor
+      </p>
+    </div>
+    <div
+      aria-controls="id-1"
+      aria-label="editor width"
+      aria-orientation="vertical"
+      aria-valuemax="90"
+      aria-valuemin="10"
+      aria-valuenow="50"
+      class="group/split flex shrink-0 touch-none items-center justify-center outline-none w-3 cursor-col-resize"
+      role="separator"
+      tabindex="0"
+    >
+      <span
+        class="bg-border-strong transition-[width,height,background-color] duration-120 ease-out motion-reduce:transition-none group-focus-visible/split:bg-accent group-data-dragging/split:bg-accent h-6 w-px group-hover/split:h-full group-focus-visible/split:h-full group-data-dragging/split:h-full"
+      />
+    </div>
+    <div
+      class="min-h-0 min-w-0 flex-1 overflow-auto"
+    >
+      <p>
+        debugger
+      </p>
+    </div>
+  </div>
+</div>"
+`;

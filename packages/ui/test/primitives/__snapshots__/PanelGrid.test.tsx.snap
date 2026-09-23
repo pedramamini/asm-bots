@@ -1,0 +1,46 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`PanelGrid lays panels on 12 columns 1`] = `
+"<div>
+  <div
+    class="grid grid-cols-12 gap-3"
+  >
+    <section
+      aria-labelledby="id-1"
+      class="flex min-w-0 flex-col rounded-md border border-border bg-panel text-body text-text p-3 col-span-8"
+    >
+      <header
+        class="flex min-h-3.5 items-center gap-3 border-b border-border mb-3 pb-2"
+      >
+        <h2
+          class="min-w-0 truncate text-panel-title text-accent"
+          id="id-1"
+        >
+          arena
+        </h2>
+      </header>
+      <div
+        class="min-h-0 flex-1"
+      />
+    </section>
+    <section
+      aria-labelledby="id-2"
+      class="flex min-w-0 flex-col rounded-md border border-border bg-panel text-body text-text p-3 col-span-4"
+    >
+      <header
+        class="flex min-h-3.5 items-center gap-3 border-b border-border mb-3 pb-2"
+      >
+        <h2
+          class="min-w-0 truncate text-panel-title text-accent"
+          id="id-2"
+        >
+          roster
+        </h2>
+      </header>
+      <div
+        class="min-h-0 flex-1"
+      />
+    </section>
+  </div>
+</div>"
+`;

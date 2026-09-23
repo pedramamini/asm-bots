@@ -1,49 +1,20 @@
 import { beforeAll, describe, expect, it } from 'bun:test'
 import { readFileSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
-import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { compile } from 'tailwindcss'
+import { resolve } from 'node:path'
 import { parseTokenRules, themeTokens } from '../src/index'
 import { SPEC_TYPE } from './spec'
+import { compileKit, rule, SRC } from './tailwind'
 import { readWoff2 } from './woff2'
 
-const SRC = fileURLToPath(new URL('../src/', import.meta.url))
 const FONTS = resolve(SRC, 'fonts')
 
-/** Compiles src/tailwind.css as the app's build does, loading each `@import` from disk. */
-async function compileKit() {
-  const entry = resolve(SRC, 'tailwind.css')
-  return compile(await readFile(entry, 'utf8'), {
-    base: SRC,
-    from: entry,
-    async loadStylesheet(id, base) {
-      const path =
-        id === 'tailwindcss' ? Bun.resolveSync('tailwindcss/index.css', base) : resolve(base, id)
-      return { path, base: dirname(path), content: await readFile(path, 'utf8') }
-    },
-  })
-}
-
+let compiler: Awaited<ReturnType<typeof compileKit>> | null = null
 let build: (candidates: string[]) => string = () => ''
 beforeAll(async () => {
-  const compiler = await compileKit()
-  build = (candidates) => compiler.build(candidates)
+  const kit = await compileKit()
+  compiler = kit
+  build = (candidates) => kit.build(candidates)
 })
-
-/** The declarations of the first rule for `selector` in `css`, or null when there is none. */
-function rule(css: string, selector: string): Record<string, string> | null {
-  const escaped = selector.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')
-  const body = new RegExp(`(?:^|\\n)\\s*${escaped} \\{([^{}]*)\\}`).exec(css)?.[1]
-  if (body === undefined) return null
-  return Object.fromEntries(
-    body
-      .split(';')
-      .map((d) => d.trim())
-      .filter((d) => d !== '')
-      .map((d) => [d.slice(0, d.indexOf(':')).trim(), d.slice(d.indexOf(':') + 1).trim()]),
-  )
-}
 
 /** Utility color name → the token it reads. */
 const COLORS: readonly (readonly [string, string])[] = [
@@ -188,6 +159,20 @@ describe('tailwind.css', () => {
       expect(css).toContain(`:root[data-theme="${theme}"] {`)
     }
     expect(css.match(/@font-face \{/g)).toHaveLength(5)
+  })
+
+  it('names the kit’s sources, so an app’s build makes the classes the primitives use', () => {
+    const sources = compiler?.sources ?? []
+    expect(sources.map((source) => resolve(source.base, source.pattern))).toEqual([resolve(SRC)])
+    expect(sources[0]?.negated).toBe(false)
+  })
+
+  it('scrolls the ticker with animate-marquee: -50% per --marquee-duration, forever', () => {
+    const css = build(['animate-marquee'])
+    expect(rule(css, '.animate-marquee')).toEqual({
+      animation: 'marquee var(--marquee-duration) linear infinite',
+    })
+    expect(css).toMatch(/@keyframes marquee \{\s*to \{\s*transform: translateX\(-50%\);\s*\}\s*\}/)
   })
 })
 

@@ -1,5 +1,7 @@
 [test]
 coverage = false
+# The component tests' DOM: packages/ui/test/dom/preload.ts says why it loads first.
+preload = ["./packages/ui/test/dom/preload.ts"]
 
 [install]
 exact = true

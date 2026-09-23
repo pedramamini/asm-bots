@@ -1,0 +1,4 @@
+# `bun test` run from this package reads this file, not the root one.
+[test]
+coverage = false
+preload = ["./test/dom/preload.ts"]

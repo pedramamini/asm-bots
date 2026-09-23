@@ -1,0 +1,46 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Toolbar draws its controls in a row 1`] = `
+"<div>
+  <div
+    aria-label="bot filters"
+    aria-orientation="horizontal"
+    class="flex h-9 items-center gap-2 border-b border-border bg-bg px-3 text-body text-text"
+    role="toolbar"
+  >
+    <input
+      aria-label="search bots"
+      placeholder="search bots..."
+      type="search"
+    />
+    <select
+      aria-label="hill"
+    >
+      <option>
+        all hills
+      </option>
+    </select>
+    <button
+      type="button"
+    >
+      public
+    </button>
+    <button
+      disabled=""
+      type="button"
+    >
+      mine
+    </button>
+    <button
+      type="button"
+    >
+      verified
+    </button>
+    <a
+      href="#clear"
+    >
+      clear
+    </a>
+  </div>
+</div>"
+`;

@@ -8,6 +8,9 @@
 @import "./fonts/jetbrains-mono.css";
 @import "./tokens.css";
 
+/* The kit's own classes. An app's build scans the app's sources, not this package's. */
+@source "./";
+
 @theme inline reference {
   /* Our tokens only: no Tailwind palette, font stacks, radii, or type sizes. */
   --color-*: initial;
@@ -163,4 +166,20 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+/* Motion (DESIGN_SYSTEM §1.7, §8). */
+
+/*
+ * The ticker's marquee. The track holds the line twice, each copy with its trailing gap, so -50%
+ * is one pass and the loop has no seam. The ticker sets --marquee-duration from the line's width.
+ */
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@utility animate-marquee {
+  animation: marquee var(--marquee-duration) linear infinite;
 }
