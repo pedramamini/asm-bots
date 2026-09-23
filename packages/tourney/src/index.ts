@@ -1,3 +1,26 @@
+export type {
+  Bracket,
+  BracketEntrant,
+  BracketMatch,
+  BracketMatchRunner,
+  BracketMatchStatus,
+  BracketOptions,
+  BracketProgress,
+  BracketSize,
+  BracketSlot,
+  IterateBracketOptions,
+  Seeding,
+  SlotSource,
+} from './bracket'
+export {
+  advance,
+  bracket,
+  champion,
+  createBracket,
+  iterateBracket,
+  MAX_BRACKET_ENTRANTS,
+  nextMatches,
+} from './bracket'
 export type { IterateMatchOptions, MatchProgress, MatchResult, MatchRound } from './match'
 export { iterateMatch, matchHash, runMatch } from './match'
 export type {
