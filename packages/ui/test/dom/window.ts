@@ -40,7 +40,14 @@ export function installDom(): void {
   }
 }
 
-/** Takes the window's globals off the global object again. */
+/**
+ * Takes the window's globals off the global object again: each becomes `undefined`, so
+ * `typeof document` is 'undefined' as without a DOM. Not `delete`: deleting hundreds of globals
+ * once a large module graph has loaded makes JavaScriptCore slow every later global lookup, and
+ * the engine's tests ran 5x slower after a DOM test (the goldens test timed out).
+ */
 export function removeDom(): void {
-  for (const key of KEYS) delete (globalThis as Record<string, unknown>)[key]
+  for (const key of KEYS) {
+    Object.defineProperty(globalThis, key, { value: undefined, configurable: true, writable: true })
+  }
 }
