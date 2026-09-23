@@ -203,6 +203,7 @@ async function cmdFight(inputs: string[], flags: Record<string, string | boolean
     }
 
     let totalResult: Result | null = null
+    let lastBattle: Battle | null = null
     const allTraces: string[] = []
 
     for (let round = 0; round < rounds; round++) {
@@ -222,6 +223,7 @@ async function cmdFight(inputs: string[], flags: Record<string, string | boolean
 
       battle.run()
       totalResult = battle.result()
+      lastBattle = battle
 
       if (hasTrace && eventSink instanceof TraceEventSink) {
         allTraces.push(...eventSink.traces)
@@ -237,9 +239,13 @@ async function cmdFight(inputs: string[], flags: Record<string, string | boolean
       console.log(JSON.stringify({ result: totalResult, traces: allTraces }, null, 2))
     } else {
       console.log(`Placement:`)
-      for (const bot of totalResult.bots) {
+      for (let i = 0; i < totalResult.bots.length; i++) {
+        const bot = totalResult.bots[i]!
         const status = bot.alive ? colorize('ALIVE', 'green') : colorize('DEAD', 'red')
-        console.log(`  ${bot.name.padEnd(20)} base=???   size=??? ${status}`)
+        const base = lastBattle ? lastBattle.bots[i]!.base : 0
+        const size = lastBattle ? lastBattle.bots[i]!.size : 0
+        const baseHex = `0x${base.toString(16).padStart(4, '0')}`
+        console.log(`  ${bot.name.padEnd(20)} base=${baseHex}  size=${size.toString().padStart(4)}  ${status}`)
       }
 
       console.log(`\nRound results:`)
