@@ -9,6 +9,10 @@ bun install
 bun run check
 ```
 
+## Optional Dependencies
+
+- **nasm** — The Netwide Assembler is used for codec cross-checks. Install with `brew install nasm`. Tests gracefully skip nasm-dependent checks if not available.
+
 ## Documentation
 
 - [Architecture](./docs/ARCHITECTURE.md) — Repository layout, engine design, test strategy
