@@ -18,6 +18,9 @@ const WORKSPACE = ['asm', 'bots', 'codec', 'engine', 'protocol', 'tourney'] as c
 /** The weights of the first paint: body and data (400), ticker, brand, and nav (500). */
 const PRELOAD_WEIGHTS = [400, 500] as const
 
+/** The tokens of a theme swatch: its surfaces, a hairline, its text, and its accent. */
+const SWATCH_TOKENS = ['--bg', '--panel', '--border', '--text', '--text-muted', '--accent'] as const
+
 export default defineConfig({
   plugins: [
     tanstackRouter({ target: 'react', autoCodeSplitting: true }),
@@ -26,7 +29,10 @@ export default defineConfig({
     themeBoot(),
     preloadFonts(),
   ],
-  define: { __APP_VERSION__: JSON.stringify(getVersion()) },
+  define: {
+    __APP_VERSION__: JSON.stringify(getVersion()),
+    __THEME_SWATCHES__: JSON.stringify(themeSwatches()),
+  },
   resolve: {
     alias: WORKSPACE.map((name) => ({
       find: new RegExp(`^@asmbots/${name}$`),
@@ -43,6 +49,8 @@ export default defineConfig({
         manualChunks(id) {
           if (/[\\/]packages[\\/](engine|codec)[\\/]/.test(id)) return 'engine'
           if (/[\\/]node_modules[\\/](@codemirror|@lezer|codemirror)[\\/]/.test(id)) return 'editor'
+          // The zip codec serves only the settings page's import and export: it rides that chunk.
+          if (/[\\/]node_modules[\\/]fflate[\\/]/.test(id)) return undefined
           if (/[\\/]node_modules[\\/]/.test(id)) return 'vendor'
           return undefined
         },
@@ -50,6 +58,17 @@ export default defineConfig({
     },
   },
 })
+
+/** The tokens a theme swatch on `/settings` draws, per theme, from the kit's tokens.css. */
+function themeSwatches(): Record<string, Record<string, string>> {
+  const rules = parseTokenRules(readFileSync(`${PACKAGES}ui/src/tokens.css`, 'utf8'))
+  return Object.fromEntries(
+    THEMES.map((theme) => {
+      const tokens = themeTokens(rules, theme)
+      return [theme, Object.fromEntries(SWATCH_TOKENS.map((token) => [token, tokens[token] ?? '']))]
+    }),
+  )
+}
 
 /**
  * Puts the stored theme on `<html data-theme>` before the first paint (no flash of sentinel on a

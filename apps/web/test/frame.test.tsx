@@ -13,8 +13,8 @@ import { useDom, window } from '../../../packages/ui/test/dom'
 import { Frame, FrameToolbar } from '../src/app/Frame'
 import { CHORD_WINDOW, createKeymap, type KeyCommand, ROUTE_SEARCH } from '../src/app/keys'
 import { useHeaderStat, useRouteStat } from '../src/app/slots'
-import { useTheme } from '../src/app/theme'
 import { titleHead } from '../src/app/title'
+import { useSettings } from '../src/store/settings'
 
 useDom()
 // The router restores the scroll on each navigation; jsdom has no scrolling.
@@ -157,7 +157,7 @@ describe('Frame', () => {
 
   beforeEach(() => {
     document.documentElement.dataset.theme = 'sentinel'
-    useTheme.setState({ theme: 'sentinel' })
+    useSettings.setState({ theme: 'sentinel' })
   })
   afterEach(() => {
     document.documentElement.removeAttribute('data-theme')

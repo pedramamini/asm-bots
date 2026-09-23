@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useSettings } from '../store/settings'
 import {
   focusRouteSearch,
   type KeyCommand,
@@ -35,7 +36,6 @@ import {
   useKeys,
 } from './keys'
 import { useFps, useHeaderStat } from './slots'
-import { useTheme } from './theme'
 import { useTicker } from './ticker'
 import { BRAND, useRouteHead } from './title'
 
@@ -101,7 +101,7 @@ export function FrameToolbar(props: ToolbarProps) {
 /** `?`, `t`, `/`, and the `g` chords. */
 function useGlobalKeys(toggleKeys: () => void): void {
   const router = useRouter()
-  const cycleTheme = useTheme((state) => state.cycleTheme)
+  const cycleTheme = useSettings((state) => state.cycleTheme)
   const commands = useMemo<KeyCommand[]>(
     () => [
       { keys: ['?'], description: 'show the keys', group: 'global', run: toggleKeys },
@@ -145,9 +145,9 @@ function Nav() {
 
 function HeaderActions({ onKeys }: { onKeys: () => void }) {
   const router = useRouter()
-  const theme = useTheme((state) => state.theme)
-  const cycleTheme = useTheme((state) => state.cycleTheme)
-  const setTheme = useTheme((state) => state.setTheme)
+  const theme = useSettings((state) => state.theme)
+  const cycleTheme = useSettings((state) => state.cycleTheme)
+  const setTheme = useSettings((state) => state.setTheme)
   return (
     <>
       <IconButton icon={Palette} label={`theme: ${theme}`} shortcut="t" onClick={cycleTheme} />
