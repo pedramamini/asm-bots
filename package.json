@@ -12,7 +12,7 @@
     "format": "biome format --write .",
     "test": "bun test",
     "build": "bun run --filter '*' build",
-    "golden": "exit 0",
+    "golden": "bun run scripts/golden.ts",
     "version": "bun run scripts/version.ts"
   },
   "devDependencies": {

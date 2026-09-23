@@ -1,4 +1,5 @@
 import { type Assembled, assemble } from '@asmbots/asm'
+import type { LoadedBot } from '@asmbots/engine'
 import decoy from '../roster/decoy.asm' with { type: 'text' }
 import dwarf from '../roster/dwarf.asm' with { type: 'text' }
 import dwarfWide from '../roster/dwarf-wide.asm' with { type: 'text' }
@@ -305,6 +306,14 @@ export function loadRoster(): ReadonlyMap<string, RosterBot> {
     ROWS.map(({ slug, source }) => [slug, { source, assembled: assemble(source) }]),
   )
   return loaded
+}
+
+/** The roster bot `slug`, ready for a battle. */
+export function fighter(slug: string): LoadedBot {
+  const bot = loadRoster().get(slug)
+  if (bot === undefined) throw new Error(`loadRoster has no bot '${slug}'`)
+  const { name, author, strategy, version, bytes } = bot.assembled
+  return { name, bytes, meta: { author, strategy, version } }
 }
 
 // `bun test` sets NODE_ENV to `test`: tests get the whole roster assembled at import, once.

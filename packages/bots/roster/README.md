@@ -24,7 +24,7 @@ In x16c the classic families do not form the Redcode triangle. Over seeds 1..200
 | Tier | Holds |
 |---|---|
 | `showcase` | The headline fighters and painters. The golden matchups play them against each other. |
-| `solid` | Real fighters that fill out the roster. |
+| `solid` | Real fighters that fill out the roster. The golden melees play them. |
 | `test` | The test bots: family `test`, file `roster/test/<slug>.asm`. Every other bot is `roster/<slug>.asm`. |
 
 ## House style
@@ -75,8 +75,8 @@ end:
 
 8. **Small.** At most 512 bytes (`MAX_BOT_BYTES`).
 
-`test/roster.test.ts` checks each rule that a machine can check: the header comment of three or more sentences, the metadata against the entry, the formatter, the linter, the size, and zero assembler errors. It checks the Sketch bot above the same way. `test/fighters.test.ts` fights each bot with the helper in `test/fight.ts` (hill rules, 80,000 cycles, the bot order swapped every other seed) and checks that each record line in a header is the record it gets. `test/painters.test.ts` and `test/test-bots.test.ts` check what each painter and each test bot does.
+`test/roster.test.ts` checks each rule that a machine can check: the header comment of three or more sentences, the metadata against the entry, the formatter, the linter, the size, and zero assembler errors. It checks the Sketch bot above the same way. `test/fighters.test.ts` fights each bot with the helper in `test/fight.ts` (hill rules, 80,000 cycles, the bot order swapped every other seed) and checks that each record line in a header is the record it gets. `test/painters.test.ts` and `test/test-bots.test.ts` check what each painter and each test bot does, and `test/goldens.test.ts` checks the [goldens](../README.md#goldens).
 
 ## Loading
 
-`src/roster.ts` imports each file as text (`import imp from '../roster/imp.asm' with { type: 'text' }`), so the bots are in the bundle and the package runs in browsers and Workers, with no file system. Bun reads these imports as they are; the web and Worker builds need a text loader for `.asm` files. A new bot is a file here, an import, and a row in `ROWS`.
+`src/roster.ts` imports each file as text (`import imp from '../roster/imp.asm' with { type: 'text' }`), so the bots are in the bundle and the package runs in browsers and Workers, with no file system. Bun reads these imports as they are; the web and Worker builds need a text loader for `.asm` files. A new bot is a file here, an import, and a row in `ROWS`, then tests and goldens: [Adding a bot](../README.md#adding-a-bot) gives each step.

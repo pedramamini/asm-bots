@@ -10,28 +10,20 @@ import {
   type Bot,
   type Core,
   type DeathReason,
-  type LoadedBot,
   NullSink,
   simulate,
 } from '@asmbots/engine'
-import { loadRoster } from '../src/roster'
+import { HILL_RULES } from '../src/goldens'
+import { fighter, loadRoster } from '../src/roster'
 
-/** The hill rules: 80,000 cycles (ISA §5.5), everything else at its default. */
-export const HILL_RULES: BattleConfigInput = { maxCycles: 80_000 }
+// Re-exported, so the tests get every fight helper from this file.
+export { fighter, HILL_RULES }
 
 /** Rounds won, tied, and lost, from one bot's side. */
 export interface FightRecord {
   wins: number
   ties: number
   losses: number
-}
-
-/** The roster bot `slug`, ready for a battle. */
-export function fighter(slug: string): LoadedBot {
-  const bot = loadRoster().get(slug)
-  if (bot === undefined) throw new Error(`loadRoster has no bot '${slug}'`)
-  const { name, author, strategy, version, bytes } = bot.assembled
-  return { name, bytes, meta: { author, strategy, version } }
 }
 
 /** The seeds `first` to `last`, both included. */

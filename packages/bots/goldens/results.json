@@ -1,0 +1,1397 @@
+[
+  {
+    "matchup": "imp vs dwarf",
+    "seed": 1,
+    "survivors": ["imp"],
+    "points": { "imp": 3, "dwarf": 0 },
+    "lastDeathCycle": 27879,
+    "resultHash": "eca2ceb936857c0b",
+    "eventHash": "fcb944cc72d4053a"
+  },
+  {
+    "matchup": "imp vs dwarf",
+    "seed": 2,
+    "survivors": ["dwarf"],
+    "points": { "imp": 0, "dwarf": 3 },
+    "lastDeathCycle": 3526,
+    "resultHash": "704728276a2e9145",
+    "eventHash": "67a3281492179ca0"
+  },
+  {
+    "matchup": "imp vs dwarf",
+    "seed": 3,
+    "survivors": ["dwarf"],
+    "points": { "imp": 0, "dwarf": 3 },
+    "lastDeathCycle": 17635,
+    "resultHash": "3ef3142f5ff3083e",
+    "eventHash": "c10ad3e3d2ed405f"
+  },
+  {
+    "matchup": "imp vs dwarf",
+    "seed": 4,
+    "survivors": ["dwarf"],
+    "points": { "imp": 0, "dwarf": 3 },
+    "lastDeathCycle": 17824,
+    "resultHash": "c33f522428a41862",
+    "eventHash": "bea48936a9bdc5f8"
+  },
+  {
+    "matchup": "imp vs dwarf",
+    "seed": 5,
+    "survivors": ["imp", "dwarf"],
+    "points": { "imp": 1, "dwarf": 1 },
+    "lastDeathCycle": null,
+    "resultHash": "61540867458167b5",
+    "eventHash": "08774c1e824adc2e"
+  },
+  {
+    "matchup": "imp vs stone",
+    "seed": 1,
+    "survivors": ["stone"],
+    "points": { "imp": 0, "stone": 3 },
+    "lastDeathCycle": 14761,
+    "resultHash": "b023a0288edafaad",
+    "eventHash": "d2f7796b3903dafc"
+  },
+  {
+    "matchup": "imp vs stone",
+    "seed": 2,
+    "survivors": ["imp", "stone"],
+    "points": { "imp": 1, "stone": 1 },
+    "lastDeathCycle": null,
+    "resultHash": "9bcf6b9f11cd5239",
+    "eventHash": "6c2bcd7ed86b8408"
+  },
+  {
+    "matchup": "imp vs stone",
+    "seed": 3,
+    "survivors": ["stone"],
+    "points": { "imp": 0, "stone": 3 },
+    "lastDeathCycle": 21011,
+    "resultHash": "3c6a37c149960220",
+    "eventHash": "235b58826c115bbf"
+  },
+  {
+    "matchup": "imp vs stone",
+    "seed": 4,
+    "survivors": ["stone"],
+    "points": { "imp": 0, "stone": 3 },
+    "lastDeathCycle": 12081,
+    "resultHash": "58a685becbc082cb",
+    "eventHash": "e9aabe00ac6b56b6"
+  },
+  {
+    "matchup": "imp vs stone",
+    "seed": 5,
+    "survivors": ["stone"],
+    "points": { "imp": 0, "stone": 3 },
+    "lastDeathCycle": 29171,
+    "resultHash": "a27f8c897a2e6ba7",
+    "eventHash": "c21396ab9465ddcc"
+  },
+  {
+    "matchup": "imp vs paper",
+    "seed": 1,
+    "survivors": ["paper"],
+    "points": { "imp": 0, "paper": 3 },
+    "lastDeathCycle": 14391,
+    "resultHash": "869f3ccb5425469b",
+    "eventHash": "366cb6ed88f9f1e4"
+  },
+  {
+    "matchup": "imp vs paper",
+    "seed": 2,
+    "survivors": ["imp", "paper"],
+    "points": { "imp": 1, "paper": 1 },
+    "lastDeathCycle": null,
+    "resultHash": "3c63ad2b926a44ff",
+    "eventHash": "690bf31743b87ca7"
+  },
+  {
+    "matchup": "imp vs paper",
+    "seed": 3,
+    "survivors": ["paper"],
+    "points": { "imp": 0, "paper": 3 },
+    "lastDeathCycle": 19460,
+    "resultHash": "dd522e853d0baf43",
+    "eventHash": "124736406904e788"
+  },
+  {
+    "matchup": "imp vs paper",
+    "seed": 4,
+    "survivors": ["paper"],
+    "points": { "imp": 0, "paper": 3 },
+    "lastDeathCycle": 15146,
+    "resultHash": "8db195fab006d09f",
+    "eventHash": "9da04c7acebc6897"
+  },
+  {
+    "matchup": "imp vs paper",
+    "seed": 5,
+    "survivors": ["paper"],
+    "points": { "imp": 0, "paper": 3 },
+    "lastDeathCycle": 72309,
+    "resultHash": "b313feec776b7d42",
+    "eventHash": "7541b42076001d83"
+  },
+  {
+    "matchup": "imp vs scanner",
+    "seed": 1,
+    "survivors": ["scanner"],
+    "points": { "imp": 0, "scanner": 3 },
+    "lastDeathCycle": 13937,
+    "resultHash": "c9fb33862ede0179",
+    "eventHash": "c7f05f6b2d9e45cf"
+  },
+  {
+    "matchup": "imp vs scanner",
+    "seed": 2,
+    "survivors": ["scanner"],
+    "points": { "imp": 0, "scanner": 3 },
+    "lastDeathCycle": 4114,
+    "resultHash": "61801e113da505d9",
+    "eventHash": "4dd791c65357e5a0"
+  },
+  {
+    "matchup": "imp vs scanner",
+    "seed": 3,
+    "survivors": ["scanner"],
+    "points": { "imp": 0, "scanner": 3 },
+    "lastDeathCycle": 20575,
+    "resultHash": "ce3016fbe0059e2d",
+    "eventHash": "4e8c152724667cec"
+  },
+  {
+    "matchup": "imp vs scanner",
+    "seed": 4,
+    "survivors": ["scanner"],
+    "points": { "imp": 0, "scanner": 3 },
+    "lastDeathCycle": 20795,
+    "resultHash": "fabd1e4b173f5a07",
+    "eventHash": "fa26aae38df60bb7"
+  },
+  {
+    "matchup": "imp vs scanner",
+    "seed": 5,
+    "survivors": ["scanner"],
+    "points": { "imp": 0, "scanner": 3 },
+    "lastDeathCycle": 24511,
+    "resultHash": "ced3cffb16cd1644",
+    "eventHash": "f53a728b88d1e15d"
+  },
+  {
+    "matchup": "imp vs vampire",
+    "seed": 1,
+    "survivors": ["vampire"],
+    "points": { "imp": 0, "vampire": 3 },
+    "lastDeathCycle": 2777,
+    "resultHash": "50d68520233eacfc",
+    "eventHash": "f84e01422c59478d"
+  },
+  {
+    "matchup": "imp vs vampire",
+    "seed": 2,
+    "survivors": ["imp"],
+    "points": { "imp": 3, "vampire": 0 },
+    "lastDeathCycle": 8233,
+    "resultHash": "271a798df01c52ba",
+    "eventHash": "845db0d8a4a17742"
+  },
+  {
+    "matchup": "imp vs vampire",
+    "seed": 3,
+    "survivors": ["vampire"],
+    "points": { "imp": 0, "vampire": 3 },
+    "lastDeathCycle": 4084,
+    "resultHash": "6662ac853a15a4ab",
+    "eventHash": "6d68564bf59a7727"
+  },
+  {
+    "matchup": "imp vs vampire",
+    "seed": 4,
+    "survivors": ["vampire"],
+    "points": { "imp": 0, "vampire": 3 },
+    "lastDeathCycle": 20631,
+    "resultHash": "97720660fb94ddbb",
+    "eventHash": "ad38cebaa0132c3d"
+  },
+  {
+    "matchup": "imp vs vampire",
+    "seed": 5,
+    "survivors": ["vampire"],
+    "points": { "imp": 0, "vampire": 3 },
+    "lastDeathCycle": 4858,
+    "resultHash": "fd31671508b5e4a7",
+    "eventHash": "798fb9f550fd317a"
+  },
+  {
+    "matchup": "imp vs painter-lcg",
+    "seed": 1,
+    "survivors": ["imp", "painter-lcg"],
+    "points": { "imp": 1, "painter-lcg": 1 },
+    "lastDeathCycle": null,
+    "resultHash": "3e3d9535dbb4a4a5",
+    "eventHash": "4bd08e2e310d26ad"
+  },
+  {
+    "matchup": "imp vs painter-lcg",
+    "seed": 2,
+    "survivors": ["imp", "painter-lcg"],
+    "points": { "imp": 1, "painter-lcg": 1 },
+    "lastDeathCycle": null,
+    "resultHash": "7b0b68574ec7287e",
+    "eventHash": "89fbecc4c0d59d23"
+  },
+  {
+    "matchup": "imp vs painter-lcg",
+    "seed": 3,
+    "survivors": ["imp", "painter-lcg"],
+    "points": { "imp": 1, "painter-lcg": 1 },
+    "lastDeathCycle": null,
+    "resultHash": "281c858fa2d8c1c0",
+    "eventHash": "23e1bf4157d95a5b"
+  },
+  {
+    "matchup": "imp vs painter-lcg",
+    "seed": 4,
+    "survivors": ["imp", "painter-lcg"],
+    "points": { "imp": 1, "painter-lcg": 1 },
+    "lastDeathCycle": null,
+    "resultHash": "e41848befa0002fb",
+    "eventHash": "cbfc2c90245b3be8"
+  },
+  {
+    "matchup": "imp vs painter-lcg",
+    "seed": 5,
+    "survivors": ["painter-lcg"],
+    "points": { "imp": 0, "painter-lcg": 3 },
+    "lastDeathCycle": 37065,
+    "resultHash": "e124aeca83728066",
+    "eventHash": "29f60c789c2d56f3"
+  },
+  {
+    "matchup": "imp vs painter-spiral",
+    "seed": 1,
+    "survivors": ["imp", "painter-spiral"],
+    "points": { "imp": 1, "painter-spiral": 1 },
+    "lastDeathCycle": null,
+    "resultHash": "732f5a220b5b020c",
+    "eventHash": "114a103b2881b90c"
+  },
+  {
+    "matchup": "imp vs painter-spiral",
+    "seed": 2,
+    "survivors": ["imp", "painter-spiral"],
+    "points": { "imp": 1, "painter-spiral": 1 },
+    "lastDeathCycle": null,
+    "resultHash": "66e9c6ac385af0e6",
+    "eventHash": "d89a0d6258ffbd86"
+  },
+  {
+    "matchup": "imp vs painter-spiral",
+    "seed": 3,
+    "survivors": ["imp", "painter-spiral"],
+    "points": { "imp": 1, "painter-spiral": 1 },
+    "lastDeathCycle": null,
+    "resultHash": "81ed991b29b20027",
+    "eventHash": "1fe6ae3370d859a8"
+  },
+  {
+    "matchup": "imp vs painter-spiral",
+    "seed": 4,
+    "survivors": [],
+    "points": { "imp": 0, "painter-spiral": 0 },
+    "lastDeathCycle": 46912,
+    "resultHash": "2fd719fb07f4c064",
+    "eventHash": "720cae559dcc017f"
+  },
+  {
+    "matchup": "imp vs painter-spiral",
+    "seed": 5,
+    "survivors": ["imp", "painter-spiral"],
+    "points": { "imp": 1, "painter-spiral": 1 },
+    "lastDeathCycle": null,
+    "resultHash": "bcc61872cc8c46fe",
+    "eventHash": "58f139513ad4bb68"
+  },
+  {
+    "matchup": "dwarf vs stone",
+    "seed": 1,
+    "survivors": ["stone"],
+    "points": { "dwarf": 0, "stone": 3 },
+    "lastDeathCycle": 26804,
+    "resultHash": "828ca352446b0260",
+    "eventHash": "3fa481966756bf78"
+  },
+  {
+    "matchup": "dwarf vs stone",
+    "seed": 2,
+    "survivors": ["stone"],
+    "points": { "dwarf": 0, "stone": 3 },
+    "lastDeathCycle": 3374,
+    "resultHash": "3863be234fb66256",
+    "eventHash": "065bc40e8fcbda3a"
+  },
+  {
+    "matchup": "dwarf vs stone",
+    "seed": 3,
+    "survivors": ["stone"],
+    "points": { "dwarf": 0, "stone": 3 },
+    "lastDeathCycle": 12830,
+    "resultHash": "16385e2a4ac43225",
+    "eventHash": "4ddc26bbd9e8cac9"
+  },
+  {
+    "matchup": "dwarf vs stone",
+    "seed": 4,
+    "survivors": ["stone"],
+    "points": { "dwarf": 0, "stone": 3 },
+    "lastDeathCycle": 12863,
+    "resultHash": "2a3afc69ca52af03",
+    "eventHash": "2c69f4d68e98f79d"
+  },
+  {
+    "matchup": "dwarf vs stone",
+    "seed": 5,
+    "survivors": ["dwarf"],
+    "points": { "dwarf": 3, "stone": 0 },
+    "lastDeathCycle": 12358,
+    "resultHash": "4dc30c14e3583ec2",
+    "eventHash": "b792a4de9d3d8e9a"
+  },
+  {
+    "matchup": "dwarf vs paper",
+    "seed": 1,
+    "survivors": ["paper"],
+    "points": { "dwarf": 0, "paper": 3 },
+    "lastDeathCycle": 23822,
+    "resultHash": "39b4f4063dc7be65",
+    "eventHash": "b1164c3359896128"
+  },
+  {
+    "matchup": "dwarf vs paper",
+    "seed": 2,
+    "survivors": ["paper"],
+    "points": { "dwarf": 0, "paper": 3 },
+    "lastDeathCycle": 67544,
+    "resultHash": "459e354a53baaca3",
+    "eventHash": "75def9c779a16573"
+  },
+  {
+    "matchup": "dwarf vs paper",
+    "seed": 3,
+    "survivors": ["dwarf", "paper"],
+    "points": { "dwarf": 1, "paper": 1 },
+    "lastDeathCycle": null,
+    "resultHash": "6676313e28737f01",
+    "eventHash": "01915fb0f16303e1"
+  },
+  {
+    "matchup": "dwarf vs paper",
+    "seed": 4,
+    "survivors": ["dwarf", "paper"],
+    "points": { "dwarf": 1, "paper": 1 },
+    "lastDeathCycle": null,
+    "resultHash": "dd9cffcf990fc07d",
+    "eventHash": "260632f09686dde5"
+  },
+  {
+    "matchup": "dwarf vs paper",
+    "seed": 5,
+    "survivors": ["paper"],
+    "points": { "dwarf": 0, "paper": 3 },
+    "lastDeathCycle": 69048,
+    "resultHash": "89854c61f5125b90",
+    "eventHash": "06b320864d8675ad"
+  },
+  {
+    "matchup": "dwarf vs scanner",
+    "seed": 1,
+    "survivors": ["scanner"],
+    "points": { "dwarf": 0, "scanner": 3 },
+    "lastDeathCycle": 27859,
+    "resultHash": "70a3d34d4387624b",
+    "eventHash": "990ec9c610892232"
+  },
+  {
+    "matchup": "dwarf vs scanner",
+    "seed": 2,
+    "survivors": ["scanner"],
+    "points": { "dwarf": 0, "scanner": 3 },
+    "lastDeathCycle": 8212,
+    "resultHash": "d5c7b2f7c6b2009a",
+    "eventHash": "2ae961c5f726b373"
+  },
+  {
+    "matchup": "dwarf vs scanner",
+    "seed": 3,
+    "survivors": ["dwarf"],
+    "points": { "dwarf": 3, "scanner": 0 },
+    "lastDeathCycle": 18280,
+    "resultHash": "ce967105ee07f4fc",
+    "eventHash": "670125f1317e7dd6"
+  },
+  {
+    "matchup": "dwarf vs scanner",
+    "seed": 4,
+    "survivors": ["dwarf"],
+    "points": { "dwarf": 3, "scanner": 0 },
+    "lastDeathCycle": 17949,
+    "resultHash": "6682bf70562998ff",
+    "eventHash": "f8e1176019710adb"
+  },
+  {
+    "matchup": "dwarf vs scanner",
+    "seed": 5,
+    "survivors": ["dwarf"],
+    "points": { "dwarf": 3, "scanner": 0 },
+    "lastDeathCycle": 12376,
+    "resultHash": "3075902326b94b52",
+    "eventHash": "6ed3d6942516915e"
+  },
+  {
+    "matchup": "dwarf vs vampire",
+    "seed": 1,
+    "survivors": ["vampire"],
+    "points": { "dwarf": 0, "vampire": 3 },
+    "lastDeathCycle": 3106,
+    "resultHash": "ff5c73a714ef89b3",
+    "eventHash": "778e2b5f80783aec"
+  },
+  {
+    "matchup": "dwarf vs vampire",
+    "seed": 2,
+    "survivors": ["vampire"],
+    "points": { "dwarf": 0, "vampire": 3 },
+    "lastDeathCycle": 962,
+    "resultHash": "164ea692728b5c68",
+    "eventHash": "2bf83efe83a7a74b"
+  },
+  {
+    "matchup": "dwarf vs vampire",
+    "seed": 3,
+    "survivors": ["vampire"],
+    "points": { "dwarf": 0, "vampire": 3 },
+    "lastDeathCycle": 4563,
+    "resultHash": "aa31fce28b2ff4c6",
+    "eventHash": "5ce436eb238358be"
+  },
+  {
+    "matchup": "dwarf vs vampire",
+    "seed": 4,
+    "survivors": ["vampire"],
+    "points": { "dwarf": 0, "vampire": 3 },
+    "lastDeathCycle": 4607,
+    "resultHash": "bd875dea231e4b04",
+    "eventHash": "364f95756e9f0c94"
+  },
+  {
+    "matchup": "dwarf vs vampire",
+    "seed": 5,
+    "survivors": ["vampire"],
+    "points": { "dwarf": 0, "vampire": 3 },
+    "lastDeathCycle": 5428,
+    "resultHash": "14707ce763d0bee1",
+    "eventHash": "a0ba9c6c3ff77dd1"
+  },
+  {
+    "matchup": "dwarf vs painter-lcg",
+    "seed": 1,
+    "survivors": ["dwarf"],
+    "points": { "dwarf": 3, "painter-lcg": 0 },
+    "lastDeathCycle": 28228,
+    "resultHash": "c886298ccb276e54",
+    "eventHash": "028990816d2ca484"
+  },
+  {
+    "matchup": "dwarf vs painter-lcg",
+    "seed": 2,
+    "survivors": ["dwarf"],
+    "points": { "dwarf": 3, "painter-lcg": 0 },
+    "lastDeathCycle": 42962,
+    "resultHash": "84cbd0b86f899b89",
+    "eventHash": "016a3be620d38246"
+  },
+  {
+    "matchup": "dwarf vs painter-lcg",
+    "seed": 3,
+    "survivors": ["dwarf"],
+    "points": { "dwarf": 3, "painter-lcg": 0 },
+    "lastDeathCycle": 18271,
+    "resultHash": "e0a0d0213bbfaf4c",
+    "eventHash": "5c7455a299d7d41c"
+  },
+  {
+    "matchup": "dwarf vs painter-lcg",
+    "seed": 4,
+    "survivors": ["dwarf"],
+    "points": { "dwarf": 3, "painter-lcg": 0 },
+    "lastDeathCycle": 17942,
+    "resultHash": "bf710ec644af16f3",
+    "eventHash": "e18f975da9c2a5eb"
+  },
+  {
+    "matchup": "dwarf vs painter-lcg",
+    "seed": 5,
+    "survivors": ["dwarf"],
+    "points": { "dwarf": 3, "painter-lcg": 0 },
+    "lastDeathCycle": 12365,
+    "resultHash": "bab5360e59a08536",
+    "eventHash": "3a0f98489fb6e838"
+  },
+  {
+    "matchup": "dwarf vs painter-spiral",
+    "seed": 1,
+    "survivors": ["dwarf"],
+    "points": { "dwarf": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 28232,
+    "resultHash": "3398cb81e6f5422f",
+    "eventHash": "fa0251383127c134"
+  },
+  {
+    "matchup": "dwarf vs painter-spiral",
+    "seed": 2,
+    "survivors": ["painter-spiral"],
+    "points": { "dwarf": 0, "painter-spiral": 3 },
+    "lastDeathCycle": 10812,
+    "resultHash": "e0e4df32df5c8aea",
+    "eventHash": "6aee396223fdbd3d"
+  },
+  {
+    "matchup": "dwarf vs painter-spiral",
+    "seed": 3,
+    "survivors": ["dwarf"],
+    "points": { "dwarf": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 18274,
+    "resultHash": "cb258601159e5911",
+    "eventHash": "c2c39d694227d1fe"
+  },
+  {
+    "matchup": "dwarf vs painter-spiral",
+    "seed": 4,
+    "survivors": ["dwarf"],
+    "points": { "dwarf": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 17944,
+    "resultHash": "7bc6517221fa32b0",
+    "eventHash": "7d372bc7575fcbee"
+  },
+  {
+    "matchup": "dwarf vs painter-spiral",
+    "seed": 5,
+    "survivors": ["dwarf"],
+    "points": { "dwarf": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 12368,
+    "resultHash": "9239c4fe78ea2e9e",
+    "eventHash": "1d0f09875c8beeee"
+  },
+  {
+    "matchup": "stone vs paper",
+    "seed": 1,
+    "survivors": ["paper"],
+    "points": { "stone": 0, "paper": 3 },
+    "lastDeathCycle": 40899,
+    "resultHash": "d12e19ba8e9bc33e",
+    "eventHash": "477a66e7f81056af"
+  },
+  {
+    "matchup": "stone vs paper",
+    "seed": 2,
+    "survivors": ["stone", "paper"],
+    "points": { "stone": 1, "paper": 1 },
+    "lastDeathCycle": null,
+    "resultHash": "71460c65dbe0d5fd",
+    "eventHash": "eb2a37aab73ad8a8"
+  },
+  {
+    "matchup": "stone vs paper",
+    "seed": 3,
+    "survivors": ["stone", "paper"],
+    "points": { "stone": 1, "paper": 1 },
+    "lastDeathCycle": null,
+    "resultHash": "72278ce156402205",
+    "eventHash": "63bc7cefb82b4214"
+  },
+  {
+    "matchup": "stone vs paper",
+    "seed": 4,
+    "survivors": ["paper"],
+    "points": { "stone": 0, "paper": 3 },
+    "lastDeathCycle": 60748,
+    "resultHash": "765e1874eadc55bd",
+    "eventHash": "c4567f9c52dd105e"
+  },
+  {
+    "matchup": "stone vs paper",
+    "seed": 5,
+    "survivors": ["paper"],
+    "points": { "stone": 0, "paper": 3 },
+    "lastDeathCycle": 54814,
+    "resultHash": "aea1fc36f3db092e",
+    "eventHash": "56384ab6e7519f26"
+  },
+  {
+    "matchup": "stone vs scanner",
+    "seed": 1,
+    "survivors": ["stone"],
+    "points": { "stone": 3, "scanner": 0 },
+    "lastDeathCycle": 13140,
+    "resultHash": "196f2c0d43265b7a",
+    "eventHash": "bae81537f93b02e6"
+  },
+  {
+    "matchup": "stone vs scanner",
+    "seed": 2,
+    "survivors": ["scanner"],
+    "points": { "stone": 0, "scanner": 3 },
+    "lastDeathCycle": 31458,
+    "resultHash": "6567779e3493e0ac",
+    "eventHash": "3e34c269187bd75a"
+  },
+  {
+    "matchup": "stone vs scanner",
+    "seed": 3,
+    "survivors": ["stone"],
+    "points": { "stone": 3, "scanner": 0 },
+    "lastDeathCycle": 18855,
+    "resultHash": "e2d91cc536ea3f57",
+    "eventHash": "59353f5d9cc62176"
+  },
+  {
+    "matchup": "stone vs scanner",
+    "seed": 4,
+    "survivors": ["stone"],
+    "points": { "stone": 3, "scanner": 0 },
+    "lastDeathCycle": 19295,
+    "resultHash": "d201d9546fde335e",
+    "eventHash": "f2af0890305be5e3"
+  },
+  {
+    "matchup": "stone vs scanner",
+    "seed": 5,
+    "survivors": ["stone"],
+    "points": { "stone": 3, "scanner": 0 },
+    "lastDeathCycle": 18282,
+    "resultHash": "260833b2edfb75e7",
+    "eventHash": "40f356761e1f03f5"
+  },
+  {
+    "matchup": "stone vs vampire",
+    "seed": 1,
+    "survivors": ["vampire"],
+    "points": { "stone": 0, "vampire": 3 },
+    "lastDeathCycle": 4446,
+    "resultHash": "341dfbec4a3915b9",
+    "eventHash": "6b10297f4f966a95"
+  },
+  {
+    "matchup": "stone vs vampire",
+    "seed": 2,
+    "survivors": ["vampire"],
+    "points": { "stone": 0, "vampire": 3 },
+    "lastDeathCycle": 9095,
+    "resultHash": "6cecb08e909eb017",
+    "eventHash": "5f18cc75b80c1e58"
+  },
+  {
+    "matchup": "stone vs vampire",
+    "seed": 3,
+    "survivors": ["vampire"],
+    "points": { "stone": 0, "vampire": 3 },
+    "lastDeathCycle": 7535,
+    "resultHash": "2fa042e5e45d32d6",
+    "eventHash": "37ddb8aa2a5e39a0"
+  },
+  {
+    "matchup": "stone vs vampire",
+    "seed": 4,
+    "survivors": ["stone"],
+    "points": { "stone": 3, "vampire": 0 },
+    "lastDeathCycle": 7433,
+    "resultHash": "86f2492fe202d42d",
+    "eventHash": "001617387e094bad"
+  },
+  {
+    "matchup": "stone vs vampire",
+    "seed": 5,
+    "survivors": ["vampire"],
+    "points": { "stone": 0, "vampire": 3 },
+    "lastDeathCycle": 11349,
+    "resultHash": "d9b4208b7fb05f63",
+    "eventHash": "3164060a29dd37db"
+  },
+  {
+    "matchup": "stone vs painter-lcg",
+    "seed": 1,
+    "survivors": ["stone"],
+    "points": { "stone": 3, "painter-lcg": 0 },
+    "lastDeathCycle": 10852,
+    "resultHash": "a541f409e37be001",
+    "eventHash": "f14ae3f26872a185"
+  },
+  {
+    "matchup": "stone vs painter-lcg",
+    "seed": 2,
+    "survivors": ["stone"],
+    "points": { "stone": 3, "painter-lcg": 0 },
+    "lastDeathCycle": 21536,
+    "resultHash": "0b50d4cb776dc989",
+    "eventHash": "7c9113321f7bb829"
+  },
+  {
+    "matchup": "stone vs painter-lcg",
+    "seed": 3,
+    "survivors": ["stone"],
+    "points": { "stone": 3, "painter-lcg": 0 },
+    "lastDeathCycle": 9975,
+    "resultHash": "7d8374ae2191ebe3",
+    "eventHash": "f4fc8b4bf0099547"
+  },
+  {
+    "matchup": "stone vs painter-lcg",
+    "seed": 4,
+    "survivors": ["stone"],
+    "points": { "stone": 3, "painter-lcg": 0 },
+    "lastDeathCycle": 8782,
+    "resultHash": "eae91863acb20300",
+    "eventHash": "f6761935569682b6"
+  },
+  {
+    "matchup": "stone vs painter-lcg",
+    "seed": 5,
+    "survivors": ["stone"],
+    "points": { "stone": 3, "painter-lcg": 0 },
+    "lastDeathCycle": 6754,
+    "resultHash": "5933046aa5b0a160",
+    "eventHash": "e061abd55cb5bf45"
+  },
+  {
+    "matchup": "stone vs painter-spiral",
+    "seed": 1,
+    "survivors": ["stone"],
+    "points": { "stone": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 15409,
+    "resultHash": "b6a4dd005496d1b6",
+    "eventHash": "dcb830abc34b1438"
+  },
+  {
+    "matchup": "stone vs painter-spiral",
+    "seed": 2,
+    "survivors": ["stone", "painter-spiral"],
+    "points": { "stone": 1, "painter-spiral": 1 },
+    "lastDeathCycle": null,
+    "resultHash": "6444d17cdaeaf4cb",
+    "eventHash": "3ecffd4d78204402"
+  },
+  {
+    "matchup": "stone vs painter-spiral",
+    "seed": 3,
+    "survivors": ["stone"],
+    "points": { "stone": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 9978,
+    "resultHash": "8daafc903192578b",
+    "eventHash": "63483ff5d8779277"
+  },
+  {
+    "matchup": "stone vs painter-spiral",
+    "seed": 4,
+    "survivors": ["stone"],
+    "points": { "stone": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 9798,
+    "resultHash": "afc7ec64e317cd6f",
+    "eventHash": "ad991f81eea0c1db"
+  },
+  {
+    "matchup": "stone vs painter-spiral",
+    "seed": 5,
+    "survivors": ["stone"],
+    "points": { "stone": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 6757,
+    "resultHash": "310ea72c0ec8e943",
+    "eventHash": "b6672a0fb94c7e0e"
+  },
+  {
+    "matchup": "paper vs scanner",
+    "seed": 1,
+    "survivors": ["paper"],
+    "points": { "paper": 3, "scanner": 0 },
+    "lastDeathCycle": 56548,
+    "resultHash": "1f7e0581b78fe82f",
+    "eventHash": "c1329c2910841ed4"
+  },
+  {
+    "matchup": "paper vs scanner",
+    "seed": 2,
+    "survivors": ["paper"],
+    "points": { "paper": 3, "scanner": 0 },
+    "lastDeathCycle": 15618,
+    "resultHash": "2f23cc3c2fd4c680",
+    "eventHash": "08a838fcefda89da"
+  },
+  {
+    "matchup": "paper vs scanner",
+    "seed": 3,
+    "survivors": ["paper"],
+    "points": { "paper": 3, "scanner": 0 },
+    "lastDeathCycle": 710,
+    "resultHash": "d408257eb79ef584",
+    "eventHash": "3203044110f649bb"
+  },
+  {
+    "matchup": "paper vs scanner",
+    "seed": 4,
+    "survivors": ["paper"],
+    "points": { "paper": 3, "scanner": 0 },
+    "lastDeathCycle": 71411,
+    "resultHash": "8f47b68a177996bc",
+    "eventHash": "5d96b517728ea25f"
+  },
+  {
+    "matchup": "paper vs scanner",
+    "seed": 5,
+    "survivors": ["paper"],
+    "points": { "paper": 3, "scanner": 0 },
+    "lastDeathCycle": 19402,
+    "resultHash": "9c9ba485661e8573",
+    "eventHash": "935f2d0c08864668"
+  },
+  {
+    "matchup": "paper vs vampire",
+    "seed": 1,
+    "survivors": ["paper"],
+    "points": { "paper": 3, "vampire": 0 },
+    "lastDeathCycle": 48947,
+    "resultHash": "ec5dccacae53cda2",
+    "eventHash": "4ec4a374b77e3d02"
+  },
+  {
+    "matchup": "paper vs vampire",
+    "seed": 2,
+    "survivors": ["paper"],
+    "points": { "paper": 3, "vampire": 0 },
+    "lastDeathCycle": 34000,
+    "resultHash": "1757ffabe480d076",
+    "eventHash": "ea05c3ccb7afafaf"
+  },
+  {
+    "matchup": "paper vs vampire",
+    "seed": 3,
+    "survivors": ["vampire"],
+    "points": { "paper": 0, "vampire": 3 },
+    "lastDeathCycle": 14893,
+    "resultHash": "bb2a0be1f9d4584f",
+    "eventHash": "a7f3eafa22f64b00"
+  },
+  {
+    "matchup": "paper vs vampire",
+    "seed": 4,
+    "survivors": ["vampire"],
+    "points": { "paper": 0, "vampire": 3 },
+    "lastDeathCycle": 15435,
+    "resultHash": "e0e8cb14b92586c9",
+    "eventHash": "ffc12f5143326cd5"
+  },
+  {
+    "matchup": "paper vs vampire",
+    "seed": 5,
+    "survivors": ["paper"],
+    "points": { "paper": 3, "vampire": 0 },
+    "lastDeathCycle": 37188,
+    "resultHash": "11982ddaa5118185",
+    "eventHash": "978552bee27597e5"
+  },
+  {
+    "matchup": "paper vs painter-lcg",
+    "seed": 1,
+    "survivors": ["paper"],
+    "points": { "paper": 3, "painter-lcg": 0 },
+    "lastDeathCycle": 27460,
+    "resultHash": "9e51aee97db50d3b",
+    "eventHash": "fbf21b827245c1cd"
+  },
+  {
+    "matchup": "paper vs painter-lcg",
+    "seed": 2,
+    "survivors": ["paper"],
+    "points": { "paper": 3, "painter-lcg": 0 },
+    "lastDeathCycle": 15123,
+    "resultHash": "867f9c69422dc021",
+    "eventHash": "8e8c96c189d008ff"
+  },
+  {
+    "matchup": "paper vs painter-lcg",
+    "seed": 3,
+    "survivors": ["paper"],
+    "points": { "paper": 3, "painter-lcg": 0 },
+    "lastDeathCycle": 729,
+    "resultHash": "5ec344c80cb1e340",
+    "eventHash": "8f0f687c6ef7884d"
+  },
+  {
+    "matchup": "paper vs painter-lcg",
+    "seed": 4,
+    "survivors": ["paper", "painter-lcg"],
+    "points": { "paper": 1, "painter-lcg": 1 },
+    "lastDeathCycle": null,
+    "resultHash": "62dbfe4a78652253",
+    "eventHash": "a077ce798e1895a7"
+  },
+  {
+    "matchup": "paper vs painter-lcg",
+    "seed": 5,
+    "survivors": ["paper"],
+    "points": { "paper": 3, "painter-lcg": 0 },
+    "lastDeathCycle": 59154,
+    "resultHash": "1d805db2c38a2477",
+    "eventHash": "983a367db8cd1189"
+  },
+  {
+    "matchup": "paper vs painter-spiral",
+    "seed": 1,
+    "survivors": ["paper", "painter-spiral"],
+    "points": { "paper": 1, "painter-spiral": 1 },
+    "lastDeathCycle": null,
+    "resultHash": "099e17622521e65b",
+    "eventHash": "5f2a84fb2fba5cc6"
+  },
+  {
+    "matchup": "paper vs painter-spiral",
+    "seed": 2,
+    "survivors": ["paper"],
+    "points": { "paper": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 15491,
+    "resultHash": "dcb8e6897b731ab3",
+    "eventHash": "5df2c51603d6dcce"
+  },
+  {
+    "matchup": "paper vs painter-spiral",
+    "seed": 3,
+    "survivors": ["paper"],
+    "points": { "paper": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 7353,
+    "resultHash": "2c0b76916db1bd0d",
+    "eventHash": "dcf94392f18681a9"
+  },
+  {
+    "matchup": "paper vs painter-spiral",
+    "seed": 4,
+    "survivors": ["paper"],
+    "points": { "paper": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 37475,
+    "resultHash": "c746df78b7387844",
+    "eventHash": "fa77db9cfcb743ae"
+  },
+  {
+    "matchup": "paper vs painter-spiral",
+    "seed": 5,
+    "survivors": ["paper"],
+    "points": { "paper": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 19732,
+    "resultHash": "ff3eacff1ac657ae",
+    "eventHash": "14512d231d20f037"
+  },
+  {
+    "matchup": "scanner vs vampire",
+    "seed": 1,
+    "survivors": ["vampire"],
+    "points": { "scanner": 0, "vampire": 3 },
+    "lastDeathCycle": 3126,
+    "resultHash": "1a5cf30530264fcc",
+    "eventHash": "a1fe8c340c4d762d"
+  },
+  {
+    "matchup": "scanner vs vampire",
+    "seed": 2,
+    "survivors": ["vampire"],
+    "points": { "scanner": 0, "vampire": 3 },
+    "lastDeathCycle": 976,
+    "resultHash": "1101a870f7ab3b33",
+    "eventHash": "4b340f9666c843bd"
+  },
+  {
+    "matchup": "scanner vs vampire",
+    "seed": 3,
+    "survivors": ["vampire"],
+    "points": { "scanner": 0, "vampire": 3 },
+    "lastDeathCycle": 4592,
+    "resultHash": "cd7b27792bfd8b33",
+    "eventHash": "505d4bd60496cf32"
+  },
+  {
+    "matchup": "scanner vs vampire",
+    "seed": 4,
+    "survivors": ["vampire"],
+    "points": { "scanner": 0, "vampire": 3 },
+    "lastDeathCycle": 4637,
+    "resultHash": "7e8edcb58a38a782",
+    "eventHash": "1ffc0b69c9bfc8a1"
+  },
+  {
+    "matchup": "scanner vs vampire",
+    "seed": 5,
+    "survivors": ["vampire"],
+    "points": { "scanner": 0, "vampire": 3 },
+    "lastDeathCycle": 7568,
+    "resultHash": "af6c46c80cc1ce02",
+    "eventHash": "47f9473f877a0473"
+  },
+  {
+    "matchup": "scanner vs painter-lcg",
+    "seed": 1,
+    "survivors": ["painter-lcg"],
+    "points": { "scanner": 0, "painter-lcg": 3 },
+    "lastDeathCycle": 1003,
+    "resultHash": "076396c14911922c",
+    "eventHash": "3fe4c45e678d300d"
+  },
+  {
+    "matchup": "scanner vs painter-lcg",
+    "seed": 2,
+    "survivors": ["painter-lcg"],
+    "points": { "scanner": 0, "painter-lcg": 3 },
+    "lastDeathCycle": 25808,
+    "resultHash": "03bceda6a0e97a11",
+    "eventHash": "b9bb7c7071581025"
+  },
+  {
+    "matchup": "scanner vs painter-lcg",
+    "seed": 3,
+    "survivors": ["scanner"],
+    "points": { "scanner": 3, "painter-lcg": 0 },
+    "lastDeathCycle": 25288,
+    "resultHash": "2b30f2cbe48fba5e",
+    "eventHash": "d95dfbbae8651e69"
+  },
+  {
+    "matchup": "scanner vs painter-lcg",
+    "seed": 4,
+    "survivors": ["scanner"],
+    "points": { "scanner": 3, "painter-lcg": 0 },
+    "lastDeathCycle": 27089,
+    "resultHash": "9914bb0957c0611a",
+    "eventHash": "0c3152df082298a4"
+  },
+  {
+    "matchup": "scanner vs painter-lcg",
+    "seed": 5,
+    "survivors": ["painter-lcg"],
+    "points": { "scanner": 0, "painter-lcg": 3 },
+    "lastDeathCycle": 16621,
+    "resultHash": "ec18be178622278d",
+    "eventHash": "94307060ee42da8a"
+  },
+  {
+    "matchup": "scanner vs painter-spiral",
+    "seed": 1,
+    "survivors": ["scanner"],
+    "points": { "scanner": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 41360,
+    "resultHash": "f5d59401459e3ed0",
+    "eventHash": "dbf6c145b068b7c7"
+  },
+  {
+    "matchup": "scanner vs painter-spiral",
+    "seed": 2,
+    "survivors": ["painter-spiral"],
+    "points": { "scanner": 0, "painter-spiral": 3 },
+    "lastDeathCycle": 10866,
+    "resultHash": "c1f5fb9da8247c02",
+    "eventHash": "54f202f8d81db49a"
+  },
+  {
+    "matchup": "scanner vs painter-spiral",
+    "seed": 3,
+    "survivors": ["scanner"],
+    "points": { "scanner": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 26720,
+    "resultHash": "f5a678fa6dc13d1a",
+    "eventHash": "818aea875d10c6e8"
+  },
+  {
+    "matchup": "scanner vs painter-spiral",
+    "seed": 4,
+    "survivors": ["scanner"],
+    "points": { "scanner": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 26149,
+    "resultHash": "66643d80d2565186",
+    "eventHash": "b9eda904aeeab139"
+  },
+  {
+    "matchup": "scanner vs painter-spiral",
+    "seed": 5,
+    "survivors": ["scanner"],
+    "points": { "scanner": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 17994,
+    "resultHash": "fe9a526541580e3c",
+    "eventHash": "2391da4612ae6c9b"
+  },
+  {
+    "matchup": "vampire vs painter-lcg",
+    "seed": 1,
+    "survivors": ["painter-lcg"],
+    "points": { "vampire": 0, "painter-lcg": 3 },
+    "lastDeathCycle": 782,
+    "resultHash": "bbd8acf9f02da7d0",
+    "eventHash": "9f5b922dfa121790"
+  },
+  {
+    "matchup": "vampire vs painter-lcg",
+    "seed": 2,
+    "survivors": ["vampire"],
+    "points": { "vampire": 3, "painter-lcg": 0 },
+    "lastDeathCycle": 15157,
+    "resultHash": "e53ad4412799d4f5",
+    "eventHash": "053d421c838c75a3"
+  },
+  {
+    "matchup": "vampire vs painter-lcg",
+    "seed": 3,
+    "survivors": ["vampire"],
+    "points": { "vampire": 3, "painter-lcg": 0 },
+    "lastDeathCycle": 12220,
+    "resultHash": "597c0bc23bb30cdc",
+    "eventHash": "637d7418f22d8c12"
+  },
+  {
+    "matchup": "vampire vs painter-lcg",
+    "seed": 4,
+    "survivors": ["vampire"],
+    "points": { "vampire": 3, "painter-lcg": 0 },
+    "lastDeathCycle": 15176,
+    "resultHash": "304a3bbe51189489",
+    "eventHash": "677ef77ca4e16e27"
+  },
+  {
+    "matchup": "vampire vs painter-lcg",
+    "seed": 5,
+    "survivors": ["vampire"],
+    "points": { "vampire": 3, "painter-lcg": 0 },
+    "lastDeathCycle": 3680,
+    "resultHash": "dc10739c21ee4216",
+    "eventHash": "fa4760b7418a95f0"
+  },
+  {
+    "matchup": "vampire vs painter-spiral",
+    "seed": 1,
+    "survivors": ["vampire"],
+    "points": { "vampire": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 14331,
+    "resultHash": "6130da5930931fd5",
+    "eventHash": "aaf48ca3400c7119"
+  },
+  {
+    "matchup": "vampire vs painter-spiral",
+    "seed": 2,
+    "survivors": ["vampire"],
+    "points": { "vampire": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 10833,
+    "resultHash": "48d204600499a203",
+    "eventHash": "c85bbee301f9bf90"
+  },
+  {
+    "matchup": "vampire vs painter-spiral",
+    "seed": 3,
+    "survivors": ["vampire"],
+    "points": { "vampire": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 12535,
+    "resultHash": "f7eaae8ee4b5919d",
+    "eventHash": "05df36e2a7fd2195"
+  },
+  {
+    "matchup": "vampire vs painter-spiral",
+    "seed": 4,
+    "survivors": ["vampire"],
+    "points": { "vampire": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 12535,
+    "resultHash": "705dbde7f14f040c",
+    "eventHash": "1b4ae5d3854c1af2"
+  },
+  {
+    "matchup": "vampire vs painter-spiral",
+    "seed": 5,
+    "survivors": ["vampire"],
+    "points": { "vampire": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 11469,
+    "resultHash": "f6a78f658df069f9",
+    "eventHash": "0abf5e371871ec23"
+  },
+  {
+    "matchup": "painter-lcg vs painter-spiral",
+    "seed": 1,
+    "survivors": ["painter-lcg"],
+    "points": { "painter-lcg": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 45338,
+    "resultHash": "3596ea3ca8387b70",
+    "eventHash": "5b0072801ec40df7"
+  },
+  {
+    "matchup": "painter-lcg vs painter-spiral",
+    "seed": 2,
+    "survivors": ["painter-lcg", "painter-spiral"],
+    "points": { "painter-lcg": 1, "painter-spiral": 1 },
+    "lastDeathCycle": null,
+    "resultHash": "c0052e650fd1ae52",
+    "eventHash": "41d9b24793e3fa26"
+  },
+  {
+    "matchup": "painter-lcg vs painter-spiral",
+    "seed": 3,
+    "survivors": ["painter-lcg", "painter-spiral"],
+    "points": { "painter-lcg": 1, "painter-spiral": 1 },
+    "lastDeathCycle": null,
+    "resultHash": "39c1e56d67bf7029",
+    "eventHash": "f4a4a55b7976c4d5"
+  },
+  {
+    "matchup": "painter-lcg vs painter-spiral",
+    "seed": 4,
+    "survivors": ["painter-lcg"],
+    "points": { "painter-lcg": 3, "painter-spiral": 0 },
+    "lastDeathCycle": 42683,
+    "resultHash": "e8bfc38d19633d2b",
+    "eventHash": "a947666f50f9786f"
+  },
+  {
+    "matchup": "painter-lcg vs painter-spiral",
+    "seed": 5,
+    "survivors": ["painter-spiral"],
+    "points": { "painter-lcg": 0, "painter-spiral": 3 },
+    "lastDeathCycle": 66718,
+    "resultHash": "079e6a5ddce5785e",
+    "eventHash": "914f04b0f4259c28"
+  },
+  {
+    "matchup": "imp-ring vs dwarf-wide vs silk vs hybrid",
+    "seed": 1,
+    "survivors": ["silk"],
+    "points": { "imp-ring": 0, "dwarf-wide": 0, "silk": 15, "hybrid": 0 },
+    "lastDeathCycle": 65505,
+    "resultHash": "3b1675c6e0201d5a",
+    "eventHash": "945a58f562cb2a10"
+  },
+  {
+    "matchup": "imp-ring vs dwarf-wide vs silk vs hybrid",
+    "seed": 2,
+    "survivors": ["silk", "hybrid"],
+    "points": { "imp-ring": 0, "dwarf-wide": 0, "silk": 7, "hybrid": 7 },
+    "lastDeathCycle": 32756,
+    "resultHash": "89bac9fd2e5e2c13",
+    "eventHash": "5cdd94ade6e0d01e"
+  },
+  {
+    "matchup": "imp-ring vs dwarf-wide vs silk vs hybrid",
+    "seed": 3,
+    "survivors": ["silk"],
+    "points": { "imp-ring": 0, "dwarf-wide": 0, "silk": 15, "hybrid": 0 },
+    "lastDeathCycle": 70411,
+    "resultHash": "762166fd492c0d98",
+    "eventHash": "90c252a288a140d8"
+  },
+  {
+    "matchup": "gate vs decoy vs imp vs scanner",
+    "seed": 1,
+    "survivors": ["decoy", "imp"],
+    "points": { "gate": 0, "decoy": 7, "imp": 7, "scanner": 0 },
+    "lastDeathCycle": 13027,
+    "resultHash": "c8a60efac96d2a2a",
+    "eventHash": "d79dfe920d3f82b6"
+  },
+  {
+    "matchup": "gate vs decoy vs imp vs scanner",
+    "seed": 2,
+    "survivors": ["decoy"],
+    "points": { "gate": 0, "decoy": 15, "imp": 0, "scanner": 0 },
+    "lastDeathCycle": 51001,
+    "resultHash": "27e20dc85dc9ea8a",
+    "eventHash": "a3af310954cd2fb7"
+  },
+  {
+    "matchup": "gate vs decoy vs imp vs scanner",
+    "seed": 3,
+    "survivors": ["decoy"],
+    "points": { "gate": 0, "decoy": 15, "imp": 0, "scanner": 0 },
+    "lastDeathCycle": 14031,
+    "resultHash": "a252e75dbaf4266d",
+    "eventHash": "5ac91a96b3258598"
+  },
+  {
+    "matchup": "dwarf vs stone vs paper vs vampire",
+    "seed": 1,
+    "survivors": ["dwarf", "paper"],
+    "points": { "dwarf": 7, "stone": 0, "paper": 7, "vampire": 0 },
+    "lastDeathCycle": 68749,
+    "resultHash": "eb526d5239f1b0f3",
+    "eventHash": "56c9d6a47e9b9507"
+  },
+  {
+    "matchup": "dwarf vs stone vs paper vs vampire",
+    "seed": 2,
+    "survivors": ["stone", "paper"],
+    "points": { "dwarf": 0, "stone": 7, "paper": 7, "vampire": 0 },
+    "lastDeathCycle": 1204,
+    "resultHash": "40cc868cf3cfb796",
+    "eventHash": "7626f9c77b6d599b"
+  },
+  {
+    "matchup": "dwarf vs stone vs paper vs vampire",
+    "seed": 3,
+    "survivors": ["vampire"],
+    "points": { "dwarf": 0, "stone": 0, "paper": 0, "vampire": 15 },
+    "lastDeathCycle": 18641,
+    "resultHash": "9ac88ab7425baa44",
+    "eventHash": "984b1db277e0aecd"
+  },
+  {
+    "matchup": "imp vs dwarf vs stone vs paper vs scanner vs vampire vs painter-lcg vs painter-spiral",
+    "seed": 1,
+    "survivors": ["paper"],
+    "points": {
+      "imp": 0,
+      "dwarf": 0,
+      "stone": 0,
+      "paper": 63,
+      "scanner": 0,
+      "vampire": 0,
+      "painter-lcg": 0,
+      "painter-spiral": 0
+    },
+    "lastDeathCycle": 34648,
+    "resultHash": "0976dc88ee48e5ef",
+    "eventHash": "1ed5dce8959b5aaa"
+  },
+  {
+    "matchup": "imp vs dwarf vs stone vs paper vs scanner vs vampire vs painter-lcg vs painter-spiral",
+    "seed": 2,
+    "survivors": ["vampire"],
+    "points": {
+      "imp": 0,
+      "dwarf": 0,
+      "stone": 0,
+      "paper": 0,
+      "scanner": 0,
+      "vampire": 63,
+      "painter-lcg": 0,
+      "painter-spiral": 0
+    },
+    "lastDeathCycle": 43334,
+    "resultHash": "3a4c29882cc286e7",
+    "eventHash": "b744922ad51cb5c5"
+  },
+  {
+    "matchup": "imp vs dwarf vs stone vs paper vs scanner vs vampire vs painter-lcg vs painter-spiral",
+    "seed": 3,
+    "survivors": ["paper", "painter-lcg", "painter-spiral"],
+    "points": {
+      "imp": 0,
+      "dwarf": 0,
+      "stone": 0,
+      "paper": 21,
+      "scanner": 0,
+      "vampire": 0,
+      "painter-lcg": 21,
+      "painter-spiral": 21
+    },
+    "lastDeathCycle": 38132,
+    "resultHash": "86c7daec9adb2dc8",
+    "eventHash": "518d36e2a4c15f43"
+  }
+]
