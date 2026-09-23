@@ -6,11 +6,12 @@
     "apps/*"
   ],
   "scripts": {
-    "check": "bun run typecheck && bun run lint && bun run test",
+    "check": "bun run typecheck && bun run lint && bun run contrast && bun run test",
     "typecheck": "tsc -b",
     "lint": "biome check .",
     "format": "biome format --write .",
     "test": "bun test",
+    "contrast": "bun run scripts/check-contrast.ts",
     "build": "bun run --filter '*' build",
     "golden": "bun run scripts/golden.ts",
     "version": "bun run scripts/version.ts",

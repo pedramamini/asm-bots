@@ -3,8 +3,17 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tailwind.css": "./src/tailwind.css",
+    "./tokens.css": "./src/tokens.css",
+    "./fonts/*": "./src/fonts/*"
+  },
   "scripts": {
     "build": "tsc -b",
     "test": "bun test"
+  },
+  "dependencies": {
+    "tailwindcss": "4.3.3"
   }
 }

@@ -1,0 +1,222 @@
+/*
+ * Design tokens (DESIGN_SYSTEM §2): one block per theme, keyed on <html data-theme="…">. A
+ * missing or unknown data-theme gets sentinel. tailwind.css maps the tokens to utilities,
+ * themes.ts carries the bot hues and arena colors for the renderer (a test keeps the two equal),
+ * and `bun run contrast` checks the text tokens on the three surfaces (DESIGN_SYSTEM §8).
+ */
+
+:root {
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Accent fills. They follow the active theme's --accent. */
+  --accent-10: color-mix(in srgb, var(--accent) 10%, transparent);
+  --accent-25: color-mix(in srgb, var(--accent) 25%, transparent);
+  --accent-45: color-mix(in srgb, var(--accent) 45%, transparent);
+  --accent-80: color-mix(in srgb, var(--accent) 80%, transparent);
+
+  /* Spacing, named by multiples of 4 px like Tailwind's p-1 … p-8. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Radii: controls and chips, panels, modals. */
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+
+  /* Stacking order. */
+  --z-ticker: 10;
+  --z-header: 20;
+  --z-toast: 40;
+  --z-modal: 50;
+}
+
+/*
+ * Bot hues by bot index (the engine's owner - 1; bot 12 and up wrap). The arena is #000 in every
+ * theme, so each theme keeps the same 12 hues: they pass 3:1 on black, and a bot keeps its color
+ * when the user changes the theme (color = identity).
+ */
+
+:root,
+:root[data-theme="sentinel"] {
+  color-scheme: dark;
+  --bg: #0A0F0A;
+  --panel: #111A11;
+  --panel-2: #0D140D;
+  --border: #1A2F1A;
+  --border-strong: #2A4A2A;
+  --text: #A0C0A0;
+  --text-muted: #6A8C6A;
+  --text-dim: #4A6A4A;
+  --text-bright: #D0F0D0;
+  --accent: #00FF88;
+  --accent-2: #00C46A;
+  --warn: #FB923C;
+  --danger: #FF4444;
+  --info: #FFAA00;
+  --arena-bg: #000000;
+  --arena-lattice: #0E160E;
+  --arena-ruler: #3A5A3A;
+  --arena-ip: #FFFFFF;
+  --arena-exec: #FFEB3B;
+  --arena-write: #FFFFFF;
+  --bot-0: #FF5C5C;
+  --bot-1: #FF9F43;
+  --bot-2: #FFD93D;
+  --bot-3: #7CFC00;
+  --bot-4: #00FF88;
+  --bot-5: #2DE2E6;
+  --bot-6: #4CC9F0;
+  --bot-7: #7B7BFF;
+  --bot-8: #B57BFF;
+  --bot-9: #FF6BD6;
+  --bot-10: #FF8FA3;
+  --bot-11: #E0E0E0;
+}
+
+:root[data-theme="amber"] {
+  color-scheme: dark;
+  --bg: #0F0A00;
+  --panel: #1A1200;
+  --panel-2: #140E00;
+  --border: #33260A;
+  --border-strong: #4D3A10;
+  --text: #D6B070;
+  --text-muted: #8F7A4A;
+  --text-dim: #5E5030;
+  --text-bright: #FFE0A0;
+  --accent: #FFB000;
+  --accent-2: #E09800;
+  --warn: #FF6A00;
+  --danger: #FF3333;
+  --info: #FFD166;
+  --arena-bg: #000000;
+  --arena-lattice: #160F00;
+  --arena-ruler: #5A4620;
+  --arena-ip: #FFFFFF;
+  --arena-exec: #FFEB3B;
+  --arena-write: #FFFFFF;
+  --bot-0: #FF5C5C;
+  --bot-1: #FF9F43;
+  --bot-2: #FFD93D;
+  --bot-3: #7CFC00;
+  --bot-4: #00FF88;
+  --bot-5: #2DE2E6;
+  --bot-6: #4CC9F0;
+  --bot-7: #7B7BFF;
+  --bot-8: #B57BFF;
+  --bot-9: #FF6BD6;
+  --bot-10: #FF8FA3;
+  --bot-11: #E0E0E0;
+}
+
+:root[data-theme="pedurple"] {
+  color-scheme: dark;
+  --bg: #0B0810;
+  --panel: #141020;
+  --panel-2: #100C1A;
+  --border: #2A1F45;
+  --border-strong: #3F2F66;
+  --text: #B8A8D8;
+  --text-muted: #7A6C9A;
+  --text-dim: #4E4466;
+  --text-bright: #E8DCFF;
+  --accent: #9146FF;
+  --accent-2: #7A30E0;
+  --warn: #FF4FA3;
+  --danger: #FF3355;
+  --info: #FFAA00;
+  --arena-bg: #000000;
+  --arena-lattice: #120C1C;
+  --arena-ruler: #4A3A6A;
+  --arena-ip: #FFFFFF;
+  --arena-exec: #FFEB3B;
+  --arena-write: #FFFFFF;
+  --bot-0: #FF5C5C;
+  --bot-1: #FF9F43;
+  --bot-2: #FFD93D;
+  --bot-3: #7CFC00;
+  --bot-4: #00FF88;
+  --bot-5: #2DE2E6;
+  --bot-6: #4CC9F0;
+  --bot-7: #7B7BFF;
+  --bot-8: #B57BFF;
+  --bot-9: #FF6BD6;
+  --bot-10: #FF8FA3;
+  --bot-11: #E0E0E0;
+}
+
+:root[data-theme="ice"] {
+  color-scheme: dark;
+  --bg: #050A0F;
+  --panel: #0A141C;
+  --panel-2: #081018;
+  --border: #123040;
+  --border-strong: #1C4A60;
+  --text: #A0C8DC;
+  --text-muted: #5E8A9E;
+  --text-dim: #3C5A6A;
+  --text-bright: #D8F4FF;
+  --accent: #00E5FF;
+  --accent-2: #00B8CC;
+  --warn: #FFB74D;
+  --danger: #FF5A5A;
+  --info: #FFD166;
+  --arena-bg: #000000;
+  --arena-lattice: #081218;
+  --arena-ruler: #2A5A6A;
+  --arena-ip: #FFFFFF;
+  --arena-exec: #FFEB3B;
+  --arena-write: #FFFFFF;
+  --bot-0: #FF5C5C;
+  --bot-1: #FF9F43;
+  --bot-2: #FFD93D;
+  --bot-3: #7CFC00;
+  --bot-4: #00FF88;
+  --bot-5: #2DE2E6;
+  --bot-6: #4CC9F0;
+  --bot-7: #7B7BFF;
+  --bot-8: #B57BFF;
+  --bot-9: #FF6BD6;
+  --bot-10: #FF8FA3;
+  --bot-11: #E0E0E0;
+}
+
+:root[data-theme="paper"] {
+  color-scheme: light;
+  --bg: #F4F1EA;
+  --panel: #FFFFFF;
+  --panel-2: #EEEBE3;
+  --border: #D8D3C6;
+  --border-strong: #B8B2A2;
+  --text: #1F2A1F;
+  --text-muted: #5C665C;
+  --text-dim: #9AA39A;
+  --text-bright: #000000;
+  --accent: #0A7A4A;
+  --accent-2: #08603A;
+  --warn: #B45309;
+  --danger: #B91C1C;
+  --info: #92400E;
+  --arena-bg: #000000;
+  --arena-lattice: #111111;
+  --arena-ruler: #666666;
+  --arena-ip: #FFFFFF;
+  --arena-exec: #FFEB3B;
+  --arena-write: #FFFFFF;
+  --bot-0: #FF5C5C;
+  --bot-1: #FF9F43;
+  --bot-2: #FFD93D;
+  --bot-3: #7CFC00;
+  --bot-4: #00FF88;
+  --bot-5: #2DE2E6;
+  --bot-6: #4CC9F0;
+  --bot-7: #7B7BFF;
+  --bot-8: #B57BFF;
+  --bot-9: #FF6BD6;
+  --bot-10: #FF8FA3;
+  --bot-11: #E0E0E0;
+}

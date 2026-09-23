@@ -6,7 +6,8 @@ ASM Bots is a deterministic x86-16 assembler debugger and competitive hill-climb
 
 ```sh
 bun install
-bun run check
+bun run check       # typecheck, lint, contrast, test
+bun run contrast    # WCAG contrast of the text tokens in all five themes
 bun run golden      # the roster goldens; --update writes packages/bots/goldens/results.json
 ```
 

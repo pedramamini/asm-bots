@@ -1,0 +1,166 @@
+/*
+ * The one stylesheet the web app imports: Tailwind 4, the vendored font, the tokens, and the
+ * utilities that map onto them. The theme is `inline reference`: a utility reads the token itself
+ * (`bg-panel` is `background-color: var(--panel)`), Tailwind emits no second copy of a token, and
+ * <html data-theme> swaps every utility at runtime.
+ */
+@import "tailwindcss";
+@import "./fonts/jetbrains-mono.css";
+@import "./tokens.css";
+
+@theme inline reference {
+  /* Our tokens only: no Tailwind palette, font stacks, radii, or type sizes. */
+  --color-*: initial;
+  --font-*: initial;
+  --radius-*: initial;
+  --text-*: initial;
+
+  /* Monospace everywhere, tabular numerals and the distinct zero on (DESIGN_SYSTEM §1). */
+  --font-mono: var(--font-mono);
+  --font-sans: var(--font-mono);
+  --default-font-family: var(--font-mono);
+  --default-font-feature-settings: "tnum", "zero";
+  --default-mono-font-family: var(--font-mono);
+  --default-mono-font-feature-settings: "tnum", "zero";
+
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-dim: var(--text-dim);
+  --color-bright: var(--text-bright);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-accent-10: var(--accent-10);
+  --color-accent-25: var(--accent-25);
+  --color-accent-45: var(--accent-45);
+  --color-accent-80: var(--accent-80);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-arena-bg: var(--arena-bg);
+  --color-arena-lattice: var(--arena-lattice);
+  --color-arena-ruler: var(--arena-ruler);
+  --color-arena-ip: var(--arena-ip);
+  --color-arena-exec: var(--arena-exec);
+  --color-arena-write: var(--arena-write);
+  --color-bot-0: var(--bot-0);
+  --color-bot-1: var(--bot-1);
+  --color-bot-2: var(--bot-2);
+  --color-bot-3: var(--bot-3);
+  --color-bot-4: var(--bot-4);
+  --color-bot-5: var(--bot-5);
+  --color-bot-6: var(--bot-6);
+  --color-bot-7: var(--bot-7);
+  --color-bot-8: var(--bot-8);
+  --color-bot-9: var(--bot-9);
+  --color-bot-10: var(--bot-10);
+  --color-bot-11: var(--bot-11);
+
+  /* p-1 … p-8 are 4 … 32 px; the scale in use is 1, 2, 3, 4, 6, 8. */
+  --spacing: var(--space-1);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+
+  --z-index-ticker: var(--z-ticker);
+  --z-index-header: var(--z-header);
+  --z-index-toast: var(--z-toast);
+  --z-index-modal: var(--z-modal);
+}
+
+@layer base {
+  html {
+    background-color: var(--bg);
+    color: var(--text);
+  }
+}
+
+/* Type scale (DESIGN_SYSTEM §3). Each role sets all five properties so it holds inside any parent. */
+
+@utility text-ticker {
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+@utility text-brand {
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+@utility text-nav {
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@utility text-panel-title {
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* The role is muted: pair it with text-muted. */
+@utility text-panel-status {
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+@utility text-body {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+@utility text-data {
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
+
+@utility text-code {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+@utility text-stat {
+  font-size: 24px;
+  line-height: 28px;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
+
+@utility text-modal-title {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
