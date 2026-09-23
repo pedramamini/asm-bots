@@ -1,0 +1,20 @@
+{
+  "name": "asmbots",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "check": "bun run typecheck && bun run lint && bun run test",
+    "typecheck": "tsc -b",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "test": "bun test",
+    "build": "bun run --filter '*' build",
+    "golden": "exit 0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.14"
+  }
+}

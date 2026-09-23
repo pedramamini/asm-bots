@@ -1,0 +1,91 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "asmbots",
+      "devDependencies": {
+        "@biomejs/biome": "2.5.14",
+      },
+    },
+    "apps/api": {
+      "name": "@asmbots/api",
+      "version": "0.0.0",
+    },
+    "apps/cli": {
+      "name": "@asmbots/cli",
+      "version": "0.0.0",
+    },
+    "apps/web": {
+      "name": "@asmbots/web",
+      "version": "0.0.0",
+    },
+    "packages/asm": {
+      "name": "@asmbots/asm",
+      "version": "0.0.0",
+    },
+    "packages/bots": {
+      "name": "@asmbots/bots",
+      "version": "0.0.0",
+    },
+    "packages/codec": {
+      "name": "@asmbots/codec",
+      "version": "0.0.0",
+    },
+    "packages/engine": {
+      "name": "@asmbots/engine",
+      "version": "0.0.0",
+    },
+    "packages/protocol": {
+      "name": "@asmbots/protocol",
+      "version": "0.0.0",
+    },
+    "packages/tourney": {
+      "name": "@asmbots/tourney",
+      "version": "0.0.0",
+    },
+    "packages/ui": {
+      "name": "@asmbots/ui",
+      "version": "0.0.0",
+    },
+  },
+  "packages": {
+    "@asmbots/api": ["@asmbots/api@workspace:apps/api"],
+
+    "@asmbots/asm": ["@asmbots/asm@workspace:packages/asm"],
+
+    "@asmbots/bots": ["@asmbots/bots@workspace:packages/bots"],
+
+    "@asmbots/cli": ["@asmbots/cli@workspace:apps/cli"],
+
+    "@asmbots/codec": ["@asmbots/codec@workspace:packages/codec"],
+
+    "@asmbots/engine": ["@asmbots/engine@workspace:packages/engine"],
+
+    "@asmbots/protocol": ["@asmbots/protocol@workspace:packages/protocol"],
+
+    "@asmbots/tourney": ["@asmbots/tourney@workspace:packages/tourney"],
+
+    "@asmbots/ui": ["@asmbots/ui@workspace:packages/ui"],
+
+    "@asmbots/web": ["@asmbots/web@workspace:apps/web"],
+
+    "@biomejs/biome": ["@biomejs/biome@2.5.14", "", { "optionalDependencies": { "@biomejs/cli-darwin-arm64": "2.5.14", "@biomejs/cli-darwin-x64": "2.5.14", "@biomejs/cli-linux-arm64": "2.5.14", "@biomejs/cli-linux-arm64-musl": "2.5.14", "@biomejs/cli-linux-x64": "2.5.14", "@biomejs/cli-linux-x64-musl": "2.5.14", "@biomejs/cli-win32-arm64": "2.5.14", "@biomejs/cli-win32-x64": "2.5.14" }, "bin": { "biome": "bin/biome" } }, "sha512-0FabLIjd4M/dm8VFI86RMaLLdgepzbdfiAL2R8cr7V81OYYrP1w7Z73KfAwPK5h9SrEBXTzNG2y+mBwPo9xRnw=="],
+
+    "@biomejs/cli-darwin-arm64": ["@biomejs/cli-darwin-arm64@2.5.14", "", { "os": "darwin", "cpu": "arm64" }, "sha512-UnzaXO65L4tsZimFITFP2M121GyhDcWFrT3pL5ZJ5U4XcS/0L5VHYytVohdCf/gnDUFHgl2I9xnt5bV/J1kxHQ=="],
+
+    "@biomejs/cli-darwin-x64": ["@biomejs/cli-darwin-x64@2.5.14", "", { "os": "darwin", "cpu": "x64" }, "sha512-kiy8qA16K93J7uvFfWi4LgjqDpnRKyePAna6A0Y4jxyUga35SYpIZ2cNWlhy0lsfgqRenCpfymnJWEZ6mgpRgA=="],
+
+    "@biomejs/cli-linux-arm64": ["@biomejs/cli-linux-arm64@2.5.14", "", { "os": "linux", "cpu": "arm64" }, "sha512-vO/9BaU1n30CiFNLx49gMTMtbCAAqlo/EqFoG0BU3deQInTbJrmXSmTQ9e3FoDZIKQnvSLDVNL4lx1ci7y1T1Q=="],
+
+    "@biomejs/cli-linux-arm64-musl": ["@biomejs/cli-linux-arm64-musl@2.5.14", "", { "os": "linux", "cpu": "arm64" }, "sha512-SJ9PrZkBnnH9dHJDnxk34vKs0GB2dbsioaft6/hPhWJ7AHpwYH83Isnhj0FSRpFkGgpVfJ1lds23ApB2czUDLQ=="],
+
+    "@biomejs/cli-linux-x64": ["@biomejs/cli-linux-x64@2.5.14", "", { "os": "linux", "cpu": "x64" }, "sha512-VHZRa7CCQBUWKxNwUvHJeuW03WFRgN5NWO//SDGOitc9QIeNyfA42V9zlKm+x82xFSG9Bzi5fi+hbhm9anO8yA=="],
+
+    "@biomejs/cli-linux-x64-musl": ["@biomejs/cli-linux-x64-musl@2.5.14", "", { "os": "linux", "cpu": "x64" }, "sha512-2kI5PrMgW5dcEZYrstLPmUmCwkUwZY39rP4BN93Vxbwcs2O57LDQOktUZZYPvvspN5i0mhGr3TJtF5sU26NUWg=="],
+
+    "@biomejs/cli-win32-arm64": ["@biomejs/cli-win32-arm64@2.5.14", "", { "os": "win32", "cpu": "arm64" }, "sha512-pHgAFffmZtaYoxavEsWEYNvcA7NwOIjLyqw2HXyLbt16xYryX0L4fMV2u0G9ag6LNYPIoqWaWqzUcnc6rLGGXg=="],
+
+    "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@2.5.14", "", { "os": "win32", "cpu": "x64" }, "sha512-oJWmBhoHsnhUKIke+0gXDX0mltJrWHA1UyHsrTlXwX0TL64ilVZAo+TYZm97baecV0esBdpzy3k96q+09JaZUQ=="],
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@asmbots/codec",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "test": "bun test"
+  }
+}

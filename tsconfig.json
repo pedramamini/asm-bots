@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  },
+  "files": [],
+  "references": [
+    { "path": "packages/codec" },
+    { "path": "packages/engine" },
+    { "path": "packages/asm" },
+    { "path": "packages/bots" },
+    { "path": "packages/tourney" },
+    { "path": "packages/protocol" },
+    { "path": "packages/ui" },
+    { "path": "apps/cli" },
+    { "path": "apps/web" },
+    { "path": "apps/api" }
+  ]
+}
