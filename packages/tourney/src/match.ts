@@ -34,6 +34,11 @@ export interface MatchRound {
   readonly points: readonly number[]
   /** The entrants alive at the end, ascending. */
   readonly survivors: readonly number[]
+  /**
+   * Cycles each entrant lived through: its death cycle (the cycle it died in, from 0), or
+   * `durationCycles` when it survived.
+   */
+  readonly survival: readonly number[]
 }
 
 /** A match, whole or in part. */
@@ -147,8 +152,10 @@ function* play(
       { ...c, seed },
     )
     const points: number[] = bots.map(() => 0)
-    r.points.forEach((p, j) => {
-      points[order[j] as number] = p
+    const survival: number[] = bots.map(() => 0)
+    r.result.bots.forEach((b, j) => {
+      points[order[j] as number] = b.points
+      survival[order[j] as number] = b.deathCycle ?? r.durationCycles
     })
     const round: MatchRound = {
       round: i,
@@ -158,6 +165,7 @@ function* play(
       durationCycles: r.durationCycles,
       points,
       survivors: r.result.survivors.map((j) => order[j] as number).sort((a, b) => a - b),
+      survival,
     }
     match = {
       ...match,
