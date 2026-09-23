@@ -35,6 +35,9 @@
     "packages/engine": {
       "name": "@asmbots/engine",
       "version": "0.0.0",
+      "dependencies": {
+        "@asmbots/codec": "workspace:*",
+      },
     },
     "packages/protocol": {
       "name": "@asmbots/protocol",

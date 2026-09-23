@@ -1,5 +1,16 @@
 export type { WriteLog } from './core'
 export { ADDR_MASK, CORE_SIZE, Core } from './core'
+export type { DeathReason, ExecBot, ExecOutcome } from './exec'
+export {
+  EXEC_CONTINUE,
+  EXEC_JUMPED,
+  EXEC_KILLED,
+  EXEC_SPAWN,
+  ExecContext,
+  ea,
+  execOne,
+  Fetcher,
+} from './exec'
 export {
   AF,
   CF,
