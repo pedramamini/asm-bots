@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GalleryRouteImport } from './routes/[_]gallery'
+import { Route as DocsRouteImport } from './routes/docs'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ArenaIndexRouteImport } from './routes/arena/index'
 import { Route as ArenaReplayIdRouteImport } from './routes/arena/$replayId'
@@ -35,6 +36,11 @@ const GalleryRoute = GalleryRouteImport.update({
   path: '/_gallery',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocsRoute = DocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -56,14 +62,14 @@ const BotsIdRoute = BotsIdRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocsIndexRoute = DocsIndexRouteImport.update({
-  id: '/docs/',
-  path: '/docs/',
-  getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => DocsRoute,
 } as any)
 const DocsSplatRoute = DocsSplatRouteImport.update({
-  id: '/docs/$',
-  path: '/docs/$',
-  getParentRoute: () => rootRouteImport,
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => DocsRoute,
 } as any)
 const EditorIndexRoute = EditorIndexRouteImport.update({
   id: '/editor/',
@@ -104,6 +110,7 @@ const UHandleRoute = UHandleRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/_gallery': typeof GalleryRoute
+  '/docs': typeof DocsRouteWithChildren
   '/settings': typeof SettingsRoute
   '/arena/$replayId': typeof ArenaReplayIdRoute
   '/bots/$id': typeof BotsIdRoute
@@ -139,6 +146,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_gallery': typeof GalleryRoute
+  '/docs': typeof DocsRouteWithChildren
   '/settings': typeof SettingsRoute
   '/arena/$replayId': typeof ArenaReplayIdRoute
   '/bots/$id': typeof BotsIdRoute
@@ -158,6 +166,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/_gallery'
+    | '/docs'
     | '/settings'
     | '/arena/$replayId'
     | '/bots/$id'
@@ -192,6 +201,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_gallery'
+    | '/docs'
     | '/settings'
     | '/arena/$replayId'
     | '/bots/$id'
@@ -210,16 +220,15 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   GalleryRoute: typeof GalleryRoute
+  DocsRoute: typeof DocsRouteWithChildren
   SettingsRoute: typeof SettingsRoute
   ArenaReplayIdRoute: typeof ArenaReplayIdRoute
   BotsIdRoute: typeof BotsIdRoute
-  DocsSplatRoute: typeof DocsSplatRoute
   EditorBotIdRoute: typeof EditorBotIdRoute
   HillsSlugRoute: typeof HillsSlugRoute
   TournamentsIdRoute: typeof TournamentsIdRoute
   UHandleRoute: typeof UHandleRoute
   ArenaIndexRoute: typeof ArenaIndexRoute
-  DocsIndexRoute: typeof DocsIndexRoute
   EditorIndexRoute: typeof EditorIndexRoute
   HillsIndexRoute: typeof HillsIndexRoute
   TournamentsIndexRoute: typeof TournamentsIndexRoute
@@ -239,6 +248,13 @@ declare module '@tanstack/react-router' {
       path: '/_gallery'
       fullPath: '/_gallery'
       preLoaderRoute: typeof GalleryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -271,17 +287,17 @@ declare module '@tanstack/react-router' {
     }
     '/docs/': {
       id: '/docs/'
-      path: '/docs'
+      path: '/'
       fullPath: '/docs/'
       preLoaderRoute: typeof DocsIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof DocsRoute
     }
     '/docs/$': {
       id: '/docs/$'
-      path: '/docs/$'
+      path: '/$'
       fullPath: '/docs/$'
       preLoaderRoute: typeof DocsSplatRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof DocsRoute
     }
     '/editor/': {
       id: '/editor/'
@@ -335,19 +351,30 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface DocsRouteChildren {
+  DocsSplatRoute: typeof DocsSplatRoute
+  DocsIndexRoute: typeof DocsIndexRoute
+}
+
+const DocsRouteChildren: DocsRouteChildren = {
+  DocsSplatRoute: DocsSplatRoute,
+  DocsIndexRoute: DocsIndexRoute,
+}
+
+const DocsRouteWithChildren = DocsRoute._addFileChildren(DocsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GalleryRoute: GalleryRoute,
+  DocsRoute: DocsRouteWithChildren,
   SettingsRoute: SettingsRoute,
   ArenaReplayIdRoute: ArenaReplayIdRoute,
   BotsIdRoute: BotsIdRoute,
-  DocsSplatRoute: DocsSplatRoute,
   EditorBotIdRoute: EditorBotIdRoute,
   HillsSlugRoute: HillsSlugRoute,
   TournamentsIdRoute: TournamentsIdRoute,
   UHandleRoute: UHandleRoute,
   ArenaIndexRoute: ArenaIndexRoute,
-  DocsIndexRoute: DocsIndexRoute,
   EditorIndexRoute: EditorIndexRoute,
   HillsIndexRoute: HillsIndexRoute,
   TournamentsIndexRoute: TournamentsIndexRoute,

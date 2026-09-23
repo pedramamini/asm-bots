@@ -9,13 +9,15 @@ export interface PlaceholderProps {
   status?: ReactNode
   /** The one sentence that says what will fill the page. */
   children: ReactNode
+  /** False inside a page that already pads its content (the docs frame). */
+  padded?: boolean | undefined
 }
 
 /** A route's content until its playbook fills it: one panel, one sentence, one way home. */
-export function Placeholder({ title, status, children }: PlaceholderProps) {
+export function Placeholder({ title, status, children, padded = true }: PlaceholderProps) {
   const router = useRouter()
   return (
-    <PanelGrid className="p-3">
+    <PanelGrid className={padded ? 'p-3' : undefined}>
       <Panel className="col-span-12" title={title} status={status}>
         <EmptyState
           action={{

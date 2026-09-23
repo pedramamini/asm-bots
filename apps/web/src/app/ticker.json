@@ -1,0 +1,10 @@
+{
+  "lead": "▍LIVE",
+  "items": [
+    "HILL \"MAIN\"",
+    "dwarf-v3 took #1",
+    "CUP \"SPRING\" won by paper-v2",
+    "NEXT CHAMPIONSHIP IN 2D 04H"
+  ],
+  "link": { "to": "/hills/main", "label": "open the main hill" }
+}

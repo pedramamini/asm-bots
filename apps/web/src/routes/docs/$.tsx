@@ -1,17 +1,26 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { Placeholder } from '../../app/Placeholder'
+import { createFileRoute, notFound } from '@tanstack/react-router'
+import { DocsArticle } from '../../app/DocsFrame'
 import { titleHead } from '../../app/title'
+import { findDoc } from '../../docs'
+import { MDX_COMPONENTS } from '../../docs/components'
 
 export const Route = createFileRoute('/docs/$')({
-  head: ({ params }) => titleHead('docs', params._splat),
-  component: DocsDetail,
+  // The page's MDX loads before the route shows, and on intent from a sidebar link.
+  loader: async ({ params }) => {
+    const page = findDoc(params._splat)
+    if (page === undefined) throw notFound()
+    const { default: Content } = await page.load()
+    return { title: page.title, Content }
+  },
+  head: ({ params }) => titleHead('docs', findDoc(params._splat)?.title ?? params._splat),
+  component: DocsPage,
 })
 
-function DocsDetail() {
-  const { _splat } = Route.useParams()
+function DocsPage() {
+  const { title, Content } = Route.useLoaderData()
   return (
-    <Placeholder title="docs" status={_splat}>
-      this page of the docs arrives with the rest.
-    </Placeholder>
+    <DocsArticle title={title}>
+      <Content components={MDX_COMPONENTS} />
+    </DocsArticle>
   )
 }

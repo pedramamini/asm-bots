@@ -1,5 +1,6 @@
 import { QueryClient } from '@tanstack/react-query'
 import { createRouter } from '@tanstack/react-router'
+import { NotFound } from './app/NotFound'
 import { routeTree } from './routeTree.gen'
 
 export function createAppRouter(queryClient: QueryClient) {
@@ -10,6 +11,8 @@ export function createAppRouter(queryClient: QueryClient) {
     // The query cache holds loader data; the router need not hold it twice.
     defaultPreloadStaleTime: 0,
     scrollRestoration: true,
+    // A child that finds nothing (an unknown docs page) says so inside its parent's chrome.
+    defaultNotFoundComponent: NotFound,
   })
 }
 

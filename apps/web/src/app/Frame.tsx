@@ -54,7 +54,8 @@ const ISA = 'x16c v1'
 /** The build's version stamp; `dev` where Vite did not define it (the unit tests). */
 const VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev'
 
-const NavLink = createLink(NavButton)
+/** A nav button the router drives: it preloads on intent and navigates without a reload. */
+export const NavLink = createLink(NavButton)
 
 /** Where a route's `FrameToolbar` renders: the row between the header and the content. */
 const ToolbarSlot = createContext<HTMLElement | null>(null)

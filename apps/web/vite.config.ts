@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { THEMES } from '@asmbots/ui/themes'
+import mdx from '@mdx-js/rollup'
 import tailwindcss from '@tailwindcss/vite'
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import react from '@vitejs/plugin-react'
@@ -24,7 +25,9 @@ const SWATCH_TOKENS = ['--bg', '--panel', '--border', '--text', '--text-muted', 
 export default defineConfig({
   plugins: [
     tanstackRouter({ target: 'react', autoCodeSplitting: true }),
-    react(),
+    // The docs pages: MDX compiles to JSX before React's plugin sees it.
+    { enforce: 'pre', ...mdx() },
+    react({ include: /\.(mdx|tsx?|jsx?)$/ }),
     tailwindcss(),
     themeBoot(),
     preloadFonts(),

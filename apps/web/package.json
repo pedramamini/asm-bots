@@ -23,11 +23,14 @@
     "zustand": "5.0.15"
   },
   "devDependencies": {
+    "@mdx-js/mdx": "3.1.1",
+    "@mdx-js/rollup": "3.1.1",
     "@playwright/test": "1.63.0",
     "@tailwindcss/vite": "4.3.3",
     "@tanstack/router-plugin": "1.168.40",
     "@testing-library/dom": "10.4.2",
     "@testing-library/react": "16.3.3",
+    "@types/mdx": "2.0.14",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "5.2.0",

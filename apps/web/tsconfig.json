@@ -8,9 +8,9 @@
     "declarationMap": true,
     "sourceMap": true,
     "jsx": "react-jsx",
-    "types": ["vite/client"]
+    "types": ["vite/client", "mdx"]
   },
-  "include": ["src"],
+  "include": ["src", "src/**/*.json"],
   "references": [
     { "path": "../../packages/engine" },
     { "path": "../../packages/asm" },

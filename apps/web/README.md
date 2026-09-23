@@ -1,0 +1,43 @@
+# @asmbots/web
+
+The ASM BOTS web app: Vite 6, React 19, TanStack Router (file routes under `src/routes/`) and
+Query, Zustand, and the `@asmbots/ui` kit.
+
+| Script | What it does |
+| --- | --- |
+| `bun run --filter @asmbots/web dev` | Dev server on http://localhost:5173 |
+| `bun run --filter @asmbots/web build` | `tsc -b`, then the production build in `dist/` |
+| `bun run --filter @asmbots/web preview` | Serves `dist/` on http://localhost:4173 |
+| `bun run --filter @asmbots/web test` | Unit and component tests (`test/`) |
+| `bun run --filter @asmbots/web e2e` | Playwright (`e2e/`): the build, and the dev server for `/_gallery` |
+
+Docs pages are MDX in `src/docs/`, listed in `src/docs/index.ts`.
+
+## Lighthouse
+
+Lighthouse 12.8.2 on `/` from `preview`, Chromium 1243 (Playwright's), headless, 2026-09-23.
+
+| Run | Performance | Accessibility | Best practices | SEO |
+| --- | ---: | ---: | ---: | ---: |
+| Mobile (default throttling) | 94 | 100 | 96 | 100 |
+| Desktop (`--preset=desktop`) | 100 | 100 | 100 | 100 |
+
+Mobile: FCP 2.3 s, LCP 2.6 s, TBT 0 ms, CLS 0. Desktop: FCP 0.5 s, LCP 0.6 s.
+
+Fixed in this pass: the missing favicon (a 404 in the console, best practices 93) and the missing
+`robots.txt` (the SPA fallback served HTML, SEO 91).
+
+Open items. None is under 90, so they wait for the release gate (PRODUCT_SPEC §11: 95 or more):
+
+- Mobile performance: the stylesheet blocks render (about 450 ms on a throttled link), and the
+  `vendor` chunk carries about 60 KiB that `/` does not run.
+- Mobile best practices, `font-size`: most text is under 12 px. The type scale (DESIGN_SYSTEM §3)
+  sets this on purpose, for a dense desktop layout.
+
+Reproduce:
+
+```sh
+bun run --filter @asmbots/web build && bun run --filter @asmbots/web preview &
+CHROME_PATH="$HOME/Library/Caches/ms-playwright/chromium-1243/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing" \
+  bunx lighthouse@12 http://localhost:4173/ --chrome-flags="--headless=new" --view
+```
