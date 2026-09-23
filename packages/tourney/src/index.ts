@@ -21,6 +21,19 @@ export {
   MAX_BRACKET_ENTRANTS,
   nextMatches,
 } from './bracket'
+export type {
+  HillBoardRow,
+  HillChallenger,
+  HillConfig,
+  HillEntry,
+  HillMatch,
+  HillMatchRunner,
+  HillProgress,
+  HillResult,
+  HillState,
+  SubmitToHillOptions,
+} from './hill'
+export { botHash, createHill, hill, submitToHill } from './hill'
 export type { IterateMatchOptions, MatchProgress, MatchResult, MatchRound } from './match'
 export { iterateMatch, matchHash, runMatch } from './match'
 export type {
