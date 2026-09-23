@@ -262,6 +262,7 @@ describe('evaluate', () => {
       message: `undefined symbol \`${name}\``,
       col,
       len,
+      symbol: name,
     })
     expect(computed('x + 1')).toEqual(unresolved(1, 1, 'x'))
     expect(computed('1 + x * y')).toEqual(unresolved(5, 1, 'x'))

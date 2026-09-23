@@ -121,6 +121,8 @@ export interface Unresolved extends Span {
   readonly kind: 'unresolved'
   readonly code: 'undefined-symbol' | 'div-zero'
   readonly message: string
+  /** The symbol with no value, for `undefined-symbol`. */
+  readonly symbol?: string
 }
 
 const unresolved = (code: Unresolved['code'], message: string, at: Span): Unresolved => ({
@@ -150,6 +152,19 @@ export function evaluate(
   return typeof v === 'number' ? v & 0xffff : v
 }
 
+/**
+ * `evaluate` without the wrap: the value as computed, for a count, which must not wrap
+ * (`times -1` is an error, not 65,535 repeats), and for an `equ`, whose value takes part in other
+ * expressions before their own wrap.
+ */
+export function evaluateExact(
+  expr: Expr,
+  symbols: ReadonlyMap<string, number>,
+  here: number,
+): number | Unresolved {
+  return value(expr, symbols, here)
+}
+
 function value(e: Expr, symbols: ReadonlyMap<string, number>, here: number): number | Unresolved {
   switch (e.kind) {
     case 'num':
@@ -158,10 +173,12 @@ function value(e: Expr, symbols: ReadonlyMap<string, number>, here: number): num
       return here
     case 'origin':
       return 0
-    case 'sym':
-      return (
-        symbols.get(e.name) ?? unresolved('undefined-symbol', `undefined symbol \`${e.name}\``, e)
-      )
+    case 'sym': {
+      const v = symbols.get(e.name)
+      if (v !== undefined) return v
+      const message = `undefined symbol \`${e.name}\``
+      return { ...unresolved('undefined-symbol', message, e), symbol: e.name }
+    }
     case 'unary': {
       const a = value(e.arg, symbols, here)
       if (typeof a !== 'number') return a
