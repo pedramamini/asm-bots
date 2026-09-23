@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc -b",
-    "test": "bun test"
+    "test": "bun test",
+    "bench": "bun bench/decode.bench.ts"
   }
 }
