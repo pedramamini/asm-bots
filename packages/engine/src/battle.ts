@@ -245,6 +245,12 @@ function resolveConfig(config: BattleConfigInput): BattleConfig {
 }
 
 /**
+ * The key of the method `restore` (snapshot.ts) uses to set a battle's cycle count. `index.ts`
+ * does not export it, so outside the engine only `step` moves the count.
+ */
+export const RESUME = Symbol('Battle.resume')
+
+/**
  * One battle (ISA §5). The constructor places and loads the bots; `step` runs a cycle. The battle
  * is over after a cycle that leaves at most one bot alive (none, for a bot alone), or when
  * `maxCycles` cycles have run. After that `step` does nothing.
@@ -357,6 +363,15 @@ export class Battle {
     }
     for (let k = 0; k < cycles && !this.over; k++) this.step()
     return this.over ? this.result() : null
+  }
+
+  /**
+   * For `restore`: once the core and the queues hold the state after `cycle` cycles, sets the
+   * cycle count and counts the living bots again.
+   */
+  [RESUME](cycle: number): void {
+    this.now = cycle
+    this.living = this.bots.filter((b) => b.alive).length
   }
 
   /** The outcome so far: the final one once the battle is over. */

@@ -66,6 +66,7 @@ export {
   STATUS,
   ZF,
 } from './flags'
+export { eventHash, fnv1a64, HashSink, resultHash } from './hash'
 export type { Pcg32State } from './prng'
 export { Pcg32 } from './prng'
 export type { ProcRow } from './proc'
@@ -85,3 +86,5 @@ export {
   SP,
   setReg8,
 } from './proc'
+export type { BotSnapshot, Snapshot } from './snapshot'
+export { restore, snapshot } from './snapshot'
