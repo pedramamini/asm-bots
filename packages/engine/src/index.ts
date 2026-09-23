@@ -42,6 +42,7 @@ export {
   ea,
   execOne,
   Fetcher,
+  run,
 } from './exec'
 export {
   AF,

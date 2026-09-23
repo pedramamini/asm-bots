@@ -11,7 +11,7 @@ import { ADDR_MASK, CORE_SIZE, Core } from './core'
 import type { EventSink } from './events'
 import { NullSink } from './events'
 import type { DeathReason, ExecBot } from './exec'
-import { EXEC_KILLED, EXEC_SPAWN, ExecContext, execOne, Fetcher } from './exec'
+import { EXEC_KILLED, EXEC_SPAWN, ExecContext, Fetcher, run } from './exec'
 import { FLAGS_INIT } from './flags'
 import { Pcg32 } from './prng'
 import type { ProcRow } from './proc'
@@ -343,11 +343,28 @@ export class Battle {
     const c = this.now
     const bots = this.bots
     const n = bots.length
+    // The hot loop (bench/ips.ts): the turn is inline, and the fields it reads are locals.
+    const fetcher = this.fetcher
+    const code = fetcher.code
+    const core = this.core
+    const ctx = this.ctx
     let i = c % n
     for (let k = 0; k < n; k++) {
       const bot = bots[i] as Bot
-      if (bot.queue.size > 0) this.turn(bot, c)
       i = i + 1 === n ? 0 : i + 1
+      const q = bot.queue
+      if (q.size === 0) continue
+      // A turn: the front process runs one instruction.
+      const r = q.front()
+      const row = q.rows[r] as ProcRow
+      const ip = row[IP] as number
+      const o = fetcher.compiled(ip)
+      bot.stats.cycles++
+      this.events.exec(c, bot.index, r, ip, fetcher.length(o))
+      const out = run(bot, row, core, code, o, ctx)
+      if (out === EXEC_KILLED) this.die(bot, r, ip, c)
+      else if (out === EXEC_SPAWN) this.spawn(bot, row, c)
+      else q.rotate()
     }
     this.now = c + 1
     this.events.cycleEnd(c)
@@ -399,39 +416,36 @@ export class Battle {
     }
   }
 
-  /** One turn: the front process of `bot` runs one instruction in cycle `c`. */
-  private turn(bot: Bot, c: number): void {
+  /**
+   * The end of a turn that killed the front process, row `r` of `bot`, running the instruction
+   * at `ip` in cycle `c`. The killed row is as it was, so `ip` is its IP.
+   */
+  private die(bot: Bot, r: number, ip: number, c: number): void {
     const q = bot.queue
-    const r = q.front()
-    const row = q.rows[r] as ProcRow
-    const ip = row[IP] as number
-    const instr = this.fetcher.fetch(ip)
-    bot.stats.cycles++
-    this.events.exec(c, bot.index, r, ip, instr === undefined ? 1 : instr.length)
-    const out = execOne(bot, row, this.core, instr, this.ctx)
-    if (out === EXEC_KILLED) {
-      // A killed process's row is as it was, so `ip` is the killer.
-      q.shift()
-      const reason = this.ctx.reason
-      this.events.death(c, bot.index, r, ip, reason)
-      if (q.size === 0) {
-        bot.stats.deathCycle = c
-        bot.stats.deathReason = reason
-        this.living--
-        this.events.botDead(c, bot.index)
-      }
-    } else if (out === EXEC_SPAWN) {
-      // The child copies the parent, whose IP is already past the SPL, and queues ahead of it.
-      const child = q.push()
-      const childRow = q.rows[child] as ProcRow
-      childRow.set(row)
-      childRow[IP] = this.ctx.target
-      q.rotate()
-      if (q.size > bot.stats.peakProcs) bot.stats.peakProcs = q.size
-      this.events.spawn(c, bot.index, child, this.ctx.target)
-    } else {
-      q.rotate()
+    q.shift()
+    const reason = this.ctx.reason
+    this.events.death(c, bot.index, r, ip, reason)
+    if (q.size === 0) {
+      bot.stats.deathCycle = c
+      bot.stats.deathReason = reason
+      this.living--
+      this.events.botDead(c, bot.index)
     }
+  }
+
+  /**
+   * The end of a turn whose SPL started a child: the child copies the parent `row`, whose IP is
+   * already past the SPL, and queues ahead of it.
+   */
+  private spawn(bot: Bot, row: ProcRow, c: number): void {
+    const q = bot.queue
+    const child = q.push()
+    const childRow = q.rows[child] as ProcRow
+    childRow.set(row)
+    childRow[IP] = this.ctx.target
+    q.rotate()
+    if (q.size > bot.stats.peakProcs) bot.stats.peakProcs = q.size
+    this.events.spawn(c, bot.index, child, this.ctx.target)
   }
 }
 
