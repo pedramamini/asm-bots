@@ -53,6 +53,9 @@
     "packages/tourney": {
       "name": "@asmbots/tourney",
       "version": "0.0.0",
+      "dependencies": {
+        "@asmbots/engine": "workspace:*",
+      },
     },
     "packages/ui": {
       "name": "@asmbots/ui",
