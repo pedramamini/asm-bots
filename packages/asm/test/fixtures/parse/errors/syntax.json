@@ -1,0 +1,178 @@
+[
+  {
+    "severity": "error",
+    "line": 1,
+    "col": 20,
+    "len": 0,
+    "message": "expected an expression, found end of line",
+    "code": "syntax"
+  },
+  {
+    "severity": "error",
+    "line": 2,
+    "col": 20,
+    "len": 1,
+    "message": "expected `,` or end of line, found `5`",
+    "code": "syntax"
+  },
+  {
+    "severity": "error",
+    "line": 3,
+    "col": 24,
+    "len": 0,
+    "message": "expected `]`, found end of line",
+    "code": "syntax"
+  },
+  {
+    "severity": "error",
+    "line": 4,
+    "col": 27,
+    "len": 0,
+    "message": "expected `)`, found end of line",
+    "code": "syntax"
+  },
+  {
+    "severity": "error",
+    "line": 5,
+    "col": 24,
+    "len": 0,
+    "message": "expected an expression, found end of line",
+    "code": "syntax"
+  },
+  {
+    "severity": "error",
+    "line": 6,
+    "col": 21,
+    "len": 1,
+    "message": "expected an expression, found `*`",
+    "code": "syntax"
+  },
+  {
+    "severity": "error",
+    "line": 7,
+    "col": 21,
+    "len": 1,
+    "message": "expected an expression, found `]`",
+    "code": "syntax"
+  },
+  {
+    "severity": "error",
+    "line": 8,
+    "col": 19,
+    "len": 0,
+    "message": "expected an expression, found end of line",
+    "code": "syntax"
+  },
+  {
+    "severity": "error",
+    "line": 9,
+    "col": 11,
+    "len": 0,
+    "message": "expected an expression, found end of line",
+    "code": "syntax"
+  },
+  {
+    "severity": "error",
+    "line": 10,
+    "col": 1,
+    "len": 1,
+    "message": "expected an instruction, found `5`",
+    "code": "syntax"
+  },
+  {
+    "severity": "error",
+    "line": 11,
+    "col": 7,
+    "len": 1,
+    "message": "expected an instruction, found `:`",
+    "code": "syntax"
+  },
+  {
+    "severity": "error",
+    "line": 12,
+    "col": 12,
+    "len": 0,
+    "message": "expected an instruction after `rep`, found end of line",
+    "code": "syntax"
+  },
+  {
+    "severity": "error",
+    "line": 13,
+    "col": 17,
+    "len": 3,
+    "message": "expected an instruction after `rep`, found `rep`",
+    "code": "syntax"
+  },
+  {
+    "severity": "error",
+    "line": 14,
+    "col": 18,
+    "len": 0,
+    "message": "expected an instruction or data to repeat, found end of line",
+    "code": "syntax"
+  },
+  {
+    "severity": "error",
+    "line": 15,
+    "col": 14,
+    "len": 0,
+    "message": "expected an expression, found end of line",
+    "code": "syntax"
+  },
+  {
+    "severity": "error",
+    "line": 16,
+    "col": 28,
+    "len": 1,
+    "message": "expected `byte` or `word` after `strict`, found `5`",
+    "code": "syntax"
+  },
+  {
+    "severity": "error",
+    "line": 17,
+    "col": 25,
+    "len": 0,
+    "message": "expected an expression, found end of line",
+    "code": "syntax"
+  },
+  {
+    "severity": "error",
+    "line": 18,
+    "col": 22,
+    "len": 0,
+    "message": "expected an expression, found end of line",
+    "code": "syntax"
+  },
+  {
+    "severity": "error",
+    "line": 19,
+    "col": 18,
+    "len": 1,
+    "message": "expected end of line, found `,`",
+    "code": "syntax"
+  },
+  {
+    "severity": "error",
+    "line": 20,
+    "col": 18,
+    "len": 1,
+    "message": "expected end of line, found `,`",
+    "code": "syntax"
+  },
+  {
+    "severity": "error",
+    "line": 21,
+    "col": 18,
+    "len": 1,
+    "message": "expected end of line, found `,`",
+    "code": "syntax"
+  },
+  {
+    "severity": "error",
+    "line": 22,
+    "col": 23,
+    "len": 1,
+    "message": "expected `,` or end of line, found `2`",
+    "code": "syntax"
+  }
+]

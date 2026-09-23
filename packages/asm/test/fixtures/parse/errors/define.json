@@ -1,0 +1,42 @@
+[
+  {
+    "severity": "error",
+    "line": 1,
+    "col": 8,
+    "len": 0,
+    "message": "`%define` needs a name: `%define NAME text`",
+    "code": "bad-directive"
+  },
+  {
+    "severity": "error",
+    "line": 2,
+    "col": 9,
+    "len": 1,
+    "message": "`%define` needs a name: `%define NAME text`",
+    "code": "bad-directive"
+  },
+  {
+    "severity": "error",
+    "line": 3,
+    "col": 10,
+    "len": 1,
+    "message": "macro parameters are not supported",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 8,
+    "col": 17,
+    "len": 2,
+    "message": "macro expansion is too long",
+    "code": "bad-directive"
+  },
+  {
+    "severity": "error",
+    "line": 10,
+    "col": 21,
+    "len": 4,
+    "message": "invalid effective address (8086 allows bx/bp + si/di + disp)",
+    "code": "invalid-address"
+  }
+]

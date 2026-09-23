@@ -1,0 +1,694 @@
+{
+  "lines": [
+    { "line": 1, "kind": "empty", "operands": [], "col": 1, "len": 0 },
+    {
+      "line": 2,
+      "kind": "instr",
+      "mnemonic": "mov",
+      "operands": [
+        { "kind": "reg", "name": "ax", "col": 17, "len": 2 },
+        {
+          "kind": "mem",
+          "base": "bx",
+          "index": "si",
+          "disp": { "kind": "num", "value": 0, "col": 27, "len": 0 },
+          "col": 21,
+          "len": 7
+        }
+      ],
+      "col": 9,
+      "len": 19
+    },
+    {
+      "line": 3,
+      "kind": "instr",
+      "mnemonic": "mov",
+      "operands": [
+        { "kind": "reg", "name": "ax", "col": 17, "len": 2 },
+        {
+          "kind": "mem",
+          "base": "bx",
+          "index": "di",
+          "disp": { "kind": "num", "value": 0, "col": 27, "len": 0 },
+          "col": 21,
+          "len": 7
+        }
+      ],
+      "col": 9,
+      "len": 19
+    },
+    {
+      "line": 4,
+      "kind": "instr",
+      "mnemonic": "mov",
+      "operands": [
+        { "kind": "reg", "name": "ax", "col": 17, "len": 2 },
+        {
+          "kind": "mem",
+          "base": "bp",
+          "index": "si",
+          "disp": { "kind": "num", "value": 0, "col": 27, "len": 0 },
+          "col": 21,
+          "len": 7
+        }
+      ],
+      "col": 9,
+      "len": 19
+    },
+    {
+      "line": 5,
+      "kind": "instr",
+      "mnemonic": "mov",
+      "operands": [
+        { "kind": "reg", "name": "ax", "col": 17, "len": 2 },
+        {
+          "kind": "mem",
+          "base": "bp",
+          "index": "di",
+          "disp": { "kind": "num", "value": 0, "col": 27, "len": 0 },
+          "col": 21,
+          "len": 7
+        }
+      ],
+      "col": 9,
+      "len": 19
+    },
+    {
+      "line": 6,
+      "kind": "instr",
+      "mnemonic": "mov",
+      "operands": [
+        { "kind": "reg", "name": "ax", "col": 17, "len": 2 },
+        {
+          "kind": "mem",
+          "index": "si",
+          "disp": { "kind": "num", "value": 0, "col": 24, "len": 0 },
+          "col": 21,
+          "len": 4
+        }
+      ],
+      "col": 9,
+      "len": 16
+    },
+    {
+      "line": 7,
+      "kind": "instr",
+      "mnemonic": "mov",
+      "operands": [
+        { "kind": "reg", "name": "ax", "col": 17, "len": 2 },
+        {
+          "kind": "mem",
+          "index": "di",
+          "disp": { "kind": "num", "value": 0, "col": 24, "len": 0 },
+          "col": 21,
+          "len": 4
+        }
+      ],
+      "col": 9,
+      "len": 16
+    },
+    {
+      "line": 8,
+      "kind": "instr",
+      "mnemonic": "mov",
+      "operands": [
+        { "kind": "reg", "name": "ax", "col": 17, "len": 2 },
+        {
+          "kind": "mem",
+          "base": "bp",
+          "disp": { "kind": "num", "value": 0, "col": 24, "len": 0 },
+          "col": 21,
+          "len": 4
+        }
+      ],
+      "col": 9,
+      "len": 16
+    },
+    {
+      "line": 9,
+      "kind": "instr",
+      "mnemonic": "mov",
+      "operands": [
+        { "kind": "reg", "name": "ax", "col": 17, "len": 2 },
+        {
+          "kind": "mem",
+          "base": "bx",
+          "disp": { "kind": "num", "value": 0, "col": 24, "len": 0 },
+          "col": 21,
+          "len": 4
+        }
+      ],
+      "col": 9,
+      "len": 16
+    },
+    {
+      "line": 10,
+      "kind": "instr",
+      "mnemonic": "mov",
+      "operands": [
+        { "kind": "reg", "name": "ax", "col": 17, "len": 2 },
+        {
+          "kind": "mem",
+          "disp": { "kind": "num", "value": 256, "col": 22, "len": 6 },
+          "col": 21,
+          "len": 8
+        }
+      ],
+      "col": 9,
+      "len": 20
+    },
+    {
+      "line": 11,
+      "kind": "instr",
+      "mnemonic": "mov",
+      "operands": [
+        { "kind": "reg", "name": "ax", "col": 17, "len": 2 },
+        {
+          "kind": "mem",
+          "base": "bx",
+          "index": "si",
+          "disp": { "kind": "num", "value": 4, "col": 28, "len": 1 },
+          "col": 21,
+          "len": 9
+        }
+      ],
+      "col": 9,
+      "len": 21
+    },
+    {
+      "line": 12,
+      "kind": "instr",
+      "mnemonic": "mov",
+      "operands": [
+        { "kind": "reg", "name": "ax", "col": 17, "len": 2 },
+        {
+          "kind": "mem",
+          "base": "bp",
+          "index": "di",
+          "disp": { "kind": "num", "value": 4, "col": 22, "len": 1 },
+          "col": 21,
+          "len": 9
+        }
+      ],
+      "col": 9,
+      "len": 21
+    },
+    {
+      "line": 13,
+      "kind": "instr",
+      "mnemonic": "mov",
+      "operands": [
+        { "kind": "reg", "name": "ax", "col": 17, "len": 2 },
+        {
+          "kind": "mem",
+          "base": "bx",
+          "disp": {
+            "kind": "binary",
+            "op": "-",
+            "left": {
+              "kind": "binary",
+              "op": "*",
+              "left": { "kind": "num", "value": 2, "col": 25, "len": 1 },
+              "right": { "kind": "num", "value": 3, "col": 27, "len": 1 },
+              "col": 25,
+              "len": 3
+            },
+            "right": { "kind": "num", "value": 1, "col": 29, "len": 1 },
+            "col": 25,
+            "len": 5
+          },
+          "col": 21,
+          "len": 10
+        }
+      ],
+      "col": 9,
+      "len": 22
+    },
+    {
+      "line": 14,
+      "kind": "instr",
+      "mnemonic": "mov",
+      "operands": [
+        { "kind": "reg", "name": "ax", "col": 17, "len": 2 },
+        {
+          "kind": "mem",
+          "base": "bx",
+          "disp": {
+            "kind": "binary",
+            "op": "+",
+            "left": {
+              "kind": "unary",
+              "op": "-",
+              "arg": { "kind": "num", "value": 2, "col": 26, "len": 1 },
+              "col": 26,
+              "len": 1
+            },
+            "right": { "kind": "num", "value": 4, "col": 28, "len": 1 },
+            "col": 26,
+            "len": 3
+          },
+          "col": 21,
+          "len": 10
+        }
+      ],
+      "col": 9,
+      "len": 22
+    },
+    {
+      "line": 15,
+      "kind": "instr",
+      "mnemonic": "mov",
+      "operands": [
+        { "kind": "reg", "name": "ax", "col": 17, "len": 2 },
+        {
+          "kind": "mem",
+          "base": "bx",
+          "index": "si",
+          "disp": {
+            "kind": "unary",
+            "op": "-",
+            "arg": { "kind": "num", "value": 2, "col": 23, "len": 1 },
+            "col": 23,
+            "len": 1
+          },
+          "col": 21,
+          "len": 10
+        }
+      ],
+      "col": 9,
+      "len": 22
+    },
+    {
+      "line": 16,
+      "kind": "instr",
+      "mnemonic": "mov",
+      "operands": [
+        { "kind": "reg", "name": "ax", "col": 17, "len": 2 },
+        {
+          "kind": "mem",
+          "base": "bx",
+          "disp": { "kind": "sym", "name": "label", "col": 22, "len": 5 },
+          "col": 21,
+          "len": 10
+        }
+      ],
+      "col": 9,
+      "len": 22
+    },
+    { "line": 17, "kind": "empty", "operands": [], "col": 1, "len": 0 },
+    {
+      "line": 18,
+      "kind": "instr",
+      "mnemonic": "mov",
+      "operands": [
+        {
+          "kind": "mem",
+          "base": "bx",
+          "disp": { "kind": "num", "value": 0, "col": 25, "len": 0 },
+          "size": 8,
+          "col": 17,
+          "len": 9
+        },
+        {
+          "kind": "imm",
+          "expr": { "kind": "num", "value": 1, "col": 28, "len": 1 },
+          "col": 28,
+          "len": 1
+        }
+      ],
+      "col": 9,
+      "len": 20
+    },
+    {
+      "line": 19,
+      "kind": "instr",
+      "mnemonic": "mov",
+      "operands": [
+        {
+          "kind": "mem",
+          "base": "bx",
+          "disp": { "kind": "num", "value": 0, "col": 20, "len": 0 },
+          "col": 17,
+          "len": 4
+        },
+        {
+          "kind": "imm",
+          "expr": { "kind": "num", "value": 0, "col": 28, "len": 1 },
+          "size": 16,
+          "col": 23,
+          "len": 6
+        }
+      ],
+      "col": 9,
+      "len": 20
+    },
+    {
+      "line": 20,
+      "kind": "instr",
+      "mnemonic": "add",
+      "operands": [
+        {
+          "kind": "mem",
+          "base": "bx",
+          "disp": { "kind": "num", "value": 0, "col": 31, "len": 1 },
+          "size": 16,
+          "dispSize": 8,
+          "col": 17,
+          "len": 16
+        },
+        {
+          "kind": "imm",
+          "expr": { "kind": "num", "value": 5, "col": 47, "len": 1 },
+          "size": 16,
+          "strict": true,
+          "col": 35,
+          "len": 13
+        }
+      ],
+      "col": 9,
+      "len": 39
+    },
+    {
+      "line": 21,
+      "kind": "instr",
+      "mnemonic": "mov",
+      "operands": [
+        { "kind": "reg", "name": "ax", "col": 17, "len": 2 },
+        {
+          "kind": "mem",
+          "disp": { "kind": "num", "value": 256, "col": 27, "len": 6 },
+          "dispSize": 16,
+          "col": 21,
+          "len": 13
+        }
+      ],
+      "col": 9,
+      "len": 25
+    },
+    {
+      "line": 22,
+      "kind": "instr",
+      "mnemonic": "add",
+      "operands": [
+        { "kind": "reg", "name": "ax", "col": 17, "len": 2 },
+        {
+          "kind": "imm",
+          "expr": { "kind": "num", "value": 5, "col": 33, "len": 1 },
+          "size": 16,
+          "strict": true,
+          "col": 21,
+          "len": 13
+        }
+      ],
+      "col": 9,
+      "len": 25
+    },
+    {
+      "line": 23,
+      "kind": "instr",
+      "mnemonic": "add",
+      "operands": [
+        { "kind": "reg", "name": "bx", "col": 17, "len": 2 },
+        {
+          "kind": "imm",
+          "expr": {
+            "kind": "unary",
+            "op": "-",
+            "arg": { "kind": "num", "value": 1, "col": 34, "len": 1 },
+            "col": 33,
+            "len": 2
+          },
+          "size": 8,
+          "strict": true,
+          "col": 21,
+          "len": 14
+        }
+      ],
+      "col": 9,
+      "len": 26
+    },
+    {
+      "line": 24,
+      "kind": "instr",
+      "mnemonic": "mov",
+      "operands": [
+        { "kind": "reg", "name": "ax", "col": 17, "len": 7 },
+        {
+          "kind": "imm",
+          "expr": { "kind": "num", "value": 5, "col": 26, "len": 1 },
+          "col": 26,
+          "len": 1
+        }
+      ],
+      "col": 9,
+      "len": 18
+    },
+    {
+      "line": 25,
+      "kind": "instr",
+      "mnemonic": "mov",
+      "operands": [
+        { "kind": "reg", "name": "al", "col": 17, "len": 2 },
+        {
+          "kind": "mem",
+          "base": "bx",
+          "disp": { "kind": "num", "value": 0, "col": 29, "len": 0 },
+          "size": 8,
+          "col": 21,
+          "len": 9
+        }
+      ],
+      "col": 9,
+      "len": 21
+    },
+    { "line": 26, "kind": "empty", "operands": [], "col": 1, "len": 0 },
+    {
+      "line": 27,
+      "kind": "instr",
+      "mnemonic": "jmp",
+      "operands": [
+        {
+          "kind": "target",
+          "expr": { "kind": "here", "col": 23, "len": 1 },
+          "hint": "short",
+          "col": 17,
+          "len": 7
+        }
+      ],
+      "col": 9,
+      "len": 15
+    },
+    {
+      "line": 28,
+      "kind": "instr",
+      "mnemonic": "jmp",
+      "operands": [
+        {
+          "kind": "target",
+          "expr": { "kind": "sym", "name": "label", "col": 22, "len": 5 },
+          "hint": "near",
+          "col": 17,
+          "len": 10
+        }
+      ],
+      "col": 9,
+      "len": 18
+    },
+    {
+      "line": 29,
+      "kind": "instr",
+      "mnemonic": "jz",
+      "operands": [
+        {
+          "kind": "target",
+          "expr": {
+            "kind": "binary",
+            "op": "-",
+            "left": { "kind": "sym", "name": "label", "col": 17, "len": 5 },
+            "right": { "kind": "num", "value": 2, "col": 25, "len": 1 },
+            "col": 17,
+            "len": 9
+          },
+          "hint": "auto",
+          "col": 17,
+          "len": 9
+        }
+      ],
+      "col": 9,
+      "len": 17
+    },
+    {
+      "line": 30,
+      "kind": "instr",
+      "mnemonic": "je",
+      "operands": [
+        {
+          "kind": "target",
+          "expr": {
+            "kind": "binary",
+            "op": "+",
+            "left": { "kind": "here", "col": 17, "len": 1 },
+            "right": { "kind": "num", "value": 2, "col": 19, "len": 1 },
+            "col": 17,
+            "len": 3
+          },
+          "hint": "auto",
+          "col": 17,
+          "len": 3
+        }
+      ],
+      "col": 9,
+      "len": 11
+    },
+    {
+      "line": 31,
+      "kind": "instr",
+      "mnemonic": "loopnz",
+      "operands": [
+        {
+          "kind": "target",
+          "expr": { "kind": "here", "col": 17, "len": 1 },
+          "hint": "auto",
+          "col": 17,
+          "len": 1
+        }
+      ],
+      "col": 9,
+      "len": 9
+    },
+    {
+      "line": 32,
+      "kind": "instr",
+      "mnemonic": "call",
+      "operands": [
+        {
+          "kind": "target",
+          "expr": { "kind": "num", "value": 259, "col": 17, "len": 6 },
+          "hint": "auto",
+          "col": 17,
+          "len": 6
+        }
+      ],
+      "col": 9,
+      "len": 14
+    },
+    {
+      "line": 33,
+      "kind": "instr",
+      "mnemonic": "call",
+      "operands": [
+        {
+          "kind": "mem",
+          "base": "bx",
+          "disp": { "kind": "num", "value": 0, "col": 25, "len": 0 },
+          "size": 16,
+          "col": 17,
+          "len": 9
+        }
+      ],
+      "col": 9,
+      "len": 17
+    },
+    {
+      "line": 34,
+      "kind": "instr",
+      "mnemonic": "jmp",
+      "operands": [{ "kind": "reg", "name": "bx", "col": 17, "len": 2 }],
+      "col": 9,
+      "len": 10
+    },
+    {
+      "line": 35,
+      "kind": "instr",
+      "mnemonic": "spl",
+      "operands": [
+        {
+          "kind": "mem",
+          "base": "bp",
+          "index": "si",
+          "disp": { "kind": "num", "value": 0, "col": 23, "len": 0 },
+          "col": 17,
+          "len": 7
+        }
+      ],
+      "col": 9,
+      "len": 15
+    },
+    {
+      "line": 36,
+      "kind": "instr",
+      "mnemonic": "spl",
+      "operands": [
+        {
+          "kind": "target",
+          "expr": {
+            "kind": "binary",
+            "op": "+",
+            "left": { "kind": "here", "col": 22, "len": 1 },
+            "right": { "kind": "num", "value": 768, "col": 26, "len": 5 },
+            "col": 22,
+            "len": 9
+          },
+          "hint": "near",
+          "col": 17,
+          "len": 14
+        }
+      ],
+      "col": 9,
+      "len": 22
+    },
+    { "line": 37, "kind": "empty", "operands": [], "col": 1, "len": 0 },
+    {
+      "line": 38,
+      "kind": "instr",
+      "prefix": "repz",
+      "mnemonic": "cmpsb",
+      "operands": [],
+      "col": 9,
+      "len": 13
+    },
+    {
+      "line": 39,
+      "kind": "instr",
+      "prefix": "repnz",
+      "mnemonic": "scasw",
+      "operands": [],
+      "col": 9,
+      "len": 13
+    },
+    {
+      "line": 40,
+      "kind": "instr",
+      "mnemonic": "sal",
+      "operands": [
+        { "kind": "reg", "name": "ax", "col": 17, "len": 2 },
+        {
+          "kind": "imm",
+          "expr": { "kind": "num", "value": 1, "col": 21, "len": 1 },
+          "col": 21,
+          "len": 1
+        }
+      ],
+      "col": 9,
+      "len": 13
+    },
+    {
+      "line": 41,
+      "kind": "instr",
+      "label": { "name": "label", "col": 1, "len": 5 },
+      "mnemonic": "ret",
+      "operands": [
+        {
+          "kind": "imm",
+          "expr": { "kind": "num", "value": 4, "col": 17, "len": 1 },
+          "col": 17,
+          "len": 1
+        }
+      ],
+      "col": 9,
+      "len": 9
+    },
+    { "line": 42, "kind": "empty", "operands": [], "col": 1, "len": 0 }
+  ],
+  "diags": []
+}

@@ -1,0 +1,90 @@
+[
+  {
+    "severity": "error",
+    "line": 1,
+    "col": 17,
+    "len": 5,
+    "message": "`org` must be 0: bots are position independent (ISA §6.4)",
+    "code": "bad-directive"
+  },
+  {
+    "severity": "error",
+    "line": 2,
+    "col": 17,
+    "len": 5,
+    "message": "`org` must be 0: bots are position independent (ISA §6.4)",
+    "code": "bad-directive"
+  },
+  {
+    "severity": "error",
+    "line": 3,
+    "col": 17,
+    "len": 2,
+    "message": "`bits` must be 16: x16c is 8086 code",
+    "code": "bad-directive"
+  },
+  {
+    "severity": "error",
+    "line": 4,
+    "col": 9,
+    "len": 3,
+    "message": "`equ` needs a name: `size equ 4`",
+    "code": "bad-directive"
+  },
+  {
+    "severity": "error",
+    "line": 5,
+    "col": 6,
+    "len": 0,
+    "message": "`%name` needs a quoted string: `%name \"...\"`",
+    "code": "bad-directive"
+  },
+  {
+    "severity": "error",
+    "line": 6,
+    "col": 9,
+    "len": 5,
+    "message": "`%name` needs a quoted string: `%name \"...\"`",
+    "code": "bad-directive"
+  },
+  {
+    "severity": "error",
+    "line": 7,
+    "col": 13,
+    "len": 3,
+    "message": "expected end of line, found `\"b\"`",
+    "code": "syntax"
+  },
+  {
+    "severity": "error",
+    "line": 8,
+    "col": 19,
+    "len": 3,
+    "message": "`times` repeats an instruction or data, not `org`",
+    "code": "bad-directive"
+  },
+  {
+    "severity": "error",
+    "line": 9,
+    "col": 19,
+    "len": 5,
+    "message": "`times` repeats an instruction or data, not `times`",
+    "code": "bad-directive"
+  },
+  {
+    "severity": "error",
+    "line": 10,
+    "col": 19,
+    "len": 3,
+    "message": "`times` repeats an instruction or data, not `equ`",
+    "code": "bad-directive"
+  },
+  {
+    "severity": "error",
+    "line": 11,
+    "col": 19,
+    "len": 5,
+    "message": "`times` repeats an instruction or data, not `align`",
+    "code": "bad-directive"
+  }
+]

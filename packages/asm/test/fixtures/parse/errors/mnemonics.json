@@ -1,0 +1,58 @@
+[
+  {
+    "severity": "error",
+    "line": 1,
+    "col": 9,
+    "len": 3,
+    "message": "unknown mnemonic `int`",
+    "code": "unknown-mnemonic"
+  },
+  {
+    "severity": "error",
+    "line": 2,
+    "col": 9,
+    "len": 5,
+    "message": "unknown mnemonic `pusha` (if it is a label, add a colon: `pusha:`)",
+    "code": "unknown-mnemonic"
+  },
+  {
+    "severity": "error",
+    "line": 3,
+    "col": 9,
+    "len": 3,
+    "message": "unknown mnemonic `mvo`",
+    "code": "unknown-mnemonic"
+  },
+  {
+    "severity": "error",
+    "line": 4,
+    "col": 1,
+    "len": 4,
+    "message": "unknown mnemonic `typo` (if it is a label, add a colon: `typo:`)",
+    "code": "unknown-mnemonic"
+  },
+  {
+    "severity": "error",
+    "line": 5,
+    "col": 9,
+    "len": 3,
+    "message": "unknown mnemonic `bar`",
+    "code": "unknown-mnemonic"
+  },
+  {
+    "severity": "error",
+    "line": 6,
+    "col": 19,
+    "len": 3,
+    "message": "unknown mnemonic `foo`",
+    "code": "unknown-mnemonic"
+  },
+  {
+    "severity": "error",
+    "line": 7,
+    "col": 9,
+    "len": 6,
+    "message": "unknown mnemonic `strict`",
+    "code": "unknown-mnemonic"
+  }
+]

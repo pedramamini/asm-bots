@@ -1,0 +1,114 @@
+[
+  {
+    "severity": "error",
+    "line": 1,
+    "col": 1,
+    "len": 2,
+    "message": "`ax` is a register, not a label name",
+    "code": "bad-label"
+  },
+  {
+    "severity": "error",
+    "line": 2,
+    "col": 1,
+    "len": 2,
+    "message": "`BX` is a register, not a label name",
+    "code": "bad-label"
+  },
+  {
+    "severity": "error",
+    "line": 3,
+    "col": 1,
+    "len": 4,
+    "message": "`word` is a reserved word, not a label name",
+    "code": "bad-label"
+  },
+  {
+    "severity": "error",
+    "line": 4,
+    "col": 1,
+    "len": 5,
+    "message": "`short` is a reserved word, not a label name",
+    "code": "bad-label"
+  },
+  {
+    "severity": "error",
+    "line": 5,
+    "col": 1,
+    "len": 1,
+    "message": "`$` is a reserved word, not a label name",
+    "code": "bad-label"
+  },
+  {
+    "severity": "error",
+    "line": 6,
+    "col": 1,
+    "len": 2,
+    "message": "`$$` is a reserved word, not a label name",
+    "code": "bad-label"
+  },
+  {
+    "severity": "error",
+    "line": 7,
+    "col": 1,
+    "len": 3,
+    "message": "`equ` is a reserved word, not a label name",
+    "code": "bad-label"
+  },
+  {
+    "severity": "error",
+    "line": 8,
+    "col": 1,
+    "len": 5,
+    "message": "`times` is a reserved word, not a label name",
+    "code": "bad-label"
+  },
+  {
+    "severity": "error",
+    "line": 9,
+    "col": 1,
+    "len": 2,
+    "message": "`db` is a reserved word, not a label name",
+    "code": "bad-label"
+  },
+  {
+    "severity": "error",
+    "line": 10,
+    "col": 1,
+    "len": 3,
+    "message": "`org` is a reserved word, not a label name",
+    "code": "bad-label"
+  },
+  {
+    "severity": "error",
+    "line": 11,
+    "col": 1,
+    "len": 2,
+    "message": "segment registers are not supported: x16c has one flat 64 KB address space",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 12,
+    "col": 1,
+    "len": 3,
+    "message": "`eax` is a 32-bit register; the 8086 has 16-bit and 8-bit ones",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 13,
+    "col": 1,
+    "len": 3,
+    "message": "NASM's `$` hex prefix is not supported: write 0x1F or 1Fh",
+    "code": "bad-number"
+  },
+  {
+    "severity": "error",
+    "line": 14,
+    "col": 1,
+    "len": 2,
+    "message": "`AX` is a register, not a label name",
+    "code": "bad-label"
+  }
+]

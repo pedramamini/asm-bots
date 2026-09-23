@@ -6,5 +6,8 @@
   "scripts": {
     "build": "tsc -b",
     "test": "bun test"
+  },
+  "dependencies": {
+    "@asmbots/codec": "workspace:*"
   }
 }

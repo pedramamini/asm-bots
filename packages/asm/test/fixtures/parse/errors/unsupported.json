@@ -1,0 +1,194 @@
+[
+  {
+    "severity": "error",
+    "line": 1,
+    "col": 1,
+    "len": 7,
+    "message": "sections are not supported: a bot is one block of code and data",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 2,
+    "col": 1,
+    "len": 7,
+    "message": "sections are not supported: a bot is one block of code and data",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 3,
+    "col": 1,
+    "len": 6,
+    "message": "`global` is not supported: a bot is one file, with no linker",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 4,
+    "col": 1,
+    "len": 6,
+    "message": "`extern` is not supported: a bot is one file, with no linker",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 5,
+    "col": 1,
+    "len": 6,
+    "message": "multi-line macros are not supported; `%define` makes one-line text macros",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 6,
+    "col": 1,
+    "len": 9,
+    "message": "multi-line macros are not supported; `%define` makes one-line text macros",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 7,
+    "col": 1,
+    "len": 3,
+    "message": "conditional assembly is not supported",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 8,
+    "col": 1,
+    "len": 6,
+    "message": "conditional assembly is not supported",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 9,
+    "col": 1,
+    "len": 5,
+    "message": "conditional assembly is not supported",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 10,
+    "col": 1,
+    "len": 6,
+    "message": "conditional assembly is not supported",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 11,
+    "col": 1,
+    "len": 8,
+    "message": "`%include` is not supported: a bot is one file",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 12,
+    "col": 1,
+    "len": 4,
+    "message": "`%rep` is not supported; use `times`",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 13,
+    "col": 1,
+    "len": 7,
+    "message": "unknown directive `%assign`; the directives are %define, %name, %author, %strategy, and %version",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 14,
+    "col": 9,
+    "len": 6,
+    "message": "`incbin` is not supported: a bot is one file",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 15,
+    "col": 17,
+    "len": 3,
+    "message": "far jumps and pointers are not supported: x16c has no segments",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 16,
+    "col": 23,
+    "len": 1,
+    "message": "far pointers (segment:offset) are not supported: x16c has no segments",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 17,
+    "col": 21,
+    "len": 2,
+    "message": "segment registers are not supported: x16c has one flat 64 KB address space",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 18,
+    "col": 22,
+    "len": 2,
+    "message": "segment registers are not supported: x16c has one flat 64 KB address space",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 19,
+    "col": 17,
+    "len": 2,
+    "message": "segment registers are not supported: x16c has one flat 64 KB address space",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 20,
+    "col": 17,
+    "len": 3,
+    "message": "`eax` is a 32-bit register; the 8086 has 16-bit and 8-bit ones",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 21,
+    "col": 21,
+    "len": 5,
+    "message": "`dword` is not supported: operands are byte or word",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 22,
+    "col": 9,
+    "len": 2,
+    "message": "`dd` is not supported: data is db or dw, space is resb or resw",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 23,
+    "col": 9,
+    "len": 4,
+    "message": "`lock` is not supported: the prefixes are rep, repe, and repne",
+    "code": "unsupported"
+  },
+  {
+    "severity": "error",
+    "line": 24,
+    "col": 1,
+    "len": 1,
+    "message": "the bracket form of a directive is not supported: drop the [ ]",
+    "code": "unsupported"
+  }
+]

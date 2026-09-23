@@ -1,0 +1,98 @@
+[
+  {
+    "severity": "error",
+    "line": 1,
+    "col": 25,
+    "len": 2,
+    "message": "invalid effective address (8086 allows bx/bp + si/di + disp)",
+    "code": "invalid-address"
+  },
+  {
+    "severity": "error",
+    "line": 2,
+    "col": 25,
+    "len": 2,
+    "message": "invalid effective address (8086 allows bx/bp + si/di + disp)",
+    "code": "invalid-address"
+  },
+  {
+    "severity": "error",
+    "line": 3,
+    "col": 22,
+    "len": 2,
+    "message": "invalid effective address (8086 allows bx/bp + si/di + disp)",
+    "code": "invalid-address"
+  },
+  {
+    "severity": "error",
+    "line": 4,
+    "col": 23,
+    "len": 2,
+    "message": "invalid effective address (8086 allows bx/bp + si/di + disp)",
+    "code": "invalid-address"
+  },
+  {
+    "severity": "error",
+    "line": 5,
+    "col": 27,
+    "len": 2,
+    "message": "invalid effective address (8086 allows bx/bp + si/di + disp)",
+    "code": "invalid-address"
+  },
+  {
+    "severity": "error",
+    "line": 6,
+    "col": 22,
+    "len": 2,
+    "message": "invalid effective address (8086 allows bx/bp + si/di + disp)",
+    "code": "invalid-address"
+  },
+  {
+    "severity": "error",
+    "line": 7,
+    "col": 22,
+    "len": 2,
+    "message": "invalid effective address (8086 allows bx/bp + si/di + disp)",
+    "code": "invalid-address"
+  },
+  {
+    "severity": "error",
+    "line": 8,
+    "col": 28,
+    "len": 2,
+    "message": "invalid effective address (8086 allows bx/bp + si/di + disp)",
+    "code": "invalid-address"
+  },
+  {
+    "severity": "error",
+    "line": 9,
+    "col": 26,
+    "len": 4,
+    "message": "invalid effective address (8086 allows bx/bp + si/di + disp)",
+    "code": "invalid-address"
+  },
+  {
+    "severity": "error",
+    "line": 10,
+    "col": 23,
+    "len": 2,
+    "message": "invalid effective address (8086 allows bx/bp + si/di + disp)",
+    "code": "invalid-address"
+  },
+  {
+    "severity": "error",
+    "line": 11,
+    "col": 22,
+    "len": 2,
+    "message": "invalid effective address (8086 allows bx/bp + si/di + disp)",
+    "code": "invalid-address"
+  },
+  {
+    "severity": "error",
+    "line": 12,
+    "col": 25,
+    "len": 2,
+    "message": "invalid effective address (8086 allows bx/bp + si/di + disp)",
+    "code": "invalid-address"
+  }
+]

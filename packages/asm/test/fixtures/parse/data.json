@@ -1,0 +1,352 @@
+{
+  "lines": [
+    {
+      "line": 1,
+      "kind": "directive",
+      "mnemonic": "%name",
+      "operands": [{ "kind": "str", "value": "Data", "col": 11, "len": 6 }],
+      "col": 1,
+      "len": 16
+    },
+    {
+      "line": 2,
+      "kind": "directive",
+      "mnemonic": "%author",
+      "operands": [{ "kind": "str", "value": "A", "col": 11, "len": 3 }],
+      "col": 1,
+      "len": 13
+    },
+    {
+      "line": 3,
+      "kind": "directive",
+      "mnemonic": "%strategy",
+      "operands": [
+        { "kind": "str", "value": "Directives and data; nothing here runs.", "col": 11, "len": 41 }
+      ],
+      "col": 1,
+      "len": 51
+    },
+    {
+      "line": 4,
+      "kind": "directive",
+      "mnemonic": "%version",
+      "operands": [{ "kind": "str", "value": "1.0", "col": 11, "len": 5 }],
+      "col": 1,
+      "len": 15
+    },
+    {
+      "line": 5,
+      "kind": "directive",
+      "mnemonic": "org",
+      "operands": [
+        {
+          "kind": "imm",
+          "expr": { "kind": "num", "value": 0, "col": 17, "len": 1 },
+          "col": 17,
+          "len": 1
+        }
+      ],
+      "col": 9,
+      "len": 9
+    },
+    {
+      "line": 6,
+      "kind": "directive",
+      "mnemonic": "bits",
+      "operands": [
+        {
+          "kind": "imm",
+          "expr": { "kind": "num", "value": 16, "col": 17, "len": 2 },
+          "col": 17,
+          "len": 2
+        }
+      ],
+      "col": 9,
+      "len": 10
+    },
+    {
+      "line": 7,
+      "kind": "equ",
+      "label": { "name": "size", "col": 1, "len": 4 },
+      "mnemonic": "equ",
+      "operands": [
+        {
+          "kind": "imm",
+          "expr": {
+            "kind": "binary",
+            "op": "-",
+            "left": { "kind": "sym", "name": "end", "col": 17, "len": 3 },
+            "right": { "kind": "sym", "name": "start", "col": 23, "len": 5 },
+            "col": 17,
+            "len": 11
+          },
+          "col": 17,
+          "len": 11
+        }
+      ],
+      "col": 9,
+      "len": 19
+    },
+    {
+      "line": 8,
+      "kind": "data",
+      "label": { "name": "start", "col": 1, "len": 5 },
+      "mnemonic": "db",
+      "operands": [
+        { "kind": "str", "value": "hi", "col": 17, "len": 4 },
+        {
+          "kind": "imm",
+          "expr": { "kind": "num", "value": 0, "col": 23, "len": 1 },
+          "col": 23,
+          "len": 1
+        },
+        { "kind": "str", "value": "A", "col": 26, "len": 3 },
+        {
+          "kind": "imm",
+          "expr": {
+            "kind": "binary",
+            "op": "+",
+            "left": { "kind": "num", "value": 65, "col": 31, "len": 3 },
+            "right": { "kind": "num", "value": 1, "col": 35, "len": 1 },
+            "col": 31,
+            "len": 5
+          },
+          "col": 31,
+          "len": 5
+        },
+        { "kind": "str", "value": "it's", "col": 38, "len": 6 },
+        { "kind": "str", "value": "", "col": 46, "len": 2 }
+      ],
+      "col": 9,
+      "len": 39
+    },
+    {
+      "line": 9,
+      "kind": "data",
+      "mnemonic": "dw",
+      "operands": [
+        {
+          "kind": "imm",
+          "expr": { "kind": "num", "value": 4660, "col": 17, "len": 6 },
+          "col": 17,
+          "len": 6
+        },
+        {
+          "kind": "imm",
+          "expr": {
+            "kind": "unary",
+            "op": "-",
+            "arg": { "kind": "num", "value": 1, "col": 26, "len": 1 },
+            "col": 25,
+            "len": 2
+          },
+          "col": 25,
+          "len": 2
+        },
+        {
+          "kind": "imm",
+          "expr": { "kind": "num", "value": 66, "col": 29, "len": 3 },
+          "col": 29,
+          "len": 3
+        },
+        {
+          "kind": "imm",
+          "expr": { "kind": "sym", "name": "start", "col": 34, "len": 5 },
+          "col": 34,
+          "len": 5
+        },
+        {
+          "kind": "imm",
+          "expr": {
+            "kind": "binary",
+            "op": "-",
+            "left": { "kind": "here", "col": 41, "len": 1 },
+            "right": { "kind": "origin", "col": 45, "len": 2 },
+            "col": 41,
+            "len": 6
+          },
+          "col": 41,
+          "len": 6
+        }
+      ],
+      "col": 9,
+      "len": 38
+    },
+    {
+      "line": 10,
+      "kind": "data",
+      "mnemonic": "resb",
+      "operands": [
+        {
+          "kind": "imm",
+          "expr": { "kind": "num", "value": 4, "col": 17, "len": 1 },
+          "col": 17,
+          "len": 1
+        }
+      ],
+      "col": 9,
+      "len": 9
+    },
+    {
+      "line": 11,
+      "kind": "data",
+      "mnemonic": "resw",
+      "operands": [
+        {
+          "kind": "imm",
+          "expr": {
+            "kind": "binary",
+            "op": "/",
+            "left": { "kind": "sym", "name": "size", "col": 17, "len": 4 },
+            "right": { "kind": "num", "value": 2, "col": 24, "len": 1 },
+            "col": 17,
+            "len": 8
+          },
+          "col": 17,
+          "len": 8
+        }
+      ],
+      "col": 9,
+      "len": 16
+    },
+    {
+      "line": 12,
+      "kind": "directive",
+      "mnemonic": "align",
+      "operands": [
+        {
+          "kind": "imm",
+          "expr": { "kind": "num", "value": 16, "col": 17, "len": 2 },
+          "col": 17,
+          "len": 2
+        }
+      ],
+      "col": 9,
+      "len": 10
+    },
+    {
+      "line": 13,
+      "kind": "times",
+      "mnemonic": "times",
+      "operands": [
+        {
+          "kind": "imm",
+          "expr": { "kind": "num", "value": 16, "col": 17, "len": 2 },
+          "col": 17,
+          "len": 2
+        }
+      ],
+      "body": {
+        "line": 13,
+        "kind": "instr",
+        "mnemonic": "dat",
+        "operands": [],
+        "col": 20,
+        "len": 3
+      },
+      "col": 9,
+      "len": 14
+    },
+    {
+      "line": 14,
+      "kind": "times",
+      "mnemonic": "times",
+      "operands": [
+        {
+          "kind": "imm",
+          "expr": { "kind": "num", "value": 2, "col": 17, "len": 1 },
+          "col": 17,
+          "len": 1
+        }
+      ],
+      "body": {
+        "line": 14,
+        "kind": "data",
+        "mnemonic": "db",
+        "operands": [
+          {
+            "kind": "imm",
+            "expr": { "kind": "num", "value": 1, "col": 22, "len": 1 },
+            "col": 22,
+            "len": 1
+          },
+          {
+            "kind": "imm",
+            "expr": { "kind": "num", "value": 2, "col": 25, "len": 1 },
+            "col": 25,
+            "len": 1
+          }
+        ],
+        "col": 19,
+        "len": 7
+      },
+      "col": 9,
+      "len": 17
+    },
+    {
+      "line": 15,
+      "kind": "times",
+      "mnemonic": "times",
+      "operands": [
+        {
+          "kind": "imm",
+          "expr": { "kind": "num", "value": 3, "col": 17, "len": 1 },
+          "col": 17,
+          "len": 1
+        }
+      ],
+      "body": {
+        "line": 15,
+        "kind": "instr",
+        "prefix": "rep",
+        "mnemonic": "movsb",
+        "operands": [],
+        "col": 19,
+        "len": 9
+      },
+      "col": 9,
+      "len": 19
+    },
+    {
+      "line": 16,
+      "kind": "times",
+      "label": { "name": "buf", "col": 1, "len": 3 },
+      "mnemonic": "times",
+      "operands": [
+        {
+          "kind": "imm",
+          "expr": {
+            "kind": "binary",
+            "op": "-",
+            "left": { "kind": "sym", "name": "end", "col": 18, "len": 3 },
+            "right": { "kind": "sym", "name": "start", "col": 24, "len": 5 },
+            "col": 17,
+            "len": 13
+          },
+          "col": 17,
+          "len": 13
+        }
+      ],
+      "body": {
+        "line": 16,
+        "kind": "instr",
+        "mnemonic": "nop",
+        "operands": [],
+        "col": 31,
+        "len": 3
+      },
+      "col": 9,
+      "len": 25
+    },
+    {
+      "line": 17,
+      "kind": "empty",
+      "label": { "name": "end", "col": 1, "len": 3 },
+      "operands": [],
+      "col": 1,
+      "len": 0
+    },
+    { "line": 18, "kind": "empty", "operands": [], "col": 1, "len": 0 }
+  ],
+  "diags": []
+}

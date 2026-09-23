@@ -1,0 +1,178 @@
+{
+  "lines": [
+    { "line": 1, "kind": "empty", "operands": [], "col": 1, "len": 0 },
+    {
+      "line": 2,
+      "kind": "directive",
+      "mnemonic": "%name",
+      "operands": [{ "kind": "str", "value": "Dwarf", "col": 11, "len": 7 }],
+      "col": 1,
+      "len": 17
+    },
+    {
+      "line": 3,
+      "kind": "directive",
+      "mnemonic": "%author",
+      "operands": [{ "kind": "str", "value": "A. K. Dewdney", "col": 11, "len": 15 }],
+      "col": 1,
+      "len": 25
+    },
+    {
+      "line": 4,
+      "kind": "directive",
+      "mnemonic": "%strategy",
+      "operands": [
+        {
+          "kind": "str",
+          "value": "Bombs every 4th word with DAT, walking the whole core.",
+          "col": 11,
+          "len": 56
+        }
+      ],
+      "col": 1,
+      "len": 66
+    },
+    { "line": 5, "kind": "empty", "operands": [], "col": 1, "len": 0 },
+    {
+      "line": 6,
+      "kind": "directive",
+      "mnemonic": "org",
+      "operands": [
+        {
+          "kind": "imm",
+          "expr": { "kind": "num", "value": 0, "col": 13, "len": 1 },
+          "col": 13,
+          "len": 1
+        }
+      ],
+      "col": 9,
+      "len": 5
+    },
+    {
+      "line": 7,
+      "kind": "instr",
+      "label": { "name": "start", "col": 1, "len": 5 },
+      "mnemonic": "call",
+      "operands": [
+        {
+          "kind": "target",
+          "expr": { "kind": "sym", "name": "start.here", "col": 14, "len": 5 },
+          "hint": "auto",
+          "col": 14,
+          "len": 5
+        }
+      ],
+      "col": 9,
+      "len": 10
+    },
+    {
+      "line": 8,
+      "kind": "instr",
+      "label": { "name": "start.here", "col": 1, "len": 5 },
+      "mnemonic": "pop",
+      "operands": [{ "kind": "reg", "name": "bx", "col": 14, "len": 2 }],
+      "col": 9,
+      "len": 7
+    },
+    {
+      "line": 9,
+      "kind": "instr",
+      "mnemonic": "sub",
+      "operands": [
+        { "kind": "reg", "name": "bx", "col": 14, "len": 2 },
+        {
+          "kind": "imm",
+          "expr": { "kind": "sym", "name": "start.here", "col": 18, "len": 5 },
+          "col": 18,
+          "len": 5
+        }
+      ],
+      "col": 9,
+      "len": 14
+    },
+    {
+      "line": 10,
+      "kind": "instr",
+      "mnemonic": "lea",
+      "operands": [
+        { "kind": "reg", "name": "di", "col": 14, "len": 2 },
+        {
+          "kind": "mem",
+          "base": "bx",
+          "disp": { "kind": "sym", "name": "bomb", "col": 22, "len": 4 },
+          "col": 18,
+          "len": 9
+        }
+      ],
+      "col": 9,
+      "len": 18
+    },
+    {
+      "line": 11,
+      "kind": "instr",
+      "label": { "name": "start.loop", "col": 1, "len": 5 },
+      "mnemonic": "add",
+      "operands": [
+        { "kind": "reg", "name": "di", "col": 14, "len": 2 },
+        {
+          "kind": "imm",
+          "expr": { "kind": "num", "value": 4, "col": 18, "len": 1 },
+          "col": 18,
+          "len": 1
+        }
+      ],
+      "col": 9,
+      "len": 10
+    },
+    {
+      "line": 12,
+      "kind": "instr",
+      "mnemonic": "mov",
+      "operands": [
+        {
+          "kind": "mem",
+          "index": "di",
+          "disp": { "kind": "num", "value": 0, "col": 22, "len": 0 },
+          "size": 16,
+          "col": 14,
+          "len": 9
+        },
+        {
+          "kind": "imm",
+          "expr": { "kind": "num", "value": 0, "col": 25, "len": 1 },
+          "col": 25,
+          "len": 1
+        }
+      ],
+      "col": 9,
+      "len": 17
+    },
+    {
+      "line": 13,
+      "kind": "instr",
+      "mnemonic": "jmp",
+      "operands": [
+        {
+          "kind": "target",
+          "expr": { "kind": "sym", "name": "start.loop", "col": 14, "len": 5 },
+          "hint": "auto",
+          "col": 14,
+          "len": 5
+        }
+      ],
+      "col": 9,
+      "len": 10
+    },
+    {
+      "line": 14,
+      "kind": "instr",
+      "label": { "name": "bomb", "col": 1, "len": 4 },
+      "mnemonic": "dat",
+      "operands": [],
+      "col": 9,
+      "len": 3
+    },
+    { "line": 15, "kind": "empty", "operands": [], "col": 1, "len": 0 }
+  ],
+  "diags": []
+}

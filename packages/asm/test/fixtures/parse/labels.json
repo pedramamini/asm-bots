@@ -1,0 +1,219 @@
+{
+  "lines": [
+    { "line": 1, "kind": "empty", "operands": [], "col": 1, "len": 0 },
+    {
+      "line": 2,
+      "kind": "instr",
+      "label": { "name": ".early", "col": 1, "len": 6 },
+      "mnemonic": "nop",
+      "operands": [],
+      "col": 9,
+      "len": 3
+    },
+    {
+      "line": 3,
+      "kind": "empty",
+      "label": { "name": "start", "col": 1, "len": 5 },
+      "operands": [],
+      "col": 1,
+      "len": 0
+    },
+    {
+      "line": 4,
+      "kind": "instr",
+      "label": { "name": "start.loop", "col": 1, "len": 5 },
+      "mnemonic": "jmp",
+      "operands": [
+        {
+          "kind": "target",
+          "expr": { "kind": "sym", "name": "start.loop", "col": 17, "len": 5 },
+          "hint": "auto",
+          "col": 17,
+          "len": 5
+        }
+      ],
+      "col": 9,
+      "len": 13
+    },
+    {
+      "line": 5,
+      "kind": "equ",
+      "label": { "name": "size", "col": 1, "len": 4 },
+      "mnemonic": "equ",
+      "operands": [
+        {
+          "kind": "imm",
+          "expr": { "kind": "num", "value": 4, "col": 17, "len": 1 },
+          "col": 17,
+          "len": 1
+        }
+      ],
+      "col": 9,
+      "len": 9
+    },
+    {
+      "line": 6,
+      "kind": "instr",
+      "label": { "name": "start.next", "col": 1, "len": 5 },
+      "mnemonic": "jmp",
+      "operands": [
+        {
+          "kind": "target",
+          "expr": { "kind": "sym", "name": "start.loop", "col": 17, "len": 5 },
+          "hint": "auto",
+          "col": 17,
+          "len": 5
+        }
+      ],
+      "col": 9,
+      "len": 13
+    },
+    {
+      "line": 7,
+      "kind": "instr",
+      "label": { "name": "..@tmp", "col": 1, "len": 6 },
+      "mnemonic": "nop",
+      "operands": [],
+      "col": 9,
+      "len": 3
+    },
+    {
+      "line": 8,
+      "kind": "instr",
+      "label": { "name": "start.last", "col": 1, "len": 5 },
+      "mnemonic": "nop",
+      "operands": [],
+      "col": 9,
+      "len": 3
+    },
+    {
+      "line": 9,
+      "kind": "instr",
+      "label": { "name": "other", "col": 1, "len": 5 },
+      "mnemonic": "jmp",
+      "operands": [
+        {
+          "kind": "target",
+          "expr": { "kind": "sym", "name": "start.loop", "col": 17, "len": 10 },
+          "hint": "auto",
+          "col": 17,
+          "len": 10
+        }
+      ],
+      "col": 9,
+      "len": 18
+    },
+    {
+      "line": 10,
+      "kind": "instr",
+      "label": { "name": "other.loop", "col": 1, "len": 5 },
+      "mnemonic": "jmp",
+      "operands": [
+        {
+          "kind": "target",
+          "expr": { "kind": "sym", "name": "other.loop", "col": 17, "len": 5 },
+          "hint": "auto",
+          "col": 17,
+          "len": 5
+        }
+      ],
+      "col": 9,
+      "len": 13
+    },
+    { "line": 11, "kind": "empty", "operands": [], "col": 1, "len": 0 },
+    {
+      "line": 12,
+      "kind": "data",
+      "label": { "name": "msg", "col": 1, "len": 3 },
+      "mnemonic": "db",
+      "operands": [{ "kind": "str", "value": "hi", "col": 17, "len": 4 }],
+      "col": 9,
+      "len": 12
+    },
+    {
+      "line": 13,
+      "kind": "equ",
+      "label": { "name": "count", "col": 1, "len": 5 },
+      "mnemonic": "equ",
+      "operands": [
+        {
+          "kind": "imm",
+          "expr": { "kind": "num", "value": 3, "col": 17, "len": 1 },
+          "col": 17,
+          "len": 1
+        }
+      ],
+      "col": 9,
+      "len": 9
+    },
+    {
+      "line": 14,
+      "kind": "instr",
+      "label": { "name": "here", "col": 1, "len": 4 },
+      "mnemonic": "mov",
+      "operands": [
+        { "kind": "reg", "name": "ax", "col": 17, "len": 2 },
+        {
+          "kind": "imm",
+          "expr": { "kind": "sym", "name": "msg", "col": 21, "len": 3 },
+          "col": 21,
+          "len": 3
+        }
+      ],
+      "col": 9,
+      "len": 15
+    },
+    { "line": 15, "kind": "empty", "operands": [], "col": 1, "len": 0 },
+    {
+      "line": 16,
+      "kind": "data",
+      "label": { "name": "ax", "col": 1, "len": 3 },
+      "mnemonic": "dw",
+      "operands": [
+        {
+          "kind": "imm",
+          "expr": { "kind": "sym", "name": "ax", "col": 17, "len": 3 },
+          "col": 17,
+          "len": 3
+        }
+      ],
+      "col": 9,
+      "len": 11
+    },
+    {
+      "line": 17,
+      "kind": "instr",
+      "label": { "name": "loop", "col": 1, "len": 4 },
+      "mnemonic": "loop",
+      "operands": [
+        {
+          "kind": "target",
+          "expr": { "kind": "sym", "name": "loop", "col": 17, "len": 4 },
+          "hint": "auto",
+          "col": 17,
+          "len": 4
+        }
+      ],
+      "col": 9,
+      "len": 12
+    },
+    {
+      "line": 18,
+      "kind": "data",
+      "label": { "name": "loop.x", "col": 1, "len": 3 },
+      "mnemonic": "dw",
+      "operands": [
+        {
+          "kind": "imm",
+          "expr": { "kind": "sym", "name": "loop.x", "col": 17, "len": 2 },
+          "col": 17,
+          "len": 2
+        }
+      ],
+      "col": 9,
+      "len": 10
+    },
+    { "line": 19, "kind": "empty", "operands": [], "col": 1, "len": 0 }
+  ],
+  "diags": []
+}

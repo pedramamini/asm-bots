@@ -1,0 +1,138 @@
+[
+  {
+    "severity": "error",
+    "line": 1,
+    "col": 21,
+    "len": 2,
+    "message": "`bx` cannot be part of a value; registers go in [ ] addresses",
+    "code": "bad-operand"
+  },
+  {
+    "severity": "error",
+    "line": 2,
+    "col": 21,
+    "len": 4,
+    "message": "`bx` cannot be part of a value; registers go in [ ] addresses",
+    "code": "bad-operand"
+  },
+  {
+    "severity": "error",
+    "line": 3,
+    "col": 21,
+    "len": 4,
+    "message": "a string can only stand alone, as a `db` item or directive text",
+    "code": "bad-operand"
+  },
+  {
+    "severity": "error",
+    "line": 4,
+    "col": 17,
+    "len": 4,
+    "message": "`dw` takes numbers; a string goes in `db`",
+    "code": "bad-operand"
+  },
+  {
+    "severity": "error",
+    "line": 5,
+    "col": 17,
+    "len": 4,
+    "message": "a string can only stand alone, as a `db` item or directive text",
+    "code": "bad-operand"
+  },
+  {
+    "severity": "error",
+    "line": 6,
+    "col": 21,
+    "len": 5,
+    "message": "`short` applies only to a jump target",
+    "code": "bad-operand"
+  },
+  {
+    "severity": "error",
+    "line": 7,
+    "col": 17,
+    "len": 5,
+    "message": "`short` needs an address after it: `jmp short label`",
+    "code": "bad-operand"
+  },
+  {
+    "severity": "error",
+    "line": 8,
+    "col": 17,
+    "len": 4,
+    "message": "`near` needs an address after it: `jmp near label`",
+    "code": "bad-operand"
+  },
+  {
+    "severity": "error",
+    "line": 9,
+    "col": 17,
+    "len": 4,
+    "message": "a jump target takes `short` or `near`, not `word`",
+    "code": "bad-operand"
+  },
+  {
+    "severity": "error",
+    "line": 10,
+    "col": 17,
+    "len": 4,
+    "message": "`word` and `short` do not go together",
+    "code": "bad-operand"
+  },
+  {
+    "severity": "error",
+    "line": 11,
+    "col": 17,
+    "len": 4,
+    "message": "`byte` does not fit `ax`, a word register",
+    "code": "bad-operand"
+  },
+  {
+    "severity": "error",
+    "line": 12,
+    "col": 17,
+    "len": 4,
+    "message": "`word` does not fit `al`, a byte register",
+    "code": "bad-operand"
+  },
+  {
+    "severity": "error",
+    "line": 13,
+    "col": 17,
+    "len": 6,
+    "message": "`strict` applies only to an immediate: `add ax, strict word 5`",
+    "code": "bad-operand"
+  },
+  {
+    "severity": "error",
+    "line": 14,
+    "col": 17,
+    "len": 6,
+    "message": "`strict` applies only to an immediate: `add ax, strict word 5`",
+    "code": "bad-operand"
+  },
+  {
+    "severity": "error",
+    "line": 15,
+    "col": 17,
+    "len": 6,
+    "message": "`strict` applies only to an immediate: `add ax, strict word 5`",
+    "code": "bad-operand"
+  },
+  {
+    "severity": "error",
+    "line": 16,
+    "col": 17,
+    "len": 2,
+    "message": "`bx` cannot be part of a value; registers go in [ ] addresses",
+    "code": "bad-operand"
+  },
+  {
+    "severity": "error",
+    "line": 17,
+    "col": 17,
+    "len": 2,
+    "message": "`si` cannot be part of a value; registers go in [ ] addresses",
+    "code": "bad-operand"
+  }
+]
