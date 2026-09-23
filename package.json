@@ -13,7 +13,8 @@
     "test": "bun test",
     "build": "bun run --filter '*' build",
     "golden": "bun run scripts/golden.ts",
-    "version": "bun run scripts/version.ts"
+    "version": "bun run scripts/version.ts",
+    "asmbots": "bun run --filter @asmbots/cli asmbots"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14"

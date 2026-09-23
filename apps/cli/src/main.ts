@@ -74,6 +74,55 @@ function colorize(text: string, color: 'red' | 'yellow' | 'green' | 'cyan'): str
   return `${colors[color]}${text}\x1b[0m`
 }
 
+interface TableRow {
+  [key: string]: string | number | boolean
+}
+
+interface TableColumn {
+  key: string
+  header: string
+  align?: 'left' | 'right'
+  width?: number
+}
+
+function formatTable(rows: TableRow[], columns: TableColumn[]): string[] {
+  if (rows.length === 0) return []
+
+  // Calculate column widths
+  const widths: Record<string, number> = {}
+  for (const col of columns) {
+    let maxWidth = col.header.length
+    for (const row of rows) {
+      const val = String(row[col.key] ?? '')
+      maxWidth = Math.max(maxWidth, val.length)
+    }
+    widths[col.key] = col.width ?? maxWidth
+  }
+
+  // Header row
+  const headerCells = columns.map((col) => col.header.padEnd(widths[col.key]))
+  const result = [headerCells.join('  ')]
+
+  // Separator
+  const separators = columns.map((col) => '-'.repeat(widths[col.key]))
+  result.push(separators.join('  '))
+
+  // Data rows
+  for (const row of rows) {
+    const cells = columns.map((col) => {
+      const val = String(row[col.key] ?? '')
+      const align = col.align ?? 'left'
+      if (align === 'right') {
+        return val.padStart(widths[col.key])
+      }
+      return val.padEnd(widths[col.key])
+    })
+    result.push(cells.join('  '))
+  }
+
+  return result
+}
+
 async function loadBot(fileOrSlug: string): Promise<LoadedBot> {
   if (fileOrSlug.startsWith('roster:')) {
     const slug = fileOrSlug.slice(7)
@@ -624,11 +673,21 @@ function printStandings(standings: any[]): void {
 
   console.log('Standings:')
   const sorted = [...standings].sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
-  for (let i = 0; i < sorted.length; i++) {
-    const s = sorted[i]!
-    const name = s.name || `Bot ${s.entrant}`
-    const points = s.points ?? 0
-    console.log(`  ${(i + 1).toString().padStart(2)}. ${name.padEnd(20)} ${points.toString().padStart(4)} points`)
+  const rows = sorted.map((s, i) => ({
+    rank: i + 1,
+    name: s.name || `Bot ${s.entrant}`,
+    points: s.points ?? 0,
+  }))
+
+  const columns: TableColumn[] = [
+    { key: 'rank', header: 'Rank', align: 'right', width: 4 },
+    { key: 'name', header: 'Name', align: 'left' },
+    { key: 'points', header: 'Points', align: 'right' },
+  ]
+
+  const lines = formatTable(rows, columns)
+  for (const line of lines) {
+    console.log(`  ${line}`)
   }
 }
 
@@ -640,16 +699,27 @@ function printMeleeStandings(standings: any[]): void {
 
   console.log('Melee Standings:')
   const sorted = [...standings].sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
-  for (let i = 0; i < sorted.length; i++) {
-    const s = sorted[i]!
-    const name = s.name || `Bot ${s.entrant}`
-    const points = s.points ?? 0
-    const wins = s.wins ?? 0
-    const ties = s.ties ?? 0
-    const losses = s.losses ?? 0
-    console.log(
-      `  ${(i + 1).toString().padStart(2)}. ${name.padEnd(20)} ${points.toString().padStart(4)} pts  W:${wins} T:${ties} L:${losses}`,
-    )
+  const rows = sorted.map((s, i) => ({
+    rank: i + 1,
+    name: s.name || `Bot ${s.entrant}`,
+    points: s.points ?? 0,
+    wins: s.wins ?? 0,
+    ties: s.ties ?? 0,
+    losses: s.losses ?? 0,
+  }))
+
+  const columns: TableColumn[] = [
+    { key: 'rank', header: 'Rank', align: 'right', width: 4 },
+    { key: 'name', header: 'Name', align: 'left' },
+    { key: 'points', header: 'Points', align: 'right' },
+    { key: 'wins', header: 'W', align: 'right' },
+    { key: 'ties', header: 'T', align: 'right' },
+    { key: 'losses', header: 'L', align: 'right' },
+  ]
+
+  const lines = formatTable(rows, columns)
+  for (const line of lines) {
+    console.log(`  ${line}`)
   }
 }
 
