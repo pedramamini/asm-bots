@@ -21,7 +21,7 @@ import type {
   SymExpr,
   TimesLine,
 } from './ast'
-import type { Diag, DiagCode } from './diag'
+import { type Diag, type DiagCode, formatDiag } from './diag'
 import { evaluate, evaluateExact, type Unresolved } from './expr'
 import { bytesHex } from './hex'
 import { BYTE_REGISTERS } from './keywords'
@@ -141,6 +141,41 @@ export function assemble(source: string, opts: AssembleOptions = {}): Assembled 
     sourceMap: image === undefined ? new Uint16Array(0) : sourceMap(layout.items, image.length),
     diagnostics: diags,
   }
+}
+
+export interface AssembleOrThrowOptions extends AssembleOptions {
+  /** The file name to put before each error in the message: `dwarf.asm:3:9: error: ...`. */
+  file?: string
+}
+
+/** What `assembleOrThrow` throws: the source has errors. */
+export class AssembleError extends Error {
+  override readonly name = 'AssembleError'
+  /** Every diagnostic of the source, in source order. */
+  readonly diagnostics: Diag[]
+
+  /** The message is one line per error, as `formatDiag` writes it. */
+  constructor(diagnostics: Diag[], file?: string) {
+    const errors = diagnostics.filter((d) => d.severity === 'error')
+    super(errors.map((d) => formatDiag(d, file)).join('\n'))
+    this.diagnostics = diagnostics
+  }
+}
+
+/**
+ * `assemble` for a caller that wants a bot or an exception, not diagnostics to show: the CLI's
+ * `fight`, `tourney`, and `hill` commands, and scripts. The assembler gives no warnings, so the
+ * bot that comes back has no diagnostics.
+ *
+ * @throws AssembleError when the source has an error.
+ * @throws RangeError when `maxBytes` is not an integer in 0..65536.
+ */
+export function assembleOrThrow(source: string, opts: AssembleOrThrowOptions = {}): Assembled {
+  const assembled = assemble(source, opts)
+  if (assembled.diagnostics.some((d) => d.severity === 'error')) {
+    throw new AssembleError(assembled.diagnostics, opts.file)
+  }
+  return assembled
 }
 
 /**

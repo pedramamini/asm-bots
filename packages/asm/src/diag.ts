@@ -22,39 +22,43 @@
  *   `hlt-in-code` (a `hlt` the bot runs), and `uninitialized-di` (a string instruction that uses
  *   di before any line sets di).
  */
-export type DiagCode =
-  | 'bad-char'
-  | 'bad-escape'
-  | 'bad-number'
-  | 'unterminated-string'
-  | 'syntax'
-  | 'unknown-mnemonic'
-  | 'invalid-address'
-  | 'bad-operand'
-  | 'bad-label'
-  | 'bad-directive'
-  | 'unsupported'
-  | 'undefined-symbol'
-  | 'div-zero'
-  | 'invalid-prefix'
-  | 'invalid-operands'
-  | 'size-not-specified'
-  | 'size-mismatch'
-  | 'dat-form'
-  | 'jump-out-of-range'
-  | 'out-of-range'
-  | 'duplicate-symbol'
-  | 'circular-equ'
-  | 'missing-name'
-  | 'no-convergence'
-  | 'size-over-cap'
-  | 'absolute-address'
-  | 'unreachable'
-  | 'dat-in-code'
-  | 'size-near-cap'
-  | 'no-strategy'
-  | 'hlt-in-code'
-  | 'uninitialized-di'
+export type DiagCode = (typeof DIAG_CODES)[number]
+
+/** Every `DiagCode`, in the order of the list above. The package README has a row for each. */
+export const DIAG_CODES = [
+  'bad-char',
+  'bad-escape',
+  'bad-number',
+  'unterminated-string',
+  'syntax',
+  'unknown-mnemonic',
+  'invalid-address',
+  'bad-operand',
+  'bad-label',
+  'bad-directive',
+  'unsupported',
+  'undefined-symbol',
+  'div-zero',
+  'invalid-prefix',
+  'invalid-operands',
+  'size-not-specified',
+  'size-mismatch',
+  'dat-form',
+  'jump-out-of-range',
+  'out-of-range',
+  'duplicate-symbol',
+  'circular-equ',
+  'missing-name',
+  'no-convergence',
+  'size-over-cap',
+  'absolute-address',
+  'unreachable',
+  'dat-in-code',
+  'size-near-cap',
+  'no-strategy',
+  'hlt-in-code',
+  'uninitialized-di',
+] as const
 
 /** One assembler or linter finding, located in the source (ISA §6.5). */
 export interface Diag {
@@ -69,4 +73,14 @@ export interface Diag {
   code: DiagCode
   /** What to do about it. Every linter warning has one; assembler errors say it in `message`. */
   fix?: string
+}
+
+/**
+ * `d` on one line, the way compilers print a finding, so that editors and terminals link the
+ * place: `dwarf.asm:3:9: error: jump out of range [jump-out-of-range]`. Without `file`, the line
+ * starts at `3:9:`. The `fix` is left out.
+ */
+export function formatDiag(d: Diag, file?: string): string {
+  const where = file === undefined ? `${d.line}:${d.col}` : `${file}:${d.line}:${d.col}`
+  return `${where}: ${d.severity}: ${d.message} [${d.code}]`
 }

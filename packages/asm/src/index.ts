@@ -1,5 +1,10 @@
-export type { Assembled, AssembleOptions, ListingLine } from './assemble'
-export { assemble, MAX_BOT_BYTES } from './assemble'
+export type {
+  Assembled,
+  AssembleOptions,
+  AssembleOrThrowOptions,
+  ListingLine,
+} from './assemble'
+export { AssembleError, assemble, assembleOrThrow, MAX_BOT_BYTES } from './assemble'
 export type {
   BinaryExpr,
   BinaryOp,
@@ -30,6 +35,7 @@ export type {
   UnaryOp,
 } from './ast'
 export type { Diag, DiagCode } from './diag'
+export { DIAG_CODES, formatDiag } from './diag'
 export type { DisassembleOptions, DisLine } from './disassemble'
 export { disassemble } from './disassemble'
 export type { Unresolved } from './expr'
