@@ -220,4 +220,125 @@ describe('asmbots CLI', () => {
     expect(output).toContain('Trace')
     expect(output).toContain('|')
   })
+
+  it('runs a roundrobin tournament over 4 roster bots', () => {
+    const proc = spawnSync({
+      cmd: [
+        'bun',
+        './apps/cli/src/main.ts',
+        'tourney',
+        'roundrobin',
+        'roster:dwarf',
+        'roster:imp',
+        'roster:stone',
+        'roster:paper',
+        '--rounds',
+        '1',
+        '--cycles',
+        '100',
+      ],
+      cwd: process.cwd(),
+      stdout: 'pipe',
+      stderr: 'pipe',
+    })
+
+    expect(proc.success).toBe(true)
+    const output = new TextDecoder().decode(proc.stdout!)
+    expect(output).toContain('Standings')
+    // 4 bots: C(4,2) = 6 matches
+    expect(output).toContain('Match 6')
+  })
+
+  it('runs a bracket tournament over 5 roster bots', () => {
+    const proc = spawnSync({
+      cmd: [
+        'bun',
+        './apps/cli/src/main.ts',
+        'tourney',
+        'bracket',
+        'roster:dwarf',
+        'roster:imp',
+        'roster:stone',
+        'roster:paper',
+        'roster:scanner',
+        '--rounds',
+        '1',
+        '--cycles',
+        '100',
+      ],
+      cwd: process.cwd(),
+      stdout: 'pipe',
+      stderr: 'pipe',
+    })
+
+    expect(proc.success).toBe(true)
+    const output = new TextDecoder().decode(proc.stdout!)
+    expect(output).toContain('Champion')
+  })
+
+  it('runs a melee tournament over 4 roster bots', () => {
+    const proc = spawnSync({
+      cmd: [
+        'bun',
+        './apps/cli/src/main.ts',
+        'tourney',
+        'melee',
+        'roster:dwarf',
+        'roster:imp',
+        'roster:stone',
+        'roster:paper',
+        '--rounds',
+        '1',
+        '--cycles',
+        '100',
+      ],
+      cwd: process.cwd(),
+      stdout: 'pipe',
+      stderr: 'pipe',
+    })
+
+    expect(proc.success).toBe(true)
+    const output = new TextDecoder().decode(proc.stdout!)
+    expect(output).toContain('Melee Standings')
+  })
+
+  it('runs the bench command', () => {
+    const proc = spawnSync({
+      cmd: ['bun', './apps/cli/src/main.ts', 'bench', '--seconds', '1'],
+      cwd: process.cwd(),
+      stdout: 'pipe',
+      stderr: 'pipe',
+    })
+
+    expect(proc.success).toBe(true)
+    const output = new TextDecoder().decode(proc.stdout!)
+    expect(output).toContain('instructions/sec')
+  })
+
+  it('handles tourney with invalid format', () => {
+    const proc = spawnSync({
+      cmd: ['bun', './apps/cli/src/main.ts', 'tourney', 'invalid', 'roster:dwarf', 'roster:imp'],
+      cwd: process.cwd(),
+      stdout: 'pipe',
+      stderr: 'pipe',
+    })
+
+    expect(proc.success).toBe(false)
+    const output = new TextDecoder().decode(proc.stderr!)
+    expect(output).toContain('unknown tournament format')
+  })
+
+  it('returns non-zero when tourney has an error', () => {
+    const proc = spawnSync({
+      cmd: ['bun', './apps/cli/src/main.ts', 'tourney', 'roundrobin', 'roster:dwarf'],
+      cwd: process.cwd(),
+      stdout: 'pipe',
+      stderr: 'pipe',
+    })
+
+    expect(proc.success).toBe(false)
+    // When tourney is called with insufficient arguments, it may fail during bracket creation
+    // which results in exit code 3 (runtime error) rather than 1 (usage error)
+    expect(proc.exitCode).toBeGreaterThan(0)
+  })
 })

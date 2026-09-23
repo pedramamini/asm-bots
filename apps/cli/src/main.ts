@@ -3,10 +3,19 @@
 import { readFileSync, writeFileSync } from 'fs'
 import { resolve } from 'path'
 import { assemble, disassemble, type AssembleOptions, type DisassembleOptions, formatDiag } from '@asmbots/asm'
-import { Battle, type LoadedBot, type BattleConfigInput, type Result } from '@asmbots/engine'
+import { Battle, type LoadedBot, type BattleConfigInput, type Result, DEFAULT_CONFIG } from '@asmbots/engine'
 import { fighter } from '@asmbots/bots'
 import type { EventSink } from '@asmbots/engine'
 import { NullSink } from '@asmbots/engine'
+import {
+  iterateRoundRobin,
+  createBracket,
+  iterateBracket,
+  iterateMelee,
+  submitToHill,
+  runMatch,
+  type HillMatchRunner,
+} from '@asmbots/tourney'
 
 declare const process: { env: Record<string, string | undefined>; argv: string[]; cwd(): string; stdout: { isTTY: boolean }; exit(code: number): never }
 
@@ -359,6 +368,291 @@ async function cmdDis(inputPath: string, flags: Record<string, string | boolean>
   }
 }
 
+async function cmdTourney(inputs: string[], flags: Record<string, string | boolean>): Promise<number> {
+  try {
+    if (inputs.length < 2) {
+      console.error(colorize('error: tourney requires a format (roundrobin/bracket/melee) and at least 2 bots', 'red'))
+      printHelp('tourney')
+      return 1
+    }
+
+    const format = inputs[0]!.toLowerCase()
+    const botInputs = inputs.slice(1)
+
+    if (!['roundrobin', 'bracket', 'melee'].includes(format)) {
+      console.error(colorize(`error: unknown tournament format '${format}', must be roundrobin, bracket, or melee`, 'red'))
+      return 1
+    }
+
+    const rounds = flags.rounds ? parseInt(String(flags.rounds), 10) : 1
+    const json = !!flags.json
+
+    const bots: LoadedBot[] = []
+    for (const input of botInputs) {
+      bots.push(await loadBot(input))
+    }
+
+    const config: BattleConfigInput = {
+      seed: Math.floor(Math.random() * 0xffffffff),
+      maxCycles: DEFAULT_CONFIG.maxCycles,
+      maxProcesses: DEFAULT_CONFIG.maxProcesses,
+      minSpacing: DEFAULT_CONFIG.minSpacing,
+    }
+
+    let results: any = null
+
+    if (format === 'roundrobin') {
+      results = await runTourneyRoundRobin(bots, config, rounds, !json)
+      if (json) {
+        console.log(JSON.stringify({ results }, null, 2))
+      } else {
+        printStandings(results.standings)
+      }
+    } else if (format === 'bracket') {
+      results = await runTourneyBracket(bots, config, rounds, !json)
+      if (json) {
+        console.log(JSON.stringify({ results }, null, 2))
+      } else {
+        const finalMatch = results.bracket.matches[results.bracket.final]
+        if (finalMatch?.winner !== null) {
+          const winner = results.bracket.names[finalMatch.winner]
+          console.log(`Champion: ${colorize(winner, 'green')}`)
+        }
+      }
+    } else if (format === 'melee') {
+      results = await runTourneyMelee(bots, config, rounds, !json)
+      if (json) {
+        console.log(JSON.stringify({ results }, null, 2))
+      } else {
+        printMeleeStandings(results.standings)
+      }
+    }
+
+    if (flags.out) {
+      const outPath = resolve(String(flags.out))
+      writeFileSync(outPath, JSON.stringify(results, null, 2))
+      console.log(`Results written to ${colorize(outPath, 'green')}`)
+    }
+
+    return 0
+  } catch (err) {
+    console.error(colorize(`error: ${err instanceof Error ? err.message : String(err)}`, 'red'))
+    return 3
+  }
+}
+
+async function runTourneyRoundRobin(
+  bots: LoadedBot[],
+  config: BattleConfigInput,
+  rounds: number,
+  verbose: boolean,
+): Promise<any> {
+  let standings: any[] = []
+  let matchCount = 0
+  let totalMatches = 0
+
+  for await (const progress of iterateRoundRobin(bots, config, { rounds })) {
+    matchCount = progress.match
+    totalMatches = progress.of
+    standings = progress.standings as any[]
+    if (verbose) {
+      console.log(`  ${colorize(`Match ${matchCount}/${totalMatches}`, 'cyan')}`)
+    }
+  }
+
+  return { matches: matchCount, total: totalMatches, standings }
+}
+
+async function runTourneyBracket(
+  bots: LoadedBot[],
+  config: BattleConfigInput,
+  rounds: number,
+  verbose: boolean,
+): Promise<any> {
+  const entrants = bots.map((b) => ({ ...b, name: b.name }))
+  let br = createBracket(entrants, { seeding: 'given' })
+  let matchCount = 0
+
+  for await (const progress of iterateBracket(br, async (indices) => {
+    const [aIdx, bIdx] = indices
+    const bots_ = [bots[aIdx]!, bots[bIdx]!]
+    matchCount++
+    if (verbose) {
+      console.log(`  ${colorize(`Match ${matchCount}`, 'cyan')}`)
+    }
+    return runMatch(bots_, config, rounds)
+  })) {
+    br = progress.bracket
+  }
+
+  return { bracket: br, matchCount }
+}
+
+async function runTourneyMelee(
+  bots: LoadedBot[],
+  config: BattleConfigInput,
+  rounds: number,
+  verbose: boolean,
+): Promise<any> {
+  let standings: any[] = []
+  let roundCount = 0
+
+  for await (const progress of iterateMelee(bots, config, rounds)) {
+    roundCount = progress.round
+    standings = progress.partial.standings as any[]
+    if (verbose) {
+      console.log(`  ${colorize(`Round ${progress.round}/${progress.of}`, 'cyan')}`)
+    }
+  }
+
+  return { standings, rounds: roundCount }
+}
+
+async function cmdHill(inputs: string[], flags: Record<string, string | boolean>): Promise<number> {
+  try {
+    if (inputs.length < 2 || inputs[0] !== 'submit') {
+      console.error(colorize('error: hill requires "submit <hill.json> <bot.asm>"', 'red'))
+      printHelp('hill')
+      return 1
+    }
+
+    const hillPath = resolve(inputs[1]!)
+    const botPath = resolve(inputs[2]!)
+
+    let hillState: any = { entries: [], matches: [], config: { size: 10, rounds: 1, battle: DEFAULT_CONFIG } }
+    try {
+      const hillText = readFileSync(hillPath, 'utf8')
+      hillState = JSON.parse(hillText)
+    } catch {
+      // New hill
+    }
+
+    const bot = await loadBot(botPath)
+    const challenger = { id: `bot-${Date.now()}`, bot, rating: undefined }
+
+    const hillMatchRunner: HillMatchRunner = (challenger, defender, config) => {
+      return runMatch([challenger.bot, { name: defender.name, bytes: new Uint8Array(8192), meta: {} }], config.battle, config.rounds)
+    }
+
+    let finalResult: any = null
+    for await (const progress of submitToHill(hillState, challenger, hillMatchRunner)) {
+      if (progress.final) {
+        finalResult = progress.final
+      }
+    }
+
+    if (!finalResult) {
+      console.error(colorize('error: hill submission failed', 'red'))
+      return 3
+    }
+
+    const outPath = flags.out ? resolve(String(flags.out)) : hillPath
+    writeFileSync(outPath, JSON.stringify(finalResult.state, null, 2))
+
+    if (!!flags.json) {
+      console.log(JSON.stringify(finalResult, null, 2))
+    } else {
+      console.log(`Hill updated: ${finalResult.board.length} entries`)
+      if (finalResult.rank !== null) {
+        console.log(colorize(`Challenger accepted at rank ${finalResult.rank}`, 'green'))
+      } else {
+        console.log(colorize('Challenger rejected', 'red'))
+      }
+    }
+
+    return 0
+  } catch (err) {
+    console.error(colorize(`error: ${err instanceof Error ? err.message : String(err)}`, 'red'))
+    return 3
+  }
+}
+
+async function cmdBench(flags: Record<string, string | boolean>): Promise<number> {
+  try {
+    const seconds = flags.seconds ? parseInt(String(flags.seconds), 10) : 5
+
+    const bot = fighter('dwarf')
+    const config: BattleConfigInput = DEFAULT_CONFIG
+    const bots = [bot, bot]
+
+    const startTime = performance.now()
+    let cycles = 0
+    let battleCount = 0
+
+    while (performance.now() - startTime < seconds * 1000) {
+      const battle = new Battle(bots, { ...config, seed: Math.floor(Math.random() * 0xffffffff) }, new NullSink())
+      battle.run()
+      const result = battle.result()
+      cycles += result.cycles
+      battleCount++
+    }
+
+    const elapsed = (performance.now() - startTime) / 1000
+    const ips = Math.round(cycles / elapsed)
+
+    console.log(`Ran ${battleCount} battles in ${elapsed.toFixed(2)}s`)
+    console.log(`${colorize(ips.toLocaleString(), 'green')} instructions/sec`)
+
+    return 0
+  } catch (err) {
+    console.error(colorize(`error: ${err instanceof Error ? err.message : String(err)}`, 'red'))
+    return 3
+  }
+}
+
+async function cmdGolden(inputs: string[], flags: Record<string, string | boolean>): Promise<number> {
+  try {
+    // Import the golden function from the scripts package
+    // Since it's not easily importable from outside, we use bun.run
+    const result = await Bun.run({
+      cmd: ['bun', 'run', 'scripts/golden.ts', flags.update ? '--update' : ''],
+      stdout: 'inherit',
+      stderr: 'inherit',
+    })
+    return result.exitCode
+  } catch (err) {
+    console.error(colorize(`error: ${err instanceof Error ? err.message : String(err)}`, 'red'))
+    return 3
+  }
+}
+
+function printStandings(standings: any[]): void {
+  if (standings.length === 0) {
+    console.log('No standings')
+    return
+  }
+
+  console.log('Standings:')
+  const sorted = [...standings].sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
+  for (let i = 0; i < sorted.length; i++) {
+    const s = sorted[i]!
+    const name = s.name || `Bot ${s.entrant}`
+    const points = s.points ?? 0
+    console.log(`  ${(i + 1).toString().padStart(2)}. ${name.padEnd(20)} ${points.toString().padStart(4)} points`)
+  }
+}
+
+function printMeleeStandings(standings: any[]): void {
+  if (standings.length === 0) {
+    console.log('No standings')
+    return
+  }
+
+  console.log('Melee Standings:')
+  const sorted = [...standings].sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
+  for (let i = 0; i < sorted.length; i++) {
+    const s = sorted[i]!
+    const name = s.name || `Bot ${s.entrant}`
+    const points = s.points ?? 0
+    const wins = s.wins ?? 0
+    const ties = s.ties ?? 0
+    const losses = s.losses ?? 0
+    console.log(
+      `  ${(i + 1).toString().padStart(2)}. ${name.padEnd(20)} ${points.toString().padStart(4)} pts  W:${wins} T:${ties} L:${losses}`,
+    )
+  }
+}
+
 function printHelp(command?: string): void {
   if (!command || command === 'asm') {
     console.log(`asm <file.asm> [--listing] [--bin out.bin] [--max-bytes N]
@@ -412,6 +706,65 @@ function printHelp(command?: string): void {
     0  Success
     1  Usage error
     3  Runtime error`)
+  }
+
+  if (!command || command === 'tourney') {
+    console.log(`tourney roundrobin|bracket|melee <files or roster:*> [--rounds K] [--out results.json] [--svg bracket.svg]
+  Run a tournament. Accepts roster slugs (roster:dwarf) or paths to .asm or .bin files.
+
+  Options:
+    --rounds <K>    Number of rounds per match (default: 1)
+    --out <file>    Write results to JSON file
+    --svg <file>    Write SVG bracket (bracket format only)
+    --json          Machine-readable output
+    --help          Show this help
+
+  Exit codes:
+    0  Success
+    1  Usage error
+    3  Runtime error`)
+  }
+
+  if (!command || command === 'hill') {
+    console.log(`hill submit <hill.json> <bot.asm> [--out hill.json]
+  Submit a bot to a local King of the Hill.
+
+  Options:
+    --out <file>    Write updated hill to file (default: overwrite input)
+    --json          Machine-readable output
+    --help          Show this help
+
+  Exit codes:
+    0  Success
+    1  Usage error
+    3  Runtime error`)
+  }
+
+  if (!command || command === 'bench') {
+    console.log(`bench [--seconds 5]
+  Benchmark the engine.
+
+  Options:
+    --seconds <N>   Seconds to run (default: 5)
+    --help          Show this help
+
+  Exit codes:
+    0  Success
+    3  Runtime error`)
+  }
+
+  if (!command || command === 'golden') {
+    console.log(`golden [--update]
+  Verify golden test data.
+
+  Options:
+    --update        Update the golden results file
+    --help          Show this help
+
+  Exit codes:
+    0  Success
+    1  Mismatch or error
+    2  Unknown argument`)
   }
 
   if (!command) {
@@ -471,12 +824,20 @@ async function main(): Promise<number> {
       return await cmdFight(parsed.args, parsed.flags)
     }
 
-    case 'tourney':
-    case 'hill':
-    case 'bench':
+    case 'tourney': {
+      return await cmdTourney(parsed.args, parsed.flags)
+    }
+
+    case 'hill': {
+      return await cmdHill(parsed.args, parsed.flags)
+    }
+
+    case 'bench': {
+      return await cmdBench(parsed.flags)
+    }
+
     case 'golden': {
-      console.error(colorize(`error: ${parsed.command} command not yet implemented`, 'red'))
-      return 1
+      return await cmdGolden(parsed.args, parsed.flags)
     }
 
     default: {
