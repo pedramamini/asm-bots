@@ -15,6 +15,15 @@
     "apps/cli": {
       "name": "@asmbots/cli",
       "version": "0.0.0",
+      "bin": {
+        "asmbots": "./src/main.ts",
+      },
+      "dependencies": {
+        "@asmbots/asm": "workspace:*",
+        "@asmbots/bots": "workspace:*",
+        "@asmbots/engine": "workspace:*",
+        "@asmbots/tourney": "workspace:*",
+      },
     },
     "apps/web": {
       "name": "@asmbots/web",

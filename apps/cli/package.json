@@ -3,8 +3,17 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "bin": {
+    "asmbots": "./src/main.ts"
+  },
   "scripts": {
     "build": "tsc -b",
     "test": "bun test"
+  },
+  "dependencies": {
+    "@asmbots/asm": "workspace:*",
+    "@asmbots/engine": "workspace:*",
+    "@asmbots/tourney": "workspace:*",
+    "@asmbots/bots": "workspace:*"
   }
 }

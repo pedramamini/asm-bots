@@ -6,12 +6,23 @@
     "rootDir": "./src",
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
+    "skipLibCheck": true,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitAny": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "noEmitOnError": false
   },
   "include": ["src"],
   "references": [
+    { "path": "../../packages/codec" },
     { "path": "../../packages/engine" },
     { "path": "../../packages/asm" },
+    { "path": "../../packages/bots" },
     { "path": "../../packages/tourney" }
   ]
 }
