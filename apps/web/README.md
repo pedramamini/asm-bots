@@ -8,10 +8,12 @@ Query, Zustand, and the `@asmbots/ui` kit.
 | `bun run --filter @asmbots/web dev` | Dev server on http://localhost:5173 |
 | `bun run --filter @asmbots/web build` | `tsc -b`, then the production build in `dist/` |
 | `bun run --filter @asmbots/web preview` | Serves `dist/` on http://localhost:4173 |
-| `bun run --filter @asmbots/web test` | Unit and component tests (`test/`) |
-| `bun run --filter @asmbots/web e2e` | Playwright (`e2e/`): the build, and the dev server for `/_gallery` |
+| `bun run --filter @asmbots/web test` | Unit and component tests (`test/`), the arena Worker in Bun's real `Worker` |
+| `bun run --filter @asmbots/web e2e` | Playwright (`e2e/`): the build, and the dev server for `/_gallery` and the arena Worker |
 
-Docs pages are MDX in `src/docs/`, listed in `src/docs/index.ts`.
+Docs pages are MDX in `src/docs/`, listed in `src/docs/index.ts`. The arena lives in
+`src/features/arena/`: `worker/protocol.ts` has the Worker's messages, `worker/session.ts` the
+battle and its keyframes, and `worker/client.ts` the `ArenaClient` and the `useArena` store.
 
 ## Lighthouse
 
