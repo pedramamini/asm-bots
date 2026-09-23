@@ -1,10 +1,18 @@
 /**
- * Standings (PRODUCT_SPEC §4): points, wins, ties, and losses per entrant over a set of matches.
+ * Scoring (ISA §5.5, PRODUCT_SPEC §4): pMARS points per round, and standings (points, wins,
+ * ties, and losses per entrant) over a set of matches, with a CSV export.
  *
  * A match outcome comes from the match points: the entrant with the most points wins, entrants
  * that share the most points tie, and the rest lose. For two entrants that is the usual W/T/L.
  */
 import type { MatchResult } from './match'
+
+/**
+ * The pMARS points of each survivor of a round of `n` bots with `survivors` survivors:
+ * `floor((n*n - 1) / survivors)`, 0 when none survive (ISA §5.5). The engine's own function, so
+ * the tourney and the engine can never disagree.
+ */
+export { pmarsPoints } from '@asmbots/engine'
 
 /** One entrant's line in a standings table. */
 export interface Standing {
@@ -69,4 +77,31 @@ export function standingsFromMatches(
     })
   }
   return rows.sort(compareStandings)
+}
+
+/** The columns `csv` needs: a `Standing` or a `MeleeStanding` fits. */
+export type CsvStanding = Pick<
+  Standing,
+  'entrant' | 'name' | 'points' | 'wins' | 'ties' | 'losses'
+>
+
+/** The header row of `csv`. */
+export const CSV_HEADER = 'rank,entrant,name,points,wins,ties,losses'
+
+/**
+ * The standings as CSV (RFC 4180, CRLF line ends): a header, then one row per standing in the
+ * given order, ranked from 1. A name with a comma, a quote, or a line break is quoted. A name
+ * that starts with `=`, `+`, `-`, `@`, a tab, or a CR gets a leading `'`, so a spreadsheet does
+ * not run it as a formula (bot names are user input).
+ */
+export function csv(standings: readonly CsvStanding[]): string {
+  const rows = standings.map((s, i) =>
+    [i + 1, s.entrant, csvField(s.name), s.points, s.wins, s.ties, s.losses].join(','),
+  )
+  return `${[CSV_HEADER, ...rows].join('\r\n')}\r\n`
+}
+
+function csvField(text: string): string {
+  const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text
+  return /[",\r\n]/.test(safe) ? `"${safe.replaceAll('"', '""')}"` : safe
 }
