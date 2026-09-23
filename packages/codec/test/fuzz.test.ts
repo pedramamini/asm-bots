@@ -170,7 +170,6 @@ describe('fuzz: 100,000 random 8-byte strings', () => {
     expect(wrong.slice(0, 20)).toEqual([])
   })
 
-  // The other half needs the assembler: its parser must read format(x) back as spell(x). Then
-  // this becomes `encode(parse(format(x)))` equals `encode(x)` over the same strings.
-  it.todo('assembles format(x) to the bytes of encode(x) for every ok result: deferred to 1.3')
+  // The other half needs the assembler, which reads format(x) back as spell(x):
+  // packages/asm/test/roundtrip.test.ts assembles format(x) to the bytes of encode(x).
 })

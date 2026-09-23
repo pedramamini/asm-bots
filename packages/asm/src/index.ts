@@ -30,6 +30,8 @@ export type {
   UnaryOp,
 } from './ast'
 export type { Diag, DiagCode } from './diag'
+export type { DisassembleOptions, DisLine } from './disassemble'
+export { disassemble } from './disassemble'
 export type { Unresolved } from './expr'
 export { evaluate, evaluateExact } from './expr'
 export type { NumberToken, PlainToken, StringToken, Token, TokenKind } from './lexer'

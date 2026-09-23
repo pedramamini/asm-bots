@@ -23,6 +23,7 @@ import type {
 } from './ast'
 import type { Diag, DiagCode } from './diag'
 import { evaluate, evaluateExact, type Unresolved } from './expr'
+import { bytesHex } from './hex'
 import { BYTE_REGISTERS } from './keywords'
 import { type Token, tokenize } from './lexer'
 import { parse } from './parser'
@@ -803,9 +804,6 @@ function findCycles(
   return cycles
 }
 
-const hex = (bytes: Uint8Array) =>
-  Array.from(bytes, (b) => b.toString(16).toUpperCase().padStart(2, '0')).join(' ')
-
 /** One listing line per source line, from the addresses and sizes of the last pass. */
 function listing(items: readonly Item[], bytes: Uint8Array, source: string): ListingLine[] {
   const texts = source.split(/\r\n|\r|\n/)
@@ -815,7 +813,7 @@ function listing(items: readonly Item[], bytes: Uint8Array, source: string): Lis
       lineNo: item.line.line,
       address: item.address,
       bytes: own,
-      bytesHex: hex(own),
+      bytesHex: bytesHex(own),
       source: texts[i] ?? '',
     }
   })

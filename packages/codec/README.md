@@ -76,4 +76,4 @@ Nothing else changes. The decoder's dispatch array, the encoder's forms, the for
 
 On 2026-09-23 (Apple M5 Max, Bun 1.3.6), `bun run bench` measured 73 M decodes/s for `decodeInto` and 36 M decodes/s for `decode`.
 
-The text round trip, `encode(parse(format(x)))` equals `encode(x)`, needs the assembler's parser (task 1.3). Until then it is a `todo` test in `test/fuzz.test.ts`. The codec's half, `encode(spell(x))` equals `encode(x)`, is tested now.
+The text round trip, `assemble(format(x))` equals `encode(x)`, needs the assembler, so `@asmbots/asm` tests it (`packages/asm/test/roundtrip.test.ts`). The codec's half, `encode(spell(x))` equals `encode(x)`, is in `test/fuzz.test.ts`.
