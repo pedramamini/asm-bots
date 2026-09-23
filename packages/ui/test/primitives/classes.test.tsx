@@ -1,25 +1,41 @@
 import { beforeAll, describe, expect, it, jest } from 'bun:test'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { Copy, Grid2x2, Play, ShieldCheck, StepBack, Trash2 } from 'lucide-react'
+import { useEffect } from 'react'
 import {
   Button,
   Chip,
+  EmptyState,
   Header,
+  Hex,
+  HueSwatch,
   IconButton,
+  Identicon,
   Input,
   Kbd,
+  KeyHelp,
   Menu,
+  Modal,
   NavButton,
   Panel,
   PanelGrid,
+  RadarLoader,
   Segmented,
   Select,
+  Skeleton,
   Slider,
+  Sparkline,
   SplitPane,
+  Stat,
   StatusBar,
+  Table,
+  type TableColumn,
   Ticker,
+  Toast,
+  ToastProvider,
   Toggle,
   Toolbar,
+  useToast,
 } from '../../src/index'
 import { stubLayout, useDom } from '../dom'
 import { compileKit } from '../tailwind'
@@ -103,10 +119,110 @@ function Controls() {
   )
 }
 
+interface Row {
+  n: number
+}
+const ROW_COLUMNS: TableColumn<Row>[] = [
+  { id: 'n', header: 'n', align: 'right', sortValue: (row) => row.n, cell: (row) => row.n },
+  {
+    id: 'name',
+    header: 'name',
+    align: 'center',
+    sortValue: (row) => `bot-${row.n}`,
+    cell: () => 'x',
+  },
+  { id: 'plain', header: 'plain', cell: () => 'y' },
+]
+const rows = (count: number) => Array.from({ length: count }, (_, n) => ({ n }))
+
+/** Shows one toast as it mounts: the provider's stack draws only toasts it holds. */
+function ShowToast() {
+  const { toast } = useToast()
+  useEffect(() => {
+    toast('link copied', { variant: 'accent', action: { label: 'open', onClick() {} } })
+  }, [toast])
+  return null
+}
+
+/** Every data display and feedback primitive in every state that changes its classes. */
+function DataDisplay() {
+  return (
+    <ToastProvider>
+      <ShowToast />
+      {/* Sorted each way; past 200 rows, with spacers above and below. */}
+      <Table
+        columns={ROW_COLUMNS}
+        rows={rows(3)}
+        rowKey={(row) => row.n}
+        defaultSort={{ column: 'n', direction: 'asc' }}
+      />
+      <Table
+        columns={ROW_COLUMNS}
+        rows={rows(3)}
+        rowKey={(row) => row.n}
+        defaultSort={{ column: 'name', direction: 'desc' }}
+      />
+      <Table className="h-60" columns={ROW_COLUMNS} rows={rows(1000)} rowKey={(row) => row.n} />
+      <Table
+        columns={ROW_COLUMNS}
+        rows={[]}
+        rowKey={(row) => row.n}
+        empty={<EmptyState action={{ label: 'add', href: '/add' }}>none.</EmptyState>}
+      />
+      <EmptyState action={{ label: 'add', onClick() {} }}>none.</EmptyState>
+      <Stat label="cycles" value="12,480" delta={3} note="vs last">
+        <Sparkline values={[1, 2]} />
+      </Stat>
+      <Stat label="bots" value="8" delta={-2} />
+      <Stat label="procs" value="41" delta={0} />
+      <Stat label="footprint" loading />
+      <Sparkline values={[1, 2]} hue={3} />
+      <Identicon value="imp" />
+      <Identicon value="imp" hue={3} />
+      <HueSwatch hue={1} />
+      <HueSwatch hue={13} />
+      <Hex value={0x1a2f} />
+      <Hex byte value={0xff} />
+      <Skeleton className="h-2.5 w-24" />
+      <Skeleton rows={2} />
+      <RadarLoader framed label="loading" detail="3 left" />
+      <RadarLoader />
+      <KeyHelp
+        bindings={[
+          { keys: ['g', 'a'], description: 'go to arena', group: 'global' },
+          { keys: ['f'], description: 'fullscreen' },
+        ]}
+      />
+      {(['neutral', 'accent', 'warn', 'danger', 'info'] as const).map((variant) => (
+        <Toast key={variant} variant={variant} onDismiss={() => {}}>
+          {variant}
+        </Toast>
+      ))}
+      {(['sm', 'md', 'lg'] as const).map((size) => (
+        <Modal
+          key={size}
+          open
+          size={size}
+          title={size}
+          onClose={() => {}}
+          actions={<Button>ok</Button>}
+        >
+          body
+        </Modal>
+      ))}
+    </ToastProvider>
+  )
+}
+
 describe('the primitives’ classes', () => {
   it('each compile to a rule, in every state (a mistyped class is otherwise silent)', () => {
-    // The states that add classes: a marquee, a drag in each direction, a dense panel.
-    const undo = [stubLayout('scrollWidth', () => 900), stubLayout('clientWidth', () => 300)]
+    // The states that add classes: a marquee, a drag in each direction, a dense panel, a table
+    // scrolled into the middle of its rows.
+    const undo = [
+      stubLayout('scrollWidth', () => 900),
+      stubLayout('clientWidth', () => 300),
+      stubLayout('offsetHeight', () => 240),
+    ]
     try {
       render(
         <>
@@ -134,8 +250,12 @@ describe('the primitives’ classes', () => {
           </SplitPane>
           <StatusBar left="ok" center="made with maestro" right="60 fps" />
           <Controls />
+          <DataDisplay />
         </>,
       )
+      const long = document.querySelector('.h-60') as HTMLElement
+      long.scrollTop = 24 * 500
+      fireEvent.scroll(long)
     } finally {
       for (const restore of undo) restore()
     }
@@ -159,13 +279,17 @@ describe('the primitives’ classes', () => {
     }
     expect(document.querySelector('[inert]')).not.toBeNull()
     expect(document.querySelectorAll('[data-dragging]')).toHaveLength(2)
+    // A spacer above the drawn rows and one below; a toast in the stack; three open modals.
+    expect(document.querySelectorAll('.h-60 tbody tr[aria-hidden]')).toHaveLength(2)
+    expect(document.querySelectorAll('section[aria-label=notifications] li')).toHaveLength(1)
+    expect(document.querySelectorAll('dialog[open]')).toHaveLength(3)
 
     const names = new Set(
       [...document.body.querySelectorAll('[class]')].flatMap((element) => [...element.classList]),
     )
     const css = build([...names])
     expect([...names].filter((name) => !MARKER.test(name) && !hasRule(css, name))).toEqual([])
-    expect(names.size).toBeGreaterThan(180)
+    expect(names.size).toBeGreaterThan(280)
   })
 
   it('catches a mistyped class', async () => {

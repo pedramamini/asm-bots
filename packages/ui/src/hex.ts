@@ -1,3 +1,20 @@
+/**
+ * An address, or a word, as the kit shows it (DESIGN_SYSTEM §1.2): `0x` and 4 uppercase digits,
+ * `0x1A2F`. Held to 16 bits, as the core wraps.
+ */
+export function hexAddress(value: number): string {
+  return `0x${digitsOf(value & 0xffff, 4)}`
+}
+
+/** A byte as 2 uppercase digits and no prefix: `FF`. Held to 8 bits. */
+export function hexByte(value: number): string {
+  return digitsOf(value & 0xff, 2)
+}
+
+function digitsOf(value: number, digits: number): string {
+  return value.toString(16).toUpperCase().padStart(digits, '0')
+}
+
 /** Hex as typed: an optional `0x`, then hex digits in either case. */
 const HEX = /^(0[xX])?([0-9A-Fa-f]*)$/
 

@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@floating-ui/react-dom": "2.1.9",
+    "@tanstack/react-virtual": "3.14.13",
     "lucide-react": "1.47.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",

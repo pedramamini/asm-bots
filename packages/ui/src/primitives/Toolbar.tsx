@@ -1,4 +1,5 @@
 import type { ComponentProps, KeyboardEvent } from 'react'
+import { tabbables } from '../focus'
 import { cx } from '../style'
 
 export type ToolbarProps = ComponentProps<'div'>
@@ -6,12 +7,6 @@ export type ToolbarProps = ComponentProps<'div'>
 /** Controls whose arrow keys move a caret or a value: the toolbar leaves those keys alone. */
 const OWN_ARROWS =
   'input:not([type=button],[type=checkbox],[type=radio],[type=reset],[type=submit]),select,textarea,[contenteditable]:not([contenteditable=false])'
-/**
- * The controls the arrow keys move between: the Tab stops. A roving group's other members and an
- * open menu's items are at tabindex -1, so the keys land on the group's one stop.
- */
-const CONTROLS =
-  ':is(a[href],button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex]):not([tabindex="-1"])'
 
 /**
  * The route's filter row under the header (DESIGN_SYSTEM §4): 36 px, hairline bottom, controls
@@ -40,7 +35,8 @@ export function Toolbar({ className, onKeyDown, ...rest }: ToolbarProps) {
 function moveFocus(event: KeyboardEvent<HTMLDivElement>): void {
   const target = event.target as HTMLElement
   if (event.altKey || event.ctrlKey || event.metaKey || target.matches(OWN_ARROWS)) return
-  const controls = [...event.currentTarget.querySelectorAll<HTMLElement>(CONTROLS)]
+  // The Tab stops: the keys land on a roving group's one stop and skip an open menu's items.
+  const controls = tabbables(event.currentTarget)
   const from = controls.indexOf(target)
   if (from < 0) return
   const moves: Readonly<Record<string, number>> = {

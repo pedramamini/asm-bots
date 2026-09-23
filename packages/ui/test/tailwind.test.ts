@@ -174,6 +174,36 @@ describe('tailwind.css', () => {
     })
     expect(css).toMatch(/@keyframes marquee \{\s*to \{\s*transform: translateX\(-50%\);\s*\}\s*\}/)
   })
+
+  it('pulses a skeleton block to half opacity and back every 1.6 s', () => {
+    const css = build(['animate-skeleton'])
+    expect(rule(css, '.animate-skeleton')).toEqual({
+      animation: 'skeleton 1600ms ease-in-out infinite',
+    })
+    expect(css).toMatch(/@keyframes skeleton \{\s*50% \{\s*opacity: 0\.5;\s*\}\s*\}/)
+  })
+
+  it('turns the radar beam once every 2 s about the center of its view box (DESIGN_SYSTEM §4)', () => {
+    const css = build(['animate-radar-sweep'])
+    expect(rule(css, '.animate-radar-sweep')).toEqual({
+      'transform-box': 'view-box',
+      'transform-origin': 'center',
+      animation: 'radar-sweep 2s linear infinite',
+    })
+    expect(css).toMatch(
+      /@keyframes radar-sweep \{\s*to \{\s*transform: rotate\(360deg\);\s*\}\s*\}/,
+    )
+  })
+
+  it('fades a radar contact over the same 2 s turn, from --blip-delay', () => {
+    const css = build(['animate-radar-blip'])
+    expect(rule(css, '.animate-radar-blip')).toEqual({
+      animation: 'radar-blip 2s ease-out var(--blip-delay, 0s) infinite',
+    })
+    expect(css).toMatch(
+      /@keyframes radar-blip \{\s*from \{\s*opacity: 1;\s*\}\s*to \{\s*opacity: 0\.15;\s*\}\s*\}/,
+    )
+  })
 })
 
 /** The characters the design draws besides letters and digits (DESIGN_SYSTEM §4, §9). */

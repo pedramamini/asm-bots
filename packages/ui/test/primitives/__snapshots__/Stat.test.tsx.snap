@@ -1,0 +1,79 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Stat draws the label, the number, and the delta, and the loading tile 1`] = `
+"<div>
+  <div
+    class="flex min-w-0 items-end gap-3 rounded-md border border-l-4 border-border bg-panel p-3"
+  >
+    <div
+      class="flex min-w-0 flex-1 flex-col gap-0.5"
+    >
+      <div
+        class="truncate text-panel-status text-muted"
+      >
+        cycles
+      </div>
+      <div
+        class="truncate text-stat text-bright"
+      >
+        12,480
+      </div>
+      <div
+        class="flex min-w-0 items-center gap-2 text-data"
+      >
+        <span
+          class="shrink-0 whitespace-nowrap text-accent"
+        >
+          <span
+            aria-hidden="true"
+          >
+            ▲
+          </span>
+          <span
+            class="sr-only"
+          >
+            up
+          </span>
+           
+          1,204
+        </span>
+        <span
+          class="truncate text-muted"
+        >
+          vs last round
+        </span>
+      </div>
+    </div>
+  </div>
+  <div
+    aria-busy="true"
+    class="flex min-w-0 items-end gap-3 rounded-md border border-l-4 border-border bg-panel p-3"
+  >
+    <div
+      class="flex min-w-0 flex-1 flex-col gap-0.5"
+    >
+      <div
+        class="truncate text-panel-status text-muted"
+      >
+        footprint
+      </div>
+      <div
+        class="flex h-7 items-center"
+      >
+        <div
+          aria-hidden="true"
+          class="rounded-sm bg-panel-2 animate-skeleton motion-reduce:animate-none h-6 w-16"
+        />
+      </div>
+      <div
+        class="flex h-4.5 items-center"
+      >
+        <div
+          aria-hidden="true"
+          class="rounded-sm bg-panel-2 animate-skeleton motion-reduce:animate-none h-2.5 w-24"
+        />
+      </div>
+    </div>
+  </div>
+</div>"
+`;

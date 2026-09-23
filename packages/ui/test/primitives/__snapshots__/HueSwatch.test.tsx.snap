@@ -1,0 +1,56 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`HueSwatch draws a plain swatch and a hatched one 1`] = `
+"<div>
+  <svg
+    aria-hidden="true"
+    class="shrink-0 text-(--hue)"
+    height="10"
+    style="--hue: var(--bot-2);"
+    viewBox="0 0 10 10"
+    width="10"
+  >
+    <rect
+      class="fill-arena-bg"
+      height="10"
+      width="10"
+    />
+    <rect
+      fill="currentColor"
+      height="8"
+      width="8"
+      x="1"
+      y="1"
+    />
+  </svg>
+  <svg
+    aria-hidden="true"
+    class="shrink-0 text-(--hue)"
+    data-hatched="true"
+    height="10"
+    style="--hue: var(--bot-2);"
+    viewBox="0 0 10 10"
+    width="10"
+  >
+    <rect
+      class="fill-arena-bg"
+      height="10"
+      width="10"
+    />
+    <rect
+      fill="currentColor"
+      height="8"
+      width="8"
+      x="1"
+      y="1"
+    />
+    <path
+      class="stroke-arena-bg"
+      d="M-10 10L0 0M-7 10L3 0M-4 10L6 0M-1 10L9 0M2 10L12 0M5 10L15 0M8 10L18 0"
+      fill="none"
+      stroke-opacity="0.7"
+      stroke-width="1"
+    />
+  </svg>
+</div>"
+`;

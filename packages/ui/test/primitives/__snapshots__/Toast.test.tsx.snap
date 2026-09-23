@@ -1,0 +1,200 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Toast draws a toast in each variant 1`] = `
+"<div>
+  <div
+    class="flex w-80 max-w-full items-center gap-2 rounded-md border border-l-2 border-border-strong bg-panel py-1.5 pr-1.5 pl-3 text-body text-text border-l-border-strong"
+  >
+    <div
+      class="min-w-0 flex-1"
+    >
+      neutral
+    </div>
+    <button
+      aria-label="dismiss"
+      class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none size-5 focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40 border-border text-text not-disabled:hover:border-border-strong not-disabled:hover:text-bright"
+      type="button"
+    >
+      <svg
+        aria-hidden="true"
+        class="lucide lucide-x shrink-0"
+        fill="none"
+        height="12"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="1.75"
+        viewBox="0 0 24 24"
+        width="12"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M18 6 6 18"
+        />
+        <path
+          d="m6 6 12 12"
+        />
+      </svg>
+    </button>
+  </div>
+  <div
+    class="flex w-80 max-w-full items-center gap-2 rounded-md border border-l-2 border-border-strong bg-panel py-1.5 pr-1.5 pl-3 text-body text-text border-l-accent"
+  >
+    <div
+      class="min-w-0 flex-1"
+    >
+      accent
+    </div>
+    <button
+      aria-label="dismiss"
+      class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none size-5 focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40 border-border text-text not-disabled:hover:border-border-strong not-disabled:hover:text-bright"
+      type="button"
+    >
+      <svg
+        aria-hidden="true"
+        class="lucide lucide-x shrink-0"
+        fill="none"
+        height="12"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="1.75"
+        viewBox="0 0 24 24"
+        width="12"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M18 6 6 18"
+        />
+        <path
+          d="m6 6 12 12"
+        />
+      </svg>
+    </button>
+  </div>
+  <div
+    class="flex w-80 max-w-full items-center gap-2 rounded-md border border-l-2 border-border-strong bg-panel py-1.5 pr-1.5 pl-3 text-body text-text border-l-warn"
+  >
+    <div
+      class="min-w-0 flex-1"
+    >
+      warn
+    </div>
+    <button
+      aria-label="dismiss"
+      class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none size-5 focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40 border-border text-text not-disabled:hover:border-border-strong not-disabled:hover:text-bright"
+      type="button"
+    >
+      <svg
+        aria-hidden="true"
+        class="lucide lucide-x shrink-0"
+        fill="none"
+        height="12"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="1.75"
+        viewBox="0 0 24 24"
+        width="12"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M18 6 6 18"
+        />
+        <path
+          d="m6 6 12 12"
+        />
+      </svg>
+    </button>
+  </div>
+  <div
+    class="flex w-80 max-w-full items-center gap-2 rounded-md border border-l-2 border-border-strong bg-panel py-1.5 pr-1.5 pl-3 text-body text-text border-l-danger"
+  >
+    <div
+      class="min-w-0 flex-1"
+    >
+      danger
+    </div>
+    <button
+      aria-label="dismiss"
+      class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none size-5 focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40 border-border text-text not-disabled:hover:border-border-strong not-disabled:hover:text-bright"
+      type="button"
+    >
+      <svg
+        aria-hidden="true"
+        class="lucide lucide-x shrink-0"
+        fill="none"
+        height="12"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="1.75"
+        viewBox="0 0 24 24"
+        width="12"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M18 6 6 18"
+        />
+        <path
+          d="m6 6 12 12"
+        />
+      </svg>
+    </button>
+  </div>
+  <div
+    class="flex w-80 max-w-full items-center gap-2 rounded-md border border-l-2 border-border-strong bg-panel py-1.5 pr-1.5 pl-3 text-body text-text border-l-info"
+  >
+    <div
+      class="min-w-0 flex-1"
+    >
+      info
+    </div>
+    <button
+      aria-label="dismiss"
+      class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none size-5 focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40 border-border text-text not-disabled:hover:border-border-strong not-disabled:hover:text-bright"
+      type="button"
+    >
+      <svg
+        aria-hidden="true"
+        class="lucide lucide-x shrink-0"
+        fill="none"
+        height="12"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="1.75"
+        viewBox="0 0 24 24"
+        width="12"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M18 6 6 18"
+        />
+        <path
+          d="m6 6 12 12"
+        />
+      </svg>
+    </button>
+  </div>
+  <div
+    class="flex w-80 max-w-full items-center gap-2 rounded-md border border-l-2 border-border-strong bg-panel py-1.5 pr-1.5 pl-3 text-body text-text border-l-danger"
+  >
+    <div
+      class="min-w-0 flex-1"
+    >
+      submission failed
+    </div>
+    <button
+      class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none h-5 gap-1 px-2 relative border-transparent text-data text-muted not-disabled:hover:text-text focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40"
+      type="button"
+    >
+      <span
+        class="inline-flex items-center gap-[inherit]"
+      >
+        retry
+      </span>
+    </button>
+  </div>
+</div>"
+`;

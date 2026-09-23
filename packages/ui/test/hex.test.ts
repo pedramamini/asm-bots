@@ -1,5 +1,27 @@
 import { describe, expect, it } from 'bun:test'
-import { maskHex } from '../src/index'
+import { hexAddress, hexByte, maskHex } from '../src/index'
+
+describe('hexAddress and hexByte', () => {
+  it('write an address as 0x and 4 uppercase digits, and a byte as 2 (DESIGN_SYSTEM §1.2)', () => {
+    expect(hexAddress(0x1a2f)).toBe('0x1A2F')
+    expect(hexAddress(0x0a1f)).toBe('0x0A1F')
+    expect(hexAddress(0)).toBe('0x0000')
+    expect(hexByte(0xff)).toBe('FF')
+    expect(hexByte(0x0f)).toBe('0F')
+  })
+
+  it('wrap as the core does: 16 bits for an address, 8 for a byte', () => {
+    expect(hexAddress(0x1_0000)).toBe('0x0000')
+    expect(hexAddress(-1)).toBe('0xFFFF')
+    expect(hexByte(0x100)).toBe('00')
+    expect(hexByte(-1)).toBe('FF')
+  })
+
+  it('round-trip through the hex field’s mask', () => {
+    for (const n of [0, 0x41, 0x1a2f, 0xffff]) expect(maskHex(hexAddress(n), 4)).toBe(hexAddress(n))
+    for (const n of [0, 0x7b, 0xff]) expect(maskHex(hexByte(n), 2)).toBe(hexByte(n))
+  })
+})
 
 describe('maskHex', () => {
   it('accepts 0x1A2F and rejects xyz', () => {

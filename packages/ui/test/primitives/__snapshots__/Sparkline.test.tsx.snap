@@ -1,0 +1,25 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Sparkline draws the series as one line 1`] = `
+"<div>
+  <svg
+    aria-hidden="true"
+    class="shrink-0 text-(--hue)"
+    height="16"
+    preserveAspectRatio="none"
+    style="--hue: var(--accent);"
+    viewBox="0 0 64 16"
+    width="64"
+  >
+    <polyline
+      fill="none"
+      points="0,15 21.33,7.22 42.67,11.89 64,1"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="1"
+      vector-effect="non-scaling-stroke"
+    />
+  </svg>
+</div>"
+`;

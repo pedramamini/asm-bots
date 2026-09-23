@@ -49,10 +49,12 @@ export function html(element: Element): string {
  * function runs. `value` gets the element, so a test can size one element differently.
  */
 export function stubLayout(
-  name: 'clientWidth' | 'scrollWidth',
+  name: 'clientWidth' | 'scrollWidth' | 'offsetHeight',
   value: (element: HTMLElement) => number,
 ): () => void {
   const proto = window.HTMLElement.prototype
+  // offsetHeight is HTMLElement's own; the others come from Element. Put back what was there.
+  const own = Object.getOwnPropertyDescriptor(proto, name)
   Object.defineProperty(proto, name, {
     configurable: true,
     get(this: HTMLElement) {
@@ -60,6 +62,7 @@ export function stubLayout(
     },
   })
   return () => {
-    delete (proto as unknown as Record<string, unknown>)[name]
+    if (own === undefined) delete (proto as unknown as Record<string, unknown>)[name]
+    else Object.defineProperty(proto, name, own)
   }
 }

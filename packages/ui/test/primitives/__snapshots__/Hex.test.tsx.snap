@@ -1,0 +1,23 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Hex draws an address and a byte 1`] = `
+"<div>
+  <data
+    class="whitespace-nowrap tabular-nums"
+    value="6703"
+  >
+    <span
+      class="opacity-60"
+    >
+      0x
+    </span>
+    1A2F
+  </data>
+  <data
+    class="whitespace-nowrap tabular-nums"
+    value="255"
+  >
+    FF
+  </data>
+</div>"
+`;

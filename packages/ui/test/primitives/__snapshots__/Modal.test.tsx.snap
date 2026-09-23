@@ -1,0 +1,93 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Modal draws the title row, the body, and the actions in a panel over the overlay 1`] = `
+"<div>
+  <button
+    type="button"
+  >
+    open
+  </button>
+  <dialog
+    aria-labelledby="id-1"
+    aria-modal="true"
+    class="fixed inset-0 z-modal m-0 size-full max-h-none max-w-none overflow-auto overscroll-contain border-0 bg-[rgba(0,0,0,0.7)] p-3 text-body text-text transition-opacity duration-120 ease-out backdrop:bg-transparent open:flex starting:open:opacity-0 motion-reduce:transition-none"
+    open=""
+  >
+    <div
+      class="m-auto flex max-h-full min-h-0 w-full flex-col rounded-lg border border-border-strong bg-panel p-4 max-w-120"
+    >
+      <header
+        class="mb-3 flex shrink-0 items-center gap-3 border-b border-border pb-3"
+      >
+        <h2
+          class="min-w-0 flex-1 truncate text-modal-title text-bright"
+          id="id-1"
+        >
+          delete bot
+        </h2>
+        <button
+          aria-label="close"
+          class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none size-5 focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40 border-border text-text not-disabled:hover:border-border-strong not-disabled:hover:text-bright"
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-x shrink-0"
+            fill="none"
+            height="12"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.75"
+            viewBox="0 0 24 24"
+            width="12"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M18 6 6 18"
+            />
+            <path
+              d="m6 6 12 12"
+            />
+          </svg>
+        </button>
+      </header>
+      <div
+        class="flex min-h-0 flex-1 flex-col"
+      >
+        <div
+          class="min-h-0 flex-1 overflow-auto"
+        >
+          <p>
+            delete dwarf-v3 and its 12 versions?
+          </p>
+        </div>
+        <footer
+          class="mt-4 flex shrink-0 items-center justify-end gap-2 border-t border-border pt-3"
+        >
+          <button
+            class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none h-6 gap-1.5 px-2.5 relative border-transparent text-data text-muted not-disabled:hover:text-text focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40"
+            type="button"
+          >
+            <span
+              class="inline-flex items-center gap-[inherit]"
+            >
+              cancel
+            </span>
+          </button>
+          <button
+            class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none h-6 gap-1.5 px-2.5 relative border-danger text-nav text-danger not-disabled:hover:bg-danger/10 focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40"
+            type="button"
+          >
+            <span
+              class="inline-flex items-center gap-[inherit]"
+            >
+              delete
+            </span>
+          </button>
+        </footer>
+      </div>
+    </div>
+  </dialog>
+</div>"
+`;

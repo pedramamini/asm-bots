@@ -1,0 +1,25 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`EmptyState draws the sentence and the action 1`] = `
+"<div>
+  <div
+    class="flex items-center justify-center px-3 py-6 text-center text-body text-muted"
+  >
+    <p>
+      no entrants yet.
+       
+      <a
+        class="inline cursor-pointer text-accent underline-offset-2 transition-colors duration-120 ease-out hover:underline focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
+        href="/hills/main/submit"
+      >
+        submit a bot
+        <span
+          aria-hidden="true"
+        >
+           →
+        </span>
+      </a>
+    </p>
+  </div>
+</div>"
+`;

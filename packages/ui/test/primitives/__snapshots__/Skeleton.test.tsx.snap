@@ -1,0 +1,35 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Skeleton draws a block and table rows 1`] = `
+"<div>
+  <div
+    aria-hidden="true"
+    class="rounded-sm bg-panel-2 animate-skeleton motion-reduce:animate-none h-2.5 w-24"
+  />
+  <div
+    aria-hidden="true"
+    class="flex flex-col"
+  >
+    <div
+      class="flex h-6 items-center gap-3"
+    >
+      <div
+        class="rounded-sm bg-panel-2 animate-skeleton motion-reduce:animate-none h-2.5 w-16"
+      />
+      <div
+        class="rounded-sm bg-panel-2 animate-skeleton motion-reduce:animate-none h-2.5 flex-1"
+      />
+    </div>
+    <div
+      class="flex h-6 items-center gap-3"
+    >
+      <div
+        class="rounded-sm bg-panel-2 animate-skeleton motion-reduce:animate-none h-2.5 w-16"
+      />
+      <div
+        class="rounded-sm bg-panel-2 animate-skeleton motion-reduce:animate-none h-2.5 flex-1"
+      />
+    </div>
+  </div>
+</div>"
+`;

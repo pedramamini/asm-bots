@@ -1,0 +1,139 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Table draws the header row over the rows 1`] = `
+"<div>
+  <div
+    class="min-h-0 min-w-0 overflow-auto"
+  >
+    <table
+      class="w-full table-fixed border-separate border-spacing-0 text-data text-text"
+    >
+      <thead>
+        <tr>
+          <th
+            class="h-6 truncate px-2 first:pl-0 last:pr-0 sticky top-0 z-1 border-b border-border bg-panel text-panel-status text-muted text-left"
+            scope="col"
+          >
+            <button
+              class="inline-flex max-w-full cursor-pointer items-center gap-1 uppercase transition-colors duration-120 ease-out hover:text-bright focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
+              type="button"
+            >
+              <span
+                class="truncate"
+              >
+                bot
+              </span>
+            </button>
+          </th>
+          <th
+            aria-sort="descending"
+            class="h-6 truncate px-2 first:pl-0 last:pr-0 sticky top-0 z-1 border-b border-border bg-panel text-panel-status text-text text-right w-16"
+            scope="col"
+          >
+            <button
+              class="inline-flex max-w-full cursor-pointer items-center gap-1 uppercase transition-colors duration-120 ease-out hover:text-bright flex-row-reverse focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
+              type="button"
+            >
+              <span
+                class="truncate"
+              >
+                procs
+              </span>
+              <span
+                aria-hidden="true"
+                class="text-accent"
+              >
+                ↓
+              </span>
+            </button>
+          </th>
+          <th
+            class="h-6 truncate px-2 first:pl-0 last:pr-0 sticky top-0 z-1 border-b border-border bg-panel text-panel-status text-muted text-right"
+            scope="col"
+          >
+            footprint
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          class="group/row transition-colors duration-120 ease-out hover:bg-panel-2"
+        >
+          <td
+            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-left"
+          >
+            imp
+          </td>
+          <td
+            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right w-16"
+          >
+            41
+          </td>
+          <td
+            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right"
+          >
+            2119 B
+          </td>
+        </tr>
+        <tr
+          class="group/row transition-colors duration-120 ease-out hover:bg-panel-2"
+        >
+          <td
+            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-left"
+          >
+            dwarf-v9
+          </td>
+          <td
+            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right w-16"
+          >
+            12
+          </td>
+          <td
+            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right"
+          >
+            3471 B
+          </td>
+        </tr>
+        <tr
+          class="group/row transition-colors duration-120 ease-out hover:bg-panel-2"
+        >
+          <td
+            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-left"
+          >
+            stone
+          </td>
+          <td
+            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right w-16"
+          >
+            12
+          </td>
+          <td
+            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right"
+          >
+            738 B
+          </td>
+        </tr>
+        <tr
+          class="group/row transition-colors duration-120 ease-out hover:bg-panel-2"
+        >
+          <td
+            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-left"
+          >
+            dwarf-v10
+          </td>
+          <td
+            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right w-16"
+          >
+            3
+          </td>
+          <td
+            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right"
+          >
+            400 B
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>"
+`;

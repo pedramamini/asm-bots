@@ -202,3 +202,47 @@
 @utility animate-dot-pulse {
   animation: dot-pulse 960ms ease-in-out infinite;
 }
+
+/* A skeleton block's slow pulse: the content is still on its way. */
+@keyframes skeleton {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@utility animate-skeleton {
+  animation: skeleton 1600ms ease-in-out infinite;
+}
+
+/*
+ * The radar loader's beam: one turn clockwise every 2 s (DESIGN_SYSTEM §4), about the center of
+ * the SVG's view box.
+ */
+@keyframes radar-sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@utility animate-radar-sweep {
+  transform-box: view-box;
+  transform-origin: center;
+  animation: radar-sweep 2s linear infinite;
+}
+
+/*
+ * A contact on the radar: full brightness as the beam crosses it, fading until the next pass.
+ * Each sets --blip-delay, a negative offset into the 2 s turn, to the moment the beam reaches it.
+ */
+@keyframes radar-blip {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.15;
+  }
+}
+
+@utility animate-radar-blip {
+  animation: radar-blip 2s ease-out var(--blip-delay, 0s) infinite;
+}

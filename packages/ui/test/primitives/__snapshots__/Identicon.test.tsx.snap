@@ -1,0 +1,31 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Identicon draws a bot’s avatar as a patch of the arena 1`] = `
+"<div>
+  <svg
+    aria-hidden="true"
+    class="shrink-0 text-(--hue)"
+    height="32"
+    shape-rendering="crispEdges"
+    style="--hue: var(--bot-3);"
+    viewBox="0 0 8 8"
+    width="32"
+  >
+    <rect
+      class="fill-arena-bg"
+      height="8"
+      width="8"
+    />
+    <rect
+      fill="currentColor"
+      fill-opacity="0.22"
+      height="8"
+      width="8"
+    />
+    <path
+      d="M0 1h2v1h-2zM6 1h2v1h-2zM2 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM3 3h2v1h-2zM7 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM5 4h1v1h-1zM7 4h1v1h-1zM2 5h4v1h-4zM0 6h8v1h-8zM1 7h2v1h-2zM5 7h2v1h-2z"
+      fill="currentColor"
+    />
+  </svg>
+</div>"
+`;

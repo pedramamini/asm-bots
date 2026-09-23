@@ -1,0 +1,326 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`RadarLoader draws the scope, the label, and the detail 1`] = `
+"<div>
+  <div
+    class="flex flex-col items-center text-center rounded-lg border border-accent-25 bg-bg px-4 pt-4 pb-3"
+    role="status"
+  >
+    <svg
+      aria-hidden="true"
+      class="shrink-0 overflow-visible text-accent"
+      height="112"
+      viewBox="0 0 100 100"
+      width="112"
+    >
+      <defs>
+        <pattern
+          height="4"
+          id="id-1grid"
+          patternUnits="userSpaceOnUse"
+          width="4"
+        >
+          <circle
+            cx="2"
+            cy="2"
+            fill="currentColor"
+            fill-opacity="0.3"
+            r="0.45"
+          />
+        </pattern>
+        <radialgradient
+          id="id-1core"
+        >
+          <stop
+            offset="0"
+            stop-color="currentColor"
+            stop-opacity="0.45"
+          />
+          <stop
+            offset="1"
+            stop-color="currentColor"
+            stop-opacity="0"
+          />
+        </radialgradient>
+      </defs>
+      <circle
+        cx="50"
+        cy="50"
+        fill="currentColor"
+        fill-opacity="0.05"
+        r="48"
+      />
+      <circle
+        cx="50"
+        cy="50"
+        fill="url(#id-1grid)"
+        r="48"
+      />
+      <circle
+        cx="50"
+        cy="50"
+        fill="url(#id-1core)"
+        r="18"
+      />
+      <g
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1"
+      >
+        <circle
+          cx="50"
+          cy="50"
+          r="48"
+          stroke-opacity="0.35"
+          vector-effect="non-scaling-stroke"
+        />
+        <circle
+          cx="50"
+          cy="50"
+          r="32"
+          stroke-opacity="0.22"
+          vector-effect="non-scaling-stroke"
+        />
+        <circle
+          cx="50"
+          cy="50"
+          r="16"
+          stroke-opacity="0.22"
+          vector-effect="non-scaling-stroke"
+        />
+        <path
+          d="M50 2V98M2 50H98"
+          stroke-opacity="0.16"
+          vector-effect="non-scaling-stroke"
+        />
+      </g>
+      <g
+        class="animate-radar-sweep motion-reduce:animate-none"
+      >
+        <path
+          d="M50 50L48.74 2.02A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L47.49 2.07A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L46.23 2.15A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L44.98 2.26A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L43.73 2.41A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L42.49 2.59A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L41.25 2.8A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L40.02 3.05A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L38.79 3.33A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L37.58 3.64A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L36.37 3.98A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L35.17 4.35A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L33.98 4.75A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L32.8 5.19A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L31.63 5.65A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L30.48 6.15A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L29.34 6.68A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L28.21 7.23A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L27.1 7.82A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L26 8.43A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L24.92 9.07A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L23.86 9.74A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L22.81 10.44A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L21.79 11.17A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L20.78 11.92A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L19.79 12.7A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L18.83 13.5A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L17.88 14.33A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L16.96 15.18A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50L16.06 16.06A48 48 0 0 1 50 2Z"
+          fill="currentColor"
+          fill-opacity="0.04"
+        />
+        <path
+          d="M50 50V2"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-opacity="0.9"
+          stroke-width="1"
+          vector-effect="non-scaling-stroke"
+        />
+      </g>
+      <g
+        class="animate-radar-blip opacity-60 motion-reduce:animate-none"
+        style="--blip-delay: -1.8s;"
+      >
+        <circle
+          cx="66.75"
+          cy="26.94"
+          fill="currentColor"
+          fill-opacity="0.22"
+          r="4.8"
+        />
+        <circle
+          class="fill-[color-mix(in_srgb,var(--accent)_40%,var(--text-bright))]"
+          cx="66.75"
+          cy="26.94"
+          r="2.4"
+        />
+      </g>
+      <g
+        class="animate-radar-blip opacity-60 motion-reduce:animate-none"
+        style="--blip-delay: -1.26s;"
+      >
+        <circle
+          cx="72.67"
+          cy="71.14"
+          fill="currentColor"
+          fill-opacity="0.22"
+          r="4.8"
+        />
+        <circle
+          class="fill-[color-mix(in_srgb,var(--accent)_40%,var(--text-bright))]"
+          cx="72.67"
+          cy="71.14"
+          r="2.4"
+        />
+      </g>
+      <g
+        class="animate-radar-blip opacity-60 motion-reduce:animate-none"
+        style="--blip-delay: -0.63s;"
+      >
+        <circle
+          cx="29.75"
+          cy="58.6"
+          fill="currentColor"
+          fill-opacity="0.22"
+          r="4.8"
+        />
+        <circle
+          class="fill-[color-mix(in_srgb,var(--accent)_40%,var(--text-bright))]"
+          cx="29.75"
+          cy="58.6"
+          r="2.4"
+        />
+      </g>
+    </svg>
+    <div
+      class="mt-3.5 text-panel-title text-accent"
+    >
+      loading dashboard
+    </div>
+    <div
+      class="mt-1.5 text-panel-status text-muted normal-case"
+    >
+      6 sections remaining
+    </div>
+  </div>
+</div>"
+`;

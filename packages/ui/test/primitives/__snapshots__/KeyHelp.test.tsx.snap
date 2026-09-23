@@ -1,0 +1,133 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`KeyHelp draws a table per group 1`] = `
+"<div>
+  <div
+    class="columns-[16rem] gap-6"
+  >
+    <table
+      class="mb-4 w-full break-inside-avoid border-separate border-spacing-0 text-data text-text last:mb-0"
+    >
+      <caption
+        class="pb-1 text-left text-panel-status text-muted"
+      >
+        global
+      </caption>
+      <tbody>
+        <tr
+          class="group/row"
+        >
+          <th
+            class="h-6 w-24 border-b border-border pr-2 text-left font-normal whitespace-nowrap group-last/row:border-b-0"
+            scope="row"
+          >
+            <kbd
+              class="inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-sm border border-border-strong bg-panel-2 px-1 text-panel-status text-muted"
+            >
+              ?
+            </kbd>
+          </th>
+          <td
+            class="h-6 truncate border-b border-border group-last/row:border-b-0"
+          >
+            key help
+          </td>
+        </tr>
+        <tr
+          class="group/row"
+        >
+          <th
+            class="h-6 w-24 border-b border-border pr-2 text-left font-normal whitespace-nowrap group-last/row:border-b-0"
+            scope="row"
+          >
+            <kbd
+              class="inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-sm border border-border-strong bg-panel-2 px-1 text-panel-status text-muted"
+            >
+              t
+            </kbd>
+          </th>
+          <td
+            class="h-6 truncate border-b border-border group-last/row:border-b-0"
+          >
+            cycle theme
+          </td>
+        </tr>
+        <tr
+          class="group/row"
+        >
+          <th
+            class="h-6 w-24 border-b border-border pr-2 text-left font-normal whitespace-nowrap group-last/row:border-b-0"
+            scope="row"
+          >
+            <kbd
+              class="inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-sm border border-border-strong bg-panel-2 px-1 text-panel-status text-muted"
+            >
+              g
+            </kbd>
+             
+            <kbd
+              class="inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-sm border border-border-strong bg-panel-2 px-1 text-panel-status text-muted"
+            >
+              a
+            </kbd>
+          </th>
+          <td
+            class="h-6 truncate border-b border-border group-last/row:border-b-0"
+          >
+            go to arena
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <table
+      class="mb-4 w-full break-inside-avoid border-separate border-spacing-0 text-data text-text last:mb-0"
+    >
+      <caption
+        class="pb-1 text-left text-panel-status text-muted"
+      >
+        arena
+      </caption>
+      <tbody>
+        <tr
+          class="group/row"
+        >
+          <th
+            class="h-6 w-24 border-b border-border pr-2 text-left font-normal whitespace-nowrap group-last/row:border-b-0"
+            scope="row"
+          >
+            <kbd
+              class="inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-sm border border-border-strong bg-panel-2 px-1 text-panel-status text-muted"
+            >
+              space
+            </kbd>
+          </th>
+          <td
+            class="h-6 truncate border-b border-border group-last/row:border-b-0"
+          >
+            play or pause
+          </td>
+        </tr>
+        <tr
+          class="group/row"
+        >
+          <th
+            class="h-6 w-24 border-b border-border pr-2 text-left font-normal whitespace-nowrap group-last/row:border-b-0"
+            scope="row"
+          >
+            <kbd
+              class="inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-sm border border-border-strong bg-panel-2 px-1 text-panel-status text-muted"
+            >
+              .
+            </kbd>
+          </th>
+          <td
+            class="h-6 truncate border-b border-border group-last/row:border-b-0"
+          >
+            step
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>"
+`;
