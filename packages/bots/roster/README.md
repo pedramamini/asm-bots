@@ -9,10 +9,10 @@ Six families come from classic Core War. The bots translate the ideas, not the R
 | Family | Core War ancestor | The idea in x16c |
 |---|---|---|
 | `imp` | Imp (A. K. Dewdney, 1984), imp rings | A self-copier: `movsw` copies the running word one step ahead and the process runs into the copy. It is hard to kill and seldom kills, so imps tie. |
-| `dwarf` | Dwarf (A. K. Dewdney, 1984) | A bomber: it writes DAT (`mov word [di], 0`) at a fixed stride as it walks the core. The stride and the start make the bombs skip the bot itself. |
+| `dwarf` | Dwarf (A. K. Dewdney, 1984) | A bomber: it writes DAT (`mov word [di], 0`) at a fixed stride as it walks the core. Each lap ends just past the bot, so the bombs never land on it. |
 | `stone` | Stones | A dwarf that uses `spl` to run several bombers with different strides, often with an imp as a decoy. |
 | `paper` | Paper, Silk | A replicator: `rep movsw` copies the bot, `spl` starts the copy, and each copy copies again. Bombs cannot kill the copies as fast as they appear. |
-| `scanner` | Scanners | It looks for non-zero bytes with `repne scasb` and carpet-bombs what it finds, skipping its own body. |
+| `scanner` | Scanners | It looks for non-zero bytes with `repe scasb` (which repeats while the byte is zero) and carpet-bombs what it finds with `rep stosw`, skipping its own body. |
 | `vampire` | Vampires | It writes `jmp` fangs over enemy code. A process that runs a fang jumps into a pit, where it does work that cannot hurt anyone. |
 | `painter` | None: ASM Bots only | Showcase bots that paint patterns over the core, such as an LCG scatter or a square spiral. They make the arena worth watching. |
 | `test` | None | Small bots that each pin down one engine behavior, such as `halt` (dies at once) and `spin` (lives to the cycle cap). They are not fighters. |
@@ -75,7 +75,7 @@ end:
 
 8. **Small.** At most 512 bytes (`MAX_BOT_BYTES`).
 
-`test/roster.test.ts` checks each rule that a machine can check: the header comment of three or more sentences, the metadata against the entry, the formatter, the linter, the size, and zero assembler errors. It checks the Sketch bot above the same way.
+`test/roster.test.ts` checks each rule that a machine can check: the header comment of three or more sentences, the metadata against the entry, the formatter, the linter, the size, and zero assembler errors. It checks the Sketch bot above the same way. `test/fighters.test.ts` fights each bot with the helper in `test/fight.ts` (hill rules, 80,000 cycles, the bot order swapped every other seed) and checks that each record line in a header is the record it gets.
 
 ## Loading
 

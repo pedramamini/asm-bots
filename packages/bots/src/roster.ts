@@ -1,4 +1,10 @@
 import { type Assembled, assemble } from '@asmbots/asm'
+import dwarf from '../roster/dwarf.asm' with { type: 'text' }
+import dwarfWide from '../roster/dwarf-wide.asm' with { type: 'text' }
+import imp from '../roster/imp.asm' with { type: 'text' }
+import impRing from '../roster/imp-ring.asm' with { type: 'text' }
+import scanner from '../roster/scanner.asm' with { type: 'text' }
+import stone from '../roster/stone.asm' with { type: 'text' }
 import halt from '../roster/test/halt.asm' with { type: 'text' }
 import spin from '../roster/test/spin.asm' with { type: 'text' }
 
@@ -49,6 +55,66 @@ interface Row extends RosterEntry {
 }
 
 const ROWS: readonly Row[] = [
+  {
+    slug: 'imp',
+    file: 'roster/imp.asm',
+    name: 'Imp',
+    author: 'ASM Bots',
+    family: 'imp',
+    tier: 'showcase',
+    blurb: 'Copies itself one word ahead with movsw and runs into the copy, forever.',
+    source: imp,
+  },
+  {
+    slug: 'imp-ring',
+    file: 'roster/imp-ring.asm',
+    name: 'Imp Ring',
+    author: 'ASM Bots',
+    family: 'imp',
+    tier: 'solid',
+    blurb: 'Three imps a third of the core apart: kill one and two still walk.',
+    source: impRing,
+  },
+  {
+    slug: 'dwarf',
+    file: 'roster/dwarf.asm',
+    name: 'Dwarf',
+    author: 'ASM Bots',
+    family: 'dwarf',
+    tier: 'showcase',
+    blurb: 'Drops a DAT word every 4 bytes, walking backward, and ends each lap short of itself.',
+    source: dwarf,
+  },
+  {
+    slug: 'dwarf-wide',
+    file: 'roster/dwarf-wide.asm',
+    name: 'Dwarf Wide',
+    author: 'ASM Bots',
+    family: 'dwarf',
+    tier: 'solid',
+    blurb: 'An unrolled dwarf with a DAT word every 3 bytes: two bytes in three are zero.',
+    source: dwarfWide,
+  },
+  {
+    slug: 'stone',
+    file: 'roster/stone.asm',
+    name: 'Stone',
+    author: 'ASM Bots',
+    family: 'stone',
+    tier: 'showcase',
+    blurb: 'Two bombers with strides of 4 and 11 and a decoy imp, as three processes.',
+    source: stone,
+  },
+  {
+    slug: 'scanner',
+    file: 'roster/scanner.asm',
+    name: 'Scanner',
+    author: 'ASM Bots',
+    family: 'scanner',
+    tier: 'showcase',
+    blurb: 'Scans down for non-zero bytes and carpet-bombs 32 bytes around each one it finds.',
+    source: scanner,
+  },
   {
     slug: 'halt',
     file: 'roster/test/halt.asm',
