@@ -6,12 +6,20 @@ import gate from '../roster/gate.asm' with { type: 'text' }
 import hybrid from '../roster/hybrid.asm' with { type: 'text' }
 import imp from '../roster/imp.asm' with { type: 'text' }
 import impRing from '../roster/imp-ring.asm' with { type: 'text' }
+import painterLcg from '../roster/painter-lcg.asm' with { type: 'text' }
+import painterSpiral from '../roster/painter-spiral.asm' with { type: 'text' }
 import paper from '../roster/paper.asm' with { type: 'text' }
 import scanner from '../roster/scanner.asm' with { type: 'text' }
 import silk from '../roster/silk.asm' with { type: 'text' }
 import stone from '../roster/stone.asm' with { type: 'text' }
+import count from '../roster/test/count.asm' with { type: 'text' }
+import divZero from '../roster/test/div-zero.asm' with { type: 'text' }
 import halt from '../roster/test/halt.asm' with { type: 'text' }
+import misalign from '../roster/test/misalign.asm' with { type: 'text' }
+import repCopy from '../roster/test/rep-copy.asm' with { type: 'text' }
 import spin from '../roster/test/spin.asm' with { type: 'text' }
+import splStorm from '../roster/test/spl-storm.asm' with { type: 'text' }
+import stackWalk from '../roster/test/stack-walk.asm' with { type: 'text' }
 import vampire from '../roster/vampire.asm' with { type: 'text' }
 
 /**
@@ -182,6 +190,26 @@ const ROWS: readonly Row[] = [
     source: vampire,
   },
   {
+    slug: 'painter-lcg',
+    file: 'roster/painter-lcg.asm',
+    name: 'LCG Painter',
+    author: 'ASM Bots',
+    family: 'painter',
+    tier: 'showcase',
+    blurb: 'Scatters 0xAA bytes from an LCG in 32 x 32 clouds that drift and now and then jump.',
+    source: painterLcg,
+  },
+  {
+    slug: 'painter-spiral',
+    file: 'roster/painter-spiral.asm',
+    name: 'Spiral Painter',
+    author: 'ASM Bots',
+    family: 'painter',
+    tier: 'showcase',
+    blurb: 'Paints 0x55 bytes along a square spiral that grows out from its own base.',
+    source: painterSpiral,
+  },
+  {
     slug: 'halt',
     file: 'roster/test/halt.asm',
     name: 'Halt',
@@ -200,6 +228,66 @@ const ROWS: readonly Row[] = [
     tier: 'test',
     blurb: 'Jumps to itself forever: the bot that lives to the cycle cap.',
     source: spin,
+  },
+  {
+    slug: 'count',
+    file: 'roster/test/count.asm',
+    name: 'Count',
+    author: 'ASM Bots',
+    family: 'test',
+    tier: 'test',
+    blurb: 'Counts ax up to 100 with inc, cmp, and jb, then spins.',
+    source: count,
+  },
+  {
+    slug: 'spl-storm',
+    file: 'roster/test/spl-storm.asm',
+    name: 'SPL Storm',
+    author: 'ASM Bots',
+    family: 'test',
+    tier: 'test',
+    blurb: 'Splits over and over until the process cap stops it.',
+    source: splStorm,
+  },
+  {
+    slug: 'stack-walk',
+    file: 'roster/test/stack-walk.asm',
+    name: 'Stack Walk',
+    author: 'ASM Bots',
+    family: 'test',
+    tier: 'test',
+    blurb: 'Pushes 256 words, which go down from its base into free core, then spins.',
+    source: stackWalk,
+  },
+  {
+    slug: 'rep-copy',
+    file: 'roster/test/rep-copy.asm',
+    name: 'Rep Copy',
+    author: 'ASM Bots',
+    family: 'test',
+    tier: 'test',
+    blurb: 'Copies 256 words with one rep movsw, one word a cycle, then spins.',
+    source: repCopy,
+  },
+  {
+    slug: 'div-zero',
+    file: 'roster/test/div-zero.asm',
+    name: 'Div Zero',
+    author: 'ASM Bots',
+    family: 'test',
+    tier: 'test',
+    blurb: 'Divides by zero on its second turn and dies with the reason div.',
+    source: divZero,
+  },
+  {
+    slug: 'misalign',
+    file: 'roster/test/misalign.asm',
+    name: 'Misalign',
+    author: 'ASM Bots',
+    family: 'test',
+    tier: 'test',
+    blurb: 'Jumps into the middle of its own instructions: one process dies there, one spins.',
+    source: misalign,
   },
 ]
 

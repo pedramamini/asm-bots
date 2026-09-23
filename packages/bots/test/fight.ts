@@ -1,8 +1,19 @@
 /**
  * The fight helper of the roster tests: plays roster bots against each other headlessly, round by
- * round as a hill match plays them (ISA §5.5), and keeps the score from one bot's side.
+ * round as a hill match plays them (ISA §5.5), and keeps the score from one bot's side. It also
+ * runs a bot alone and logs a battle's spawns and deaths, for the tests that check what one bot
+ * does.
  */
-import { type BattleConfigInput, type LoadedBot, simulate } from '@asmbots/engine'
+import {
+  Battle,
+  type BattleConfigInput,
+  type Bot,
+  type Core,
+  type DeathReason,
+  type LoadedBot,
+  NullSink,
+  simulate,
+} from '@asmbots/engine'
 import { loadRoster } from '../src/roster'
 
 /** The hill rules: 80,000 cycles (ISA §5.5), everything else at its default. */
@@ -54,3 +65,48 @@ export function record(
 /** A record as a header line shows it: `14 W / 6 T / 0 L`. */
 export const formatRecord = ({ wins, ties, losses }: FightRecord): string =>
   `${wins} W / ${ties} T / ${losses} L`
+
+/** A label or `equ` value of the roster bot `slug`. */
+export function symbolOf(slug: string, name: string): number {
+  const value = loadRoster().get(slug)?.assembled.symbols.get(name)
+  if (value === undefined) throw new Error(`${slug} has no symbol '${name}'`)
+  return value
+}
+
+/** The roster bot `slug` alone in the core, placed by `seed`, after `cycles` cycles. */
+export function alone(slug: string, cycles: number, seed = 1): { battle: Battle; bot: Bot } {
+  const battle = new Battle([fighter(slug)], { seed })
+  battle.run(cycles)
+  return { battle, bot: battle.bots[0] as Bot }
+}
+
+/** The `size` bytes from `from` in the core of `battle`. */
+export const bytesAt = (battle: Battle, from: number, size: number): number[] =>
+  Array.from({ length: size }, (_, i) => battle.core.read8(from + i))
+
+/**
+ * Keeps the spawns and the deaths of a battle: the cycle, the bot, and where the child starts or
+ * the process dies, with why. Once a test sets `core`, a spawn also keeps the 2 bytes at the
+ * child's start as the SPL leaves them.
+ */
+export class EventLog extends NullSink {
+  core: Core | undefined
+  readonly spawns: { cycle: number; bot: number; addr: number; bytes: number[] }[] = []
+  readonly deaths: { cycle: number; bot: number; addr: number; reason: DeathReason }[] = []
+
+  override spawn(cycle: number, bot: number, _proc: number, addr: number): void {
+    const core = this.core
+    const bytes = core === undefined ? [] : [core.read8(addr), core.read8(addr + 1)]
+    this.spawns.push({ cycle, bot, addr, bytes })
+  }
+
+  override death(
+    cycle: number,
+    bot: number,
+    _proc: number,
+    addr: number,
+    reason: DeathReason,
+  ): void {
+    this.deaths.push({ cycle, bot, addr, reason })
+  }
+}

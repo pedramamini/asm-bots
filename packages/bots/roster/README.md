@@ -14,8 +14,8 @@ Six families come from classic Core War. The bots translate the ideas, not the R
 | `paper` | Paper, Silk | A replicator: `rep movsw` copies the bot, `spl` starts the copy, and each copy copies again. Bombs cannot kill the copies as fast as they appear. Silk starts each copy on a `jmp $` pad before it writes it. |
 | `scanner` | Scanners | It looks for non-zero bytes with `repe scasb` (which repeats while the byte is zero) and carpet-bombs what it finds with `rep stosw`, skipping its own body. Hybrid turns to paper when bombs land near its home. |
 | `vampire` | Vampires | It writes `jmp` fangs over enemy code. A process that runs a fang jumps into a pit, where it zeros its own home and takes its bot's free slots, until the vampire closes the pit and it dies. |
-| `painter` | None: ASM Bots only | Showcase bots that paint patterns over the core, such as an LCG scatter or a square spiral. They make the arena worth watching. |
-| `test` | None | Small bots that each pin down one engine behavior, such as `halt` (dies at once) and `spin` (lives to the cycle cap). They are not fighters. |
+| `painter` | None: ASM Bots only | Showcase bots that paint patterns over the core and make the arena worth watching. LCG Painter (after RandomWriter1 of v1) scatters `0xAA` in clouds that drift and jump, and Spiral Painter paints `0x55` along a square spiral around itself. They are the demo pair of the home page, and they fight: in most seeds the paint of one breaks the code of the other before the cycle cap. |
+| `test` | None | Small bots that each pin down one engine behavior: `halt` (dies at once), `spin` (lives to the cycle cap), `count` (one instruction a cycle), `spl-storm` (the process cap), `stack-walk` (the stack grows down from the base), `rep-copy` (one `rep` iteration a cycle), `div-zero` (a divide by zero kills), and `misalign` (decode follows ip into the middle of an instruction). They are not fighters. |
 
 In x16c the classic families do not form the Redcode triangle. Over seeds 1..200, a stone beats a scanner in 80% of the rounds (the scanner is big and slow), but paper beats a stone (62%, and loses 2%), a scanner (86%), and a dwarf (76%), and loses almost never: every copy writes paper over whatever it lands on, faster than bombs or a scan can find 64 processes in 64 places. The vampire beats bombers and scanners in three rounds of four or more and takes 38% of its rounds from paper, whose copies land on it in most of the others. Imps lose to most fighters, and an imp gate kills them.
 
@@ -75,7 +75,7 @@ end:
 
 8. **Small.** At most 512 bytes (`MAX_BOT_BYTES`).
 
-`test/roster.test.ts` checks each rule that a machine can check: the header comment of three or more sentences, the metadata against the entry, the formatter, the linter, the size, and zero assembler errors. It checks the Sketch bot above the same way. `test/fighters.test.ts` fights each bot with the helper in `test/fight.ts` (hill rules, 80,000 cycles, the bot order swapped every other seed) and checks that each record line in a header is the record it gets.
+`test/roster.test.ts` checks each rule that a machine can check: the header comment of three or more sentences, the metadata against the entry, the formatter, the linter, the size, and zero assembler errors. It checks the Sketch bot above the same way. `test/fighters.test.ts` fights each bot with the helper in `test/fight.ts` (hill rules, 80,000 cycles, the bot order swapped every other seed) and checks that each record line in a header is the record it gets. `test/painters.test.ts` and `test/test-bots.test.ts` check what each painter and each test bot does.
 
 ## Loading
 

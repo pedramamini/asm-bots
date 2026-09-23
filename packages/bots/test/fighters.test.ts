@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'bun:test'
-import { Battle, type Bot, type Core, IP, NullSink } from '@asmbots/engine'
+import { Battle, type Bot, IP } from '@asmbots/engine'
 import { loadRoster, ROSTER } from '../src/roster'
-import { type FightRecord, fighter, formatRecord, HILL_RULES, record, seeds } from './fight'
+import {
+  alone,
+  bytesAt,
+  EventLog,
+  type FightRecord,
+  fighter,
+  formatRecord,
+  HILL_RULES,
+  record,
+  seeds,
+  symbolOf,
+} from './fight'
 
 /** A record line of a header (roster/README.md): `; vs imp.asm, seeds 1..20: 14 W / 6 T / 0 L`. */
 const RECORD_LINE = /^; vs ([a-z0-9-]+)\.asm, seeds (\d+)\.\.(\d+): (.*)$/
@@ -79,34 +90,6 @@ describe('roster: part 1 against imp.asm, seeds 1..20', () => {
   }
 })
 
-/** A label or `equ` value of the roster bot `slug`. */
-function symbolOf(slug: string, name: string): number {
-  const value = loadRoster().get(slug)?.assembled.symbols.get(name)
-  if (value === undefined) throw new Error(`${slug} has no symbol '${name}'`)
-  return value
-}
-
-/**
- * Keeps the spawns and the deaths of a battle: the bot, and where the child starts or the process
- * dies. Once a test sets `core`, a spawn also keeps the 2 bytes at the child's start as the SPL
- * leaves them.
- */
-class EventLog extends NullSink {
-  core: Core | undefined
-  readonly spawns: { bot: number; addr: number; bytes: number[] }[] = []
-  readonly deaths: { bot: number; addr: number }[] = []
-
-  override spawn(_cycle: number, bot: number, _proc: number, addr: number): void {
-    const core = this.core
-    const bytes = core === undefined ? [] : [core.read8(addr), core.read8(addr + 1)]
-    this.spawns.push({ bot, addr, bytes })
-  }
-
-  override death(_cycle: number, bot: number, _proc: number, addr: number): void {
-    this.deaths.push({ bot, addr })
-  }
-}
-
 /**
  * Fights `slug` against `rival` as `record` does, one round a seed with the order alternating,
  * and returns how many rounds `test` passes. `test` gets the round's events, its battle, and the
@@ -162,13 +145,6 @@ describe('roster: part 2 against imp.asm, dwarf.asm, and paper.asm, seeds 1..20'
   })
 })
 
-/** The roster bot `slug` alone in the core, placed by `seed`, after `cycles` cycles. */
-function alone(slug: string, cycles: number, seed = 1): { battle: Battle; bot: Bot } {
-  const battle = new Battle([fighter(slug)], { seed })
-  battle.run(cycles)
-  return { battle, bot: battle.bots[0] as Bot }
-}
-
 describe('roster: a bomber alone in the core never bombs its own body', () => {
   for (const slug of ['dwarf', 'dwarf-wide', 'gate', 'decoy', 'stone', 'scanner', 'hybrid']) {
     it(`${slug} lives 100,000 cycles with its image as loaded`, () => {
@@ -210,10 +186,6 @@ describe('roster: part 1 shapes', () => {
     expect(alone('stone', 1000).bot.queue.size).toBe(3)
   })
 })
-
-/** The `size` bytes from `from` in the core of `battle`. */
-const bytesAt = (battle: Battle, from: number, size: number) =>
-  Array.from({ length: size }, (_, i) => battle.core.read8(from + i))
 
 describe('roster: part 2 shapes', () => {
   it('paper and silk fill the process cap and live alone to the cycle cap', () => {
