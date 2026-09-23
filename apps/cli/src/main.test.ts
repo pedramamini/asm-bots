@@ -158,4 +158,66 @@ describe('asmbots CLI', () => {
     expect(proc.success).toBe(false)
     expect(proc.exitCode).toBe(1)
   })
+
+  it('runs a fight between two roster bots with fixed seed', () => {
+    const proc = spawnSync({
+      cmd: ['bun', './apps/cli/src/main.ts', 'fight', 'roster:dwarf', 'roster:imp', '--seed', '42', '--cycles', '100'],
+      cwd: process.cwd(),
+      stdout: 'pipe',
+      stderr: 'pipe',
+    })
+
+    expect(proc.success).toBe(true)
+    const output = new TextDecoder().decode(proc.stdout!)
+    expect(output).toContain('Placement:')
+    expect(output).toContain('Dwarf')
+    expect(output).toContain('Imp')
+    expect(output).toContain('Bot statistics:')
+    expect(output).toContain('Instructions:')
+  })
+
+  it('returns 1 when fight is called without enough arguments', () => {
+    const proc = spawnSync({
+      cmd: ['bun', './apps/cli/src/main.ts', 'fight', 'roster:dwarf'],
+      cwd: process.cwd(),
+      stdout: 'pipe',
+      stderr: 'pipe',
+    })
+
+    expect(proc.success).toBe(false)
+    expect(proc.exitCode).toBe(1)
+  })
+
+  it('outputs valid JSON with --json flag', () => {
+    const proc = spawnSync({
+      cmd: ['bun', './apps/cli/src/main.ts', 'fight', 'roster:dwarf', 'roster:imp', '--seed', '42', '--cycles', '50', '--json'],
+      cwd: process.cwd(),
+      stdout: 'pipe',
+      stderr: 'pipe',
+    })
+
+    expect(proc.success).toBe(true)
+    const output = new TextDecoder().decode(proc.stdout!)
+    const json = JSON.parse(output)
+    expect(json.result).toBeDefined()
+    expect(json.result.cycles).toBe(50)
+    expect(json.result.bots).toBeDefined()
+    expect(json.result.bots.length).toBe(2)
+    expect(json.result.bots[0]!.name).toBe('Dwarf')
+    expect(json.result.bots[1]!.name).toBe('Imp')
+  })
+
+  it('produces trace output with --trace flag', () => {
+    const proc = spawnSync({
+      cmd: ['bun', './apps/cli/src/main.ts', 'fight', 'roster:dwarf', 'roster:imp', '--seed', '42', '--cycles', '10', '--trace'],
+      cwd: process.cwd(),
+      stdout: 'pipe',
+      stderr: 'pipe',
+    })
+
+    expect(proc.success).toBe(true)
+    const output = new TextDecoder().decode(proc.stdout!)
+    expect(output).toContain('Trace')
+    expect(output).toContain('|')
+  })
 })
