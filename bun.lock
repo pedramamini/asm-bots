@@ -30,6 +30,10 @@
     "packages/bots": {
       "name": "@asmbots/bots",
       "version": "0.0.0",
+      "dependencies": {
+        "@asmbots/asm": "workspace:*",
+        "@asmbots/engine": "workspace:*",
+      },
     },
     "packages/codec": {
       "name": "@asmbots/codec",

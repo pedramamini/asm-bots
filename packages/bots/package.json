@@ -3,8 +3,15 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
     "build": "tsc -b",
     "test": "bun test"
+  },
+  "dependencies": {
+    "@asmbots/asm": "workspace:*",
+    "@asmbots/engine": "workspace:*"
   }
 }

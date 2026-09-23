@@ -63,7 +63,7 @@ asm-bots-v3/
     codec/                  opcode table, encode, decode, length, formatting     (no deps)
     engine/                 core, cpu, process queues, battle, prng, events, snapshots (dep: codec)
     asm/                    lexer, parser, expr, assembler, listing, disassembler, formatter, lint (dep: codec)
-    bots/                   roster/*.asm, roster.json, goldens/*.json           (dep: asm, engine)
+    bots/                   roster/*.asm, src/roster.ts, goldens/*.json         (dep: asm, engine)
     tourney/                round, match, roundrobin, bracket, melee, hill, scoring, rating (dep: engine)
     protocol/               zod schemas: API DTOs, replay file, share links, WS messages (no deps)
     ui/                     tokens, themes, primitives, icons, hooks (dep: react)
