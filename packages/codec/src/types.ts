@@ -163,3 +163,59 @@ export interface Instr {
   /** Encoded length in bytes, prefix included (1..6). */
   length: number
 }
+
+/*
+ * Encoder input. Each `Operand` kind is also an `OperandInput`, so a decoded `Instr` is an
+ * `InstrInput`. A size the input leaves undefined is the encoder's choice; a size it gives pins
+ * the encoding, which is how a decoded instruction re-encodes to its own form. Numbers are
+ * integers in -0x10000..0xFFFF (16-bit values, signed or unsigned, and address differences);
+ * 16-bit fields keep the low 16 bits.
+ */
+
+/**
+ * Immediate. `size` pins the width of the immediate field, like NASM `strict byte` and
+ * `strict word`; undefined picks the shortest field that holds `value`.
+ */
+export interface ImmInput {
+  kind: 'imm'
+  value: number
+  size?: 8 | 16 | undefined
+}
+
+/**
+ * ModR/M memory operand. `size` is the data size; undefined takes it from the other operand.
+ * `dispSize` pins the displacement field; undefined picks the shortest, and lets a bare
+ * `[disp16]` use the `A0..A3` moffs forms.
+ */
+export interface MemInput {
+  kind: 'mem'
+  base?: 'bx' | 'bp' | undefined
+  index?: 'si' | 'di' | undefined
+  disp: number
+  dispSize?: 0 | 8 | 16 | undefined
+  size?: 8 | 16 | undefined
+}
+
+/** Relative target from the start of this instruction; undefined `size` prefers rel8. */
+export interface RelInput {
+  kind: 'rel'
+  target: number
+  size?: 8 | 16 | undefined
+}
+
+/** Direct address of `A0..A3`; undefined `size` takes it from AL or AX. */
+export interface MoffsInput {
+  kind: 'moffs'
+  addr: number
+  size?: 8 | 16 | undefined
+}
+
+export type OperandInput = RegOperand | ImmInput | MemInput | RelInput | MoffsInput
+
+export interface InstrInput {
+  /** Canonical mnemonic or an alias from `ALIASES`, in any case. */
+  mnemonic: string
+  operands: readonly OperandInput[]
+  /** Canonical prefix or an alias from `PREFIX_ALIASES`, in any case. */
+  prefix?: string | undefined
+}

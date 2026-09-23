@@ -1,5 +1,5 @@
 import type { OpcodeRow, OperandTemplate } from './table'
-import { PREFIX_BYTE, TABLE } from './table'
+import { EA_BASE, EA_INDEX, hasModrm, isRm, PREFIX_BYTE, TABLE } from './table'
 import type { Instr, MemOperand, Mnemonic, Operand } from './types'
 import { Reg8, Reg16 } from './types'
 
@@ -119,10 +119,6 @@ function s16(read: Reader, a: number): number {
   return (u16(read, a) << 16) >> 16
 }
 
-/** ModR/M `rm` → base and index registers (ISA §2.2). */
-const EA_BASE = ['bx', 'bx', 'bp', 'bp', undefined, undefined, 'bp', 'bx'] as const
-const EA_INDEX = ['si', 'di', 'si', 'di', 'si', 'di', undefined, undefined] as const
-
 /**
  * Decodes the `mod` and `rm` fields of ModR/M byte `m` into `s` (ISA §2.2). `at` is the address
  * after the ModR/M byte, where a displacement starts. Returns the displacement length in bytes.
@@ -179,14 +175,6 @@ function emit(out: Instr, mnemonic: Mnemonic, operands: Operand[], length: numbe
   out.prefix = undefined
   out.length = length
   return length
-}
-
-function isRm(t: OperandTemplate): boolean {
-  return t === 'r/m8' || t === 'r/m16' || t === 'm'
-}
-
-function hasModrm(row: OpcodeRow): boolean {
-  return row.ext !== undefined || row.operands.some((t) => isRm(t) || t === 'r8' || t === 'r16')
 }
 
 function fill(row: OpcodeRow, t: OperandTemplate): Fill {

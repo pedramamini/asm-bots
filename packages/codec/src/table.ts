@@ -49,6 +49,20 @@ export interface OpcodeRow {
   readonly kills?: true
 }
 
+/** A template for the ModR/M `rm` field. */
+export function isRm(t: OperandTemplate): boolean {
+  return t === 'r/m8' || t === 'r/m16' || t === 'm'
+}
+
+/** The row has a ModR/M byte: a `/n` extension, an `rm` operand, or a `reg`-field register. */
+export function hasModrm(row: OpcodeRow): boolean {
+  return row.ext !== undefined || row.operands.some((t) => isRm(t) || t === 'r8' || t === 'r16')
+}
+
+/** ModR/M `rm` → base and index registers (ISA §2.2). */
+export const EA_BASE = ['bx', 'bx', 'bp', 'bp', undefined, undefined, 'bp', 'bx'] as const
+export const EA_INDEX = ['si', 'di', 'si', 'di', 'si', 'di', undefined, undefined] as const
+
 interface RowOpts {
   ext?: number
   signExtend?: boolean
