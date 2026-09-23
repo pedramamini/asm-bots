@@ -7,6 +7,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin } from 'vite'
 // The token parser alone: the kit's index would pull React into the config.
 import { parseTokenRules, themeTokens } from '../../packages/ui/src/css-tokens'
+import { getVersion } from '../../scripts/version'
 import { themeBootScript } from './src/app/theme-boot'
 
 const PACKAGES = fileURLToPath(new URL('../../packages/', import.meta.url))
@@ -25,6 +26,7 @@ export default defineConfig({
     themeBoot(),
     preloadFonts(),
   ],
+  define: { __APP_VERSION__: JSON.stringify(getVersion()) },
   resolve: {
     alias: WORKSPACE.map((name) => ({
       find: new RegExp(`^@asmbots/${name}$`),

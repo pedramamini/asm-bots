@@ -3,8 +3,9 @@ import type { QueryClient } from '@tanstack/react-query'
 import { createRootRouteWithContext, Outlet, useRouterState } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { ErrorPage } from '../app/ErrorPage'
+import { Frame } from '../app/Frame'
 import { NotFound } from '../app/NotFound'
-import { BRAND, routeTitle } from '../app/title'
+import { BRAND, useRouteHead } from '../app/title'
 
 export interface RouterContext {
   queryClient: QueryClient
@@ -18,28 +19,27 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 })
 
 function Root() {
+  // A route that draws its own chrome (the gallery) opts out of the frame.
+  const framed = useRouterState({
+    select: ({ matches }) => !matches.some((match) => match.staticData.frame === false),
+  })
   return (
     <ToastProvider>
       <DocumentTitle />
-      <Outlet />
+      {framed ? (
+        <Frame>
+          <Outlet />
+        </Frame>
+      ) : (
+        <Outlet />
+      )}
     </ToastProvider>
   )
 }
 
 /** Keeps the tab's title on the deepest route's `head` title, or 0x404 for a path nobody owns. */
 function DocumentTitle() {
-  const title = useRouterState({
-    select: ({ matches }) => {
-      if (matches.some((match) => match.status === 'notFound' || match._notFound === true)) {
-        return routeTitle('0x404')
-      }
-      for (const match of [...matches].reverse()) {
-        const found = match.meta?.find((meta) => meta?.title !== undefined)?.title
-        if (found !== undefined) return found
-      }
-      return BRAND
-    },
-  })
+  const { title } = useRouteHead()
   useEffect(() => {
     document.title = title
   }, [title])

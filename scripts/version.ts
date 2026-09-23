@@ -17,7 +17,7 @@ export function getVersion(): string {
     const baseVersion = `${year}.${month}.${day}`;
 
     // Get all tags with their commit dates
-    const tagsOutput = execSync("git tag -l --format=%(refname:short) %(creatordate:short)", {
+    const tagsOutput = execSync("git tag -l --format='%(refname:short) %(creatordate:short)'", {
       encoding: "utf-8",
     });
 

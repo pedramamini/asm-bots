@@ -15,6 +15,8 @@ export const Route = createFileRoute('/_gallery')({
     if (Gallery === null) throw notFound()
   },
   head: () => titleHead('gallery'),
+  // The gallery lays out its own reference frames.
+  staticData: { frame: false },
   component: GalleryPage,
 })
 

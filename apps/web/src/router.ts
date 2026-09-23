@@ -23,4 +23,8 @@ declare module '@tanstack/react-router' {
   interface Register {
     router: ReturnType<typeof createAppRouter>
   }
+  interface StaticDataRouteOption {
+    /** False: the route draws its own page chrome, outside the app's frame (the gallery). */
+    frame?: boolean | undefined
+  }
 }

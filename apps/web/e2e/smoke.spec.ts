@@ -65,3 +65,51 @@ function watch(page: Page): string[] {
   })
   return errors
 }
+
+test('frames each route: brand, nav, and status row', async ({ page }) => {
+  await page.goto('/hills/main')
+  const header = page.getByRole('banner')
+  await expect(header).toContainText('ASM BOTS // HILLS')
+  await expect(header.getByRole('link', { name: 'hills' })).toHaveAttribute('aria-current', 'page')
+  await expect(page.getByRole('contentinfo')).toContainText('x16c v1')
+  await expect(page.getByRole('link', { name: 'made with maestro' })).toHaveAttribute(
+    'href',
+    'https://maestro.sh',
+  )
+})
+
+test('? opens the key help with the global keys', async ({ page }) => {
+  await page.goto('/')
+  await page.keyboard.press('?')
+  const help = page.getByRole('dialog', { name: 'keys' })
+  for (const description of ['show the keys', 'next theme', 'search this page', 'go to arena']) {
+    await expect(help.getByText(description, { exact: true })).toBeVisible()
+  }
+  await page.keyboard.press('Escape')
+  await expect(help).toBeHidden()
+})
+
+test('t cycles the theme and the choice survives a reload', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('seeded') === null) {
+      localStorage.setItem('theme', 'sentinel')
+      sessionStorage.setItem('seeded', '1')
+    }
+  })
+  await page.goto('/')
+  const html = page.locator('html')
+  await expect(html).toHaveAttribute('data-theme', 'sentinel')
+  await page.keyboard.press('t')
+  await page.keyboard.press('t')
+  await expect(html).toHaveAttribute('data-theme', 'pedurple')
+  await page.reload()
+  await expect(html).toHaveAttribute('data-theme', 'pedurple')
+})
+
+test('g a goes to the arena without a reload', async ({ page }) => {
+  await page.goto('/')
+  await expect(page).toHaveTitle('ASM BOTS // HOME')
+  await page.keyboard.press('g')
+  await page.keyboard.press('a')
+  await expect(page).toHaveTitle('ASM BOTS // ARENA')
+})
