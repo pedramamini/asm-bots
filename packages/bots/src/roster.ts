@@ -1,12 +1,18 @@
 import { type Assembled, assemble } from '@asmbots/asm'
+import decoy from '../roster/decoy.asm' with { type: 'text' }
 import dwarf from '../roster/dwarf.asm' with { type: 'text' }
 import dwarfWide from '../roster/dwarf-wide.asm' with { type: 'text' }
+import gate from '../roster/gate.asm' with { type: 'text' }
+import hybrid from '../roster/hybrid.asm' with { type: 'text' }
 import imp from '../roster/imp.asm' with { type: 'text' }
 import impRing from '../roster/imp-ring.asm' with { type: 'text' }
+import paper from '../roster/paper.asm' with { type: 'text' }
 import scanner from '../roster/scanner.asm' with { type: 'text' }
+import silk from '../roster/silk.asm' with { type: 'text' }
 import stone from '../roster/stone.asm' with { type: 'text' }
 import halt from '../roster/test/halt.asm' with { type: 'text' }
 import spin from '../roster/test/spin.asm' with { type: 'text' }
+import vampire from '../roster/vampire.asm' with { type: 'text' }
 
 /**
  * The families of roster/README.md: the six classic Core War families, the painters that make the
@@ -96,6 +102,26 @@ const ROWS: readonly Row[] = [
     source: dwarfWide,
   },
   {
+    slug: 'gate',
+    file: 'roster/gate.asm',
+    name: 'Gate',
+    author: 'ASM Bots',
+    family: 'dwarf',
+    tier: 'solid',
+    blurb: 'Kills imps at a word it decrements under its body, and bombs every 9th byte.',
+    source: gate,
+  },
+  {
+    slug: 'decoy',
+    file: 'roster/decoy.asm',
+    name: 'Decoy',
+    author: 'ASM Bots',
+    family: 'dwarf',
+    tier: 'solid',
+    blurb: 'Covers 2 KB around itself with mov noise, then bombs as an unrolled dwarf.',
+    source: decoy,
+  },
+  {
     slug: 'stone',
     file: 'roster/stone.asm',
     name: 'Stone',
@@ -106,6 +132,26 @@ const ROWS: readonly Row[] = [
     source: stone,
   },
   {
+    slug: 'paper',
+    file: 'roster/paper.asm',
+    name: 'Paper',
+    author: 'ASM Bots',
+    family: 'paper',
+    tier: 'showcase',
+    blurb: 'Copies itself all over the core with rep movsw and starts every copy with spl.',
+    source: paper,
+  },
+  {
+    slug: 'silk',
+    file: 'roster/silk.asm',
+    name: 'Silk',
+    author: 'ASM Bots',
+    family: 'paper',
+    tier: 'solid',
+    blurb: 'Starts each copy on a jmp $ pad first, then writes the copy over the pad.',
+    source: silk,
+  },
+  {
     slug: 'scanner',
     file: 'roster/scanner.asm',
     name: 'Scanner',
@@ -114,6 +160,26 @@ const ROWS: readonly Row[] = [
     tier: 'showcase',
     blurb: 'Scans down for non-zero bytes and carpet-bombs 32 bytes around each one it finds.',
     source: scanner,
+  },
+  {
+    slug: 'hybrid',
+    file: 'roster/hybrid.asm',
+    name: 'Hybrid',
+    author: 'ASM Bots',
+    family: 'scanner',
+    tier: 'solid',
+    blurb: 'A scanner that turns to paper when bombs land in a guard 768 bytes over its body.',
+    source: hybrid,
+  },
+  {
+    slug: 'vampire',
+    file: 'roster/vampire.asm',
+    name: 'Vampire',
+    author: 'ASM Bots',
+    family: 'vampire',
+    tier: 'showcase',
+    blurb: 'Bites code with jmp fangs and holds each bitten process in a pit until the lap ends.',
+    source: vampire,
   },
   {
     slug: 'halt',

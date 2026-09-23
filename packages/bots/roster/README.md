@@ -8,16 +8,16 @@ Six families come from classic Core War. The bots translate the ideas, not the R
 
 | Family | Core War ancestor | The idea in x16c |
 |---|---|---|
-| `imp` | Imp (A. K. Dewdney, 1984), imp rings | A self-copier: `movsw` copies the running word one step ahead and the process runs into the copy. It is hard to kill and seldom kills, so imps tie. |
-| `dwarf` | Dwarf (A. K. Dewdney, 1984) | A bomber: it writes DAT (`mov word [di], 0`) at a fixed stride as it walks the core. Each lap ends just past the bot, so the bombs never land on it. |
+| `imp` | Imp (A. K. Dewdney, 1984), imp rings | A self-copier: `movsw` copies the running word one step ahead and the process runs into the copy. It is hard to kill and seldom kills, so imps seldom win. |
+| `dwarf` | Dwarf (A. K. Dewdney, 1984) | A bomber: it writes DAT (`mov word [di], 0`) at a fixed stride as it walks the core. Each lap ends just past the bot, so the bombs never land on it. Gate adds an imp gate, and Decoy hides in noise first. |
 | `stone` | Stones | A dwarf that uses `spl` to run several bombers with different strides, often with an imp as a decoy. |
-| `paper` | Paper, Silk | A replicator: `rep movsw` copies the bot, `spl` starts the copy, and each copy copies again. Bombs cannot kill the copies as fast as they appear. |
-| `scanner` | Scanners | It looks for non-zero bytes with `repe scasb` (which repeats while the byte is zero) and carpet-bombs what it finds with `rep stosw`, skipping its own body. |
-| `vampire` | Vampires | It writes `jmp` fangs over enemy code. A process that runs a fang jumps into a pit, where it does work that cannot hurt anyone. |
+| `paper` | Paper, Silk | A replicator: `rep movsw` copies the bot, `spl` starts the copy, and each copy copies again. Bombs cannot kill the copies as fast as they appear. Silk starts each copy on a `jmp $` pad before it writes it. |
+| `scanner` | Scanners | It looks for non-zero bytes with `repe scasb` (which repeats while the byte is zero) and carpet-bombs what it finds with `rep stosw`, skipping its own body. Hybrid turns to paper when bombs land near its home. |
+| `vampire` | Vampires | It writes `jmp` fangs over enemy code. A process that runs a fang jumps into a pit, where it zeros its own home and takes its bot's free slots, until the vampire closes the pit and it dies. |
 | `painter` | None: ASM Bots only | Showcase bots that paint patterns over the core, such as an LCG scatter or a square spiral. They make the arena worth watching. |
 | `test` | None | Small bots that each pin down one engine behavior, such as `halt` (dies at once) and `spin` (lives to the cycle cap). They are not fighters. |
 
-The classic families form a triangle: a stone beats a scanner (the scanner is big and slow), a scanner beats paper (a scan finds the copies), and paper beats a stone (copies appear faster than bombs land). Imps tie with most bots, and an imp gate stops imps.
+In x16c the classic families do not form the Redcode triangle. Over seeds 1..200, a stone beats a scanner in 80% of the rounds (the scanner is big and slow), but paper beats a stone (62%, and loses 2%), a scanner (86%), and a dwarf (76%), and loses almost never: every copy writes paper over whatever it lands on, faster than bombs or a scan can find 64 processes in 64 places. The vampire beats bombers and scanners in three rounds of four or more and takes 38% of its rounds from paper, whose copies land on it in most of the others. Imps lose to most fighters, and an imp gate kills them.
 
 ## Tiers
 
@@ -61,7 +61,7 @@ count:  dw      LAP
 end:
 ```
 
-1. **Header comment.** The file starts with `;` lines: three sentences on the tactic, which say what the bot does, how, and why that works. A fighter adds the record from its acceptance test as one more line, in this form: `; vs imp.asm, seeds 1..20: 14 W / 6 T / 0 L`.
+1. **Header comment.** The file starts with `;` lines: three sentences on the tactic, which say what the bot does, how, and why that works. A fighter adds the records from its acceptance tests, one line for each rival, in this form: `; vs imp.asm, seeds 1..20: 14 W / 6 T / 0 L`.
 2. **Metadata.** `%name`, `%author`, and `%strategy`, in that order, after one blank line. `%name` and `%author` are the `name` and `author` of the roster entry. `%strategy` is one short line for the arena.
 3. **Constants.** Each tuning number (a stride, an offset, a count) is an `equ` in capitals before `start:`, with a comment.
 4. **The base idiom.** The loader puts a bot at a random address and does not relocate it (ISA §6.4). So `start:` begins with `call .here`, `pop bx`, and `sub bx, .here`, and then `bx` holds the base address. The bot gets to its own data only through `[bx+label]`: `[label]` is a fixed address in the core, and the linter warns on it. `jmp`, `call`, `loop`, and `spl` are relative and need no base. A bot that needs `bx` for other work keeps the base in another register, and a comment says which.
