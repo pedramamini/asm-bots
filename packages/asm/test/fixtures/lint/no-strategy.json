@@ -1,0 +1,11 @@
+[
+  {
+    "severity": "warning",
+    "line": 2,
+    "col": 1,
+    "len": 22,
+    "message": "no `%strategy`",
+    "code": "no-strategy",
+    "fix": "say in one line how the bot fights: `%strategy \"...\"`; the arena and the hills show it"
+  }
+]

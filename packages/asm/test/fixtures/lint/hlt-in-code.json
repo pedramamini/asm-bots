@@ -1,0 +1,29 @@
+[
+  {
+    "severity": "warning",
+    "line": 8,
+    "col": 9,
+    "len": 3,
+    "message": "`hlt` kills the process that runs it, and the bot runs this one: it halts itself",
+    "code": "hlt-in-code",
+    "fix": "to park a process, spin with `jmp $`; keep a bomb template after a `jmp`, where no code runs into it"
+  },
+  {
+    "severity": "warning",
+    "line": 9,
+    "col": 9,
+    "len": 3,
+    "message": "`hlt` kills the process that runs it, and the bot runs this one: it halts itself",
+    "code": "hlt-in-code",
+    "fix": "to park a process, spin with `jmp $`; keep a bomb template after a `jmp`, where no code runs into it"
+  },
+  {
+    "severity": "warning",
+    "line": 11,
+    "col": 9,
+    "len": 13,
+    "message": "`hlt` kills the process that runs it, and the bot runs this one: it halts itself",
+    "code": "hlt-in-code",
+    "fix": "to park a process, spin with `jmp $`; keep a bomb template after a `jmp`, where no code runs into it"
+  }
+]

@@ -1,0 +1,11 @@
+[
+  {
+    "severity": "warning",
+    "line": 6,
+    "col": 9,
+    "len": 13,
+    "message": "the bot is 461 bytes, 90% of the limit of 512 (51 left); it reaches 90% on this line",
+    "code": "size-near-cap",
+    "fix": "keep room for changes: rel8 jumps, `inc` and `dec` for small steps, fewer `times` repeats, less data"
+  }
+]

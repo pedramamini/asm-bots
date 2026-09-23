@@ -3,7 +3,8 @@ import type { Diag, DiagCode } from './diag'
 /**
  * Token kinds. Mnemonics, registers, keywords (`byte`, `times`, `equ`, ...), `$`, and `$$` are
  * all `ident`; the parser tells them apart. A `directive` is a `%` name that starts a line;
- * anywhere else `%` is the modulo operator.
+ * anywhere else `%` is the modulo operator. A `comment` runs from `;` to the end of its line, and
+ * only `tokenize` with `comments: true` yields one.
  */
 export type TokenKind =
   | 'ident'
@@ -12,6 +13,7 @@ export type TokenKind =
   | 'char'
   | 'punct'
   | 'directive'
+  | 'comment'
   | 'newline'
   | 'eof'
 
@@ -39,10 +41,15 @@ export interface StringToken extends TokenBase {
 }
 
 export interface PlainToken extends TokenBase {
-  kind: 'ident' | 'punct' | 'directive' | 'newline' | 'eof'
+  kind: 'ident' | 'punct' | 'directive' | 'comment' | 'newline' | 'eof'
 }
 
 export type Token = NumberToken | StringToken | PlainToken
+
+export interface TokenizeOptions {
+  /** Keep each `;` comment as a `comment` token, for the formatter. The parser skips them. */
+  comments?: boolean
+}
 
 /** ISA §6.1 identifiers: `[A-Za-z_.$?][A-Za-z0-9_.$?#@~]*`. A number is a word of IDENT_PART too. */
 const IDENT_START = /[A-Za-z_.$?]/
@@ -103,11 +110,12 @@ function numberValue(word: string): number | string {
 
 /**
  * Splits x16c source (ISA §6.1) into tokens, ending with `eof`. Every line break (`\n`, `\r\n`,
- * or a lone `\r`) is a `newline` token; whitespace and `;` comments are dropped. Lexing never
- * stops: a bad number still yields a number token (value 0), an unterminated literal runs to the
- * end of its line, an unexpected character yields no token, and each error goes to `diags`.
+ * or a lone `\r`) is a `newline` token; whitespace is dropped, and so are `;` comments unless
+ * `opts.comments` keeps them. Lexing never stops: a bad number still yields a number token
+ * (value 0), an unterminated literal runs to the end of its line, an unexpected character yields
+ * no token, and each error goes to `diags`.
  */
-export function tokenize(source: string, diags: Diag[] = []): Token[] {
+export function tokenize(source: string, diags: Diag[] = [], opts: TokenizeOptions = {}): Token[] {
   const tokens: Token[] = []
   let line = 1
   /** Index of the first character of the current line. */
@@ -146,6 +154,7 @@ export function tokenize(source: string, diags: Diag[] = []): Token[] {
       lineStart = i
     } else if (c === ';') {
       while (i < source.length && !isBreak(source.charAt(i))) i++
+      if (opts.comments === true) tokens.push({ kind: 'comment', ...span(start) })
     } else if (c === '"' || c === "'") {
       let value = ''
       let closed = false

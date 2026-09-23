@@ -1,0 +1,47 @@
+[
+  {
+    "severity": "warning",
+    "line": 6,
+    "col": 9,
+    "len": 3,
+    "message": "the line before falls through into `dat`: the process dies there",
+    "code": "dat-in-code",
+    "fix": "end the code before it with a `jmp`, or move the data after the code"
+  },
+  {
+    "severity": "warning",
+    "line": 9,
+    "col": 9,
+    "len": 9,
+    "message": "the line before falls through into `resb`, whose zero bytes are DAT: the process dies there",
+    "code": "dat-in-code",
+    "fix": "end the code before it with a `jmp`, or move the data after the code"
+  },
+  {
+    "severity": "warning",
+    "line": 11,
+    "col": 9,
+    "len": 9,
+    "message": "the line before falls through into `resw`, whose zero bytes are DAT: the process dies there",
+    "code": "dat-in-code",
+    "fix": "end the code before it with a `jmp`, or move the data after the code"
+  },
+  {
+    "severity": "warning",
+    "line": 13,
+    "col": 9,
+    "len": 9,
+    "message": "the line before falls through into the padding of `align`, which is DAT (00), not NOP as in NASM: the process dies there",
+    "code": "dat-in-code",
+    "fix": "end the code before it with a `jmp`, or move the data after the code"
+  },
+  {
+    "severity": "warning",
+    "line": 16,
+    "col": 9,
+    "len": 13,
+    "message": "the line before falls through into `dat`: the process dies there",
+    "code": "dat-in-code",
+    "fix": "end the code before it with a `jmp`, or move the data after the code"
+  }
+]

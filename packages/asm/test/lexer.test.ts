@@ -243,6 +243,22 @@ describe('tokenize: lines, columns, and comments', () => {
     expect(tokens.map((t) => t.text)).toEqual(['nop', '\r\n', 'nop', '\r', 'nop', ''])
   })
 
+  it('keeps each comment as a token to the end of its line when asked', () => {
+    const source = '; head\nnop ; tail \r\ndb "a;b" ;x'
+    const tokens = tokenize(source, [], { comments: true })
+    expect(show(tokens)).toEqual([
+      'comment ; head',
+      'newline',
+      'ident nop',
+      'comment ; tail ',
+      'newline',
+      'ident db',
+      'string "a;b"',
+      'comment ;x',
+    ])
+    expectPositions(source, tokens)
+  })
+
   it('counts 1-based columns, a tab as one column', () => {
     const source = '\tmov\tax,\t0x10 ; c'
     const tokens = tokenize(source)

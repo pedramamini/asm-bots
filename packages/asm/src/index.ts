@@ -34,7 +34,16 @@ export type { DisassembleOptions, DisLine } from './disassemble'
 export { disassemble } from './disassemble'
 export type { Unresolved } from './expr'
 export { evaluate, evaluateExact } from './expr'
-export type { NumberToken, PlainToken, StringToken, Token, TokenKind } from './lexer'
+export { formatSource } from './format'
+export type {
+  NumberToken,
+  PlainToken,
+  StringToken,
+  Token,
+  TokenizeOptions,
+  TokenKind,
+} from './lexer'
 export { tokenize } from './lexer'
+export { lint } from './lint'
 export type { Parsed } from './parser'
 export { parse } from './parser'

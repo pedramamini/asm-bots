@@ -16,6 +16,11 @@
  *   that do not settle), and `size-over-cap` (a bot bigger than the size limit). It also gives
  *   `bad-directive` for a metadata directive given twice, an empty `%name`, a count out of range
  *   (`times`, `resb`, `resw`), and an `align` that is not a power of 2.
+ * - Linter warnings: `absolute-address` (`[label]` with no register), `unreachable` (code after a
+ *   `jmp`, `ret`, `hlt`, `int3`, or DAT with no label), `dat-in-code` (DAT bytes that code falls
+ *   into), `size-near-cap` (90% of the size limit or more), `no-strategy` (no `%strategy` text),
+ *   `hlt-in-code` (a `hlt` the bot runs), and `uninitialized-di` (a string instruction that uses
+ *   di before any line sets di).
  */
 export type DiagCode =
   | 'bad-char'
@@ -43,6 +48,13 @@ export type DiagCode =
   | 'missing-name'
   | 'no-convergence'
   | 'size-over-cap'
+  | 'absolute-address'
+  | 'unreachable'
+  | 'dat-in-code'
+  | 'size-near-cap'
+  | 'no-strategy'
+  | 'hlt-in-code'
+  | 'uninitialized-di'
 
 /** One assembler or linter finding, located in the source (ISA §6.5). */
 export interface Diag {
@@ -55,4 +67,6 @@ export interface Diag {
   len: number
   message: string
   code: DiagCode
+  /** What to do about it. Every linter warning has one; assembler errors say it in `message`. */
+  fix?: string
 }

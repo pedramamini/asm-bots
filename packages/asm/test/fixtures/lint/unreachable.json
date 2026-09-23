@@ -1,0 +1,38 @@
+[
+  {
+    "severity": "warning",
+    "line": 6,
+    "col": 9,
+    "len": 3,
+    "message": "unreachable code: the `jmp` on line 5 never falls through, and no label lets a jump in here",
+    "code": "unreachable",
+    "fix": "add a label if a jump should reach this code, or delete the code up to the next label"
+  },
+  {
+    "severity": "warning",
+    "line": 15,
+    "col": 9,
+    "len": 13,
+    "message": "unreachable code: the `jmp` on line 13 never falls through, and no label lets a jump in here",
+    "code": "unreachable",
+    "fix": "add a label if a jump should reach this code, or delete the code up to the next label"
+  },
+  {
+    "severity": "warning",
+    "line": 19,
+    "col": 9,
+    "len": 10,
+    "message": "unreachable code: the `ret` on line 17 never falls through, and no label lets a jump in here",
+    "code": "unreachable",
+    "fix": "add a label if a jump should reach this code, or delete the code up to the next label"
+  },
+  {
+    "severity": "warning",
+    "line": 23,
+    "col": 9,
+    "len": 3,
+    "message": "unreachable code: the `int3` on line 22 never falls through, and no label lets a jump in here",
+    "code": "unreachable",
+    "fix": "add a label if a jump should reach this code, or delete the code up to the next label"
+  }
+]

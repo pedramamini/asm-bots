@@ -100,10 +100,7 @@ export interface Assembled {
  * @throws RangeError when `maxBytes` is not an integer in 0..65536.
  */
 export function assemble(source: string, opts: AssembleOptions = {}): Assembled {
-  const maxBytes = opts.maxBytes ?? MAX_BOT_BYTES
-  if (!Number.isInteger(maxBytes) || maxBytes < 0 || maxBytes > CORE_SIZE) {
-    throw new RangeError(`maxBytes must be an integer in 0..${CORE_SIZE}, not ${maxBytes}`)
-  }
+  const maxBytes = maxBytesOf(opts)
   const diags: Diag[] = []
   const tokens = tokenize(source, diags)
   const { lines, diags: parseDiags } = parse(tokens)
@@ -144,6 +141,19 @@ export function assemble(source: string, opts: AssembleOptions = {}): Assembled 
     sourceMap: image === undefined ? new Uint16Array(0) : sourceMap(layout.items, image.length),
     diagnostics: diags,
   }
+}
+
+/**
+ * The size limit of `opts`, 512 when not given.
+ *
+ * @throws RangeError when it is not an integer in 0..65536.
+ */
+export function maxBytesOf(opts: AssembleOptions): number {
+  const maxBytes = opts.maxBytes ?? MAX_BOT_BYTES
+  if (!Number.isInteger(maxBytes) || maxBytes < 0 || maxBytes > CORE_SIZE) {
+    throw new RangeError(`maxBytes must be an integer in 0..${CORE_SIZE}, not ${maxBytes}`)
+  }
+  return maxBytes
 }
 
 function error(line: number, at: Span, code: DiagCode, message: string): Diag {

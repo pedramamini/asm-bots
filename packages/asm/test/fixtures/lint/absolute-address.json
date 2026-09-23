@@ -1,0 +1,56 @@
+[
+  {
+    "severity": "warning",
+    "line": 8,
+    "col": 21,
+    "len": 6,
+    "message": "`[bomb]` is an absolute address: a fixed place in the core, not in this bot, which the loader places anywhere (ISA §6.4)",
+    "code": "absolute-address",
+    "fix": "for the bot's own data, add a base register: `[bx+bomb]`, with bx from the base idiom `call .here` / `.here: pop bx` / `sub bx, .here`"
+  },
+  {
+    "severity": "warning",
+    "line": 9,
+    "col": 17,
+    "len": 13,
+    "message": "`word [0x0100]` is an absolute address: a fixed place in the core, not in this bot, which the loader places anywhere (ISA §6.4)",
+    "code": "absolute-address",
+    "fix": "for the bot's own data, add a base register: `[bx+0x0100]`, with bx from the base idiom `call .here` / `.here: pop bx` / `sub bx, .here`"
+  },
+  {
+    "severity": "warning",
+    "line": 10,
+    "col": 21,
+    "len": 8,
+    "message": "`[bomb+2]` is an absolute address: a fixed place in the core, not in this bot, which the loader places anywhere (ISA §6.4)",
+    "code": "absolute-address",
+    "fix": "for the bot's own data, add a base register: `[bx+bomb+2]`, with bx from the base idiom `call .here` / `.here: pop bx` / `sub bx, .here`"
+  },
+  {
+    "severity": "warning",
+    "line": 11,
+    "col": 17,
+    "len": 16,
+    "message": "`word [word bomb]` is an absolute address: a fixed place in the core, not in this bot, which the loader places anywhere (ISA §6.4)",
+    "code": "absolute-address",
+    "fix": "for the bot's own data, add a base register: `[bx+bomb]`, with bx from the base idiom `call .here` / `.here: pop bx` / `sub bx, .here`"
+  },
+  {
+    "severity": "warning",
+    "line": 12,
+    "col": 23,
+    "len": 12,
+    "message": "`word [count]` is an absolute address: a fixed place in the core, not in this bot, which the loader places anywhere (ISA §6.4)",
+    "code": "absolute-address",
+    "fix": "for the bot's own data, add a base register: `[bx+count]`, with bx from the base idiom `call .here` / `.here: pop bx` / `sub bx, .here`"
+  },
+  {
+    "severity": "warning",
+    "line": 13,
+    "col": 17,
+    "len": 8,
+    "message": "`[vector]` is an absolute address: a fixed place in the core, not in this bot, which the loader places anywhere (ISA §6.4)",
+    "code": "absolute-address",
+    "fix": "for the bot's own data, add a base register: `[bx+vector]`, with bx from the base idiom `call .here` / `.here: pop bx` / `sub bx, .here`"
+  }
+]

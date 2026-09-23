@@ -50,12 +50,13 @@ const NO_SYMBOLS: ReadonlyMap<string, number> = new Map()
  * macros first. It never stops: the first error on a line goes to `diags` and the line becomes
  * `empty`, keeping its label if the label was sound. `.local` names come out as full names
  * (`start.loop`). Values are left to the assembler, except that `org` must be 0 and `bits` 16.
+ * Comment tokens are skipped.
  */
 export function parse(tokens: readonly Token[]): Parsed {
   const lines: Line[] = []
   const diags: Diag[] = []
   const state: LineState = { scope: '', defines: new Defines() }
-  const all = withEof(tokens)
+  const all = withEof(tokens.filter((t) => t.kind !== 'comment'))
   let start = 0
   for (let n = 1; ; n++) {
     let end = start

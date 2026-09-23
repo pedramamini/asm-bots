@@ -1,0 +1,29 @@
+[
+  {
+    "severity": "warning",
+    "line": 6,
+    "col": 9,
+    "len": 13,
+    "message": "`stosw` uses di, and no line before it sets di: di starts at 0, a fixed place in the core",
+    "code": "uninitialized-di",
+    "fix": "set di first, from the base register: `lea di, [bx+target]`"
+  },
+  {
+    "severity": "warning",
+    "line": 7,
+    "col": 9,
+    "len": 15,
+    "message": "`movsb` uses di, and no line before it sets di: di starts at 0, a fixed place in the core",
+    "code": "uninitialized-di",
+    "fix": "set di first, from the base register: `lea di, [bx+target]`"
+  },
+  {
+    "severity": "warning",
+    "line": 10,
+    "col": 9,
+    "len": 5,
+    "message": "`scasb` uses di, and no line before it sets di: di starts at 0, a fixed place in the core",
+    "code": "uninitialized-di",
+    "fix": "set di first, from the base register: `lea di, [bx+target]`"
+  }
+]
