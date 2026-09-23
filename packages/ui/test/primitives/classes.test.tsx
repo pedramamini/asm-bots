@@ -38,7 +38,7 @@ import {
   useToast,
 } from '../../src/index'
 import { stubLayout, useDom } from '../dom'
-import { compileKit } from '../tailwind'
+import { compileKit, hasRule, MARKER } from '../tailwind'
 
 useDom()
 
@@ -47,18 +47,6 @@ beforeAll(async () => {
   const kit = await compileKit()
   build = (candidates) => kit.build(candidates)
 })
-
-/**
- * Classes with no rule of their own: a group marker names a parent for `group-*` variants, and
- * lucide names its icons (`lucide lucide-play`).
- */
-const MARKER = /^(group(\/[\w-]+)?|lucide(-[\w-]+)?)$/
-
-/** True when `css` has a rule for the class `name`: its escaped selector, and no more name after. */
-function hasRule(css: string, name: string): boolean {
-  const selector = `.${name.replace(/[^\w-]/g, (ch) => `\\${ch}`)}`
-  return new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}(?![\\w\\\\-])`).test(css)
-}
 
 /** Every control in every state that changes its classes, the tooltip and the menu open. */
 function Controls() {

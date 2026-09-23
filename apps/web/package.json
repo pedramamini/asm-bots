@@ -6,5 +6,11 @@
   "scripts": {
     "build": "tsc -b",
     "test": "bun test"
+  },
+  "dependencies": {
+    "@asmbots/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
   }
 }

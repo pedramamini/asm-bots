@@ -1,7 +1,8 @@
 [test]
 coverage = false
-# The component tests' DOM: packages/ui/test/dom/preload.ts says why it loads first.
-preload = ["./packages/ui/test/dom/preload.ts"]
+# The component tests' DOM: packages/ui/test/dom/preload.ts says why it loads first. The
+# Playwright specs (e2e/*.spec.ts) show as skipped: scripts/skip-playwright-specs.ts.
+preload = ["./packages/ui/test/dom/preload.ts", "./scripts/skip-playwright-specs.ts"]
 
 [install]
 exact = true

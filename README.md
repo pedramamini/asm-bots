@@ -21,4 +21,5 @@ bun run golden      # the roster goldens; --update writes packages/bots/goldens/
 - [ISA Specification](./docs/ISA_SPEC.md) — x86-16 instruction set and execution model
 - [Product Spec](./docs/PRODUCT_SPEC.md) — Features and user flows
 - [Design System](./docs/DESIGN_SYSTEM.md) — UI patterns and component library
+- [UI kit](./packages/ui/README.md): tokens, themes, the 31 primitives, and the `/_gallery` review page
 - [Research Brief](./docs/RESEARCH_BRIEF.md) — Background and prior art

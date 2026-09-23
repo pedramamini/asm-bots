@@ -49,7 +49,7 @@ export function html(element: Element): string {
  * function runs. `value` gets the element, so a test can size one element differently.
  */
 export function stubLayout(
-  name: 'clientWidth' | 'scrollWidth' | 'offsetHeight',
+  name: 'clientWidth' | 'clientHeight' | 'scrollWidth' | 'offsetHeight',
   value: (element: HTMLElement) => number,
 ): () => void {
   const proto = window.HTMLElement.prototype

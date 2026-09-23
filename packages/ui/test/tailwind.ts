@@ -32,3 +32,15 @@ export function rule(css: string, selector: string): Record<string, string> | nu
       .map((d) => [d.slice(0, d.indexOf(':')).trim(), d.slice(d.indexOf(':') + 1).trim()]),
   )
 }
+
+/**
+ * Classes with no rule of their own: a group marker names a parent for `group-*` variants, and
+ * lucide names its icons (`lucide lucide-play`).
+ */
+export const MARKER = /^(group(\/[\w-]+)?|lucide(-[\w-]+)?)$/
+
+/** True when `css` has a rule for the class `name`: its escaped selector, and no more name after. */
+export function hasRule(css: string, name: string): boolean {
+  const selector = `.${name.replace(/[^\w-]/g, (ch) => `\\${ch}`)}`
+  return new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}(?![\\w\\\\-])`).test(css)
+}

@@ -1,0 +1,5 @@
+# `bun test` run from this package reads this file, not the root one. The Playwright specs
+# (e2e/*.spec.ts) show as skipped: ../../scripts/skip-playwright-specs.ts.
+[test]
+coverage = false
+preload = ["../../scripts/skip-playwright-specs.ts"]
