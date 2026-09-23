@@ -1,0 +1,166 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Menu draws the trigger and, open, the menu under it 1`] = `
+"<div>
+  <button
+    aria-controls="id-1"
+    aria-expanded="true"
+    aria-haspopup="menu"
+    class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none h-6 gap-1.5 px-2.5 relative text-nav border-border text-muted not-disabled:hover:border-border-strong focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40"
+    id="id-2"
+    type="button"
+  >
+    <span
+      class="inline-flex items-center gap-[inherit]"
+    >
+      templates
+    </span>
+  </button>
+  <div
+    aria-labelledby="id-2"
+    class="fixed inset-auto top-(--y) left-(--x) m-0 overflow-visible z-modal flex min-w-40 flex-col rounded-md border border-border-strong bg-panel p-1 text-data text-text outline-hidden transition-opacity duration-120 ease-out opacity-0"
+    id="id-1"
+    popover="manual"
+    role="menu"
+    style="--x: 0px; --y: 0px;"
+    tabindex="-1"
+  >
+    <button
+      class="flex h-6 w-full items-center gap-2 rounded-sm px-2 text-left whitespace-nowrap outline-hidden disabled:cursor-not-allowed disabled:opacity-40 text-text focus:bg-accent-10 focus:text-accent"
+      role="menuitem"
+      tabindex="-1"
+      type="button"
+    >
+      <span
+        class="flex-1"
+      >
+        blank
+      </span>
+    </button>
+    <button
+      class="flex h-6 w-full items-center gap-2 rounded-sm px-2 text-left whitespace-nowrap outline-hidden disabled:cursor-not-allowed disabled:opacity-40 text-text focus:bg-accent-10 focus:text-accent"
+      role="menuitem"
+      tabindex="-1"
+      type="button"
+    >
+      <span
+        class="flex-1"
+      >
+        imp
+      </span>
+    </button>
+    <button
+      class="flex h-6 w-full items-center gap-2 rounded-sm px-2 text-left whitespace-nowrap outline-hidden disabled:cursor-not-allowed disabled:opacity-40 text-text focus:bg-accent-10 focus:text-accent"
+      role="menuitem"
+      tabindex="-1"
+      type="button"
+    >
+      <svg
+        aria-hidden="true"
+        class="lucide lucide-copy shrink-0"
+        fill="none"
+        height="12"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="1.75"
+        viewBox="0 0 24 24"
+        width="12"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect
+          height="14"
+          rx="2"
+          ry="2"
+          width="14"
+          x="8"
+          y="8"
+        />
+        <path
+          d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
+        />
+      </svg>
+      <span
+        class="flex-1"
+      >
+        dwarf
+      </span>
+      <kbd
+        aria-hidden="true"
+        class="inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-sm border border-border-strong bg-panel-2 px-1 text-panel-status text-muted"
+      >
+        d
+      </kbd>
+    </button>
+    <button
+      class="flex h-6 w-full items-center gap-2 rounded-sm px-2 text-left whitespace-nowrap outline-hidden disabled:cursor-not-allowed disabled:opacity-40 text-text focus:bg-accent-10 focus:text-accent"
+      disabled=""
+      role="menuitem"
+      tabindex="-1"
+      type="button"
+    >
+      <span
+        class="flex-1"
+      >
+        scanner skeleton
+      </span>
+    </button>
+    <hr
+      class="-mx-1 my-1 border-border"
+    />
+    <button
+      class="flex h-6 w-full items-center gap-2 rounded-sm px-2 text-left whitespace-nowrap outline-hidden disabled:cursor-not-allowed disabled:opacity-40 text-text focus:bg-accent-10 focus:text-accent"
+      role="menuitem"
+      tabindex="-1"
+      type="button"
+    >
+      <span
+        class="flex-1"
+      >
+        replicator skeleton
+      </span>
+    </button>
+    <button
+      class="flex h-6 w-full items-center gap-2 rounded-sm px-2 text-left whitespace-nowrap outline-hidden disabled:cursor-not-allowed disabled:opacity-40 text-danger focus:bg-danger/10"
+      role="menuitem"
+      tabindex="-1"
+      type="button"
+    >
+      <svg
+        aria-hidden="true"
+        class="lucide lucide-trash lucide-trash-2 shrink-0"
+        fill="none"
+        height="12"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="1.75"
+        viewBox="0 0 24 24"
+        width="12"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M10 11v6"
+        />
+        <path
+          d="M14 11v6"
+        />
+        <path
+          d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"
+        />
+        <path
+          d="M3 6h18"
+        />
+        <path
+          d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+        />
+      </svg>
+      <span
+        class="flex-1"
+      >
+        delete
+      </span>
+    </button>
+  </div>
+</div>"
+`;

@@ -1,0 +1,43 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Slider draws the track, and the log speed control with its readout 1`] = `
+"<div>
+  <span
+    class="inline-flex h-6 min-w-0 items-center gap-2 has-disabled:opacity-40"
+  >
+    <input
+      aria-label="volume"
+      aria-valuetext="40"
+      class="h-full min-w-0 flex-1 cursor-pointer appearance-none bg-transparent disabled:cursor-not-allowed [&::-webkit-slider-runnable-track]:h-0.5 [&::-webkit-slider-runnable-track]:bg-[linear-gradient(to_right,var(--accent)_var(--fill),var(--border-strong)_var(--fill))] [&::-webkit-slider-thumb]:mt-[-5px] [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-1.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:bg-accent [&::-moz-range-track]:h-0.5 [&::-moz-range-track]:bg-border-strong [&::-moz-range-progress]:h-0.5 [&::-moz-range-progress]:bg-accent [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-1.5 [&::-moz-range-thumb]:rounded-none [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-accent focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
+      max="100"
+      min="0"
+      step="1"
+      style="--fill: 40.00%;"
+      type="range"
+      value="40"
+    />
+  </span>
+  <span
+    class="inline-flex h-6 min-w-0 items-center gap-2 has-disabled:opacity-40"
+  >
+    <input
+      aria-label="speed"
+      aria-valuetext="100/frame"
+      class="h-full min-w-0 flex-1 cursor-pointer appearance-none bg-transparent disabled:cursor-not-allowed [&::-webkit-slider-runnable-track]:h-0.5 [&::-webkit-slider-runnable-track]:bg-[linear-gradient(to_right,var(--accent)_var(--fill),var(--border-strong)_var(--fill))] [&::-webkit-slider-thumb]:mt-[-5px] [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-1.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:bg-accent [&::-moz-range-track]:h-0.5 [&::-moz-range-track]:bg-border-strong [&::-moz-range-progress]:h-0.5 [&::-moz-range-progress]:bg-accent [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-1.5 [&::-moz-range-thumb]:rounded-none [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-accent focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
+      max="1000"
+      min="0"
+      step="1"
+      style="--fill: 50.00%;"
+      type="range"
+      value="500"
+    />
+    <span
+      aria-hidden="true"
+      class="min-w-(--readout) text-right text-data text-muted"
+      style="--readout: 12ch;"
+    >
+      100/frame
+    </span>
+  </span>
+</div>"
+`;

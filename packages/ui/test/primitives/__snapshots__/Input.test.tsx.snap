@@ -1,0 +1,50 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Input draws the field with the prompt glyph, and the mono variant 1`] = `
+"<div>
+  <span
+    class="relative inline-flex h-6 min-w-0 has-disabled:opacity-40 w-72"
+  >
+    <input
+      aria-label="search bots"
+      class="h-full w-full min-w-0 rounded-sm border border-border bg-panel-2 pr-2 text-data text-text outline-hidden transition-colors duration-120 ease-out placeholder:text-muted not-disabled:hover:border-border-strong focus:border-accent disabled:cursor-not-allowed pl-6"
+      placeholder="search bots..."
+    />
+    <span
+      aria-hidden="true"
+      class="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-data text-dim select-none"
+    >
+      &gt;
+    </span>
+  </span>
+  <span
+    class="relative inline-flex h-6 min-w-0 has-disabled:opacity-40"
+  >
+    <input
+      aria-label="goto"
+      autocapitalize="characters"
+      autocomplete="off"
+      autocorrect="off"
+      class="h-full w-full min-w-0 rounded-sm border border-border bg-panel-2 pr-2 text-data text-text outline-hidden transition-colors duration-120 ease-out placeholder:text-muted not-disabled:hover:border-border-strong focus:border-accent disabled:cursor-not-allowed pl-6"
+      maxlength="6"
+      placeholder="0x0000"
+      spellcheck="false"
+      type="text"
+    />
+    <span
+      aria-hidden="true"
+      class="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-data text-dim select-none"
+    >
+      &gt;
+    </span>
+  </span>
+  <span
+    class="relative inline-flex h-6 min-w-0 has-disabled:opacity-40"
+  >
+    <input
+      aria-label="name"
+      class="h-full w-full min-w-0 rounded-sm border border-border bg-panel-2 pr-2 text-data text-text outline-hidden transition-colors duration-120 ease-out placeholder:text-muted not-disabled:hover:border-border-strong focus:border-accent disabled:cursor-not-allowed pl-2"
+    />
+  </span>
+</div>"
+`;

@@ -1,0 +1,73 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`NavButton draws the active and an idle route 1`] = `
+"<div>
+  <nav
+    aria-label="primary"
+  >
+    <a
+      aria-current="page"
+      class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none h-6 gap-1.5 px-2.5 text-nav focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent border-accent bg-accent-10 text-accent"
+      href="/arena"
+    >
+      <svg
+        aria-hidden="true"
+        class="lucide lucide-grid-2x2 lucide-grid-2-x-2 shrink-0"
+        fill="none"
+        height="12"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="1.75"
+        viewBox="0 0 24 24"
+        width="12"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M12 3v18"
+        />
+        <path
+          d="M3 12h18"
+        />
+        <rect
+          height="18"
+          rx="2"
+          width="18"
+          x="3"
+          y="3"
+        />
+      </svg>
+      arena
+    </a>
+    <a
+      class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none h-6 gap-1.5 px-2.5 text-nav focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent border-border text-muted not-disabled:hover:border-border-strong"
+      href="/editor"
+    >
+      <svg
+        aria-hidden="true"
+        class="lucide lucide-code-xml lucide-code-2 shrink-0 text-accent"
+        fill="none"
+        height="12"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="1.75"
+        viewBox="0 0 24 24"
+        width="12"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="m18 16 4-4-4-4"
+        />
+        <path
+          d="m6 8-4 4 4 4"
+        />
+        <path
+          d="m14.5 4-5 16"
+        />
+      </svg>
+      editor
+    </a>
+  </nav>
+</div>"
+`;

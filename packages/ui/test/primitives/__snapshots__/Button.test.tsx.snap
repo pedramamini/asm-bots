@@ -1,0 +1,89 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Button draws each variant 1`] = `
+"<div>
+  <button
+    class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none h-6 gap-1.5 px-2.5 relative text-nav border-border text-muted not-disabled:hover:border-border-strong focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40"
+    type="button"
+  >
+    <span
+      class="inline-flex items-center gap-[inherit]"
+    >
+      refresh
+    </span>
+  </button>
+  <button
+    class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none h-6 gap-1.5 px-2.5 relative border-accent bg-accent-10 text-nav text-accent not-disabled:hover:bg-accent-25 focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40"
+    type="button"
+  >
+    <span
+      class="inline-flex items-center gap-[inherit]"
+    >
+      <svg
+        aria-hidden="true"
+        class="lucide lucide-play shrink-0"
+        fill="none"
+        height="12"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="1.75"
+        viewBox="0 0 24 24"
+        width="12"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"
+        />
+      </svg>
+      fight
+    </span>
+  </button>
+  <button
+    class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none h-5 gap-1 px-2 relative border-transparent text-data text-muted not-disabled:hover:text-text focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40"
+    type="button"
+  >
+    <span
+      class="inline-flex items-center gap-[inherit]"
+    >
+      clear
+    </span>
+  </button>
+  <button
+    class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none h-6 gap-1.5 px-2.5 relative border-danger text-nav text-danger not-disabled:hover:bg-danger/10 focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40"
+    type="button"
+  >
+    <span
+      class="inline-flex items-center gap-[inherit]"
+    >
+      delete
+    </span>
+  </button>
+  <button
+    aria-busy="true"
+    aria-disabled="true"
+    class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none h-6 gap-1.5 px-2.5 relative text-nav border-border text-muted not-disabled:hover:border-border-strong focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40"
+    type="button"
+  >
+    <span
+      class="inline-flex items-center gap-[inherit] opacity-0"
+    >
+      submit
+    </span>
+    <span
+      aria-hidden="true"
+      class="absolute inset-0 flex items-center justify-center gap-1"
+    >
+      <span
+        class="size-1 bg-current animate-dot-pulse motion-reduce:animate-none"
+      />
+      <span
+        class="size-1 bg-current animate-dot-pulse motion-reduce:animate-none [animation-delay:160ms]"
+      />
+      <span
+        class="size-1 bg-current animate-dot-pulse motion-reduce:animate-none [animation-delay:320ms]"
+      />
+    </span>
+  </button>
+</div>"
+`;

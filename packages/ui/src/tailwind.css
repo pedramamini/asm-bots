@@ -183,3 +183,22 @@
 @utility animate-marquee {
   animation: marquee var(--marquee-duration) linear infinite;
 }
+
+/*
+ * A busy button's three dots. Each brightens and fades in turn: the second and third start 160 and
+ * 320 ms late ([animation-delay:…]), so the light walks left to right.
+ */
+@keyframes dot-pulse {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+@utility animate-dot-pulse {
+  animation: dot-pulse 960ms ease-in-out infinite;
+}

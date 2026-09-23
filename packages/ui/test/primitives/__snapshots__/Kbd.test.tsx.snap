@@ -1,0 +1,11 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Kbd draws a keycap 1`] = `
+"<div>
+  <kbd
+    class="inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-sm border border-border-strong bg-panel-2 px-1 text-panel-status text-muted"
+  >
+    space
+  </kbd>
+</div>"
+`;

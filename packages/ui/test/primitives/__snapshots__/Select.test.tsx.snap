@@ -1,0 +1,47 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Select draws the native select with its chevron 1`] = `
+"<div>
+  <span
+    class="relative inline-flex h-6 min-w-0 text-text has-disabled:opacity-40 w-40"
+  >
+    <select
+      aria-label="hill"
+      class="h-full w-full min-w-0 cursor-pointer appearance-none truncate rounded-sm border border-border bg-panel-2 pr-6 pl-2 text-data lowercase outline-hidden transition-colors duration-120 ease-out not-disabled:hover:border-border-strong focus:border-accent disabled:cursor-not-allowed"
+    >
+      <option
+        value=""
+      >
+        all hills
+      </option>
+      <option
+        value="main"
+      >
+        main
+      </option>
+      <option
+        value="tiny"
+      >
+        tiny
+      </option>
+    </select>
+    <svg
+      aria-hidden="true"
+      class="lucide lucide-chevron-down shrink-0 pointer-events-none absolute top-1/2 right-2 -translate-y-1/2"
+      fill="none"
+      height="12"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="1.75"
+      viewBox="0 0 24 24"
+      width="12"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="m6 9 6 6 6-6"
+      />
+    </svg>
+  </span>
+</div>"
+`;

@@ -1,13 +1,20 @@
 import { JSDOM } from 'jsdom'
 
 /**
+ * jsdom hides every popover: its default style hides `[popover]:not(:popover-open)`, and with no
+ * Popover API nothing matches `:popover-open`. The kit renders a tooltip or a menu only while it is
+ * open, so the test document shows every popover.
+ */
+const SHOW_POPOVERS = '<style>[popover] { display: block !important; }</style>'
+
+/**
  * The one jsdom window of a test run. Bun runs every test file in one process, with one module
  * cache and one global object, so every component test renders into this window's document.
  */
-export const window = new JSDOM('<!doctype html><html><head></head><body></body></html>', {
-  url: 'http://localhost/',
-  pretendToBeVisual: true,
-}).window
+export const window = new JSDOM(
+  `<!doctype html><html><head>${SHOW_POPOVERS}</head><body></body></html>`,
+  { url: 'http://localhost/', pretendToBeVisual: true },
+).window
 
 // jsdom has no pointer capture. Capture changes nothing a test can see, so it does nothing here.
 Object.assign(window.Element.prototype, {

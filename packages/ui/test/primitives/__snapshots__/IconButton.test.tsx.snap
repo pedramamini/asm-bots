@@ -1,0 +1,47 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`IconButton draws the icon in a square button, and its tooltip on hover 1`] = `
+"<div>
+  <button
+    aria-label="step back"
+    class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none size-6 focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40 border-border text-text not-disabled:hover:border-border-strong not-disabled:hover:text-bright"
+    type="button"
+  >
+    <svg
+      aria-hidden="true"
+      class="lucide lucide-step-back shrink-0"
+      fill="none"
+      height="16"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="1.75"
+      viewBox="0 0 24 24"
+      width="16"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M13.971 4.285A2 2 0 0 1 17 6v12a2 2 0 0 1-3.029 1.715l-9.997-5.998a2 2 0 0 1-.003-3.432z"
+      />
+      <path
+        d="M21 20V4"
+      />
+    </svg>
+  </button>
+  <span
+    aria-hidden="true"
+    class="fixed inset-auto top-(--y) left-(--x) m-0 overflow-visible z-modal flex max-w-80 items-center gap-2 rounded-sm border border-border-strong bg-panel px-2 py-1 text-data text-text transition-opacity duration-120 ease-out opacity-0"
+    id="id-1"
+    popover="manual"
+    role="tooltip"
+    style="--x: 0px; --y: 0px;"
+  >
+    step back
+    <kbd
+      class="inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-sm border border-border-strong bg-panel-2 px-1 text-panel-status text-muted"
+    >
+      ,
+    </kbd>
+  </span>
+</div>"
+`;

@@ -1,0 +1,26 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Tooltip draws the tooltip beside its trigger 1`] = `
+"<div>
+  <button
+    aria-describedby="id-1"
+    type="button"
+  >
+    next
+  </button>
+  <span
+    class="fixed inset-auto top-(--y) left-(--x) m-0 overflow-visible z-modal flex max-w-80 items-center gap-2 rounded-sm border border-border-strong bg-panel px-2 py-1 text-data text-text transition-opacity duration-120 ease-out opacity-0"
+    id="id-1"
+    popover="manual"
+    role="tooltip"
+    style="--x: 0px; --y: 0px;"
+  >
+    step 
+    <kbd
+      class="inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-sm border border-border-strong bg-panel-2 px-1 text-panel-status text-muted"
+    >
+      .
+    </kbd>
+  </span>
+</div>"
+`;

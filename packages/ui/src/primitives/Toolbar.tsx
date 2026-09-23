@@ -6,9 +6,12 @@ export type ToolbarProps = ComponentProps<'div'>
 /** Controls whose arrow keys move a caret or a value: the toolbar leaves those keys alone. */
 const OWN_ARROWS =
   'input:not([type=button],[type=checkbox],[type=radio],[type=reset],[type=submit]),select,textarea,[contenteditable]:not([contenteditable=false])'
-/** The controls the arrow keys move between. */
+/**
+ * The controls the arrow keys move between: the Tab stops. A roving group's other members and an
+ * open menu's items are at tabindex -1, so the keys land on the group's one stop.
+ */
 const CONTROLS =
-  'a[href],button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex]:not([tabindex="-1"])'
+  ':is(a[href],button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex]):not([tabindex="-1"])'
 
 /**
  * The route's filter row under the header (DESIGN_SYSTEM §4): 36 px, hairline bottom, controls

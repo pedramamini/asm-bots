@@ -129,6 +129,28 @@ describe('Toolbar', () => {
     expect(keys).toEqual(['ArrowRight', 'End'])
   })
 
+  it('moves between Tab stops only: a roving group’s other members (tabindex -1) are skipped', () => {
+    render(
+      <Toolbar>
+        <button type="button">run</button>
+        <button type="button" tabIndex={-1}>
+          week
+        </button>
+        <button type="button">month</button>
+        <button type="button" tabIndex={-1}>
+          year
+        </button>
+      </Toolbar>,
+    )
+    screen.getByRole('button', { name: 'run' }).focus()
+    press('ArrowRight')
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'month' }))
+    press('ArrowRight')
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'run' }))
+    press('End')
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'month' }))
+  })
+
   it('keeps every control in the Tab order', () => {
     render(<Filters />)
     for (const control of screen
