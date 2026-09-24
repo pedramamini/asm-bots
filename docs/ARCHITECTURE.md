@@ -138,7 +138,7 @@ Scoring: pMARS points (ISA_SPEC §5.5). Ratings: Glicko-2 per bot across hill hi
 | Sessions, rate limits, hot caches | KV (`asmbots-kv`) |
 | Live rooms | Durable Object `LiveRoom` per tournament/hill: WebSocket fan-out of `{ matchStarted, matchFinished, standings }`; spectators simulate locally from the same inputs |
 | Long-running hill/tournament execution | Durable Object `Runner` with alarms: one match per alarm, results persisted to D1 as they land; resumable; CPU-bounded per alarm |
-| Scheduled championships | Cron trigger (weekly) enqueues a tournament into a `Runner` |
+| Scheduled championships | Cron trigger (weekly, Saturdays 18:00 UTC) starts the week's open championship in a `Runner` (a bracket of up to 32, seeded by rating) and makes next week's, which takes entries for six days |
 | Auth | GitHub OAuth (players are developers) + guest sessions (play locally without an account; upload requires sign-in). Session cookie, HttpOnly, SameSite=Lax, 30 days, stored in KV |
 | Abuse controls | bot size cap, per-user submission rate limit (KV), assembler runs server-side on submit, no arbitrary code ever runs server-side except the deterministic engine |
 | Observability | Workers Analytics Engine for match counts and durations; `wrangler tail` in dev; structured JSON logs |
@@ -153,8 +153,8 @@ bots(id, owner_id, slug, name, created_at, updated_at, visibility)         -- vi
 bot_versions(id, bot_id, version, source, bytes_sha256, size, author, strategy, isa, created_at)
 hills(id, slug, name, description, size, rounds, config_json, created_at, revision, scoring)  -- scoring: duel|melee; revision guards Runner board writes
 hill_entries(hill_id, bot_version_id, score, rating, wins, ties, losses, age, entered_at, rank)
-tournaments(id, slug, name, kind, status, config_json, bracket_json, owner_id, starts_at, created_at)  -- kind: roundrobin|bracket|melee
-tournament_entries(tournament_id, bot_version_id, seed)
+tournaments(id, slug, name, kind, status, config_json, bracket_json, owner_id, starts_at, created_at, entry, entry_closes_at, champion_id, finished_at)  -- kind: roundrobin|bracket|melee; entry: invite|open; owner_id null = a championship (the weekly cron's); finished championships = the championships feed
+tournament_entries(tournament_id, bot_version_id, seed, user_id, entered_at)  -- seed: the Runner's entrant order from its start; user_id: an open entry's user, one entry a user
 matches(id, tournament_id, hill_id, a_version_id, b_version_id, participants_json, rounds, seed, result_json, replay_key, finished_at, match_key)  -- match_key: tourney matchHash
 ratings(bot_version_id, hill_id, rating, rd, volatility, updated_at)          -- Glicko-2; each hill submission is one rating period
 audit(id, user_id, action, target, at)                                     -- action: protocol AUDIT_ACTIONS

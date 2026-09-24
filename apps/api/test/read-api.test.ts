@@ -303,7 +303,9 @@ describe('GET /api/users/:handle', () => {
 describe('GET /api/tournaments', () => {
   it('lists tournaments, leaving drafts out', async () => {
     const { tournaments } = await read<TournamentList>('/api/tournaments', TournamentList)
-    expect(tournaments.map((t) => t.id)).toEqual(['t1'])
+    expect(tournaments.map((s) => s.tournament.id)).toEqual(['t1'])
+    // A finished round robin of 2: its one match not stored here, its champion not written.
+    expect(tournaments[0]).toMatchObject({ entrants: 2, done: 0, of: 1, champion: null })
   })
 
   it('gives a tournament with its entrants by seed and its matches', async () => {

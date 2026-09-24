@@ -1,9 +1,11 @@
 /**
  * Watching a round of a tournament's match again (PRODUCT_SPEC §4): the round's battle rebuilt
  * from its inputs, the bots in the round's fighting order placed with the round's seed, as a match
- * of one round. That battle is the one `runMatch` ran, so its result hash is the recorded one.
+ * of one round. That battle is the one `runMatch` ran, so its result hash is the recorded one. A
+ * server tournament's inputs are its matches' replays.
  */
 import { type BattleConfigInput, DEFAULT_CONFIG } from '@asmbots/engine'
+import { type Replay, replayBots, replayConfig } from '@asmbots/protocol'
 import { type MatchResult, type MatchRound, roundOrder, roundSeed } from '@asmbots/tourney'
 import type { ArenaBot } from '../arena/worker/protocol'
 import { entrantBots } from './runner'
@@ -41,6 +43,24 @@ export function watchTarget(
   return {
     bots,
     config: { ...tournament.config, seed: round.seed },
+    label: `${matchLabel(result.names)} · round ${round.round + 1}`,
+    resultHash: round.resultHash,
+  }
+}
+
+/**
+ * Round `round` of `result`, a server tournament's match, from `replay`, the match the server
+ * stored: its bots in the round's order, its config with the round's seed.
+ */
+export function replayWatchTarget(
+  replay: Replay,
+  result: MatchResult,
+  round: MatchRound,
+): WatchTarget {
+  const bots = replayBots(replay)
+  return {
+    bots: round.order.map((k) => bots[k] as ArenaBot),
+    config: { ...replayConfig(replay), seed: round.seed },
     label: `${matchLabel(result.names)} · round ${round.round + 1}`,
     resultHash: round.resultHash,
   }

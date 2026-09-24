@@ -4,14 +4,15 @@
  * signed-out reader gets `sign in to submit`; the melee hill takes no submissions yet.
  */
 import type { Hill } from '@asmbots/protocol'
-import { Button, Modal, Select, Skeleton, useToast } from '@asmbots/ui'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { Button, Modal, Skeleton, useToast } from '@asmbots/ui'
+import { useMutation } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { Upload } from 'lucide-react'
 import { useState } from 'react'
-import { botQuery, useMe, useMyBots } from '../../api/queries'
+import { useMe } from '../../api/queries'
 import { submitToHill } from '../../api/writes'
 import { SignInButton } from '../account/AccountSlot'
+import { useVersionPick, VersionFields } from '../account/VersionPicker'
 import { CELL_LINK, count, plural } from './links'
 
 export interface SubmitModalProps {
@@ -34,14 +35,8 @@ export function SubmitModal(props: SubmitModalProps) {
 
 function SubmitDialog({ open, hill, entrants, onClose, onSubmitted }: SubmitModalProps) {
   const { toast } = useToast()
-  const mine = useMyBots()
-  const bots = (mine.data?.bots ?? []).filter((b) => b.latest !== null)
-  const [botId, setBotId] = useState<string | null>(null)
-  const picked = bots.find((b) => b.bot.id === botId) ?? bots[0]
-  const detail = useQuery({ ...botQuery(picked?.bot.id ?? ''), enabled: !!picked })
-  const versions = detail.data?.versions ?? (picked?.latest ? [picked.latest] : [])
-  const [number, setNumber] = useState<number | null>(null)
-  const version = versions.find((v) => v.version === number) ?? versions[0]
+  const pick = useVersionPick()
+  const { mine, picked, version } = pick
   const cap = hill.config.maxBotBytes
   const over = version !== undefined && version.size > cap
   const submit = useMutation({
@@ -93,45 +88,12 @@ function SubmitDialog({ open, hill, entrants, onClose, onSubmitted }: SubmitModa
         </p>
       ) : (
         <div className="flex flex-col gap-3 text-data">
-          <div className="grid grid-cols-[5rem_1fr] items-center gap-2">
-            <span className="text-muted">bot</span>
-            <Select
-              aria-label="bot"
-              value={picked.bot.id}
-              onChange={(event) => {
-                setBotId(event.target.value)
-                setNumber(null)
-                submit.reset()
-              }}
-            >
-              {bots.map((b) => (
-                <option key={b.bot.id} value={b.bot.id}>
-                  {b.bot.name}
-                </option>
-              ))}
-            </Select>
-            <span className="text-muted">version</span>
-            <Select
-              aria-label="version"
-              value={version?.version ?? ''}
-              onChange={(event) => {
-                setNumber(Number(event.target.value))
-                submit.reset()
-              }}
-            >
-              {versions.map((v) => (
-                <option key={v.id} value={v.version}>
-                  v{v.version} · {count(v.size)} B
-                </option>
-              ))}
-            </Select>
-          </div>
-          {version !== undefined && (
-            <p className={over ? 'text-danger' : 'text-muted'}>
-              {count(version.size)} / {count(cap)} B
-              {over ? `: over the ${hill.name} hill's cap.` : ''}
-            </p>
-          )}
+          <VersionFields
+            pick={{ ...pick, picked }}
+            cap={cap}
+            over={`: over the ${hill.name} hill's cap.`}
+            onChange={() => submit.reset()}
+          />
           <p className="text-muted">
             {`the server fights it against ${entrants === 1 ? '1 entry' : `${count(entrants)} entries`}, ${plural(hill.rounds, 'round')} a match, and ranks it by the points.`}
           </p>

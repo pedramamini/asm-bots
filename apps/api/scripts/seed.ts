@@ -1,9 +1,10 @@
 /**
  * `bun run seed:local` / `bun run seed:remote` (in `apps/api`): the launch seed (`src/db/seed.ts`)
  * of the roster's bots, less its test bots, into D1 and R2 through wrangler. The showcase bots
- * enter the melee hill. Apply the migrations first; running it again adds nothing. Flags after
- * `--local` go to every wrangler command: `--persist-to <dir>` seeds that local storage (the web
- * e2e's Worker).
+ * enter the melee hill. And the next weekly championship, open for entries, so the site has one
+ * before the first cron makes the next. Apply the migrations first; running it again adds nothing.
+ * Flags after `--local` go to every wrangler command: `--persist-to <dir>` seeds that local
+ * storage (the web e2e's Worker).
  */
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
@@ -11,6 +12,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadRoster, ROSTER } from '@asmbots/bots'
+import { championshipInsert, nextChampionshipStart, weeklyChampionship } from '../src/championship'
 import { buildSeed, type SeedObject, sqlScript } from '../src/db/seed'
 
 const [where, ...flags] = process.argv.slice(2)
@@ -41,7 +43,8 @@ console.log(
 const dir = mkdtempSync(join(tmpdir(), 'asmbots-seed-'))
 try {
   const sql = join(dir, 'seed.sql')
-  writeFileSync(sql, sqlScript(seed.statements))
+  const championship = weeklyChampionship(nextChampionshipStart(new Date()))
+  writeFileSync(sql, sqlScript([...seed.statements, championshipInsert(championship)]))
   run('d1', 'execute', 'asmbots', '--file', sql, '--yes')
 
   // One bulk put per content type: wrangler takes the type for the whole batch.

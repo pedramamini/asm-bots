@@ -170,6 +170,7 @@ export async function liveDuel(id: string, rounds = 2): Promise<LiveDuel> {
     participants: match.participants,
     rounds,
     seed: 1,
+    key: match.key,
     result: {
       points: [...played.points],
       survivors: [...(played.rounds.at(-1)?.survivors ?? [])],

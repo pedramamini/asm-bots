@@ -5,16 +5,18 @@
  * `verified` once the battle's result hash equals the recorded one, `mismatch` when it does not,
  * `ended` for a live round, which has no recorded hash yet.
  */
+import { parseReplay } from '@asmbots/protocol'
 import type { MatchResult, MatchRound } from '@asmbots/tourney'
 import { Button, Chip, HueSwatch, IconButton, Modal, useToast } from '@asmbots/ui'
 import { Pause, Play, RotateCcw } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from 'zustand'
+import { apiGet } from '../../api/client'
 import { ArenaCanvas } from '../arena/ArenaCanvas'
 import { ArenaClient, createArenaStore } from '../arena/worker/client'
 import type { Speed } from '../arena/worker/protocol'
 import type { Tournament } from './store'
-import { type WatchTarget, watchTarget } from './watch'
+import { replayWatchTarget, type WatchTarget, watchTarget } from './watch'
 
 export interface WatchModalProps {
   /** The round to show; null closes the modal. */
@@ -38,23 +40,44 @@ const newClient = () => new ArenaClient({ store: createArenaStore() })
 
 /**
  * The round a view's `WatchModal` shows: `watch` opens a round of a played match (`watchTarget`),
- * or toasts why it cannot (a bot gone or broken); `close` closes it.
+ * or toasts why it cannot (a bot gone or broken); `close` closes it. A server tournament's round
+ * opens once its match's replay has loaded (`replayWatchTarget`).
  */
 export function useRoundWatch() {
   const { toast } = useToast()
   const [target, setTarget] = useState<WatchTarget | null>(null)
+  // The last round asked for: a replay that loads after another ask, or a close, is dropped.
+  const asked = useRef(0)
   const watch = useCallback(
     (t: Tournament, entrants: readonly number[], result: MatchResult, round: MatchRound) => {
-      try {
-        setTarget(watchTarget(t, entrants, result, round))
-      } catch (error) {
+      const ask = ++asked.current
+      const refuse = (error: unknown) => {
         const why = error instanceof Error ? error.message : String(error)
         toast(`cannot watch: ${why}.`, { variant: 'danger' })
       }
+      if (t.replays === undefined) {
+        try {
+          setTarget(watchTarget(t, entrants, result, round))
+        } catch (error) {
+          refuse(error)
+        }
+        return
+      }
+      const key = t.replays[result.key]
+      if (key === undefined) {
+        refuse('the server has not stored this match')
+        return
+      }
+      apiGet(`/replays/${encodeURIComponent(key)}`, parseReplay).then((replay) => {
+        if (ask === asked.current) setTarget(replayWatchTarget(replay, result, round))
+      }, refuse)
     },
     [toast],
   )
-  const close = useCallback(() => setTarget(null), [])
+  const close = useCallback(() => {
+    asked.current++
+    setTarget(null)
+  }, [])
   return { target, watch, close }
 }
 

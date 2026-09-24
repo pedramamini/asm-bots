@@ -3,15 +3,19 @@ import type { LoadedBot } from '@asmbots/engine'
 import { runMatch } from '@asmbots/tourney'
 import {
   ApiError,
+  AUDIT_ACTIONS,
   apiError,
   Bot,
   BotVersion,
   buildReplay,
   bytesProblem,
+  ChampionshipList,
+  CreateTournament,
   canonicalJson,
   decodeReplayFragment,
   decodeShare,
   decodeSources,
+  EnterTournament,
   encodeReplayFragment,
   encodeShare,
   encodeSources,
@@ -28,6 +32,7 @@ import {
   type LiveMatch,
   type LiveMessage,
   liveRoomName,
+  MAX_TOURNAMENT_ENTRANTS,
   Match,
   matchResultHash,
   ProtocolError,
@@ -47,6 +52,8 @@ import {
   SubmissionDetail,
   sha256Hex,
   Tournament,
+  TournamentEntered,
+  TournamentList,
   toBase64,
   toBase64Url,
   User,
@@ -365,11 +372,15 @@ describe('records', () => {
           name: 'Weekly',
           kind: 'bracket',
           status: 'scheduled',
-          config: { rounds: 3, seed: 1, battle: config },
+          config: { rounds: 3, seed: 1, battle: config, seeding: 'rating', thirdPlace: true },
           bracket: null,
           ownerId: null,
           startsAt: at,
           createdAt: at,
+          entry: 'open',
+          entryClosesAt: at,
+          championId: null,
+          finishedAt: null,
         },
       ],
       [
@@ -381,6 +392,7 @@ describe('records', () => {
           participants: ['v1', 'v2'],
           rounds: 1,
           seed: 5,
+          key: 'fedcba9876543210',
           result: { points: [3, 0], survivors: [0], resultHash: '0123456789abcdef' },
           replayKey: sha,
           finishedAt: at,
@@ -396,6 +408,81 @@ describe('records', () => {
     expect(Hill.safeParse({ ...records[3][1], scoring: 'swiss' }).success).toBe(false)
     expect(HillSubmission.safeParse({ ...records[4][1], status: 'paused' }).success).toBe(false)
     expect(HillEvent.safeParse({ ...records[5][1], kind: 'crowned' }).success).toBe(false)
+    expect(Tournament.safeParse({ ...records[7][1], entry: 'public' }).success).toBe(false)
+    const { seeding: _, thirdPlace: __, ...given } = records[7][1].config
+    expect(Tournament.safeParse({ ...records[7][1], config: given }).success).toBe(true)
+    expect(Match.safeParse({ ...records[8][1], key: 'nope' }).success).toBe(false)
+  })
+
+  it('read a tournament to make, an entry, and the list and feed', () => {
+    const invite = {
+      name: 'spring cup',
+      kind: 'bracket',
+      entrants: { entry: 'invite', botVersionIds: ['v1', 'v2'] },
+      config: { rounds: 3, seed: 1, battle: config },
+    }
+    expect(parse(CreateTournament, invite, 'the request')).toEqual(invite as CreateTournament)
+    const open = { ...invite, entrants: { entry: 'open', closesAt: at } }
+    expect(parse(CreateTournament, open, 'the request')).toEqual(open as CreateTournament)
+    expect(() =>
+      parse(
+        CreateTournament,
+        { ...invite, entrants: { entry: 'invite', botVersionIds: ['v1'] } },
+        'it',
+      ),
+    ).toThrow(ProtocolError)
+    const many = Array.from({ length: MAX_TOURNAMENT_ENTRANTS + 1 }, (_, i) => `v${i}`)
+    expect(() =>
+      parse(
+        CreateTournament,
+        { ...invite, entrants: { entry: 'invite', botVersionIds: many } },
+        'it',
+      ),
+    ).toThrow(ProtocolError)
+    expect(() =>
+      parse(CreateTournament, { ...invite, entrants: { entry: 'public' } }, 'the request'),
+    ).toThrow(ProtocolError)
+    expect(() => parse(CreateTournament, { ...invite, name: '' }, 'the request')).toThrow(
+      'name is not well formed',
+    )
+    expect(parse(EnterTournament, { botVersionId: 'v1' }, 'it')).toEqual({ botVersionId: 'v1' })
+    expect(
+      parse(TournamentEntered, { tournamentId: 't1', botVersionId: 'v2', replaced: 'v1' }, 'it'),
+    ).toMatchObject({ replaced: 'v1' })
+
+    const tournament = {
+      id: 't1',
+      slug: 'weekly-2026-10-03',
+      name: 'weekly 2026-10-03',
+      kind: 'bracket',
+      status: 'finished',
+      config: invite.config,
+      bracket: null,
+      ownerId: null,
+      startsAt: at,
+      createdAt: at,
+      entry: 'open',
+      entryClosesAt: at,
+      championId: 'v1',
+      finishedAt: at,
+    }
+    const label = {
+      botId: 'b1',
+      versionId: 'v1',
+      slug: 'dwarf',
+      name: 'Dwarf',
+      version: 1,
+      owner: 'pedram',
+      author: null,
+    }
+    const summary = { tournament, entrants: 5, done: 4, of: 4, champion: label }
+    const feed = { championships: [summary] }
+    expect(parse(ChampionshipList, JSON.parse(JSON.stringify(feed)), 'it')).toEqual(feed as never)
+    expect(parse(TournamentList, { tournaments: [summary] }, 'it').tournaments).toHaveLength(1)
+    expect(() => parse(TournamentList, { tournaments: [tournament] }, 'the list')).toThrow(
+      ProtocolError,
+    )
+    expect(AUDIT_ACTIONS).toContain('tournament.enter')
   })
 
   it('read a submission as the hill page polls it, and a submit request', () => {
@@ -458,6 +545,7 @@ describe('records', () => {
           participants: ['v1', 'v2'],
           rounds: 1,
           seed: 9,
+          key: null,
           result: null,
           replayKey: null,
           finishedAt: null,

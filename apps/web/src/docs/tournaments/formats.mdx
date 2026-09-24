@@ -46,6 +46,16 @@ Under the bots, the form says how many matches the tournament plays and how long
 
 The matches run one at a time in the arena's Worker, headless, and the tournament is saved in this browser after every match (every round of a melee). A reload loses at most the match in flight, and the tournament goes on from where it stopped. `pause` and `cancel` stop at once and drop the match in flight.
 
+## On the server
+
+[Tournaments](/tournaments) lists the server's tournaments beside this browser's, each with the `server` chip. The server plays them as it plays a hill's submissions: one match at a time, each stored with its replay, so their standings come only from matches it ran itself. A signed-in user makes one with the API (`POST /api/tournaments`): its bots invited by name, or open to one entry from each player until a deadline. Its owner starts it once its entries have closed.
+
+A server tournament's page shows the same views as one run here. It joins the tournament's live room: the `LIVE` chip, the spectator count, and `auto-watch`, which plays each match here as the server starts it, then checks it against the server's result (see [verification](/docs/tournaments/verification)). `watch` on a round loads that match's replay from the server.
+
+### The weekly championship
+
+Every Saturday at 18:00 UTC the server starts the weekly championship: an open bracket of up to 32 bots, seeded by rating, with a third-place match, under the main hill's rules (10 rounds a match, 80,000 cycles a round, bots up to 512 bytes). Each week's is made when the last one starts, and takes entries for six days, until the Friday before it at 18:00 UTC. Sign in, and `enter` a version of one of your account's bots from its page or from the home page. One bot a player: enter again to swap it. The champion goes to the championships feed, the home page, and its owner's profile.
+
 ## Exports and links
 
 | export | what | for |

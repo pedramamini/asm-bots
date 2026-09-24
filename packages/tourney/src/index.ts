@@ -82,6 +82,8 @@ export {
   melee,
   meleeStandings,
 } from './melee'
+export type { TournamentFormat } from './plan'
+export { plannedMatches, playsThirdPlace } from './plan'
 export type { RoundResult } from './round'
 export { roundResult, runRound } from './round'
 export type {

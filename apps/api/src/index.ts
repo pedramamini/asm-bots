@@ -16,10 +16,12 @@ import {
   REPLAYS_LIMIT,
   rateLimit,
   SUBMIT_LIMIT,
+  TOURNAMENT_LIMIT,
   WRITE_LIMIT,
 } from './rate-limit'
 import { assembler } from './routes/assemble'
 import { bots } from './routes/bots'
+import { championships } from './routes/championships'
 import { health } from './routes/health'
 import { hills } from './routes/hills'
 import { live } from './routes/live'
@@ -44,6 +46,7 @@ app.post('/api/assemble', rateLimit(ASSEMBLE_LIMIT))
 app.post('/api/bots/*', rateLimit(BOTS_LIMIT))
 app.post('/api/replays', rateLimit(REPLAYS_LIMIT))
 app.post('/api/hills/:slug/submit', rateLimit(SUBMIT_LIMIT))
+app.post('/api/tournaments', rateLimit(TOURNAMENT_LIMIT))
 
 app.route('/api/health', health)
 app.route('/api/version', version)
@@ -51,6 +54,7 @@ app.route('/api/auth', auth)
 app.route('/api/me', me)
 app.route('/api/assemble', assembler)
 app.route('/api/bots', bots)
+app.route('/api/championships', championships)
 app.route('/api/hills', hills)
 app.route('/api/live', live)
 app.route('/api/replays', replays)

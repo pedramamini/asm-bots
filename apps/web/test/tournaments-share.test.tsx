@@ -11,7 +11,7 @@ import { type BattleConfigInput, DEFAULT_CONFIG } from '@asmbots/engine'
 import { toBase64Url } from '@asmbots/protocol'
 import { bracket, meleeStandings, roundRobin, runMatch } from '@asmbots/tourney'
 import { ToastProvider } from '@asmbots/ui'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import {
   createMemoryHistory,
   createRootRoute,
@@ -45,8 +45,11 @@ import {
 } from '../src/features/tournaments/store'
 import { TournamentPage } from '../src/features/tournaments/TournamentPage'
 import { watchTarget } from '../src/features/tournaments/watch'
+import { refuse, testQueryClient, useApiServer } from './api-server'
 
 useDom()
+// The server has no tournament by the id this browser has none of either.
+useApiServer(refuse('/tournaments/zz', 404, 'not_found', 'no tournament zz'))
 window.scrollTo = () => {}
 
 const CONFIG: BattleConfigInput = { maxCycles: 4_000, maxProcesses: 64, minSpacing: 1024, seed: 7 }
@@ -299,7 +302,7 @@ async function renderPage(path: string) {
     history: createMemoryHistory({ initialEntries: [path] }),
   })
   render(
-    <QueryClientProvider client={new QueryClient()}>
+    <QueryClientProvider client={testQueryClient()}>
       <ToastProvider>
         <RouterProvider router={router as never} />
       </ToastProvider>
@@ -376,9 +379,13 @@ describe('the tournament page', () => {
     ).toBeTruthy()
   })
 
-  it('says this browser has no tournament by that id', async () => {
+  it('asks the server for a tournament this browser has not, and says when it has none', async () => {
     await renderPage('/tournaments/zz')
-    expect(await screen.findByText('this browser has no tournament by that id.')).toBeTruthy()
+    expect(
+      await screen.findByText(
+        'there is no tournament by that id, in this browser or on the server.',
+      ),
+    ).toBeTruthy()
   })
 
   it('tells the sharer which local bots the link leaves out', async () => {

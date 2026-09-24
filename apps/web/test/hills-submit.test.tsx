@@ -100,6 +100,7 @@ const match = (
     participants: [LOOP.versionId, versus.versionId],
     rounds: 10,
     seed: 1,
+    key: null,
     result: { points, survivors: [0], resultHash: '0123456789abcdef' },
     replayKey: key,
     finishedAt: T,

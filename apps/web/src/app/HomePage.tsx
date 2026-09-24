@@ -1,12 +1,14 @@
-import type { Tournament } from '@asmbots/protocol'
+import type { Tournament, TournamentSummary } from '@asmbots/protocol'
 import { Button, Panel, PanelGrid, RadarLoader, Stat } from '@asmbots/ui'
+import { Link } from '@tanstack/react-router'
 import { CodeXml, Grid2x2 } from 'lucide-react'
 import { type ComponentType, lazy, Suspense, useState } from 'react'
 import { useHill, useHillMatches, useTournament, useTournaments } from '../api/queries'
 import type { HomeDemoProps } from '../features/arena/demo/HomeDemo'
 import { HillStandingsTable } from '../features/hills/HillStandingsTable'
-import { count, day } from '../features/hills/links'
+import { CELL_LINK, count, day } from '../features/hills/links'
 import { MatchesTable } from '../features/hills/MatchesTable'
+import { EnterButton } from '../features/tournaments/EnterModal'
 import { NavLink } from './Frame'
 import { LoadFailure, readStatus } from './LoadFailure'
 import { usePaintedAndIdle } from './paint'
@@ -30,7 +32,7 @@ export interface HomePageProps {
 /**
  * `/` (PRODUCT_SPEC §1): the hero over the live demo battle, then the main hill's top 10, its
  * recent matches, and the next championship, read from the API; until each read lands its panel
- * holds a skeleton. Entering a championship waits for sign-in (EXEC 3.2) and the Runner (3.3).
+ * holds a skeleton. The championship's `enter` takes one of my bots while its entries are open.
  */
 export function HomePage({ demo = HomeDemo }: HomePageProps) {
   return (
@@ -82,20 +84,45 @@ function RecentMatches() {
   )
 }
 
-/** The championship to show: the one running, else the next scheduled; null when neither. */
+/**
+ * The championship to show (a tournament with no owner): the one running, else the next
+ * scheduled; null when neither.
+ */
 export function nextChampionship(tournaments: readonly Tournament[]): Tournament | null {
-  const running = tournaments.find((t) => t.status === 'running')
+  const championships = tournaments.filter((t) => t.ownerId === null)
+  const running = championships.find((t) => t.status === 'running')
   if (running !== undefined) return running
-  const scheduled = tournaments
+  const scheduled = championships
     .filter((t) => t.status === 'scheduled')
     .sort((a, b) => (a.startsAt ?? '\uffff').localeCompare(b.startsAt ?? '\uffff'))
   return scheduled[0] ?? null
 }
 
+/** The championship that finished last, with its champion; null when none has. */
+export function lastChampionship(
+  summaries: readonly TournamentSummary[],
+): TournamentSummary | null {
+  const finished = summaries.filter(
+    (s) => s.tournament.ownerId === null && s.tournament.status === 'finished' && s.champion,
+  )
+  finished.sort((a, b) =>
+    (b.tournament.finishedAt ?? '').localeCompare(a.tournament.finishedAt ?? ''),
+  )
+  return finished[0] ?? null
+}
+
+/**
+ * The next championship (its name opens it), its entrants so far, the last one's champion, and
+ * `enter` while it takes entries.
+ */
 function Championship() {
   const list = useTournaments()
-  const next = list.data === undefined ? undefined : nextChampionship(list.data.tournaments)
+  const next =
+    list.data === undefined
+      ? undefined
+      : nextChampionship(list.data.tournaments.map((s) => s.tournament))
   const detail = useTournament(next?.id ?? null)
+  const last = list.data === undefined ? null : lastChampionship(list.data.tournaments)
   const loading = list.data === undefined && list.error === null
   return (
     <Panel
@@ -110,7 +137,15 @@ function Championship() {
           <Stat
             label="next event"
             loading={loading}
-            value={next === undefined ? undefined : next === null ? 'none scheduled' : next.name}
+            value={
+              next === undefined ? undefined : next === null ? (
+                'none scheduled'
+              ) : (
+                <Link to="/tournaments/$id" params={{ id: next.id }} className={CELL_LINK}>
+                  {next.name}
+                </Link>
+              )
+            }
             note={next?.startsAt ? day(next.startsAt) : undefined}
           />
           <Stat
@@ -120,9 +155,21 @@ function Championship() {
               next === null ? '–' : detail.data ? count(detail.data.entrants.length) : undefined
             }
           />
-          <Button variant="primary" className="mt-auto self-start" disabled>
-            enter
-          </Button>
+          {last?.champion != null && (
+            <p className="text-data text-muted">
+              last: <span className="text-accent">{last.champion.name}</span> won{' '}
+              {last.tournament.name}
+            </p>
+          )}
+          <div className="mt-auto self-start">
+            {next == null ? (
+              <Button variant="primary" disabled>
+                enter
+              </Button>
+            ) : (
+              <EnterButton tournament={next} entrants={detail.data?.entrants} />
+            )}
+          </div>
         </div>
       )}
     </Panel>

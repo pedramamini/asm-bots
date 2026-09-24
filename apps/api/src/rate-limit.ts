@@ -43,6 +43,17 @@ export const SUBMIT_LIMIT: RateLimit = {
   counts: (status) => status === 201,
 }
 
+/**
+ * `POST /api/tournaments`: tournaments a user makes an hour, each one a `Runner` job of up to 496
+ * matches. Only a tournament made (201) counts.
+ */
+export const TOURNAMENT_LIMIT: RateLimit = {
+  scope: 'tournament',
+  limit: 5,
+  windowSeconds: 60 * 60,
+  counts: (status) => status === 201,
+}
+
 /** The client's IP as Cloudflare saw it; `unknown` only outside Cloudflare's edge. */
 export function clientIp(request: Request): string {
   return request.headers.get('CF-Connecting-IP') ?? 'unknown'

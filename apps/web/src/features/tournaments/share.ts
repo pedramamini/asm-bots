@@ -78,7 +78,7 @@ const REF = /^[^\n\r]{1,256}$/
 
 /** An entrant as a link carries it: `bytes` is base64url machine code. */
 interface LinkEntrant {
-  readonly source: 'roster' | 'local'
+  readonly source: TournamentEntrant['source']
   readonly ref: string
   readonly name: string
   readonly bytes?: string | undefined
@@ -114,9 +114,12 @@ function inlineBytes(entrant: TournamentEntrant): Uint8Array | undefined {
     : undefined
 }
 
-/** The local entrants of `t` that a link cannot carry: their rounds cannot be watched from it. */
+/**
+ * The entrants of `t` whose machine code a link cannot carry (a local bot that does not assemble,
+ * a server tournament's): their rounds cannot be watched from it.
+ */
 export function leftOut(t: Tournament): TournamentEntrant[] {
-  return t.entrants.filter((e) => e.source === 'local' && inlineBytes(e) === undefined)
+  return t.entrants.filter((e) => e.source !== 'roster' && inlineBytes(e) === undefined)
 }
 
 /** The fragment of `t`'s link: `t=` and the base64url of its deflated JSON. */
@@ -215,7 +218,7 @@ function parseSeeding(value: unknown): Seeding {
 function parseEntrant(value: unknown, i: number): TournamentEntrant {
   const what = `bot ${i + 1}`
   const e = fields(value, what)
-  const source = oneOf(e.source, ['roster', 'local'] as const, `${what}'s source`)
+  const source = oneOf(e.source, ['roster', 'local', 'server'] as const, `${what}'s source`)
   const ref = text(e.ref, `${what}'s id`, REF)
   const name = text(e.name, `${what}'s name`, NAME)
   if (e.bytes === undefined || source === 'roster') return { source, ref, name }

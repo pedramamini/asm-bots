@@ -29,9 +29,13 @@ import {
   statusLabel,
   TournamentsPage,
 } from '../src/features/tournaments/TournamentsPage'
+import { answer, useApiServer } from './api-server'
 
 useDom()
 window.scrollTo = () => {}
+// The server has no tournaments: the list is this browser's (test/tournaments-server.test.tsx
+// merges the server's).
+useApiServer(answer('/tournaments', { tournaments: [] }))
 
 const roster = (...slugs: string[]): TournamentEntrant[] =>
   slugs.map((slug) => ({ source: 'roster', ref: slug, name: slug }))

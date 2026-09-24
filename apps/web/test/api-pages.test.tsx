@@ -9,7 +9,7 @@ import { lazy } from 'react'
 import { useDom, window } from '../../../packages/ui/test/dom'
 import { ApiRequestError, apiGet, shouldRetry } from '../src/api/client'
 import { useHills, useReplay } from '../src/api/queries'
-import { HomePage, nextChampionship } from '../src/app/HomePage'
+import { HomePage, lastChampionship, nextChampionship } from '../src/app/HomePage'
 import { BotPage } from '../src/features/bots/BotPage'
 import { HillPage } from '../src/features/hills/HillPage'
 import { HillsPage } from '../src/features/hills/HillsPage'
@@ -19,6 +19,7 @@ import { ProfilePage } from '../src/features/profile/ProfilePage'
 import { answer, hang, refuse, renderAt, useApiServer, WithQueries } from './api-server'
 import {
   CONFIG,
+  DWARF,
   DWARF_DETAIL,
   HILLS,
   KEY,
@@ -26,6 +27,7 @@ import {
   MATCHES,
   SYSTEM,
   TOURNAMENTS,
+  WEEKLY_9,
 } from './fixtures/api'
 
 useDom()
@@ -43,7 +45,7 @@ const server = useApiServer(
   answer('/users/system', SYSTEM),
   answer('/tournaments', TOURNAMENTS),
   answer('/tournaments/t9', {
-    tournament: TOURNAMENTS.tournaments[0],
+    tournament: WEEKLY_9,
     entrants: [MAIN_DETAIL.standings[0]?.bot],
     matches: [],
   }),
@@ -133,11 +135,15 @@ describe('the words for records', () => {
   })
 
   it('picks the running championship, else the soonest scheduled one', () => {
-    const [t] = TOURNAMENTS.tournaments as [(typeof TOURNAMENTS.tournaments)[0]]
+    const t = WEEKLY_9
     const later = { ...t, id: 'later', startsAt: '2026-10-03T18:00:00.000Z' }
     expect(nextChampionship([later, t])?.id).toBe('t9')
     expect(nextChampionship([later, { ...t, id: 'now', status: 'running' }])?.id).toBe('now')
     expect(nextChampionship([{ ...t, status: 'finished' }])).toBeNull()
+    // A user's tournament is no championship, running or not.
+    expect(
+      nextChampionship([{ ...t, id: 'mine', ownerId: 'u1', status: 'running' }, later])?.id,
+    ).toBe('later')
   })
 })
 
@@ -282,6 +288,43 @@ describe('/ panels', () => {
     await waitFor(() => expect(cup.textContent).toContain('Weekly 9'))
     expect(cup.textContent).toContain('2026-09-26')
     await waitFor(() => expect(cup.textContent).toContain('entrants so far1'))
+    expect(within(cup).getByRole('link', { name: 'Weekly 9' }).getAttribute('href')).toBe(
+      '/tournaments/t9',
+    )
+    // Its entries are open, and nobody is signed in.
+    expect(await within(cup).findByRole('button', { name: 'sign in to enter' })).toBeTruthy()
+    expect(cup.textContent).not.toContain('last:')
+  })
+
+  it('names the champion of the championship that finished last', async () => {
+    const last = {
+      ...WEEKLY_9,
+      id: 't8',
+      name: 'Weekly 8',
+      status: 'finished' as const,
+      championId: DWARF.versionId,
+      finishedAt: '2026-09-19T18:40:00.000Z',
+    }
+    const earlier = { ...last, id: 't7', name: 'Weekly 7', finishedAt: '2026-09-12T18:40:00.000Z' }
+    const summary = (t: typeof last) => ({
+      tournament: t,
+      entrants: 5,
+      done: 5,
+      of: 5,
+      champion: DWARF,
+    })
+    const cup8 = summary(last)
+    expect(lastChampionship([summary(earlier), cup8])).toBe(cup8)
+    expect(lastChampionship([{ ...cup8, tournament: { ...last, ownerId: 'u1' } }])).toBeNull()
+    server.use(
+      answer('/tournaments', {
+        tournaments: [...TOURNAMENTS.tournaments, summary(earlier), cup8],
+      }),
+    )
+    await renderAt('/', () => <HomePage demo={NeverLoads} />)
+    const cup = screen.getByRole('region', { name: 'championship' })
+    await waitFor(() => expect(cup.textContent).toContain('last: Dwarf won Weekly 8'))
+    expect(await within(cup).findByRole('button', { name: 'sign in to enter' })).toBeTruthy()
   })
 
   it('holds skeletons while the server has not answered', async () => {

@@ -47,7 +47,7 @@ export class Runner extends DurableObject<Env> {
    * Starts `spec`: reads what it needs from D1 and R2, keeps it, and sets the first alarm. A
    * runner that has the job already answers its status. Throws `ProtocolError` for a spec that
    * is not a job, and `JobError` for one that cannot run (no such hill, a bot over the size); a
-   * hill submission that cannot run is marked failed.
+   * hill submission that cannot run is marked failed, and a tournament not started cancelled.
    */
   async start(spec: RunnerJob): Promise<RunnerStatus> {
     const job = parse(RunnerJob, spec, 'the job')
@@ -126,17 +126,23 @@ export class Runner extends DurableObject<Env> {
   }
 
   private async setup(job: RunnerJob): Promise<JobSetup> {
-    if (job.kind === 'tournament') return setupTournament(this.env, job)
     try {
-      return await setupHill(this.env, job)
+      return job.kind === 'tournament'
+        ? await setupTournament(this.env, job)
+        : await setupHill(this.env, job)
     } catch (error) {
-      if (error instanceof JobError) {
-        await this.env.DB.prepare(
-          "UPDATE hill_submissions SET status = 'failed' WHERE id = ? AND status IN ('queued', 'running')",
-        )
-          .bind(job.submissionId)
-          .run()
-      }
+      if (!(error instanceof JobError)) throw error
+      const [sql, id] =
+        job.kind === 'tournament'
+          ? [
+              "UPDATE tournaments SET status = 'cancelled' WHERE id = ? AND status IN ('draft', 'scheduled')",
+              job.tournamentId,
+            ]
+          : [
+              "UPDATE hill_submissions SET status = 'failed' WHERE id = ? AND status IN ('queued', 'running')",
+              job.submissionId,
+            ]
+      await this.env.DB.prepare(sql).bind(id).run()
       throw error
     }
   }

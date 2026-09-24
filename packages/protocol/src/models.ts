@@ -187,11 +187,30 @@ export type TournamentKind = z.output<typeof TournamentKind>
 export const TournamentStatus = z.enum(['draft', 'scheduled', 'running', 'finished', 'cancelled'])
 export type TournamentStatus = z.output<typeof TournamentStatus>
 
+/**
+ * How a tournament takes its entrants: `invite`, the bot versions its owner named when making it;
+ * `open`, one bot version from each signed-in user who enters before its deadline.
+ */
+export const TournamentEntry = z.enum(['invite', 'open'])
+export type TournamentEntry = z.output<typeof TournamentEntry>
+
+/**
+ * How a bracket seeds its entrants: `given`, in their order (an invite's list, else the order they
+ * entered in); `rating`, by each one's best Glicko-2 rating on any hill, highest first, 1500 for a
+ * version no hill has rated.
+ */
+export const TournamentSeeding = z.enum(['given', 'rating'])
+export type TournamentSeeding = z.output<typeof TournamentSeeding>
+
 /** How a tournament's matches are played. */
 export const TournamentConfig = z.object({
   rounds: whole('rounds', 1, 100),
   seed: Seed,
   battle: ReplayConfig,
+  /** A bracket's seeding; `given` when left out. */
+  seeding: z.optional(TournamentSeeding),
+  /** Whether a bracket of 3 entrants or more adds a match between its semifinal losers. */
+  thirdPlace: z.optional(z.boolean()),
 })
 export type TournamentConfig = z.output<typeof TournamentConfig>
 
@@ -204,10 +223,21 @@ export const Tournament = z.object({
   config: TournamentConfig,
   /** The bracket's state, as `@asmbots/tourney` keeps it; null for other kinds. */
   bracket: z.nullable(z.unknown()),
-  /** Null for a scheduled championship. */
+  /** Null for a championship: the cron makes and starts those. */
   ownerId: z.nullable(Id),
+  /** A championship's start; another tournament's, once its owner has started it. */
   startsAt: z.nullable(Timestamp),
   createdAt: Timestamp,
+  entry: TournamentEntry,
+  /** An open tournament's deadline: it takes entries until then. Null for an invite. */
+  entryClosesAt: z.nullable(Timestamp),
+  /**
+   * The winner's bot version once it has finished: a bracket's champion, else the first in the
+   * standings. Null before, and for a version since deleted.
+   */
+  championId: z.nullable(Id),
+  /** When its last match was played; null until it has finished. */
+  finishedAt: z.nullable(Timestamp),
 })
 export type Tournament = z.output<typeof Tournament>
 
@@ -228,6 +258,11 @@ export const Match = z.object({
   participants: z.array(Id).check(z.minLength(2)),
   rounds: whole('rounds', 1, 100),
   seed: Seed,
+  /**
+   * Its `matchHash` (`@asmbots/tourney`): the hash of every input that decides its result. Null
+   * for a match the launch seed stored.
+   */
+  key: z.nullable(matching(HASH64)),
   /** Null until it has finished. */
   result: z.nullable(MatchOutcome),
   /** Its replay's `replayKey`, once stored. */

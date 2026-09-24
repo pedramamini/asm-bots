@@ -132,7 +132,14 @@ export const tournamentsQuery = () =>
       apiGet('/tournaments', (v) => parse(TournamentList, v, 'the tournaments'), signal),
   })
 
-export const tournamentQuery = (id: string) =>
+/** How often a running server tournament's page reads it again while its live room is not open. */
+export const TOURNAMENT_POLL_MS = 5000
+
+/**
+ * A server tournament. With `poll`, read again every `TOURNAMENT_POLL_MS` while it runs: the
+ * page's way when its live room is not open, since the room says when a match lands.
+ */
+export const tournamentQuery = (id: string, poll = false) =>
   queryOptions({
     queryKey: ['tournaments', id],
     queryFn: ({ signal }) =>
@@ -141,6 +148,8 @@ export const tournamentQuery = (id: string) =>
         (v) => parse(TournamentDetail, v, 'the tournament'),
         signal,
       ),
+    refetchInterval: (query) =>
+      poll && query.state.data?.tournament.status === 'running' ? TOURNAMENT_POLL_MS : false,
   })
 
 export const userQuery = (handle: string) =>
@@ -198,9 +207,9 @@ export const useBotVersion = (id: string, version: number | null) =>
 export const useReplay = (key: string | null) =>
   useQuery({ ...replayQuery(key ?? ''), enabled: key !== null })
 export const useTournaments = () => useQuery(tournamentsQuery())
-/** One tournament; waits while `id` is null. */
-export const useTournament = (id: string | null) =>
-  useQuery({ ...tournamentQuery(id ?? ''), enabled: id !== null })
+/** One tournament, polled while it runs when `poll` is on; waits while `id` is null. */
+export const useTournament = (id: string | null, poll = false) =>
+  useQuery({ ...tournamentQuery(id ?? '', poll), enabled: id !== null })
 export const useUser = (handle: string) => useQuery(userQuery(handle))
 /** A profile; waits while `handle` is null. */
 export const useMaybeUser = (handle: string | null) =>

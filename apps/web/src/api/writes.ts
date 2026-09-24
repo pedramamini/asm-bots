@@ -9,6 +9,8 @@ import {
   SavedBot,
   SavedBotVersion,
   StoredReplay,
+  TournamentEntered,
+  TournamentStarted,
   type UpdateBot,
   UpdatedBot,
   type UpdateMe,
@@ -53,6 +55,23 @@ export function addBotVersion(id: string, source: string): Promise<SavedBotVersi
 export function submitToHill(slug: string, botVersionId: string): Promise<HillSubmitted> {
   return apiPost(`/hills/${segment(slug)}/submit`, { botVersionId }, (v) =>
     parse(HillSubmitted, v, 'the submission'),
+  )
+}
+
+/**
+ * `POST /api/tournaments/:id/enter`: a version of one of my bots enters an open tournament; one
+ * entry a user, so it replaces the one I had.
+ */
+export function enterTournament(id: string, botVersionId: string): Promise<TournamentEntered> {
+  return apiPost(`/tournaments/${segment(id)}/enter`, { botVersionId }, (v) =>
+    parse(TournamentEntered, v, 'the entry'),
+  )
+}
+
+/** `POST /api/tournaments/:id/start`: its owner starts it; its `Runner` plays it. */
+export function startTournament(id: string): Promise<TournamentStarted> {
+  return apiPost(`/tournaments/${segment(id)}/start`, {}, (v) =>
+    parse(TournamentStarted, v, 'the start'),
   )
 }
 

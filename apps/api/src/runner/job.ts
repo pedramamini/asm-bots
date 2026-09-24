@@ -62,6 +62,8 @@ export interface JobSetup {
   readonly rounds: number
   /** Every match's config; its seed is the match seed. */
   readonly battle: BattleConfig
+  /** Whether a bracket job's bracket has a third-place match. */
+  readonly thirdPlace?: boolean | undefined
   /** A `MatchSpec`'s entrants index them. A hill job's challenger is bot 0. */
   readonly bots: readonly JobBot[]
   /** The matches to play, in order. */

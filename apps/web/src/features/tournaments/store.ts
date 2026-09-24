@@ -34,9 +34,12 @@ export type TournamentStatus =
 
 /** A bot in a tournament. */
 export interface TournamentEntrant {
-  /** A roster bot, or one of this browser's (a saved bot or a dropped file). */
-  readonly source: 'roster' | 'local'
-  /** The roster slug, or the local bot's id (a dropped file's name). */
+  /**
+   * A roster bot, one of this browser's (a saved bot or a dropped file), or a server tournament's
+   * bot version (`server.ts`), whose bytes come with its matches' replays.
+   */
+  readonly source: 'roster' | 'local' | 'server'
+  /** The roster slug, the local bot's id (a dropped file's name), or the bot version's id. */
   readonly ref: string
   /** Its name in the tournament's matches: its own, made unique (`Dwarf`, `Dwarf 2`). */
   readonly name: string
@@ -80,6 +83,11 @@ export interface Tournament {
   /** ms since the epoch. */
   readonly createdAt: number
   readonly updatedAt: number
+  /**
+   * A server tournament's stored replays by match key (`MatchResult.key`): watching one of its
+   * rounds loads the match's replay, which carries the bots. None for a local tournament.
+   */
+  readonly replays?: Readonly<Record<string, string>> | undefined
 }
 
 /** What `createTournament` takes: the rest starts empty. */
@@ -92,8 +100,11 @@ export type NewTournament = Pick<
 export const TOURNAMENTS_DB = 'asmbots-tournaments'
 export const TOURNAMENTS_STORE = 'tournaments'
 
-/** The query key of the tournament list; one tournament's is `[...TOURNAMENTS_KEY, id]`. */
-export const TOURNAMENTS_KEY = ['tournaments'] as const
+/**
+ * The query key of the tournament list; one tournament's is `[...TOURNAMENTS_KEY, id]`. Not the
+ * API's `['tournaments']` (`api/queries.ts`): the server's tournaments share the cache.
+ */
+export const TOURNAMENTS_KEY = ['local', 'tournaments'] as const
 
 let store: UseStore | undefined
 /** Opened on first use, so a page that never touches tournaments never opens the database. */

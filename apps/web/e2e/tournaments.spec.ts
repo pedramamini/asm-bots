@@ -4,9 +4,14 @@
  * goes from `running · n / 5` to `finished` with a champion. Its bracket then shows eight matches;
  * the final's panel opens, and `watch` replays a round in the arena. A round robin of four bots
  * runs to its end with a full results matrix and standings, and its share link opens read only in
- * a browser that has no tournaments.
+ * a browser that has no tournaments. The server's list is stubbed empty: these are this browser's.
  */
 import { expect, type Page, test } from '@playwright/test'
+
+// This browser's tournaments: the server's list (tournaments-server.spec.ts) is empty here.
+test.beforeEach(async ({ context }) => {
+  await context.route('**/api/tournaments', (route) => route.fulfill({ json: { tournaments: [] } }))
+})
 
 /** The page's errors and console errors, as they come. */
 function watch(page: Page): string[] {
@@ -98,7 +103,11 @@ test('a round robin of four roster bots fills its matrix', async ({ page, browse
     const copied = window as unknown as { copied: string }
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
-      value: { writeText: async (text: string) => void (copied.copied = text) },
+      value: {
+        writeText: async (text: string) => {
+          copied.copied = text
+        },
+      },
     })
   })
   const header = page.getByRole('region', { name: 'league' })

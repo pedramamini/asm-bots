@@ -2,7 +2,13 @@
  * The rules of the new tournament form (PRODUCT_SPEC §4): how many bots each kind takes, how many
  * matches a tournament plays and how long they may take, and the record `createTournament` gets.
  */
-import { MAX_BRACKET_ENTRANTS, MAX_MELEE_ENTRANTS, roundRobinSchedule } from '@asmbots/tourney'
+import {
+  MAX_BRACKET_ENTRANTS,
+  MAX_MELEE_ENTRANTS,
+  plannedMatches,
+  playsThirdPlace,
+  type TournamentFormat,
+} from '@asmbots/tourney'
 import type { ArenaConfig } from '../../store/settings'
 import { fightSeed } from '../arena/setup/bots'
 import { battleConfig, randomSeed } from '../arena/setup/config'
@@ -39,24 +45,14 @@ export interface Plan {
   readonly thirdPlace: boolean
 }
 
-/** Whether a bracket of `entrants` bots plays its third-place match: it needs two semifinal losers. */
-export function playsThirdPlace(entrants: number, thirdPlace: boolean): boolean {
-  return thirdPlace && entrants >= 4
+/** A kind as the server and `@asmbots/tourney` name it. */
+export function formatOf(kind: TournamentKind): TournamentFormat {
+  return kind === 'round-robin' ? 'roundrobin' : kind
 }
 
-/**
- * The matches a tournament plays: every pair of a round robin; one fewer than the bots of a
- * bracket (a bye plays nothing), and its third-place match; a melee is one match.
- */
+/** The matches a tournament plays (`plannedMatches`). */
 export function matchCount({ kind, entrants, thirdPlace }: Plan): number {
-  switch (kind) {
-    case 'round-robin':
-      return entrants < 2 ? 0 : roundRobinSchedule(entrants).length
-    case 'bracket':
-      return entrants < 2 ? 0 : entrants - 1 + (playsThirdPlace(entrants, thirdPlace) ? 1 : 0)
-    case 'melee':
-      return entrants < 2 ? 0 : 1
-  }
+  return plannedMatches(formatOf(kind), entrants, thirdPlace)
 }
 
 /** Seconds the tournament takes at most at max speed: every round runs to its last cycle. */

@@ -14,6 +14,8 @@ import {
   HillSubmission,
   Match,
   Tournament,
+  TournamentConfig,
+  TournamentKind,
   User,
   Visibility,
 } from './models'
@@ -177,17 +179,90 @@ export type Me = z.output<typeof Me>
 export const UpdateMe = z.object({ handle: z.string().check(z.maxLength(64)) })
 export type UpdateMe = z.output<typeof UpdateMe>
 
-/** `GET /api/tournaments` */
-export const TournamentList = z.object({ tournaments: z.array(Tournament) })
+/**
+ * A tournament in a list: its entrant count, the matches it has played (`done`) of the ones its
+ * entrants make (`of`: every pair of a round robin, one fewer than the entrants of a bracket and
+ * its third-place match, one melee), and its champion's label once it has one.
+ */
+export const TournamentSummary = z.object({
+  tournament: Tournament,
+  entrants: whole('entrants', 0, Number.MAX_SAFE_INTEGER),
+  done: whole('done', 0, Number.MAX_SAFE_INTEGER),
+  of: whole('of', 0, Number.MAX_SAFE_INTEGER),
+  champion: z.nullable(BotLabel),
+})
+export type TournamentSummary = z.output<typeof TournamentSummary>
+
+/** `GET /api/tournaments`: running first, then by start, the latest first. */
+export const TournamentList = z.object({ tournaments: z.array(TournamentSummary) })
 export type TournamentList = z.output<typeof TournamentList>
 
-/** `GET /api/tournaments/:id`: the tournament, its entrants, and its matches. */
+/**
+ * `GET /api/championships`: the championships feed, the finished championships with their
+ * champions, the latest first.
+ */
+export const ChampionshipList = z.object({ championships: z.array(TournamentSummary) })
+export type ChampionshipList = z.output<typeof ChampionshipList>
+
+/**
+ * `GET /api/tournaments/:id`: the tournament, its entrants, and its matches. The entrants are in
+ * the order its `Runner` plays them once it has started (by seed): a bracket's entrant indices and
+ * a round robin's schedule index this list.
+ */
 export const TournamentDetail = z.object({
   tournament: Tournament,
   entrants: z.array(BotLabel),
   matches: z.array(Match),
 })
 export type TournamentDetail = z.output<typeof TournamentDetail>
+
+/** The most bots a server tournament takes: a bracket's 32 (a melee takes 16). */
+export const MAX_TOURNAMENT_ENTRANTS = 32
+
+/**
+ * How a new tournament takes its entrants (`TournamentEntry`): the bot versions named here, in
+ * seed order, or anyone's until `closesAt`.
+ */
+export const TournamentEntrants = z.discriminatedUnion('entry', [
+  z.object({
+    entry: z.literal('invite'),
+    botVersionIds: z.array(Id).check(z.minLength(2), z.maxLength(MAX_TOURNAMENT_ENTRANTS)),
+  }),
+  z.object({ entry: z.literal('open'), closesAt: Timestamp }),
+])
+export type TournamentEntrants = z.output<typeof TournamentEntrants>
+
+/** `POST /api/tournaments`: a tournament the signed-in user owns, and starts. */
+export const CreateTournament = z.object({
+  name: matching(NAME),
+  kind: TournamentKind,
+  entrants: TournamentEntrants,
+  config: TournamentConfig,
+})
+export type CreateTournament = z.output<typeof CreateTournament>
+
+/** `POST /api/tournaments`: the tournament made, `scheduled`. */
+export const CreatedTournament = z.object({ tournament: Tournament })
+export type CreatedTournament = z.output<typeof CreatedTournament>
+
+/** `POST /api/tournaments/:id/enter`: a version of one of the signed-in user's bots. */
+export const EnterTournament = z.object({ botVersionId: Id })
+export type EnterTournament = z.output<typeof EnterTournament>
+
+/**
+ * `POST /api/tournaments/:id/enter`: the user's entry, and the version it replaced when they had
+ * entered another before (one entry a user).
+ */
+export const TournamentEntered = z.object({
+  tournamentId: Id,
+  botVersionId: Id,
+  replaced: z.nullable(Id),
+})
+export type TournamentEntered = z.output<typeof TournamentEntered>
+
+/** `POST /api/tournaments/:id/start`: the job started, and the tournament's `LiveRoom`. */
+export const TournamentStarted = z.object({ tournamentId: Id, liveRoom: z.string() })
+export type TournamentStarted = z.output<typeof TournamentStarted>
 
 /** The most source text `POST /api/assemble` takes, in UTF-16 code units. */
 export const MAX_SOURCE_TEXT = 64 * 1024
@@ -333,13 +408,14 @@ export const AUDIT_ACTIONS = [
   'bot.delete',
   'hill.submit',
   'tournament.create',
+  'tournament.enter',
 ] as const
 export const AuditAction = z.enum(AUDIT_ACTIONS)
 export type AuditAction = z.output<typeof AuditAction>
 
 /**
  * One change the user made: `target` is what it changed, a bot id for `bot.*` (`<bot id>/v<n>`
- * for `bot.version`), a submission id for `hill.submit`, a tournament id for `tournament.create`.
+ * for `bot.version`), a submission id for `hill.submit`, a tournament id for `tournament.*`.
  */
 export const AuditEntry = z.object({
   id: Id,

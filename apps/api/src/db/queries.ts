@@ -27,8 +27,10 @@ import {
   type ReplayConfig,
   type Tournament,
   type TournamentConfig,
+  type TournamentSummary,
   type User,
 } from '@asmbots/protocol'
+import { plannedMatches } from '@asmbots/tourney'
 
 export interface UserRow {
   id: string
@@ -133,6 +135,12 @@ export interface TournamentRow {
   owner_id: string | null
   starts_at: string | null
   created_at: string
+  entry: Tournament['entry']
+  /** An open tournament's deadline. */
+  entry_closes_at: string | null
+  /** The winner's bot version, written when it finishes. */
+  champion_id: string | null
+  finished_at: string | null
 }
 
 export interface MatchRow {
@@ -277,6 +285,10 @@ export function toTournament(row: TournamentRow): Tournament {
     ownerId: row.owner_id,
     startsAt: row.starts_at,
     createdAt: row.created_at,
+    entry: row.entry,
+    entryClosesAt: row.entry_closes_at,
+    championId: row.champion_id,
+    finishedAt: row.finished_at,
   }
 }
 
@@ -288,6 +300,7 @@ export function toMatch(row: MatchRow): Match {
     participants: JSON.parse(row.participants_json) as string[],
     rounds: row.rounds,
     seed: row.seed,
+    key: row.match_key,
     result: row.result_json === null ? null : (JSON.parse(row.result_json) as MatchOutcome),
     replayKey: row.replay_key,
     finishedAt: row.finished_at,
@@ -610,7 +623,9 @@ export async function listUserHillBests(db: D1Database, userId: string): Promise
 
 /**
  * How a user's bots did in finished championships (tournaments with no owner), latest first. W/T/L
- * count as the tourney scores them: most points wins, a shared top ties.
+ * count as the tourney scores them: most points wins, a shared top ties. The champion is the one
+ * the `Runner` wrote; a championship finished without one (the rows of a test) names the winner of
+ * its last match.
  */
 export async function listUserChampionships(
   db: D1Database,
@@ -619,7 +634,7 @@ export async function listUserChampionships(
   const { results: entries } = await db
     .prepare(
       `SELECT ${LABEL_COLUMNS}, t.id AS tournament_id, t.slug AS tournament_slug,
-         t.name AS tournament_name, t.starts_at
+         t.name AS tournament_name, t.starts_at, t.champion_id
        FROM tournaments t JOIN tournament_entries te ON te.tournament_id = t.id
        JOIN bot_versions v ON v.id = te.bot_version_id ${LABEL_JOINS}
        WHERE t.owner_id IS NULL AND t.status = 'finished' AND b.owner_id = ?
@@ -632,6 +647,7 @@ export async function listUserChampionships(
         tournament_slug: string
         tournament_name: string
         starts_at: string | null
+        champion_id: string | null
       }
     >()
   if (entries.length === 0) return []
@@ -671,7 +687,7 @@ export async function listUserChampionships(
       },
       bot: toBotLabel(row),
       ...out,
-      champion: wonLast,
+      champion: row.champion_id === null ? wonLast : row.champion_id === row.version_id,
     }
   })
 }
@@ -721,6 +737,21 @@ export async function getSubmittedVersion(
     )
     .bind(versionId)
     .first<SubmittedVersionRow>()
+}
+
+/** Bot versions by id, as `getSubmittedVersion` reads one; an id with no version is left out. */
+export async function listSubmittedVersions(
+  db: D1Database,
+  versionIds: readonly string[],
+): Promise<Map<string, SubmittedVersionRow>> {
+  const { results } = await db
+    .prepare(
+      `SELECT v.*, b.owner_id, b.visibility, b.deleted_at, b.name FROM bot_versions v
+       JOIN bots b ON b.id = v.bot_id WHERE v.id IN (SELECT value FROM json_each(?))`,
+    )
+    .bind(JSON.stringify([...new Set(versionIds)]))
+    .all<SubmittedVersionRow>()
+  return new Map(results.map((row) => [row.id, row]))
 }
 
 /**
@@ -830,6 +861,35 @@ export async function listSubmissionEvents(
   return eventSummaries(db, results)
 }
 
+/** A tournament row with its entrant count and its finished matches: `SUMMARY_COLUMNS` of `t`. */
+type TournamentSummaryRow = TournamentRow & { entrants: number; done: number }
+
+const SUMMARY_COLUMNS = `t.*,
+  (SELECT COUNT(*) FROM tournament_entries e WHERE e.tournament_id = t.id) AS entrants,
+  (SELECT COUNT(*) FROM matches m WHERE m.tournament_id = t.id AND m.finished_at IS NOT NULL) AS done`
+
+/** Summaries of `rows`, with their champions' labels. */
+async function tournamentSummaries(
+  db: D1Database,
+  rows: readonly TournamentSummaryRow[],
+): Promise<TournamentSummary[]> {
+  const labels = await listBotLabels(
+    db,
+    rows.flatMap((row) => (row.champion_id === null ? [] : [row.champion_id])),
+  )
+  return rows.map((row) => {
+    const tournament = toTournament(row)
+    const thirdPlace = tournament.config.thirdPlace ?? false
+    return {
+      tournament,
+      entrants: row.entrants,
+      done: row.done,
+      of: Math.max(row.done, plannedMatches(row.kind, row.entrants, thirdPlace)),
+      champion: row.champion_id === null ? null : (labels.get(row.champion_id) ?? null),
+    }
+  })
+}
+
 /**
  * Tournaments: running ones first, then by start time, latest first; unscheduled ones last. A
  * draft shows to its owner only.
@@ -837,16 +897,30 @@ export async function listSubmissionEvents(
 export async function listTournaments(
   db: D1Database,
   { limit = 50, viewerId = null }: { limit?: number; viewerId?: string | null } = {},
-): Promise<Tournament[]> {
+): Promise<TournamentSummary[]> {
   const { results } = await db
     .prepare(
-      `SELECT * FROM tournaments WHERE status != 'draft' OR owner_id = ?
-       ORDER BY (status = 'running') DESC, starts_at IS NULL, starts_at DESC, created_at DESC
+      `SELECT ${SUMMARY_COLUMNS} FROM tournaments t WHERE t.status != 'draft' OR t.owner_id = ?
+       ORDER BY (t.status = 'running') DESC, t.starts_at IS NULL, t.starts_at DESC,
+         t.created_at DESC
        LIMIT ?`,
     )
     .bind(viewerId, clampLimit(limit))
-    .all<TournamentRow>()
-  return results.map(toTournament)
+    .all<TournamentSummaryRow>()
+  return tournamentSummaries(db, results)
+}
+
+/** The championships feed: finished championships (no owner), the latest to finish first. */
+export async function listChampionships(db: D1Database, limit = 20): Promise<TournamentSummary[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT ${SUMMARY_COLUMNS} FROM tournaments t
+       WHERE t.owner_id IS NULL AND t.status = 'finished'
+       ORDER BY t.finished_at DESC, t.starts_at DESC LIMIT ?`,
+    )
+    .bind(clampLimit(limit))
+    .all<TournamentSummaryRow>()
+  return tournamentSummaries(db, results)
 }
 
 export async function getTournament(db: D1Database, id: string): Promise<Tournament | null> {
@@ -866,7 +940,25 @@ export async function isWatchable(db: D1Database, room: LiveRoomRef): Promise<bo
   return (await db.prepare(sql).bind(room.id).first()) !== null
 }
 
-/** A tournament's entrants: by bracket seed once drawn, then by name. */
+/** A tournament's entries: each bot version, and who entered it (null for an invited one). */
+export async function listTournamentEntries(
+  db: D1Database,
+  tournamentId: string,
+): Promise<{ bot_version_id: string; user_id: string | null }[]> {
+  const { results } = await db
+    .prepare('SELECT bot_version_id, user_id FROM tournament_entries WHERE tournament_id = ?')
+    .bind(tournamentId)
+    .all<{ bot_version_id: string; user_id: string | null }>()
+  return results
+}
+
+/**
+ * The order of a tournament's entries (`tournament_entries t`): by seed, which an invite has from
+ * its list and every entry has once its `Runner` starts, then by entry, then by name.
+ */
+export const ENTRY_ORDER = 't.seed IS NULL, t.seed, t.entered_at, b.name, v.id'
+
+/** A tournament's entrants, in `ENTRY_ORDER`: once it has started, the order its matches index. */
 export async function listTournamentEntrants(
   db: D1Database,
   tournamentId: string,
@@ -875,7 +967,7 @@ export async function listTournamentEntrants(
     .prepare(
       `SELECT ${LABEL_COLUMNS} FROM tournament_entries t
        JOIN bot_versions v ON v.id = t.bot_version_id ${LABEL_JOINS}
-       WHERE t.tournament_id = ? ORDER BY t.seed IS NULL, t.seed, b.name`,
+       WHERE t.tournament_id = ? ORDER BY ${ENTRY_ORDER}`,
     )
     .bind(tournamentId)
     .all<BotLabelRow>()
@@ -940,14 +1032,18 @@ const KEPT_BOT = `owner_id = ?1 AND id IN (
   WHERE v.id IN (SELECT bot_version_id FROM hill_entries)
      OR v.id IN (SELECT bot_version_id FROM tournament_entries))`
 
+/** A tournament that has not started: its entries and its owner may still change. */
+const UNSTARTED = "SELECT id FROM tournaments WHERE status IN ('draft', 'scheduled')"
+
 /**
- * Deletes user `userId` in one batch (a transaction). Their bots are hard-deleted with their
- * versions, but for bots with a version on a hill or in a tournament: those stay, so standings and
- * brackets keep their shape, owned by `DELETED_USER`, named and authored `[deleted]`, with no
- * source, and deleted (404 to all). Their draft tournaments go; the others pass to `DELETED_USER`,
- * as do their hill submissions of the versions that stay (the others go with their versions).
- * Their audit rows go with them (cascade). Sessions are in KV: the caller ends them. False when
- * there was no such user.
+ * Deletes user `userId` in one batch (a transaction). First what has not started goes: their
+ * tournaments not started yet, and their entries (and their bots' entries) in anyone's. Then their
+ * bots are hard-deleted with their versions, but for bots with a version on a hill or in a
+ * tournament: those stay, so standings and brackets keep their shape, owned by `DELETED_USER`,
+ * named and authored `[deleted]`, with no source, and deleted (404 to all). Their other
+ * tournaments pass to `DELETED_USER`, as do their hill submissions and tournament entries of the
+ * versions that stay (the others go with their versions). Their audit rows go with them
+ * (cascade). Sessions are in KV: the caller ends them. False when there was no such user.
  */
 export async function deleteAccount(db: D1Database, userId: string): Promise<boolean> {
   const now = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')"
@@ -955,6 +1051,14 @@ export async function deleteAccount(db: D1Database, userId: string): Promise<boo
     db
       .prepare('INSERT OR IGNORE INTO users (id, handle) VALUES (?, ?)')
       .bind(DELETED_USER.id, DELETED_USER.handle),
+    db
+      .prepare(
+        `DELETE FROM tournament_entries WHERE tournament_id IN (${UNSTARTED}) AND (user_id = ?1
+           OR bot_version_id IN (SELECT v.id FROM bot_versions v JOIN bots b ON b.id = v.bot_id
+             WHERE b.owner_id = ?1))`,
+      )
+      .bind(userId),
+    db.prepare(`DELETE FROM tournaments WHERE owner_id = ? AND id IN (${UNSTARTED})`).bind(userId),
     db
       .prepare(
         `UPDATE bot_versions SET source = '', author = ?2, strategy = NULL
@@ -969,12 +1073,14 @@ export async function deleteAccount(db: D1Database, userId: string): Promise<boo
       )
       .bind(userId, DELETED_USER.id, GONE),
     db.prepare('DELETE FROM bots WHERE owner_id = ?').bind(userId),
-    db.prepare("DELETE FROM tournaments WHERE owner_id = ? AND status = 'draft'").bind(userId),
     db
       .prepare('UPDATE tournaments SET owner_id = ? WHERE owner_id = ?')
       .bind(DELETED_USER.id, userId),
     db
       .prepare('UPDATE hill_submissions SET user_id = ? WHERE user_id = ?')
+      .bind(DELETED_USER.id, userId),
+    db
+      .prepare('UPDATE tournament_entries SET user_id = ? WHERE user_id = ?')
       .bind(DELETED_USER.id, userId),
     db.prepare('DELETE FROM users WHERE id = ?').bind(userId),
   ])

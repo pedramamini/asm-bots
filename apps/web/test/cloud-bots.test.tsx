@@ -15,7 +15,7 @@ import {
   Outlet,
   RouterProvider,
 } from '@tanstack/react-router'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { HttpResponse, http } from 'msw'
 import type { ReactNode } from 'react'
 import { useDom, window } from '../../../packages/ui/test/dom'
@@ -337,6 +337,9 @@ describe('the bot page actions', () => {
     expect(fork.hasAttribute('disabled')).toBe(true)
     expect(fork.getAttribute('title')).toBe('its source is not public')
     expect(screen.getByRole('button', { name: 'challenge ▾' }).hasAttribute('disabled')).toBe(true)
+    // The actions' read of the local bots comes before this one: it lands inside act, not after
+    // the test.
+    await act(() => listLocalBots())
   })
 
   it('challenges with my bot picked from the menu', async () => {

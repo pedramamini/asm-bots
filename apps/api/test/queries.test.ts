@@ -88,6 +88,8 @@ describe('the schema', () => {
       'matches_hill_finished',
       'matches_key',
       'matches_tournament',
+      'tournament_entries_user',
+      'tournaments_finished',
       'tournaments_starts',
     ])
   })
@@ -148,7 +150,7 @@ describe('query helpers', () => {
   })
 
   it('reads tournaments, running first, with their matches', async () => {
-    expect((await listTournaments(env.DB)).map((t) => t.id)).toEqual(['t2', 't1'])
+    expect((await listTournaments(env.DB)).map((s) => s.tournament.id)).toEqual(['t2', 't1'])
     const t2 = await getTournament(env.DB, 't2')
     expect(t2).toMatchObject({ kind: 'bracket', bracket: null, ownerId: null })
     expect(t2?.config.seed).toBe(2)
@@ -161,6 +163,7 @@ describe('query helpers', () => {
         participants: ['v1', 'v2'],
         rounds: 5,
         seed: 1,
+        key: null,
         result: null,
         replayKey: null,
         finishedAt: null,

@@ -6,6 +6,7 @@ import type {
   HillList,
   MatchList,
   ReplayConfig,
+  Tournament,
   TournamentList,
   UserDetail,
 } from '@asmbots/protocol'
@@ -97,6 +98,7 @@ export const MATCHES: MatchList = {
         participants: [DWARF.versionId, IMP.versionId],
         rounds: 10,
         seed: 1,
+        key: null,
         result: { points: [21, 9], survivors: [0], resultHash: '0123456789abcdef' },
         replayKey: KEY,
         finishedAt: T,
@@ -111,6 +113,7 @@ export const MATCHES: MatchList = {
         participants: [IMP.versionId, PAPER.versionId],
         rounds: 10,
         seed: 1,
+        key: null,
         result: { points: [10, 10], survivors: [0, 1], resultHash: '0123456789abcdef' },
         replayKey: null,
         finishedAt: T,
@@ -163,19 +166,27 @@ export const SYSTEM: UserDetail = {
   ],
 }
 
+/**
+ * The next championship: open for entries until far past any test run, so `enter` shows whatever
+ * the clock says.
+ */
+export const WEEKLY_9: Tournament = {
+  id: 't9',
+  slug: 'weekly-9',
+  name: 'Weekly 9',
+  kind: 'bracket',
+  status: 'scheduled',
+  config: { rounds: 5, seed: 1, battle: CONFIG, seeding: 'rating', thirdPlace: true },
+  bracket: null,
+  ownerId: null,
+  startsAt: '2026-09-26T18:00:00.000Z',
+  createdAt: T,
+  entry: 'open',
+  entryClosesAt: '2099-09-25T18:00:00.000Z',
+  championId: null,
+  finishedAt: null,
+}
+
 export const TOURNAMENTS: TournamentList = {
-  tournaments: [
-    {
-      id: 't9',
-      slug: 'weekly-9',
-      name: 'Weekly 9',
-      kind: 'bracket',
-      status: 'scheduled',
-      config: { rounds: 5, seed: 1, battle: CONFIG },
-      bracket: null,
-      ownerId: null,
-      startsAt: '2026-09-26T18:00:00.000Z',
-      createdAt: T,
-    },
-  ],
+  tournaments: [{ tournament: WEEKLY_9, entrants: 1, done: 0, of: 0, champion: null }],
 }

@@ -75,15 +75,19 @@ async function noRoom(c: Context<AppEnv>, adding: number): Promise<Response | nu
   )
 }
 
+/** `name` as a slug, at most 56 long: `Dwarf v2!` is `dwarf-v2`; empty when it has no a-z or 0-9. */
+export function slugStem(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+/, '')
+    .slice(0, 56)
+    .replace(/-+$/, '')
+}
+
 /** A bot's slug from its name: `Dwarf v2!` is `dwarf-v2`, `dwarf-v2-2` when that is taken. */
 export function botSlug(name: string, taken: ReadonlySet<string>): string {
-  const stem =
-    name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+/, '')
-      .slice(0, 56)
-      .replace(/-+$/, '') || 'bot'
+  const stem = slugStem(name) || 'bot'
   let slug = stem
   for (let n = 2; taken.has(slug); n++) slug = `${stem}-${n}`
   return slug
