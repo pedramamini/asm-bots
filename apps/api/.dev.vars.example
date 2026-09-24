@@ -1,0 +1,14 @@
+# `wrangler dev` secrets: copy to `.dev.vars` (git-ignored) and fill in. Production sets each
+# with `wrangler secret put <NAME>` (ARCHITECTURE §10). Nothing reads them yet: GitHub sign-in
+# lands with the auth routes. `wrangler dev` runs without this file.
+
+# A GitHub OAuth app (https://github.com/settings/developers) whose callback is on the Vite dev
+# server's origin, http://localhost:5173.
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+
+# Signs the session cookie. Any long random string: `openssl rand -hex 32`.
+SESSION_SECRET=
+
+# A `vars` entry in wrangler.jsonc can be overridden here too, e.g.:
+# APP_ORIGIN=http://localhost:5173

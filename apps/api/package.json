@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -b",
-    "dev": "wrangler dev",
+    "build": "tsc -b && wrangler deploy --dry-run --outdir dist/worker",
+    "dev": "mkdir -p ../web/dist && wrangler dev",
     "test": "vitest run",
     "migrate:local": "wrangler d1 migrations apply asmbots --local",
     "migrate:remote": "wrangler d1 migrations apply asmbots --remote",

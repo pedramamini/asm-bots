@@ -11,7 +11,11 @@ bun run contrast    # WCAG contrast of the text tokens in all five themes
 bun run golden      # the roster goldens; --update writes packages/bots/goldens/results.json
 bun run opcodes     # writes docs/opcodes.json (the editor's cards) and the docs' language reference
 bun run docs-index  # writes the /docs search index from the MDX pages
+bun run dev         # the web app on :5173 with /api proxied to wrangler dev on :8787
+bun run build       # web app, then the Worker bundle
 ```
+
+The Worker (API, D1, R2, KV, local migrations and seed): [apps/api/README.md](./apps/api/README.md).
 
 ## Optional Dependencies
 

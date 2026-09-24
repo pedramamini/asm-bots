@@ -41,5 +41,7 @@
     // The one cross-origin caller: the Vite dev server. The deployed app is same-origin.
     "APP_ORIGIN": "http://localhost:5173"
   },
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+  // The web app's Vite dev server proxies `/api` here.
+  "dev": { "port": 8787 }
 }

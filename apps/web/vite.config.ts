@@ -23,6 +23,9 @@ const PRELOAD_WEIGHTS = [400, 500] as const
 /** The tokens of a theme swatch: its surfaces, a hairline, its text, and its accent. */
 const SWATCH_TOKENS = ['--bg', '--panel', '--border', '--text', '--text-muted', '--accent'] as const
 
+/** `/api` goes to `wrangler dev` (`apps/api`, port 8787): the page calls its own origin. */
+const API_PROXY = { '/api': 'http://localhost:8787' }
+
 export default defineConfig({
   plugins: [
     tanstackRouter({ target: 'react', autoCodeSplitting: true }),
@@ -46,8 +49,8 @@ export default defineConfig({
     })),
   },
   worker: { format: 'es' },
-  server: { port: 5173, strictPort: true },
-  preview: { port: 4173, strictPort: true },
+  server: { port: 5173, strictPort: true, proxy: API_PROXY },
+  preview: { port: 4173, strictPort: true, proxy: API_PROXY },
   build: {
     target: 'es2022',
     // One stylesheet for the app, in index.html (`inlineStylesheet`): no lazy chunk links a sheet.

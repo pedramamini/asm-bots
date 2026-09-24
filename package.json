@@ -13,7 +13,10 @@
     "test": "bun test",
     "test:api": "bun run --filter @asmbots/api test",
     "contrast": "bun run scripts/check-contrast.ts",
-    "build": "bun run --filter '*' build",
+    "dev": "concurrently --kill-others --names web,api --prefix-colors magenta,cyan \"bun run --filter @asmbots/web dev\" \"bun run dev:worker\"",
+    "dev:worker": "bun run --filter @asmbots/api dev",
+    "build": "bun run --filter @asmbots/web build && bun run --filter @asmbots/api build",
+    "deploy": "echo 'bun run deploy: not wired until EXEC 3.4 (deploy playbook)' >&2 && exit 1",
     "golden": "bun run scripts/golden.ts",
     "opcodes": "bun run scripts/gen-opcode-docs.ts",
     "docs-index": "bun run apps/web/scripts/gen-docs-index.ts",
@@ -22,6 +25,7 @@
     "asmbots": "bun run --filter @asmbots/cli asmbots"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.14"
+    "@biomejs/biome": "2.5.14",
+    "concurrently": "10.0.5"
   }
 }
