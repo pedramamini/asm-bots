@@ -171,7 +171,14 @@ describe('tournament runner', () => {
     expect(left.progress).toEqual({ done: 1, of: 3 })
 
     const { exec, calls } = executor()
-    await new TournamentRunner(() => exec).resumeRunning()
+    const runner = new TournamentRunner(() => exec)
+    // Each `match` event names the round it starts at, so auto-watch can show that round.
+    const starts: number[] = []
+    runner.subscribe((event) => {
+      if (event.type === 'match') starts.push(event.round)
+    })
+    await runner.resumeRunning()
+    expect(starts).toEqual([1, 2])
     const done = (await getTournament(id)) as Tournament
     const whole = runMatch(entrantBots(three), CONFIG, 3)
     expect(done.matches).toEqual([whole])

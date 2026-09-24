@@ -20,12 +20,16 @@ export interface SparklineProps
   height?: number | undefined
   /** A bot index (the engine's owner - 1) or any CSS color; the accent when absent. */
   hue?: Hue | undefined
+  /** One bar per value, up from the bottom, in place of the line: a histogram. `min` is then 0. */
+  bars?: boolean | undefined
 }
 
 /**
  * A series as a 1 px line (DESIGN_SYSTEM §4): a bot's process count over the last frames, a
  * rating over time. The values fill the height between `min` and `max`; a flat series is a line
- * through the middle. Hidden from assistive tech unless `aria-label` says what it shows.
+ * through the middle. With `bars`, a histogram: a bar per value, 1 px apart, filled in the hue
+ * (a melee's rounds by the cycles a bot lived). Hidden from assistive tech unless `aria-label`
+ * says what it shows.
  */
 export function Sparkline({
   values,
@@ -34,11 +38,12 @@ export function Sparkline({
   width = 64,
   height = 16,
   hue = 'var(--accent)',
+  bars = false,
   className,
   style,
   ...rest
 }: SparklineProps) {
-  const points = sparkPoints(values, width, height, min, max)
+  const points = bars ? '' : sparkPoints(values, width, height, min, max)
   return (
     // biome-ignore lint/a11y/noSvgWithoutTitle: graphicRole hides it, or names it by aria-label.
     <svg
@@ -51,6 +56,10 @@ export function Sparkline({
       className={cx('shrink-0 text-(--hue)', className)}
       style={{ ...style, ...vars({ '--hue': hueColor(hue) }) }}
     >
+      {bars &&
+        sparkBars(values, width, height, max).map((bar) => (
+          <rect key={bar.x} {...bar} fill="currentColor" />
+        ))}
       {points !== '' && (
         <polyline
           points={points}
@@ -95,6 +104,37 @@ export function sparkPoints(
   if (ys.length === 1) return `0,${ys[0]} ${width},${ys[0]}`
   const step = width / (ys.length - 1)
   return ys.map((y, i) => `${round(i * step)},${y}`).join(' ')
+}
+
+/** A bar of `sparkBars`: its box in the view box. */
+export interface SparkBar {
+  readonly x: number
+  readonly y: number
+  readonly width: number
+  readonly height: number
+}
+
+/**
+ * The bars of `values` in a `width` × `height` box: equal slots left to right, a 1 px gap between
+ * them when each slot is wider than 2 px, each bar up from the bottom to its value over 0..`max`
+ * (the largest value when absent). A value of 0, or one that is not a number, draws no bar; a
+ * value above `max` stops at the top.
+ */
+export function sparkBars(
+  values: readonly number[],
+  width: number,
+  height: number,
+  max?: number,
+): SparkBar[] {
+  const top = max ?? Math.max(0, ...values.filter(Number.isFinite))
+  if (values.length === 0 || top <= 0) return []
+  const slot = width / values.length
+  const gap = slot > 2 ? 1 : 0
+  return values.flatMap((v, i) => {
+    if (!Number.isFinite(v) || v <= 0) return []
+    const h = round((Math.min(v, top) / top) * height)
+    return [{ x: round(i * slot), y: round(height - h), width: round(slot - gap), height: h }]
+  })
 }
 
 function round(n: number): number {

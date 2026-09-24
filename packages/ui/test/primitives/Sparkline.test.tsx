@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 import { render, screen } from '@testing-library/react'
-import { Sparkline, sparkPoints } from '../../src/index'
+import { Sparkline, sparkBars, sparkPoints } from '../../src/index'
 import { html, useDom } from '../dom'
 
 useDom()
@@ -41,7 +41,38 @@ describe('sparkPoints', () => {
   })
 })
 
+describe('sparkBars', () => {
+  it('gives each value an equal slot, 1 px apart, up from the bottom to its share of the max', () => {
+    expect(sparkBars([2, 4, 1], 12, 8)).toEqual([
+      { x: 0, y: 4, width: 3, height: 4 },
+      { x: 4, y: 0, width: 3, height: 8 },
+      { x: 8, y: 6, width: 3, height: 2 },
+    ])
+  })
+
+  it('draws no bar for 0 or a value that is not a number, and holds one above max to the top', () => {
+    expect(sparkBars([0, Number.NaN, 3], 30, 10).map((b) => b.x)).toEqual([20])
+    expect(sparkBars([5, 20], 4, 10, 10)).toEqual([
+      { x: 0, y: 5, width: 2, height: 5 },
+      { x: 2, y: 0, width: 2, height: 10 },
+    ])
+  })
+
+  it('draws nothing for no values or none above 0', () => {
+    expect(sparkBars([], 64, 16)).toEqual([])
+    expect(sparkBars([0, 0], 64, 16)).toEqual([])
+  })
+})
+
 describe('Sparkline', () => {
+  it('draws bars, not a line, with `bars`', () => {
+    const { container } = render(<Sparkline bars values={[1, 0, 2]} width={30} height={10} />)
+    expect(container.querySelector('polyline')).toBeNull()
+    const rects = [...container.querySelectorAll('rect')]
+    expect(rects.map((r) => r.getAttribute('height'))).toEqual(['5', '10'])
+    expect(rects[0]?.getAttribute('fill')).toBe('currentColor')
+  })
+
   it('draws the series as one line', () => {
     const { container } = render(<Sparkline values={[3, 8, 5, 12]} />)
     expect(html(container)).toMatchSnapshot()

@@ -2,7 +2,8 @@
  * Local tournaments in Chromium, against the production build: the new tournament form makes a
  * bracket of five roster bots, the runner plays it in the arena Worker of the build, and its card
  * goes from `running · n / 5` to `finished` with a champion. Its bracket then shows eight matches;
- * the final's panel opens, and `watch` replays a round in the arena.
+ * the final's panel opens, and `watch` replays a round in the arena. A round robin of four bots
+ * runs to its end with a full results matrix and standings.
  */
 import { expect, type Page, test } from '@playwright/test'
 
@@ -61,5 +62,34 @@ test('a bracket of five roster bots runs to a champion', async ({ page }) => {
   await expect(watching.getByRole('button', { name: 'pause' })).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(watching).toBeHidden()
+  expect(errors).toEqual([])
+})
+
+test('a round robin of four roster bots fills its matrix', async ({ page }) => {
+  const errors = watch(page)
+  await page.goto('/tournaments')
+  await page.getByRole('button', { name: 'new tournament' }).first().click()
+  const form = page.getByRole('dialog', { name: 'new tournament' })
+  await form.getByRole('textbox', { name: 'name' }).fill('league')
+  await form.getByRole('radio', { name: 'round robin' }).click()
+  for (const name of ['Imp', 'Dwarf', 'Stone', 'Paper']) {
+    await form.getByRole('checkbox', { name, exact: true }).check()
+  }
+  await expect(form.getByText(/^6 matches · /)).toBeVisible()
+  await form.locator('button[name="create"]').click()
+  await expect(form).toBeHidden()
+
+  const card = page.getByRole('listitem', { name: 'league' })
+  await card.getByRole('link').click()
+  const matrix = page.getByRole('table', { name: 'results matrix' })
+  await expect(matrix.locator('[data-diagonal]')).toHaveCount(4)
+  await expect(page.getByText('finished', { exact: true })).toBeVisible({ timeout: 60_000 })
+  await expect(matrix.locator('[data-played]')).toHaveCount(12)
+  await expect(matrix.locator('[data-live]')).toHaveCount(0)
+  const standings = page.getByRole('table', { name: 'standings' })
+  await expect(standings.getByRole('row')).toHaveCount(5)
+  // Entrants go in the order picked: Imp v Dwarf is the schedule's first match.
+  await matrix.getByRole('button', { name: /^Dwarf v Imp: / }).click()
+  await expect(page.getByRole('region', { name: 'match' })).toContainText('Imp v Dwarf · match 1')
   expect(errors).toEqual([])
 })

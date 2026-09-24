@@ -2,16 +2,19 @@
  * A round of a tournament's match, replayed in the arena in a modal (PRODUCT_SPEC §4): the round's
  * bots in fighting order with the round's seed (`watch.ts`), playing from the start. Play and
  * pause, `restart` (the round loaded again), the cycle, a legend of the bots, and the check:
- * `verified` once the battle's result hash equals the recorded one, `mismatch` when it does not.
+ * `verified` once the battle's result hash equals the recorded one, `mismatch` when it does not,
+ * `ended` for a live round, which has no recorded hash yet.
  */
-import { Button, Chip, HueSwatch, IconButton, Modal } from '@asmbots/ui'
+import type { MatchResult, MatchRound } from '@asmbots/tourney'
+import { Button, Chip, HueSwatch, IconButton, Modal, useToast } from '@asmbots/ui'
 import { Pause, Play, RotateCcw } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from 'zustand'
 import { ArenaCanvas } from '../arena/ArenaCanvas'
 import { ArenaClient, createArenaStore } from '../arena/worker/client'
 import type { Speed } from '../arena/worker/protocol'
-import type { WatchTarget } from './watch'
+import type { Tournament } from './store'
+import { type WatchTarget, watchTarget } from './watch'
 
 export interface WatchModalProps {
   /** The round to show; null closes the modal. */
@@ -21,19 +24,54 @@ export interface WatchModalProps {
   speed?: Speed | undefined
   /** Makes the client. Default: an `ArenaClient` with a store of its own. */
   createClient?: (() => ArenaClient) | undefined
+  /** The round shown has ended. */
+  onEnded?: (() => void) | undefined
 }
 
-/** `pending` until the round ends, then whether its hash is the recorded one. */
-export type WatchCheck = 'pending' | 'verified' | 'mismatch'
+/**
+ * `pending` until the round ends, then whether its hash is the recorded one; `ended` when there
+ * is none to check.
+ */
+export type WatchCheck = 'pending' | 'verified' | 'mismatch' | 'ended'
 
 const newClient = () => new ArenaClient({ store: createArenaStore() })
 
+/**
+ * The round a view's `WatchModal` shows: `watch` opens a round of a played match (`watchTarget`),
+ * or toasts why it cannot (a bot gone or broken); `close` closes it.
+ */
+export function useRoundWatch() {
+  const { toast } = useToast()
+  const [target, setTarget] = useState<WatchTarget | null>(null)
+  const watch = useCallback(
+    (t: Tournament, entrants: readonly number[], result: MatchResult, round: MatchRound) => {
+      try {
+        setTarget(watchTarget(t, entrants, result, round))
+      } catch (error) {
+        const why = error instanceof Error ? error.message : String(error)
+        toast(`cannot watch: ${why}.`, { variant: 'danger' })
+      }
+    },
+    [toast],
+  )
+  const close = useCallback(() => setTarget(null), [])
+  return { target, watch, close }
+}
+
 const count = (n: number) => n.toLocaleString('en-US')
 
-export function WatchModal({ target, onClose, speed, createClient = newClient }: WatchModalProps) {
+export function WatchModal({
+  target,
+  onClose,
+  speed,
+  createClient = newClient,
+  onEnded,
+}: WatchModalProps) {
   return (
     <Modal open={target !== null} onClose={onClose} title={target?.label ?? 'watch'} size="lg">
-      {target !== null && <Watch target={target} speed={speed} createClient={createClient} />}
+      {target !== null && (
+        <Watch target={target} speed={speed} createClient={createClient} onEnded={onEnded} />
+      )}
     </Modal>
   )
 }
@@ -42,19 +80,27 @@ function Watch({
   target,
   speed,
   createClient,
+  onEnded,
 }: {
   target: WatchTarget
   speed: Speed | undefined
   createClient: () => ArenaClient
+  onEnded: (() => void) | undefined
 }) {
   const make = useRef(createClient)
+  const ended = useRef(onEnded)
+  ended.current = onEnded
   const [client, setClient] = useState<ArenaClient | null>(null)
   const [check, setCheck] = useState<WatchCheck>('pending')
 
   useEffect(() => {
     const made = make.current()
     setCheck('pending')
-    made.on('ended', ({ hash }) => setCheck(hash === target.resultHash ? 'verified' : 'mismatch'))
+    made.on('ended', ({ hash }) => {
+      const expected = target.resultHash
+      setCheck(expected === undefined ? 'ended' : hash === expected ? 'verified' : 'mismatch')
+      ended.current?.()
+    })
     if (speed !== undefined) made.speed(speed)
     made.load(target.bots, target.config, 1)
     made.play()
@@ -135,6 +181,8 @@ function WatchBar({
           <Chip>{status === 'error' ? 'did not load' : 'playing'}</Chip>
         ) : check === 'verified' ? (
           <Chip variant="accent">verified</Chip>
+        ) : check === 'ended' ? (
+          <Chip>ended</Chip>
         ) : (
           <Chip variant="danger">mismatch</Chip>
         )}

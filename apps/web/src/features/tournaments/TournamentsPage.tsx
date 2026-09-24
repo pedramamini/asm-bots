@@ -44,7 +44,7 @@ const FILTER_OF: Readonly<Record<TournamentStatus, StatusFilter>> = {
   failed: 'finished',
 }
 
-const STATUS_VARIANT: Readonly<Record<TournamentStatus, ChipVariant>> = {
+export const STATUS_VARIANT: Readonly<Record<TournamentStatus, ChipVariant>> = {
   scheduled: 'info',
   running: 'accent',
   paused: 'warn',

@@ -47,11 +47,17 @@ export interface MatchExecutor {
 }
 
 /**
- * `match`: a match starts; `entrants` are the tournament's entrant indices in it. `saved`: the
- * record changed and is stored, after a match or on a change of status.
+ * `match`: a match starts; `entrants` are the tournament's entrant indices in it, `round` the
+ * first round it runs (a melee's, resumed). `saved`: the record changed and is stored, after a
+ * match or on a change of status.
  */
 export type RunnerEvent =
-  | { readonly type: 'match'; readonly id: string; readonly entrants: readonly number[] }
+  | {
+      readonly type: 'match'
+      readonly id: string
+      readonly entrants: readonly number[]
+      readonly round: number
+    }
   | { readonly type: 'saved'; readonly tournament: Tournament }
 
 /** Why a run stopped short: the abort reason of its signal. */
@@ -214,7 +220,7 @@ export class TournamentRunner {
         entrants: readonly number[],
         options?: RunMatchOptions,
       ): Promise<MatchResult> => {
-        this.emit({ type: 'match', id, entrants })
+        this.emit({ type: 'match', id, entrants, round: options?.resume?.rounds.length ?? 0 })
         const matchBots = entrants.map((e) => bots[e] as ArenaBot)
         return abortable(this.executor().runMatch(matchBots, config, rounds, options), signal)
       }

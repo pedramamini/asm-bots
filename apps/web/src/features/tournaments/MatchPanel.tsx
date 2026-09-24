@@ -1,7 +1,8 @@
 /**
  * One match of a tournament (PRODUCT_SPEC §4): its entrants with their seeds and match points,
  * and a table of its rounds (the placement seed, who fought first, the survivors, each entrant's
- * points, the cycles run) with `watch` on each, which replays that round in the arena.
+ * points up to `POINTS_COLUMNS_UP_TO` entrants, the cycles run) with `watch` on each, which
+ * replays that round in the arena.
  */
 import type { MatchResult, MatchRound } from '@asmbots/tourney'
 import { Button, Chip, type ChipVariant, Panel, Table, type TableColumn } from '@asmbots/ui'
@@ -42,6 +43,9 @@ const STATUS_VARIANT: Readonly<Record<string, ChipVariant>> = {
 
 const count = (n: number) => n.toLocaleString('en-US')
 
+/** A match of more entrants (a melee) has no points column per entrant: the survivors say it. */
+export const POINTS_COLUMNS_UP_TO = 4
+
 export function MatchPanel({
   title,
   status,
@@ -67,7 +71,7 @@ export function MatchPanel({
           r.survivors.map(name).join(', ')
         ),
     },
-    ...entrants.map(
+    ...(entrants.length > POINTS_COLUMNS_UP_TO ? [] : entrants).map(
       (entrant, e): TableColumn<MatchRound> => ({
         id: `points-${e}`,
         header: <span title={entrant.name}>{entrant.name}</span>,

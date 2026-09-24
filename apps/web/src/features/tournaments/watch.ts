@@ -3,8 +3,8 @@
  * from its inputs, the bots in the round's fighting order placed with the round's seed, as a match
  * of one round. That battle is the one `runMatch` ran, so its result hash is the recorded one.
  */
-import type { BattleConfigInput } from '@asmbots/engine'
-import type { MatchResult, MatchRound } from '@asmbots/tourney'
+import { type BattleConfigInput, DEFAULT_CONFIG } from '@asmbots/engine'
+import { type MatchResult, type MatchRound, roundOrder, roundSeed } from '@asmbots/tourney'
 import type { ArenaBot } from '../arena/worker/protocol'
 import { entrantBots } from './runner'
 import type { Tournament, TournamentEntrant } from './store'
@@ -17,8 +17,13 @@ export interface WatchTarget {
   readonly config: BattleConfigInput
   /** `Dwarf v Imp · round 2`. */
   readonly label: string
-  /** The recorded result hash: the replay's check. */
-  readonly resultHash: string
+  /** The recorded result hash: the replay's check. None for a round not played yet. */
+  readonly resultHash?: string | undefined
+}
+
+/** `Dwarf v Imp`, or `6 bots` past three. */
+function matchLabel(names: readonly string[]): string {
+  return names.length > 3 ? `${names.length} bots` : names.join(' v ')
 }
 
 /**
@@ -33,11 +38,30 @@ export function watchTarget(
 ): WatchTarget {
   const all = entrantBots(entrants.map((e) => tournament.entrants[e] as TournamentEntrant))
   const bots = round.order.map((k) => all[k] as ArenaBot)
-  const names = result.names.length > 3 ? `${result.names.length} bots` : result.names.join(' v ')
   return {
     bots,
     config: { ...tournament.config, seed: round.seed },
-    label: `${names} · round ${round.round + 1}`,
+    label: `${matchLabel(result.names)} · round ${round.round + 1}`,
     resultHash: round.resultHash,
+  }
+}
+
+/**
+ * Round `round` of the match of `entrants` that the runner has just started, built from its inputs
+ * as `runMatch` builds it (the order rotated by the round, the match seed stepped by it): what
+ * auto-watch shows while the runner plays the same round headless. It has no hash to check yet.
+ */
+export function liveWatchTarget(
+  tournament: Tournament,
+  entrants: readonly number[],
+  round: number,
+): WatchTarget {
+  const picked = entrants.map((e) => tournament.entrants[e] as TournamentEntrant)
+  const all = entrantBots(picked)
+  const seed = tournament.config.seed ?? DEFAULT_CONFIG.seed
+  return {
+    bots: roundOrder(all.length, round).map((k) => all[k] as ArenaBot),
+    config: { ...tournament.config, seed: roundSeed(seed, round) },
+    label: `live · ${matchLabel(picked.map((e) => e.name))} · round ${round + 1}`,
   }
 }

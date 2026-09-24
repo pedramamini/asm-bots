@@ -4,15 +4,14 @@
  * (`WatchModal`). The panel's actions download `bracket.svg` and `results.json`.
  */
 import { type BracketMatch, type MatchRound, nextMatches, roundTitle } from '@asmbots/tourney'
-import { Button, Panel, useToast } from '@asmbots/ui'
+import { Button, Panel } from '@asmbots/ui'
 import { Download } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { BracketSvg } from './BracketSvg'
 import { downloadBracket, downloadResults } from './export'
 import { MatchPanel } from './MatchPanel'
 import type { Tournament } from './store'
-import { WatchModal } from './WatchModal'
-import { type WatchTarget, watchTarget } from './watch'
+import { useRoundWatch, WatchModal } from './WatchModal'
 
 export interface BracketViewProps {
   tournament: Tournament
@@ -35,9 +34,8 @@ function matchTitle(t: Tournament, m: BracketMatch): string {
 }
 
 export function BracketView({ tournament: t, createClient }: BracketViewProps) {
-  const { toast } = useToast()
   const [selected, setSelected] = useState<number | null>(null)
-  const [watching, setWatching] = useState<WatchTarget | null>(null)
+  const watching = useRoundWatch()
   const live = useMemo(() => liveMatches(t), [t])
   const bracket = t.bracket
   const match = bracket === undefined || selected === null ? undefined : bracket.matches[selected]
@@ -79,16 +77,11 @@ export function BracketView({ tournament: t, createClient }: BracketViewProps) {
           onWatch={(round) => {
             if (match.result === null) return
             const entrants = match.slots.map((s) => s.entrant as number)
-            try {
-              setWatching(watchTarget(t, entrants, match.result, round))
-            } catch (error) {
-              const why = error instanceof Error ? error.message : String(error)
-              toast(`cannot watch: ${why}.`, { variant: 'danger' })
-            }
+            watching.watch(t, entrants, match.result, round)
           }}
         />
       )}
-      <WatchModal target={watching} onClose={() => setWatching(null)} createClient={createClient} />
+      <WatchModal target={watching.target} onClose={watching.close} createClient={createClient} />
     </div>
   )
 }

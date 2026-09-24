@@ -3,33 +3,42 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Placeholder } from '../../app/Placeholder'
 import { titleHead } from '../../app/title'
 import { BracketView } from '../../features/tournaments/BracketView'
+import { MeleeView } from '../../features/tournaments/MeleeView'
+import { RoundRobinView } from '../../features/tournaments/RoundRobinView'
 import { useRunnerSync } from '../../features/tournaments/runner'
-import { useTournament } from '../../features/tournaments/store'
+import { type Tournament, useTournament } from '../../features/tournaments/store'
+import { TournamentControls } from '../../features/tournaments/TournamentControls'
 
 export const Route = createFileRoute('/tournaments/$id')({
   head: ({ params }) => titleHead('tournaments', params.id),
   component: TournamentsDetail,
 })
 
-// TODO(EXEC 2.5 detail route): the header, the round robin and melee views, and sharing.
+const VIEWS = { bracket: BracketView, 'round-robin': RoundRobinView, melee: MeleeView } as const
+
+// TODO(EXEC 2.5 detail route): the header (name, kind, entrants), and sharing.
 function TournamentsDetail() {
   const { id } = Route.useParams()
   useRunnerSync()
   const { data: tournament } = useTournament(id)
-  if (tournament?.kind === 'bracket') {
+  if (tournament == null) {
     return (
-      <PanelGrid className="p-3">
-        <div className="col-span-12">
-          <BracketView tournament={tournament} />
-        </div>
-      </PanelGrid>
+      <Placeholder title="tournaments" status={id}>
+        {tournament === null ? 'this browser has no tournament by that id.' : 'reading…'}
+      </Placeholder>
     )
   }
+  return <TournamentDetail tournament={tournament} />
+}
+
+function TournamentDetail({ tournament }: { tournament: Tournament }) {
+  const View = VIEWS[tournament.kind]
   return (
-    <Placeholder title="tournaments" status={tournament?.name ?? id}>
-      {tournament === null
-        ? 'this browser has no tournament by that id.'
-        : 'the bracket, the matrix, or the melee standings show here.'}
-    </Placeholder>
+    <PanelGrid className="p-3">
+      <div className="col-span-12 flex flex-col gap-3">
+        <TournamentControls tournament={tournament} />
+        <View tournament={tournament} />
+      </div>
+    </PanelGrid>
   )
 }

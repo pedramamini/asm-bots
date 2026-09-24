@@ -1,8 +1,8 @@
 /**
- * A tournament's downloads (PRODUCT_SPEC §4): `results.json`, every match with its rounds, and a
- * bracket's `bracket.svg`, drawn in the page's theme.
+ * A tournament's downloads (PRODUCT_SPEC §4): `results.json`, every match with its rounds; a
+ * bracket's `bracket.svg`, drawn in the page's theme; a round robin's or a melee's standings CSV.
  */
-import { type BracketPalette, bracketSvg, DEFAULT_BRACKET_PALETTE } from '@asmbots/tourney'
+import { type BracketPalette, bracketSvg, csv, DEFAULT_BRACKET_PALETTE } from '@asmbots/tourney'
 import { downloadBlob, slug } from '../arena/battle/files'
 import type { Tournament } from './store'
 
@@ -62,6 +62,13 @@ function stem(t: Tournament): string {
 export function downloadResults(t: Tournament): void {
   const blob = new Blob([resultsJson(t)], { type: 'application/json' })
   downloadBlob(blob, `${stem(t)}-results.json`)
+}
+
+/** Saves the standings as they stand, ranked, as CSV. Nothing without standings. */
+export function downloadStandings(t: Tournament): void {
+  if (t.standings === undefined) return
+  const blob = new Blob([csv(t.standings)], { type: 'text/csv' })
+  downloadBlob(blob, `${stem(t)}-standings.csv`)
 }
 
 /** Saves the bracket as drawn, in the page's theme. Nothing without a bracket. */

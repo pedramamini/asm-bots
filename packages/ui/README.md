@@ -88,7 +88,7 @@ Tailwind's own palette, font stacks, radii, and type sizes are off: a color, a r
 |---|---|
 | `Table` | `<Table columns={columns} rows={rows} rowKey={(row) => row.id} defaultSort={{ column: 'score', direction: 'desc' }} />`: it draws only the rows in view past 200. |
 | `Stat` | `<Stat label="cycles" value="12,480" delta={1204} note="vs last round"><Sparkline … /></Stat>`; `invert`, `loading`. |
-| `Sparkline` | `<Sparkline values={procs} hue={bot} width={64} height={16} />` |
+| `Sparkline` | `<Sparkline values={procs} hue={bot} width={64} height={16} />`; `bars` for a histogram. |
 | `Identicon` | `<Identicon value={bytes} hue={bot} size={32} />`: 8 × 8 cells from a hash of the bytes. |
 | `HueSwatch` | `<HueSwatch hue={bot} />` |
 | `Hex` | `<Hex value={0x1a2f} />` shows `0x1A2F`; `<Hex byte value={255} />` shows `FF`. |
