@@ -114,3 +114,96 @@ test('the strategy, tournament, and tools pages load with no errors', async ({ p
   }
   expect(errors).toEqual([])
 })
+
+// The quality pass (EXEC 2.6 task 5): the two paths a reader takes most, and the page's measure.
+
+test('search: "rep movsw" finds the papers page and opens it at the heading', async ({ page }) => {
+  await page.goto('/docs/start-here')
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+  await page.keyboard.press('/')
+  const search = page.getByRole('searchbox', { name: 'search the docs' })
+  await expect(search).toBeFocused()
+  await search.fill('rep movsw')
+  const results = page.getByRole('navigation', { name: 'search results' })
+  await expect(results.getByRole('link').first()).toContainText(
+    'papers and silk › Why spl after rep movsw',
+  )
+  await search.press('Enter')
+  await expect(page).toHaveURL(/\/docs\/strategy\/papers#why-spl-after-rep-movsw$/)
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Why spl after rep movsw' }),
+  ).toBeInViewport()
+  await expect(search).toHaveValue('')
+})
+
+test('the imp page: open in arena lands on a loaded arena that fights', async ({ page }) => {
+  const errors = watch(page)
+  await page.goto('/docs/strategy/imps')
+  await page
+    .getByRole('figure', { name: 'Imp Ring · x16c code' })
+    .getByRole('link', { name: 'open in arena · vs dwarf' })
+    .click()
+  await expect(page).toHaveTitle('ASM BOTS // ARENA')
+  await expect(page.getByRole('list', { name: 'bots picked' }).getByRole('listitem')).toHaveText([
+    /Imp Ring/,
+    /Dwarf.*roster/,
+  ])
+  const fight = page.locator('button[name="fight"]')
+  await expect(fight).toBeEnabled()
+  await fight.click()
+  await expect(page.getByRole('application', { name: 'arena' })).toBeVisible()
+  expect(errors).toEqual([])
+})
+
+/** The article's width, and the width of 72 of its `0`s: the reading measure. */
+function measure(page: Page) {
+  return page.locator('article').evaluate((article) => {
+    const probe = document.createElement('div')
+    probe.style.width = '72ch'
+    article.append(probe)
+    const ch72 = probe.getBoundingClientRect().width
+    probe.remove()
+    return { width: article.getBoundingClientRect().width, ch72 }
+  })
+}
+
+/** Each code block of the article: does it wrap, and does it scroll sideways? */
+function codeBlocks(page: Page) {
+  return page.locator('article pre').evaluateAll((pres) =>
+    pres.map((pre) => {
+      const code = pre.querySelector('code') as HTMLElement
+      const lines = (code.textContent ?? '').replace(/\n$/, '').split('\n').length
+      const lineHeight = Number.parseFloat(getComputedStyle(code).lineHeight)
+      return {
+        whiteSpace: getComputedStyle(code).whiteSpace,
+        // A wrapped line would make the code taller than its lines.
+        wraps: code.getBoundingClientRect().height > lines * lineHeight + 1,
+        scrolls: pre.scrollWidth > pre.clientWidth,
+        overflowX: getComputedStyle(pre).overflowX,
+      }
+    }),
+  )
+}
+
+test('a page reads at 72ch, and its code scrolls sideways rather than wrap', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/docs/strategy/imps')
+  await expect(page.locator('article pre code span[style*="--accent"]').first()).toBeVisible()
+  const wide = await measure(page)
+  expect(wide.width).toBeCloseTo(wide.ch72, 0)
+
+  // A phone: the article is narrower than 72ch, the docs do not scroll sideways, the code does.
+  // (The page's own `main` scrolls the docs; the app header above it is the kit's.)
+  await page.setViewportSize({ width: 390, height: 844 })
+  const narrow = await measure(page)
+  expect(narrow.width).toBeLessThan(narrow.ch72)
+  expect(await page.locator('main').evaluate((main) => main.scrollWidth <= main.clientWidth)).toBe(
+    true,
+  )
+  const blocks = await codeBlocks(page)
+  expect(blocks.length).toBeGreaterThan(0)
+  for (const block of blocks) {
+    expect(block).toMatchObject({ whiteSpace: 'pre', wraps: false, overflowX: 'auto' })
+  }
+  expect(blocks.some((block) => block.scrolls)).toBe(true)
+})

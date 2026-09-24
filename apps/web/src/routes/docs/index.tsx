@@ -19,7 +19,7 @@ function DocsContents() {
                 <Link
                   to="/docs/$"
                   params={{ _splat: page.slug }}
-                  className="text-accent underline-offset-2 hover:underline"
+                  className="text-accent underline decoration-accent-45 underline-offset-2 hover:decoration-accent"
                 >
                   {page.title}
                 </Link>

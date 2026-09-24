@@ -28,8 +28,11 @@ import (`src/docs/components.tsx`):
 | `<Fig src="modrm" alt="…">caption</Fig>` | An SVG of `src/docs/figures/`, drawn inline in theme colors |
 | `<KeyMap />` | Every key of the app, from the key tables of `src/app/keymaps.ts` |
 
-A code block's colors and links load after the page paints (`src/docs/asm-runtime.ts`: the CM
-tokenizer and the share codec). The sidebar's search (`/`) reads a prebuilt index of every page's
+A code block's colors and links load once the page has painted and gone idle
+(`src/docs/asm-runtime.ts`: the CM tokenizer and the share codec; `usePaintedAndIdle` in
+`src/app/paint.ts`, which the home demo also waits on). In a block, comments are `--text-muted`,
+not the editor's `--text-dim`: in the docs they are prose. Links in prose are underlined, not
+only accent-colored. The sidebar's search (`/`) reads a prebuilt index of every page's
 headings and prose, `src/docs/generated/search-index.json`: run `bun run docs-index` after
 editing a page (`test/docs-index.test.ts` fails on a stale index). `test/docs.test.tsx` compiles
 and draws every page, and assembles every `open in editor` snippet with zero errors.
@@ -37,6 +40,11 @@ and draws every page, and assembles every `open in editor` snippet with zero err
 what the pages claim: every record table is fought again, every roster bot on a page must be the
 roster's file word for word, and each "try" edit is made and measured. Change a bot, the engine,
 or a page, and they say which words no longer hold.
+
+`bun run docs-links` (in `bun run check`) checks every link of every page: a `/docs/…` path is a
+page of `nav.ts` and its `#anchor` one of its headings, any other path a route of
+`routeTree.gen.ts`, an outside link `https://` (not fetched), no relative paths, and each `Fig`
+and `Shot` a real file. It prints `file:line: why` per broken link.
 
 ## Arena
 
@@ -364,10 +372,32 @@ the `load` event instead, which comes before the app's first render, it cost mob
 Fixed in the app shell's pass: the missing favicon (a 404 in the console, best practices 93) and
 the missing `robots.txt` (the SPA fallback served HTML, SEO 91).
 
+`/docs`, 2026-09-24 (EXEC 2.6 task 5), same setup, three mobile runs and one desktop run:
+
+| Page | Performance | Accessibility | Best practices | SEO |
+| --- | ---: | ---: | ---: | ---: |
+| `/docs`, mobile | 95 | 100 | 100 | 100 |
+| `/docs`, desktop | 100 | 100 | 100 | 100 |
+| `/docs/strategy/imps`, mobile | 94 | 100 | 100 | 100 |
+| `/docs/reference/string`, mobile | 93 | 100 | 100 | 100 |
+
+Mobile `/docs`: FCP 2.1 s, LCP 2.6 s (the ticker, as on `/`), CLS 0. What it took:
+
+- The stylesheet is inline in `index.html` (`inlineStylesheet` in `vite.config.ts`, with
+  `cssCodeSplit` off so no lazy chunk links it again): FCP 2.3 s to 2.1 s, and `/docs` from 94 or
+  95 a run to 95 each run. `/` gained the same (95).
+- Code blocks waited for nothing before: their runtime pulled the `editor` and `engine` chunks
+  before the first paint, and Lighthouse billed them to LCP (`imps` 88, `reference/string` 82).
+  They now wait for paint and idle.
+- Accessibility 96 to 100: prose links were told apart by color alone (1.48:1 against body text),
+  and code comments, block labels, and flag-table captions were `--text-dim` (3.07:1).
+
 Open items. None is under 90, so they wait for the release gate (PRODUCT_SPEC §11: 95 or more):
 
-- Mobile performance: the stylesheet blocks render (about 450 ms on a throttled link), and the
-  `vendor` chunk carries about 55 KiB that `/` does not run.
+- Mobile performance: the `vendor` chunk carries about 55 KiB that `/` does not run. A content
+  page's own chunks come one round trip after the entry's (reference pages 92 to 93).
+- The app header does not fit a 390 px phone: its nav and actions run 360 px past the right edge,
+  so the page scrolls sideways on every route (the docs' own column does not).
 - Mobile best practices, `font-size`: most text is under 12 px. The type scale (DESIGN_SYSTEM §3)
   sets this on purpose, for a dense desktop layout.
 

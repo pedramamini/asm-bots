@@ -12,7 +12,11 @@ import { headingId, textOf } from './text'
 /** Keyboard focus on a link: the kit's 1 px accent outline. */
 const FOCUS = 'focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent'
 
-const LINK = cx('text-accent underline-offset-2 hover:underline', FOCUS)
+// Underlined at rest: in a paragraph a link must not rely on its color alone (WCAG 1.4.1).
+const LINK = cx(
+  'text-accent underline decoration-accent-45 underline-offset-2 hover:decoration-accent',
+  FOCUS,
+)
 
 /**
  * A docs link: an app path goes through the router (no reload), its `#anchor` as the router's

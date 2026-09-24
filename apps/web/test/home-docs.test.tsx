@@ -7,7 +7,7 @@ import {
   Outlet,
   RouterProvider,
 } from '@tanstack/react-router'
-import { act, render, screen, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import { lazy, type ReactNode, useEffect } from 'react'
 import { useDom, window } from '../../../packages/ui/test/dom'
 import { HomePage } from '../src/app/HomePage'
@@ -78,7 +78,8 @@ describe('HomePage', () => {
     expect(within(hero).getByRole('status').textContent).toContain('loading the demo battle')
     expect(within(hero).queryByText('the demo')).toBeNull()
     expect(await within(hero).findByText('the demo')).toBeTruthy()
-    expect(hero.textContent).toContain('4 bots · seed 7')
+    // The demo reports from an effect, which may run a task after the commit that drew it.
+    await waitFor(() => expect(hero.textContent).toContain('4 bots · seed 7'))
     expect(within(hero).queryByRole('status')).toBeNull()
   })
 })

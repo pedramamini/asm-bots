@@ -120,10 +120,17 @@ async function renderDocs(
   return router
 }
 
-/** Waits for the code blocks' colors and links. */
+/**
+ * Waits for the code blocks' colors and links: the runtime, which a block asks for once the page
+ * has painted and gone idle, then every block drawn in lines (a block without it is plain text).
+ */
 async function runtimeLoaded() {
   await act(async () => {
     await loadAsmRuntime()
+  })
+  await waitFor(() => {
+    const codes = document.querySelectorAll('figure[aria-label$="x16c code"] code')
+    expect([...codes].every((code) => code.querySelector(':scope > span') !== null)).toBe(true)
   })
 }
 

@@ -2,6 +2,7 @@ import { Button, useToast } from '@asmbots/ui'
 import { CodeXml, Copy, Grid2x2 } from 'lucide-react'
 import { type ReactNode, useEffect, useState } from 'react'
 import { NavLink } from '../app/Frame'
+import { usePaintedAndIdle } from '../app/paint'
 import { textOf } from './text'
 
 type Runtime = typeof import('./asm-runtime')
@@ -19,7 +20,9 @@ export function loadAsmRuntime(): Promise<Runtime> {
 
 function useAsmRuntime(): Runtime | null {
   const [loaded, setLoaded] = useState<Runtime | null>(null)
+  const painted = usePaintedAndIdle()
   useEffect(() => {
+    if (!painted) return
     let live = true
     loadAsmRuntime().then(
       (module) => live && setLoaded(module),
@@ -29,7 +32,7 @@ function useAsmRuntime(): Runtime | null {
     return () => {
       live = false
     }
-  }, [])
+  }, [painted])
   return loaded
 }
 
@@ -116,7 +119,7 @@ export function Asm({ children, run, fragment = false }: AsmProps) {
       className="my-3 min-w-0 rounded-sm border border-border bg-panel-2"
     >
       <figcaption className="flex flex-wrap items-center gap-1 border-b border-border px-2 py-1">
-        <span className="mr-auto truncate text-panel-status text-dim">
+        <span className="mr-auto truncate text-panel-status text-muted">
           {name === null ? (fragment ? 'x16c · fragment' : 'x16c') : `${name} · x16c`}
         </span>
         <Button variant="ghost" icon={Copy} onClick={copy}>

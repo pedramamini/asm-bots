@@ -32,6 +32,7 @@ export default defineConfig({
     tailwindcss(),
     themeBoot(),
     preloadFonts(),
+    inlineStylesheet(),
     textImport(),
   ],
   define: {
@@ -49,6 +50,8 @@ export default defineConfig({
   preview: { port: 4173, strictPort: true },
   build: {
     target: 'es2022',
+    // One stylesheet for the app, in index.html (`inlineStylesheet`): no lazy chunk links a sheet.
+    cssCodeSplit: false,
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -173,6 +176,37 @@ function preloadFonts(): Plugin {
             },
           ]
         })
+      },
+    },
+  }
+}
+
+/**
+ * Puts the app's stylesheet in index.html as a `<style>`: a linked one blocks the first paint for
+ * a round trip after the HTML (Lighthouse's mobile run: FCP 2.3 s linked, 2.1 s inline; `/docs`
+ * 94 to 95, then 95). With `cssCodeSplit` off the build writes one stylesheet and no chunk asks
+ * for it; the build fails if that ever stops being so.
+ */
+function inlineStylesheet(): Plugin {
+  const LINK = /<link rel="stylesheet" crossorigin href="\/([^"]+\.css)">/g
+  return {
+    name: 'asmbots:inline-stylesheet',
+    apply: 'build',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html, { bundle }) {
+        const sheets = Object.keys(bundle ?? {}).filter((file) => file.endsWith('.css'))
+        if (sheets.length !== 1)
+          throw new Error(`one stylesheet expected, got ${sheets.join(', ')}`)
+        const inlined = html.replace(LINK, (_tag, file: string) => {
+          const asset = bundle?.[file]
+          if (asset?.type !== 'asset') throw new Error(`no stylesheet ${file} in the bundle`)
+          // Nothing else links it: the file would be an orphan in dist.
+          delete bundle?.[file]
+          return `<style>${String(asset.source)}</style>`
+        })
+        if (inlined === html) throw new Error('index.html links no stylesheet to inline')
+        return inlined
       },
     },
   }

@@ -165,7 +165,7 @@ export function Flags({ op, set }: { op?: string; set?: string }) {
       : [...FLAG_NAMES].map((flag) => (set?.toUpperCase().includes(flag) ? '*' : '-')).join('')
   return (
     <table className="my-3 border-collapse text-center text-code">
-      <caption className="mb-1 text-left text-panel-status text-dim">
+      <caption className="mb-1 text-left text-panel-status text-muted">
         {op === undefined ? 'flags' : `flags · ${op}`}
       </caption>
       <thead>
