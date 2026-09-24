@@ -1,5 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { useState } from 'react'
 import { titleHead } from '../../app/title'
+import { NewTournament } from '../../features/tournaments/NewTournament'
 import { TournamentsPage } from '../../features/tournaments/TournamentsPage'
 
 export const Route = createFileRoute('/tournaments/')({
@@ -8,5 +10,11 @@ export const Route = createFileRoute('/tournaments/')({
 })
 
 function TournamentsRoute() {
-  return <TournamentsPage />
+  const [creating, setCreating] = useState(false)
+  return (
+    <>
+      <TournamentsPage onNew={() => setCreating(true)} />
+      <NewTournament open={creating} onClose={() => setCreating(false)} />
+    </>
+  )
 }

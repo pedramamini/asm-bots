@@ -326,3 +326,8 @@ export function readBotFiles(files: readonly File[]): Promise<BotFile[]> {
 export function fileAssembles(file: BotFile): file is BotFile & { assembled: Assembled } {
   return file.assembled !== null && !file.assembled.diagnostics.some((d) => d.severity === 'error')
 }
+
+/** Whether a drag carries files: what a drop zone takes. */
+export function carriesFiles(event: { dataTransfer: DataTransfer | null }): boolean {
+  return Array.from(event.dataTransfer?.types ?? []).includes('Files')
+}

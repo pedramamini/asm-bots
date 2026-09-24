@@ -33,6 +33,7 @@ import {
   assembleCached,
   type BotFile,
   type CatalogBot,
+  carriesFiles,
   errorsOf,
   fightSeed,
   fightStatus,
@@ -409,10 +410,6 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight }: ArenaSetupPr
       </Modal>
     </div>
   )
-}
-
-function carriesFiles(event: DragEvent): boolean {
-  return Array.from(event.dataTransfer?.types ?? []).includes('Files')
 }
 
 function fileProblem(file: BotFile): Problem {
