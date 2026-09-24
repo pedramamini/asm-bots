@@ -92,7 +92,10 @@ export const UNSUPPORTED: ReadonlyMap<string, string> = new Map([
   ['lock', '`lock` is not supported: the prefixes are rep, repe, and repne'],
 ])
 
-const KEYWORDS: ReadonlySet<string> = new Set(['short', 'near', 'strict', 'equ', 'times'])
+/** The words that pin the size of a jump or an immediate field. */
+const MODIFIERS = ['short', 'near', 'strict'] as const
+
+const KEYWORDS: ReadonlySet<string> = new Set([...MODIFIERS, 'equ', 'times'])
 
 /** Words that cannot be labels, and that an expression cannot name. */
 export function isReserved(word: string): boolean {
@@ -121,3 +124,28 @@ export function unsupportedDirective(text: string): string {
   }
   return `unknown directive \`${text}\`; the directives are %define, %name, %author, %strategy, and %version`
 }
+
+/**
+ * The dialect's words by class, all lowercase (source may use any case): what a tool needs to
+ * color or complete source without parsing it, as the editor does. `sizes` are `byte` and `word`
+ * and the words that pin a size (`short`, `near`, `strict`); `directives` are the statement words
+ * that are not instructions; `percent` are the `%` directives; `targets` are the mnemonics whose
+ * plain operand is an address to go to.
+ */
+export const WORDS: Readonly<{
+  mnemonics: ReadonlySet<string>
+  prefixes: ReadonlySet<string>
+  registers: ReadonlySet<string>
+  sizes: ReadonlySet<string>
+  directives: ReadonlySet<string>
+  percent: ReadonlySet<string>
+  targets: ReadonlySet<string>
+}> = Object.freeze({
+  mnemonics: MNEMONIC_WORDS,
+  prefixes: PREFIX_WORDS,
+  registers: REGISTERS,
+  sizes: new Set([...SIZES.keys(), ...MODIFIERS]),
+  directives: new Set([...DATA_WORDS, ...DIRECTIVE_WORDS, 'equ', 'times']),
+  percent: new Set(['%define', ...META_WORDS]),
+  targets: TARGET_WORDS,
+})

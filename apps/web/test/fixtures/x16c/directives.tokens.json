@@ -1,0 +1,42 @@
+[
+  [["%name", "directive"], ["\"Dwarf\"", "string"]],
+  [["%author", "directive"], ["\"A. K. Dewdney\"", "string"]],
+  [["%strategy", "directive"], ["\"Bomb every 4th byte; walk the core\"", "string"]],
+  [["%version", "directive"], ["\"3\"", "number"]],
+  [["%NAME", "directive"], ["\"case\"", "string"]],
+  [["%define", "directive"], ["STRIDE", "macro"], ["4", "number"]],
+  [
+    ["%define", "directive"],
+    ["BOMB", "macro"],
+    ["mov", "mnemonic"],
+    ["word", "size"],
+    ["[", "bracket"],
+    ["di", "register"],
+    ["]", "bracket"],
+    [",", "punctuation"],
+    ["0", "number"]
+  ],
+  [["%define", "directive"], ["BASE", "macro"], ["bx", "register"]],
+  [["%macro", "directive"], ["bomb", "symbol"], ["1", "number"]],
+  [["org", "directive"], ["0", "number"]],
+  [["bits", "directive"], ["16", "number"]],
+  [["align", "directive"], ["4", "number"]],
+  [["resb", "directive"], ["STRIDE", "symbol"]],
+  [["resw", "directive"], ["2", "number"]],
+  [["BOMB", "symbol"]],
+  [
+    ["add", "mnemonic"],
+    ["di", "register"],
+    [",", "punctuation"],
+    ["STRIDE", "symbol"],
+    ["%", "operator"],
+    ["3", "number"]
+  ],
+  [
+    ["start", "label"],
+    [":", "punctuation"],
+    ["%", "operator"],
+    ["name", "symbol"],
+    ["\"x\"", "number"]
+  ]
+]

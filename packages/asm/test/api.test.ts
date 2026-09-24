@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import * as byName from '@asmbots/asm'
+import { ALIASES, MNEMONICS } from '@asmbots/codec'
 import { AssembleError, assemble, assembleOrThrow } from '../src/assemble'
 import { DIAG_CODES, type Diag, formatDiag } from '../src/diag'
 import { lint } from '../src/lint'
@@ -27,6 +28,7 @@ describe('api: exports', () => {
       'AssembleError',
       'DIAG_CODES',
       'MAX_BOT_BYTES',
+      'WORDS',
       'assemble',
       'assembleOrThrow',
       'disassemble',
@@ -44,6 +46,43 @@ describe('api: exports', () => {
 
   it('lists each diagnostic code once', () => {
     expect(new Set(DIAG_CODES).size).toBe(DIAG_CODES.length)
+  })
+})
+
+describe('api: WORDS', () => {
+  const { WORDS } = byName
+  /** The codes of the errors of `source` as a bot. */
+  const codes = (source: string) => assemble(`${source}\n%name "t"`).diagnostics.map((d) => d.code)
+
+  it('holds the words the parser reserves: none of them can be a label', () => {
+    for (const word of [...WORDS.registers, ...WORDS.sizes, ...WORDS.directives]) {
+      expect([word, codes(`${word}: nop`)]).toEqual([word, ['bad-label']])
+    }
+  })
+
+  it('holds every mnemonic and prefix, in any case, and each starts an instruction', () => {
+    expect(WORDS.mnemonics).toEqual(new Set([...MNEMONICS, ...ALIASES.keys()]))
+    expect([...WORDS.prefixes].sort()).toEqual(['rep', 'repe', 'repne', 'repnz', 'repz'])
+    expect(codes('JE $')).toEqual([])
+    expect(codes('REPZ CMPSB')).toEqual([])
+    for (const target of WORDS.targets) expect(WORDS.mnemonics.has(target)).toBe(true)
+    for (const target of ['jmp', 'call', 'jz', 'je', 'loopz', 'jcxz', 'spl']) {
+      expect([target, WORDS.targets.has(target)]).toEqual([target, true])
+    }
+    expect(WORDS.targets.has('mov')).toBe(false)
+  })
+
+  it('holds the % directives', () => {
+    expect([...WORDS.percent].sort()).toEqual([
+      '%author',
+      '%define',
+      '%name',
+      '%strategy',
+      '%version',
+    ])
+    expect(codes('%define STEP 4\n%author "a"\n%strategy "s"\n%version "1"\nadd ax, STEP')).toEqual(
+      [],
+    )
   })
 })
 

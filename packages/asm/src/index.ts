@@ -41,6 +41,7 @@ export { disassemble } from './disassemble'
 export type { Unresolved } from './expr'
 export { evaluate, evaluateExact } from './expr'
 export { formatSource } from './format'
+export { WORDS } from './keywords'
 export type {
   NumberToken,
   PlainToken,

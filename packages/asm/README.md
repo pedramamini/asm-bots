@@ -24,6 +24,7 @@ flowchart LR
 | `evaluate(expr, symbols, here)`, `evaluateExact(expr, symbols, here)` | The value of a parsed `Expr`, wrapped to 16 bits or exact, or an `Unresolved` for an undefined symbol or a division by zero. |
 | `formatDiag(diag, file)` | A diagnostic on one line: `dwarf.asm:3:9: error: jump out of range [jump-out-of-range]`. |
 | `DIAG_CODES` | Every `DiagCode`, in the order of the [codes table](#codes). |
+| `WORDS` | The dialect's words by class, lowercase, as sets: `mnemonics` (aliases included), `prefixes`, `registers`, `sizes` (`byte`, `word`, `short`, `near`, `strict`), `directives` (`db dw resb resw org bits align equ times`), `percent` (`%define` and the metadata directives), and `targets` (the mnemonics that take a jump target). For tools that color or complete source without parsing it, such as the editor. |
 
 Types: `Assembled`, `AssembleOptions`, `AssembleOrThrowOptions`, `ListingLine`, `Diag`, `DiagCode`, `DisLine`, `DisassembleOptions`, `Token` and its kinds, `TokenizeOptions`, `Parsed`, `Line` and its kinds, `OperandAst` and its kinds, `Expr` and its kinds, and `Unresolved`.
 

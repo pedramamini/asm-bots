@@ -1,0 +1,45 @@
+[
+  [["; Labels, statements, and what starts a statement (ISA §6).", "comment"]],
+  [["start", "label"], [":", "punctuation"], ["call", "mnemonic"], [".here", "symbol"]],
+  [[".here", "label"], [":", "punctuation"], ["pop", "mnemonic"], ["bx", "register"]],
+  [["sub", "mnemonic"], ["bx", "register"], [",", "punctuation"], [".here", "symbol"]],
+  [["msg", "label"], ["db", "directive"], ["1", "number"], [",", "punctuation"], ["2", "number"]],
+  [
+    ["SIZE", "label"],
+    ["equ", "directive"],
+    ["end", "symbol"],
+    ["-", "operator"],
+    ["start", "symbol"]
+  ],
+  [["pad", "label"], ["times", "directive"], ["4", "number"], ["nop", "mnemonic"]],
+  [["loop", "label"], [":", "punctuation"], ["jmp", "mnemonic"], ["loop", "symbol"]],
+  [["$ax", "label"], [":", "punctuation"], ["dw", "directive"], ["$ax", "symbol"]],
+  [["..@x", "label"], [":", "punctuation"], ["ret", "mnemonic"]],
+  [["lone", "label"], [":", "punctuation"]],
+  [["rep", "prefix"], ["movsw", "mnemonic"]],
+  [["repne", "prefix"], ["scasb", "mnemonic"]],
+  [["REPZ", "prefix"], ["CMPSB", "mnemonic"]],
+  [
+    ["times", "directive"],
+    ["SIZE", "symbol"],
+    ["/", "operator"],
+    ["2", "number"],
+    ["dw", "directive"],
+    ["0", "number"]
+  ],
+  [["times", "directive"], ["2", "number"], ["rep", "prefix"], ["stosb", "mnemonic"]],
+  [["je", "mnemonic"], ["start", "symbol"]],
+  [["SAL", "mnemonic"], ["AX", "register"], [",", "punctuation"], ["1", "number"]],
+  [
+    ["MOV", "mnemonic"],
+    ["AL", "register"],
+    [",", "punctuation"],
+    ["[", "bracket"],
+    ["BX", "register"],
+    ["+", "operator"],
+    ["SI", "register"],
+    ["]", "bracket"]
+  ],
+  [["foo", "symbol"], ["ax", "register"]],
+  [["end", "label"], [":", "punctuation"], ["hlt", "mnemonic"]]
+]

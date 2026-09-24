@@ -12,6 +12,7 @@
   },
   "include": ["src", "src/**/*.json"],
   "references": [
+    { "path": "../../packages/codec" },
     { "path": "../../packages/engine" },
     { "path": "../../packages/asm" },
     { "path": "../../packages/bots" },

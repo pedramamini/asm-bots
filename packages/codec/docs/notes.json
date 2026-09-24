@@ -1,0 +1,330 @@
+{
+  "mnemonics": {
+    "adc": {
+      "summary": "add with carry: dst += src + CF, to chain adds past 16 bits",
+      "example": "add ax, bx\nadc dx, cx"
+    },
+    "add": {
+      "summary": "add: dst += src",
+      "example": "add di, 4"
+    },
+    "and": {
+      "summary": "bitwise and: dst &= src; clears CF and OF",
+      "example": "and ax, 0x00FF"
+    },
+    "call": {
+      "summary": "push the address of the next instruction, then jump",
+      "example": "start: call .here\n.here: pop bx"
+    },
+    "cbw": {
+      "summary": "sign-extend al into ax",
+      "example": "mov al, -5\ncbw"
+    },
+    "clc": {
+      "summary": "clear the carry flag",
+      "example": "clc"
+    },
+    "cld": {
+      "summary": "clear the direction flag: string instructions step up",
+      "example": "cld\nrep movsw"
+    },
+    "cmc": {
+      "summary": "flip the carry flag",
+      "example": "cmc"
+    },
+    "cmp": {
+      "summary": "compare: set the flags from dst - src; dst keeps its value",
+      "example": "scan: add si, 8\ncmp word [si], 0\njz scan"
+    },
+    "cmpsb": {
+      "summary": "compare the byte at si with the byte at di; step si and di",
+      "example": "repe cmpsb"
+    },
+    "cmpsw": {
+      "summary": "compare the word at si with the word at di; step si and di",
+      "example": "repe cmpsw"
+    },
+    "cwd": {
+      "summary": "sign-extend ax into dx:ax",
+      "example": "cwd\nidiv bx"
+    },
+    "dat": {
+      "summary": "kills the process that runs it: opcode 00, what empty core holds",
+      "example": "bomb: dat"
+    },
+    "dec": {
+      "summary": "subtract 1; CF keeps its value",
+      "example": "dec cx"
+    },
+    "div": {
+      "summary": "unsigned divide ax (word: dx:ax) by src; a 0 divisor or an overflow kills",
+      "example": "xor dx, dx\ndiv bx"
+    },
+    "hlt": {
+      "summary": "kill the process that runs it",
+      "example": "hlt"
+    },
+    "idiv": {
+      "summary": "signed divide ax (word: dx:ax) by src; a 0 divisor or an overflow kills",
+      "example": "cwd\nidiv cx"
+    },
+    "imul": {
+      "summary": "signed multiply: ax = al * src (word: dx:ax = ax * src)",
+      "example": "imul bx"
+    },
+    "inc": {
+      "summary": "add 1; CF keeps its value",
+      "example": "inc word [bx]"
+    },
+    "int3": {
+      "summary": "kill the process that runs it; debugger breakpoints never write it",
+      "example": "int3"
+    },
+    "ja": {
+      "summary": "jump if above, unsigned: CF=0 and ZF=0",
+      "example": "top: sub cx, 2\ncmp cx, 8\nja top"
+    },
+    "jc": {
+      "summary": "jump if carry, or below unsigned: CF=1",
+      "example": "top: shr ax, 1\njc top"
+    },
+    "jcxz": {
+      "summary": "jump if cx is 0: guards a loop that would run 65,536 times",
+      "example": "jcxz done\ncopy: movsw\nloop copy\ndone: ret"
+    },
+    "jg": {
+      "summary": "jump if greater, signed: ZF=0 and SF=OF",
+      "example": "top: dec ax\ncmp ax, 10\njg top"
+    },
+    "jl": {
+      "summary": "jump if less, signed: SF≠OF",
+      "example": "top: inc ax\ncmp ax, bx\njl top"
+    },
+    "jmp": {
+      "summary": "jump to a label, or to the address in a register or memory",
+      "example": "spin: jmp spin"
+    },
+    "jna": {
+      "summary": "jump if not above, unsigned: CF=1 or ZF=1",
+      "example": "top: add di, 2\ncmp di, si\njna top"
+    },
+    "jnc": {
+      "summary": "jump if no carry, or above or equal unsigned: CF=0",
+      "example": "top: shl ax, 1\njnc top"
+    },
+    "jng": {
+      "summary": "jump if not greater, signed: ZF=1 or SF≠OF",
+      "example": "top: inc ax\ncmp ax, 10\njng top"
+    },
+    "jnl": {
+      "summary": "jump if not less, signed: SF=OF",
+      "example": "top: dec ax\ncmp ax, bx\njnl top"
+    },
+    "jno": {
+      "summary": "jump if no overflow: OF=0",
+      "example": "top: add ax, 0x1000\njno top"
+    },
+    "jns": {
+      "summary": "jump if not sign, 0 or positive: SF=0",
+      "example": "top: dec ax\njns top"
+    },
+    "jnz": {
+      "summary": "jump if not zero, or not equal: ZF=0",
+      "example": "top: dec cx\njnz top"
+    },
+    "jo": {
+      "summary": "jump if overflow: OF=1",
+      "example": "add ax, bx\njo clip\nclip: mov ax, 0x7FFF"
+    },
+    "jpe": {
+      "summary": "jump if parity even, an even count of 1 bits in the low byte: PF=1",
+      "example": "test al, al\njpe even\neven: nop"
+    },
+    "jpo": {
+      "summary": "jump if parity odd, an odd count of 1 bits in the low byte: PF=0",
+      "example": "test al, al\njpo odd\nodd: nop"
+    },
+    "js": {
+      "summary": "jump if sign, negative: SF=1",
+      "example": "top: shl ax, 1\njs top"
+    },
+    "jz": {
+      "summary": "jump if zero, or equal: ZF=1",
+      "example": "scan: add si, 8\ncmp word [si], 0\njz scan"
+    },
+    "lahf": {
+      "summary": "copy SF ZF AF PF CF into ah",
+      "example": "lahf"
+    },
+    "lea": {
+      "summary": "load the address of a memory operand, not the value there",
+      "example": "lea si, [bx+di-2]"
+    },
+    "lodsb": {
+      "summary": "load the byte at si into al; step si",
+      "example": "lodsb"
+    },
+    "lodsw": {
+      "summary": "load the word at si into ax; step si",
+      "example": "lodsw"
+    },
+    "loop": {
+      "summary": "cx -= 1, then jump if cx is not 0",
+      "example": "copy: movsw\nloop copy"
+    },
+    "loope": {
+      "summary": "cx -= 1, then jump if cx is not 0 and ZF=1",
+      "example": "same: cmpsb\nloope same"
+    },
+    "loopne": {
+      "summary": "cx -= 1, then jump if cx is not 0 and ZF=0",
+      "example": "find: scasb\nloopne find"
+    },
+    "mov": {
+      "summary": "copy a byte or word: dst = src",
+      "example": "mov word [di], 0"
+    },
+    "movsb": {
+      "summary": "copy the byte at si to di; step si and di",
+      "example": "movsb"
+    },
+    "movsw": {
+      "summary": "copy the word at si to di; step si and di",
+      "example": "mov cx, 16\nrep movsw"
+    },
+    "mul": {
+      "summary": "unsigned multiply: ax = al * src (word: dx:ax = ax * src)",
+      "example": "mul cx"
+    },
+    "neg": {
+      "summary": "negate: dst = 0 - dst",
+      "example": "neg ax"
+    },
+    "nop": {
+      "summary": "do nothing for a cycle",
+      "example": "nop"
+    },
+    "not": {
+      "summary": "flip every bit of dst",
+      "example": "not ax"
+    },
+    "or": {
+      "summary": "bitwise or: dst |= src; clears CF and OF",
+      "example": "or ax, ax\njz empty\nempty: nop"
+    },
+    "pop": {
+      "summary": "load the word at sp into dst, then sp += 2",
+      "example": "pop bx"
+    },
+    "popf": {
+      "summary": "pop a word into FLAGS: OF DF SF ZF AF PF CF",
+      "example": "popf"
+    },
+    "push": {
+      "summary": "sp -= 2, then store the word at sp",
+      "example": "push ax"
+    },
+    "pushf": {
+      "summary": "push FLAGS",
+      "example": "pushf"
+    },
+    "rcl": {
+      "summary": "rotate left through CF",
+      "example": "shl ax, 1\nrcl dx, 1"
+    },
+    "rcr": {
+      "summary": "rotate right through CF",
+      "example": "shr dx, 1\nrcr ax, 1"
+    },
+    "ret": {
+      "summary": "pop an address and jump to it; ret n then drops n more bytes",
+      "example": "ret"
+    },
+    "rol": {
+      "summary": "rotate left: the top bit goes to bit 0 and CF",
+      "example": "rol ax, cl"
+    },
+    "ror": {
+      "summary": "rotate right: bit 0 goes to the top bit and CF",
+      "example": "ror bx, 1"
+    },
+    "sahf": {
+      "summary": "copy ah into SF ZF AF PF CF",
+      "example": "sahf"
+    },
+    "sar": {
+      "summary": "shift right, copies of the sign bit in: a signed halve",
+      "example": "sar ax, 1"
+    },
+    "sbb": {
+      "summary": "subtract with borrow: dst -= src + CF, to chain subtracts past 16 bits",
+      "example": "sub ax, bx\nsbb dx, cx"
+    },
+    "scasb": {
+      "summary": "compare al with the byte at di; step di",
+      "example": "repne scasb"
+    },
+    "scasw": {
+      "summary": "compare ax with the word at di; step di",
+      "example": "repe scasw"
+    },
+    "shl": {
+      "summary": "shift left, zeros in: an unsigned double",
+      "example": "shl ax, 1"
+    },
+    "shr": {
+      "summary": "shift right, zeros in: an unsigned halve",
+      "example": "shr ax, cl"
+    },
+    "spl": {
+      "summary": "start a new process at the target; this one goes on to the next line",
+      "example": "spl bomber\nguard: jmp guard\nbomber: mov word [di], 0"
+    },
+    "stc": {
+      "summary": "set the carry flag",
+      "example": "stc"
+    },
+    "std": {
+      "summary": "set the direction flag: string instructions step down",
+      "example": "std\nrep movsw"
+    },
+    "stosb": {
+      "summary": "store al at di; step di",
+      "example": "rep stosb"
+    },
+    "stosw": {
+      "summary": "store ax at di; step di",
+      "example": "xor ax, ax\nstosw"
+    },
+    "sub": {
+      "summary": "subtract: dst -= src",
+      "example": "sub di, 4"
+    },
+    "test": {
+      "summary": "and without storing: set the flags from dst & src",
+      "example": "test al, 1"
+    },
+    "xchg": {
+      "summary": "swap the two operands",
+      "example": "xchg ax, bx"
+    },
+    "xor": {
+      "summary": "bitwise xor: dst ^= src; clears CF and OF",
+      "example": "xor ax, ax"
+    }
+  },
+  "prefixes": {
+    "rep": {
+      "summary": "repeat a string instruction while cx is not 0, cx -= 1 each time, one a cycle",
+      "example": "mov cx, 16\nrep movsw"
+    },
+    "repe": {
+      "summary": "repeat cmps or scas while cx is not 0 and ZF=1 (equal), one a cycle",
+      "example": "repe cmpsb"
+    },
+    "repne": {
+      "summary": "repeat cmps or scas while cx is not 0 and ZF=0 (not equal), one a cycle",
+      "example": "repne scasb"
+    }
+  }
+}

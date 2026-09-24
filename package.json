@@ -14,6 +14,7 @@
     "contrast": "bun run scripts/check-contrast.ts",
     "build": "bun run --filter '*' build",
     "golden": "bun run scripts/golden.ts",
+    "opcodes": "bun run scripts/gen-opcode-docs.ts",
     "version": "bun run scripts/version.ts",
     "asmbots": "bun run --filter @asmbots/cli asmbots"
   },

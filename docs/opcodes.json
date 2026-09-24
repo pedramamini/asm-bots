@@ -1,0 +1,2323 @@
+{
+  "isa": "x16c v1",
+  "flagNames": "ODITSZAPC",
+  "mnemonics": {
+    "adc": {
+      "family": "arithmetic",
+      "aliases": [],
+      "summary": "add with carry: dst += src + CF, to chain adds past 16 bits",
+      "forms": [
+        {
+          "syntax": "adc r/m8, r8",
+          "encoding": "10 /r"
+        },
+        {
+          "syntax": "adc r/m16, r16",
+          "encoding": "11 /r"
+        },
+        {
+          "syntax": "adc r8, r/m8",
+          "encoding": "12 /r"
+        },
+        {
+          "syntax": "adc r16, r/m16",
+          "encoding": "13 /r"
+        },
+        {
+          "syntax": "adc al, imm8",
+          "encoding": "14 ib"
+        },
+        {
+          "syntax": "adc ax, imm16",
+          "encoding": "15 iw"
+        },
+        {
+          "syntax": "adc r/m8, imm8",
+          "encoding": "80 /2 ib"
+        },
+        {
+          "syntax": "adc r/m16, imm16",
+          "encoding": "81 /2 iw"
+        },
+        {
+          "syntax": "adc r/m16, imm8",
+          "encoding": "83 /2 ib"
+        }
+      ],
+      "flags": "*---*****",
+      "kills": false,
+      "example": [
+        {
+          "source": "add     ax, bx",
+          "bytes": "01 D8"
+        },
+        {
+          "source": "adc     dx, cx",
+          "bytes": "11 CA"
+        }
+      ]
+    },
+    "add": {
+      "family": "arithmetic",
+      "aliases": [],
+      "summary": "add: dst += src",
+      "forms": [
+        {
+          "syntax": "add r/m16, r16",
+          "encoding": "01 /r"
+        },
+        {
+          "syntax": "add r8, r/m8",
+          "encoding": "02 /r"
+        },
+        {
+          "syntax": "add r16, r/m16",
+          "encoding": "03 /r"
+        },
+        {
+          "syntax": "add al, imm8",
+          "encoding": "04 ib"
+        },
+        {
+          "syntax": "add ax, imm16",
+          "encoding": "05 iw"
+        },
+        {
+          "syntax": "add r/m8, imm8",
+          "encoding": "80 /0 ib"
+        },
+        {
+          "syntax": "add r/m16, imm16",
+          "encoding": "81 /0 iw"
+        },
+        {
+          "syntax": "add r/m16, imm8",
+          "encoding": "83 /0 ib"
+        }
+      ],
+      "flags": "*---*****",
+      "kills": false,
+      "example": [
+        {
+          "source": "add     di, 4",
+          "bytes": "83 C7 04"
+        }
+      ]
+    },
+    "and": {
+      "family": "logic",
+      "aliases": [],
+      "summary": "bitwise and: dst &= src; clears CF and OF",
+      "forms": [
+        {
+          "syntax": "and r/m8, r8",
+          "encoding": "20 /r"
+        },
+        {
+          "syntax": "and r/m16, r16",
+          "encoding": "21 /r"
+        },
+        {
+          "syntax": "and r8, r/m8",
+          "encoding": "22 /r"
+        },
+        {
+          "syntax": "and r16, r/m16",
+          "encoding": "23 /r"
+        },
+        {
+          "syntax": "and al, imm8",
+          "encoding": "24 ib"
+        },
+        {
+          "syntax": "and ax, imm16",
+          "encoding": "25 iw"
+        },
+        {
+          "syntax": "and r/m8, imm8",
+          "encoding": "80 /4 ib"
+        },
+        {
+          "syntax": "and r/m16, imm16",
+          "encoding": "81 /4 iw"
+        },
+        {
+          "syntax": "and r/m16, imm8",
+          "encoding": "83 /4 ib"
+        }
+      ],
+      "flags": "0---**0*0",
+      "kills": false,
+      "example": [
+        {
+          "source": "and     ax, 0x00FF",
+          "bytes": "25 FF 00"
+        }
+      ]
+    },
+    "call": {
+      "family": "control",
+      "aliases": [],
+      "summary": "push the address of the next instruction, then jump",
+      "forms": [
+        {
+          "syntax": "call rel16",
+          "encoding": "E8 cw"
+        },
+        {
+          "syntax": "call r/m16",
+          "encoding": "FF /2"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "start:  call    .here",
+          "bytes": "E8 00 00"
+        },
+        {
+          "source": ".here:  pop     bx",
+          "bytes": "5B"
+        }
+      ]
+    },
+    "cbw": {
+      "family": "data",
+      "aliases": [],
+      "summary": "sign-extend al into ax",
+      "forms": [
+        {
+          "syntax": "cbw",
+          "encoding": "98"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "mov     al, -5",
+          "bytes": "B0 FB"
+        },
+        {
+          "source": "cbw",
+          "bytes": "98"
+        }
+      ]
+    },
+    "clc": {
+      "family": "flags",
+      "aliases": [],
+      "summary": "clear the carry flag",
+      "forms": [
+        {
+          "syntax": "clc",
+          "encoding": "F8"
+        }
+      ],
+      "flags": "--------0",
+      "kills": false,
+      "example": [
+        {
+          "source": "clc",
+          "bytes": "F8"
+        }
+      ]
+    },
+    "cld": {
+      "family": "string",
+      "aliases": [],
+      "summary": "clear the direction flag: string instructions step up",
+      "forms": [
+        {
+          "syntax": "cld",
+          "encoding": "FC"
+        }
+      ],
+      "flags": "-0-------",
+      "kills": false,
+      "example": [
+        {
+          "source": "cld",
+          "bytes": "FC"
+        },
+        {
+          "source": "rep     movsw",
+          "bytes": "F3 A5"
+        }
+      ]
+    },
+    "cmc": {
+      "family": "flags",
+      "aliases": [],
+      "summary": "flip the carry flag",
+      "forms": [
+        {
+          "syntax": "cmc",
+          "encoding": "F5"
+        }
+      ],
+      "flags": "--------*",
+      "kills": false,
+      "example": [
+        {
+          "source": "cmc",
+          "bytes": "F5"
+        }
+      ]
+    },
+    "cmp": {
+      "family": "arithmetic",
+      "aliases": [],
+      "summary": "compare: set the flags from dst - src; dst keeps its value",
+      "forms": [
+        {
+          "syntax": "cmp r/m8, r8",
+          "encoding": "38 /r"
+        },
+        {
+          "syntax": "cmp r/m16, r16",
+          "encoding": "39 /r"
+        },
+        {
+          "syntax": "cmp r8, r/m8",
+          "encoding": "3A /r"
+        },
+        {
+          "syntax": "cmp r16, r/m16",
+          "encoding": "3B /r"
+        },
+        {
+          "syntax": "cmp al, imm8",
+          "encoding": "3C ib"
+        },
+        {
+          "syntax": "cmp ax, imm16",
+          "encoding": "3D iw"
+        },
+        {
+          "syntax": "cmp r/m8, imm8",
+          "encoding": "80 /7 ib"
+        },
+        {
+          "syntax": "cmp r/m16, imm16",
+          "encoding": "81 /7 iw"
+        },
+        {
+          "syntax": "cmp r/m16, imm8",
+          "encoding": "83 /7 ib"
+        }
+      ],
+      "flags": "*---*****",
+      "kills": false,
+      "example": [
+        {
+          "source": "scan:   add     si, 8",
+          "bytes": "83 C6 08"
+        },
+        {
+          "source": "        cmp     word [si], 0",
+          "bytes": "83 3C 00"
+        },
+        {
+          "source": "        jz      scan",
+          "bytes": "74 F8"
+        }
+      ]
+    },
+    "cmpsb": {
+      "family": "string",
+      "aliases": [],
+      "summary": "compare the byte at si with the byte at di; step si and di",
+      "forms": [
+        {
+          "syntax": "cmpsb",
+          "encoding": "A6"
+        },
+        {
+          "syntax": "repe cmpsb",
+          "encoding": "F3 A6"
+        },
+        {
+          "syntax": "repne cmpsb",
+          "encoding": "F2 A6"
+        }
+      ],
+      "flags": "*---*****",
+      "kills": false,
+      "example": [
+        {
+          "source": "repe    cmpsb",
+          "bytes": "F3 A6"
+        }
+      ]
+    },
+    "cmpsw": {
+      "family": "string",
+      "aliases": [],
+      "summary": "compare the word at si with the word at di; step si and di",
+      "forms": [
+        {
+          "syntax": "cmpsw",
+          "encoding": "A7"
+        },
+        {
+          "syntax": "repe cmpsw",
+          "encoding": "F3 A7"
+        },
+        {
+          "syntax": "repne cmpsw",
+          "encoding": "F2 A7"
+        }
+      ],
+      "flags": "*---*****",
+      "kills": false,
+      "example": [
+        {
+          "source": "repe    cmpsw",
+          "bytes": "F3 A7"
+        }
+      ]
+    },
+    "cwd": {
+      "family": "data",
+      "aliases": [],
+      "summary": "sign-extend ax into dx:ax",
+      "forms": [
+        {
+          "syntax": "cwd",
+          "encoding": "99"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "cwd",
+          "bytes": "99"
+        },
+        {
+          "source": "idiv    bx",
+          "bytes": "F7 FB"
+        }
+      ]
+    },
+    "dat": {
+      "family": "process",
+      "aliases": [],
+      "summary": "kills the process that runs it: opcode 00, what empty core holds",
+      "forms": [
+        {
+          "syntax": "dat imm8",
+          "encoding": "00 ib"
+        }
+      ],
+      "flags": "---------",
+      "kills": true,
+      "example": [
+        {
+          "source": "bomb:   dat",
+          "bytes": "00 00"
+        }
+      ]
+    },
+    "dec": {
+      "family": "arithmetic",
+      "aliases": [],
+      "summary": "subtract 1; CF keeps its value",
+      "forms": [
+        {
+          "syntax": "dec r16",
+          "encoding": "48+r"
+        },
+        {
+          "syntax": "dec r/m8",
+          "encoding": "FE /1"
+        },
+        {
+          "syntax": "dec r/m16",
+          "encoding": "FF /1"
+        }
+      ],
+      "flags": "*---****-",
+      "kills": false,
+      "example": [
+        {
+          "source": "dec     cx",
+          "bytes": "49"
+        }
+      ]
+    },
+    "div": {
+      "family": "arithmetic",
+      "aliases": [],
+      "summary": "unsigned divide ax (word: dx:ax) by src; a 0 divisor or an overflow kills",
+      "forms": [
+        {
+          "syntax": "div r/m8",
+          "encoding": "F6 /6"
+        },
+        {
+          "syntax": "div r/m16",
+          "encoding": "F7 /6"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "xor     dx, dx",
+          "bytes": "31 D2"
+        },
+        {
+          "source": "div     bx",
+          "bytes": "F7 F3"
+        }
+      ]
+    },
+    "hlt": {
+      "family": "process",
+      "aliases": [],
+      "summary": "kill the process that runs it",
+      "forms": [
+        {
+          "syntax": "hlt",
+          "encoding": "F4"
+        }
+      ],
+      "flags": "---------",
+      "kills": true,
+      "example": [
+        {
+          "source": "hlt",
+          "bytes": "F4"
+        }
+      ]
+    },
+    "idiv": {
+      "family": "arithmetic",
+      "aliases": [],
+      "summary": "signed divide ax (word: dx:ax) by src; a 0 divisor or an overflow kills",
+      "forms": [
+        {
+          "syntax": "idiv r/m8",
+          "encoding": "F6 /7"
+        },
+        {
+          "syntax": "idiv r/m16",
+          "encoding": "F7 /7"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "cwd",
+          "bytes": "99"
+        },
+        {
+          "source": "idiv    cx",
+          "bytes": "F7 F9"
+        }
+      ]
+    },
+    "imul": {
+      "family": "arithmetic",
+      "aliases": [],
+      "summary": "signed multiply: ax = al * src (word: dx:ax = ax * src)",
+      "forms": [
+        {
+          "syntax": "imul r/m8",
+          "encoding": "F6 /5"
+        },
+        {
+          "syntax": "imul r/m16",
+          "encoding": "F7 /5"
+        }
+      ],
+      "flags": "*---0000*",
+      "kills": false,
+      "example": [
+        {
+          "source": "imul    bx",
+          "bytes": "F7 EB"
+        }
+      ]
+    },
+    "inc": {
+      "family": "arithmetic",
+      "aliases": [],
+      "summary": "add 1; CF keeps its value",
+      "forms": [
+        {
+          "syntax": "inc r16",
+          "encoding": "40+r"
+        },
+        {
+          "syntax": "inc r/m8",
+          "encoding": "FE /0"
+        },
+        {
+          "syntax": "inc r/m16",
+          "encoding": "FF /0"
+        }
+      ],
+      "flags": "*---****-",
+      "kills": false,
+      "example": [
+        {
+          "source": "inc     word [bx]",
+          "bytes": "FF 07"
+        }
+      ]
+    },
+    "int3": {
+      "family": "process",
+      "aliases": [],
+      "summary": "kill the process that runs it; debugger breakpoints never write it",
+      "forms": [
+        {
+          "syntax": "int3",
+          "encoding": "CC"
+        }
+      ],
+      "flags": "---------",
+      "kills": true,
+      "example": [
+        {
+          "source": "int3",
+          "bytes": "CC"
+        }
+      ]
+    },
+    "ja": {
+      "family": "control",
+      "aliases": [
+        "jnbe"
+      ],
+      "summary": "jump if above, unsigned: CF=0 and ZF=0",
+      "forms": [
+        {
+          "syntax": "ja rel8",
+          "encoding": "77 cb"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "top:    sub     cx, 2",
+          "bytes": "83 E9 02"
+        },
+        {
+          "source": "        cmp     cx, 8",
+          "bytes": "83 F9 08"
+        },
+        {
+          "source": "        ja      top",
+          "bytes": "77 F8"
+        }
+      ]
+    },
+    "jc": {
+      "family": "control",
+      "aliases": [
+        "jb",
+        "jnae"
+      ],
+      "summary": "jump if carry, or below unsigned: CF=1",
+      "forms": [
+        {
+          "syntax": "jc rel8",
+          "encoding": "72 cb"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "top:    shr     ax, 1",
+          "bytes": "D1 E8"
+        },
+        {
+          "source": "        jc      top",
+          "bytes": "72 FC"
+        }
+      ]
+    },
+    "jcxz": {
+      "family": "control",
+      "aliases": [],
+      "summary": "jump if cx is 0: guards a loop that would run 65,536 times",
+      "forms": [
+        {
+          "syntax": "jcxz rel8",
+          "encoding": "E3 cb"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "        jcxz    done",
+          "bytes": "E3 03"
+        },
+        {
+          "source": "copy:   movsw",
+          "bytes": "A5"
+        },
+        {
+          "source": "        loop    copy",
+          "bytes": "E2 FD"
+        },
+        {
+          "source": "done:   ret",
+          "bytes": "C3"
+        }
+      ]
+    },
+    "jg": {
+      "family": "control",
+      "aliases": [
+        "jnle"
+      ],
+      "summary": "jump if greater, signed: ZF=0 and SF=OF",
+      "forms": [
+        {
+          "syntax": "jg rel8",
+          "encoding": "7F cb"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "top:    dec     ax",
+          "bytes": "48"
+        },
+        {
+          "source": "        cmp     ax, 10",
+          "bytes": "83 F8 0A"
+        },
+        {
+          "source": "        jg      top",
+          "bytes": "7F FA"
+        }
+      ]
+    },
+    "jl": {
+      "family": "control",
+      "aliases": [
+        "jnge"
+      ],
+      "summary": "jump if less, signed: SF≠OF",
+      "forms": [
+        {
+          "syntax": "jl rel8",
+          "encoding": "7C cb"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "top:    inc     ax",
+          "bytes": "40"
+        },
+        {
+          "source": "        cmp     ax, bx",
+          "bytes": "39 D8"
+        },
+        {
+          "source": "        jl      top",
+          "bytes": "7C FB"
+        }
+      ]
+    },
+    "jmp": {
+      "family": "control",
+      "aliases": [],
+      "summary": "jump to a label, or to the address in a register or memory",
+      "forms": [
+        {
+          "syntax": "jmp rel8",
+          "encoding": "EB cb"
+        },
+        {
+          "syntax": "jmp rel16",
+          "encoding": "E9 cw"
+        },
+        {
+          "syntax": "jmp r/m16",
+          "encoding": "FF /4"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "spin:   jmp     spin",
+          "bytes": "EB FE"
+        }
+      ]
+    },
+    "jna": {
+      "family": "control",
+      "aliases": [
+        "jbe"
+      ],
+      "summary": "jump if not above, unsigned: CF=1 or ZF=1",
+      "forms": [
+        {
+          "syntax": "jna rel8",
+          "encoding": "76 cb"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "top:    add     di, 2",
+          "bytes": "83 C7 02"
+        },
+        {
+          "source": "        cmp     di, si",
+          "bytes": "39 F7"
+        },
+        {
+          "source": "        jna     top",
+          "bytes": "76 F9"
+        }
+      ]
+    },
+    "jnc": {
+      "family": "control",
+      "aliases": [
+        "jae",
+        "jnb"
+      ],
+      "summary": "jump if no carry, or above or equal unsigned: CF=0",
+      "forms": [
+        {
+          "syntax": "jnc rel8",
+          "encoding": "73 cb"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "top:    shl     ax, 1",
+          "bytes": "D1 E0"
+        },
+        {
+          "source": "        jnc     top",
+          "bytes": "73 FC"
+        }
+      ]
+    },
+    "jng": {
+      "family": "control",
+      "aliases": [
+        "jle"
+      ],
+      "summary": "jump if not greater, signed: ZF=1 or SF≠OF",
+      "forms": [
+        {
+          "syntax": "jng rel8",
+          "encoding": "7E cb"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "top:    inc     ax",
+          "bytes": "40"
+        },
+        {
+          "source": "        cmp     ax, 10",
+          "bytes": "83 F8 0A"
+        },
+        {
+          "source": "        jng     top",
+          "bytes": "7E FA"
+        }
+      ]
+    },
+    "jnl": {
+      "family": "control",
+      "aliases": [
+        "jge"
+      ],
+      "summary": "jump if not less, signed: SF=OF",
+      "forms": [
+        {
+          "syntax": "jnl rel8",
+          "encoding": "7D cb"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "top:    dec     ax",
+          "bytes": "48"
+        },
+        {
+          "source": "        cmp     ax, bx",
+          "bytes": "39 D8"
+        },
+        {
+          "source": "        jnl     top",
+          "bytes": "7D FB"
+        }
+      ]
+    },
+    "jno": {
+      "family": "control",
+      "aliases": [],
+      "summary": "jump if no overflow: OF=0",
+      "forms": [
+        {
+          "syntax": "jno rel8",
+          "encoding": "71 cb"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "top:    add     ax, 0x1000",
+          "bytes": "05 00 10"
+        },
+        {
+          "source": "        jno     top",
+          "bytes": "71 FB"
+        }
+      ]
+    },
+    "jns": {
+      "family": "control",
+      "aliases": [],
+      "summary": "jump if not sign, 0 or positive: SF=0",
+      "forms": [
+        {
+          "syntax": "jns rel8",
+          "encoding": "79 cb"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "top:    dec     ax",
+          "bytes": "48"
+        },
+        {
+          "source": "        jns     top",
+          "bytes": "79 FD"
+        }
+      ]
+    },
+    "jnz": {
+      "family": "control",
+      "aliases": [
+        "jne"
+      ],
+      "summary": "jump if not zero, or not equal: ZF=0",
+      "forms": [
+        {
+          "syntax": "jnz rel8",
+          "encoding": "75 cb"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "top:    dec     cx",
+          "bytes": "49"
+        },
+        {
+          "source": "        jnz     top",
+          "bytes": "75 FD"
+        }
+      ]
+    },
+    "jo": {
+      "family": "control",
+      "aliases": [],
+      "summary": "jump if overflow: OF=1",
+      "forms": [
+        {
+          "syntax": "jo rel8",
+          "encoding": "70 cb"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "        add     ax, bx",
+          "bytes": "01 D8"
+        },
+        {
+          "source": "        jo      clip",
+          "bytes": "70 00"
+        },
+        {
+          "source": "clip:   mov     ax, 0x7FFF",
+          "bytes": "B8 FF 7F"
+        }
+      ]
+    },
+    "jpe": {
+      "family": "control",
+      "aliases": [
+        "jp"
+      ],
+      "summary": "jump if parity even, an even count of 1 bits in the low byte: PF=1",
+      "forms": [
+        {
+          "syntax": "jpe rel8",
+          "encoding": "7A cb"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "        test    al, al",
+          "bytes": "84 C0"
+        },
+        {
+          "source": "        jpe     even",
+          "bytes": "7A 00"
+        },
+        {
+          "source": "even:   nop",
+          "bytes": "90"
+        }
+      ]
+    },
+    "jpo": {
+      "family": "control",
+      "aliases": [
+        "jnp"
+      ],
+      "summary": "jump if parity odd, an odd count of 1 bits in the low byte: PF=0",
+      "forms": [
+        {
+          "syntax": "jpo rel8",
+          "encoding": "7B cb"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "        test    al, al",
+          "bytes": "84 C0"
+        },
+        {
+          "source": "        jpo     odd",
+          "bytes": "7B 00"
+        },
+        {
+          "source": "odd:    nop",
+          "bytes": "90"
+        }
+      ]
+    },
+    "js": {
+      "family": "control",
+      "aliases": [],
+      "summary": "jump if sign, negative: SF=1",
+      "forms": [
+        {
+          "syntax": "js rel8",
+          "encoding": "78 cb"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "top:    shl     ax, 1",
+          "bytes": "D1 E0"
+        },
+        {
+          "source": "        js      top",
+          "bytes": "78 FC"
+        }
+      ]
+    },
+    "jz": {
+      "family": "control",
+      "aliases": [
+        "je"
+      ],
+      "summary": "jump if zero, or equal: ZF=1",
+      "forms": [
+        {
+          "syntax": "jz rel8",
+          "encoding": "74 cb"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "scan:   add     si, 8",
+          "bytes": "83 C6 08"
+        },
+        {
+          "source": "        cmp     word [si], 0",
+          "bytes": "83 3C 00"
+        },
+        {
+          "source": "        jz      scan",
+          "bytes": "74 F8"
+        }
+      ]
+    },
+    "lahf": {
+      "family": "data",
+      "aliases": [],
+      "summary": "copy SF ZF AF PF CF into ah",
+      "forms": [
+        {
+          "syntax": "lahf",
+          "encoding": "9F"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "lahf",
+          "bytes": "9F"
+        }
+      ]
+    },
+    "lea": {
+      "family": "data",
+      "aliases": [],
+      "summary": "load the address of a memory operand, not the value there",
+      "forms": [
+        {
+          "syntax": "lea r16, m",
+          "encoding": "8D /r"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "lea     si, [bx+di-2]",
+          "bytes": "8D 71 FE"
+        }
+      ]
+    },
+    "lodsb": {
+      "family": "string",
+      "aliases": [],
+      "summary": "load the byte at si into al; step si",
+      "forms": [
+        {
+          "syntax": "lodsb",
+          "encoding": "AC"
+        },
+        {
+          "syntax": "rep lodsb",
+          "encoding": "F3 AC"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "lodsb",
+          "bytes": "AC"
+        }
+      ]
+    },
+    "lodsw": {
+      "family": "string",
+      "aliases": [],
+      "summary": "load the word at si into ax; step si",
+      "forms": [
+        {
+          "syntax": "lodsw",
+          "encoding": "AD"
+        },
+        {
+          "syntax": "rep lodsw",
+          "encoding": "F3 AD"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "lodsw",
+          "bytes": "AD"
+        }
+      ]
+    },
+    "loop": {
+      "family": "control",
+      "aliases": [],
+      "summary": "cx -= 1, then jump if cx is not 0",
+      "forms": [
+        {
+          "syntax": "loop rel8",
+          "encoding": "E2 cb"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "copy:   movsw",
+          "bytes": "A5"
+        },
+        {
+          "source": "        loop    copy",
+          "bytes": "E2 FD"
+        }
+      ]
+    },
+    "loope": {
+      "family": "control",
+      "aliases": [
+        "loopz"
+      ],
+      "summary": "cx -= 1, then jump if cx is not 0 and ZF=1",
+      "forms": [
+        {
+          "syntax": "loope rel8",
+          "encoding": "E1 cb"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "same:   cmpsb",
+          "bytes": "A6"
+        },
+        {
+          "source": "        loope   same",
+          "bytes": "E1 FD"
+        }
+      ]
+    },
+    "loopne": {
+      "family": "control",
+      "aliases": [
+        "loopnz"
+      ],
+      "summary": "cx -= 1, then jump if cx is not 0 and ZF=0",
+      "forms": [
+        {
+          "syntax": "loopne rel8",
+          "encoding": "E0 cb"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "find:   scasb",
+          "bytes": "AE"
+        },
+        {
+          "source": "        loopne  find",
+          "bytes": "E0 FD"
+        }
+      ]
+    },
+    "mov": {
+      "family": "data",
+      "aliases": [],
+      "summary": "copy a byte or word: dst = src",
+      "forms": [
+        {
+          "syntax": "mov r/m8, r8",
+          "encoding": "88 /r"
+        },
+        {
+          "syntax": "mov r/m16, r16",
+          "encoding": "89 /r"
+        },
+        {
+          "syntax": "mov r8, r/m8",
+          "encoding": "8A /r"
+        },
+        {
+          "syntax": "mov r16, r/m16",
+          "encoding": "8B /r"
+        },
+        {
+          "syntax": "mov al, [moffs16]",
+          "encoding": "A0 iw"
+        },
+        {
+          "syntax": "mov ax, [moffs16]",
+          "encoding": "A1 iw"
+        },
+        {
+          "syntax": "mov [moffs16], al",
+          "encoding": "A2 iw"
+        },
+        {
+          "syntax": "mov [moffs16], ax",
+          "encoding": "A3 iw"
+        },
+        {
+          "syntax": "mov r8, imm8",
+          "encoding": "B0+r ib"
+        },
+        {
+          "syntax": "mov r16, imm16",
+          "encoding": "B8+r iw"
+        },
+        {
+          "syntax": "mov r/m8, imm8",
+          "encoding": "C6 /0 ib"
+        },
+        {
+          "syntax": "mov r/m16, imm16",
+          "encoding": "C7 /0 iw"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "mov     word [di], 0",
+          "bytes": "C7 05 00 00"
+        }
+      ]
+    },
+    "movsb": {
+      "family": "string",
+      "aliases": [],
+      "summary": "copy the byte at si to di; step si and di",
+      "forms": [
+        {
+          "syntax": "movsb",
+          "encoding": "A4"
+        },
+        {
+          "syntax": "rep movsb",
+          "encoding": "F3 A4"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "movsb",
+          "bytes": "A4"
+        }
+      ]
+    },
+    "movsw": {
+      "family": "string",
+      "aliases": [],
+      "summary": "copy the word at si to di; step si and di",
+      "forms": [
+        {
+          "syntax": "movsw",
+          "encoding": "A5"
+        },
+        {
+          "syntax": "rep movsw",
+          "encoding": "F3 A5"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "mov     cx, 16",
+          "bytes": "B9 10 00"
+        },
+        {
+          "source": "rep     movsw",
+          "bytes": "F3 A5"
+        }
+      ]
+    },
+    "mul": {
+      "family": "arithmetic",
+      "aliases": [],
+      "summary": "unsigned multiply: ax = al * src (word: dx:ax = ax * src)",
+      "forms": [
+        {
+          "syntax": "mul r/m8",
+          "encoding": "F6 /4"
+        },
+        {
+          "syntax": "mul r/m16",
+          "encoding": "F7 /4"
+        }
+      ],
+      "flags": "*---0000*",
+      "kills": false,
+      "example": [
+        {
+          "source": "mul     cx",
+          "bytes": "F7 E1"
+        }
+      ]
+    },
+    "neg": {
+      "family": "arithmetic",
+      "aliases": [],
+      "summary": "negate: dst = 0 - dst",
+      "forms": [
+        {
+          "syntax": "neg r/m8",
+          "encoding": "F6 /3"
+        },
+        {
+          "syntax": "neg r/m16",
+          "encoding": "F7 /3"
+        }
+      ],
+      "flags": "*---*****",
+      "kills": false,
+      "example": [
+        {
+          "source": "neg     ax",
+          "bytes": "F7 D8"
+        }
+      ]
+    },
+    "nop": {
+      "family": "flags",
+      "aliases": [],
+      "summary": "do nothing for a cycle",
+      "forms": [
+        {
+          "syntax": "nop",
+          "encoding": "90"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "nop",
+          "bytes": "90"
+        }
+      ]
+    },
+    "not": {
+      "family": "logic",
+      "aliases": [],
+      "summary": "flip every bit of dst",
+      "forms": [
+        {
+          "syntax": "not r/m8",
+          "encoding": "F6 /2"
+        },
+        {
+          "syntax": "not r/m16",
+          "encoding": "F7 /2"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "not     ax",
+          "bytes": "F7 D0"
+        }
+      ]
+    },
+    "or": {
+      "family": "logic",
+      "aliases": [],
+      "summary": "bitwise or: dst |= src; clears CF and OF",
+      "forms": [
+        {
+          "syntax": "or r/m8, r8",
+          "encoding": "08 /r"
+        },
+        {
+          "syntax": "or r/m16, r16",
+          "encoding": "09 /r"
+        },
+        {
+          "syntax": "or r8, r/m8",
+          "encoding": "0A /r"
+        },
+        {
+          "syntax": "or r16, r/m16",
+          "encoding": "0B /r"
+        },
+        {
+          "syntax": "or al, imm8",
+          "encoding": "0C ib"
+        },
+        {
+          "syntax": "or ax, imm16",
+          "encoding": "0D iw"
+        },
+        {
+          "syntax": "or r/m8, imm8",
+          "encoding": "80 /1 ib"
+        },
+        {
+          "syntax": "or r/m16, imm16",
+          "encoding": "81 /1 iw"
+        },
+        {
+          "syntax": "or r/m16, imm8",
+          "encoding": "83 /1 ib"
+        }
+      ],
+      "flags": "0---**0*0",
+      "kills": false,
+      "example": [
+        {
+          "source": "        or      ax, ax",
+          "bytes": "09 C0"
+        },
+        {
+          "source": "        jz      empty",
+          "bytes": "74 00"
+        },
+        {
+          "source": "empty:  nop",
+          "bytes": "90"
+        }
+      ]
+    },
+    "pop": {
+      "family": "data",
+      "aliases": [],
+      "summary": "load the word at sp into dst, then sp += 2",
+      "forms": [
+        {
+          "syntax": "pop r16",
+          "encoding": "58+r"
+        },
+        {
+          "syntax": "pop r/m16",
+          "encoding": "8F /0"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "pop     bx",
+          "bytes": "5B"
+        }
+      ]
+    },
+    "popf": {
+      "family": "data",
+      "aliases": [],
+      "summary": "pop a word into FLAGS: OF DF SF ZF AF PF CF",
+      "forms": [
+        {
+          "syntax": "popf",
+          "encoding": "9D"
+        }
+      ],
+      "flags": "**--*****",
+      "kills": false,
+      "example": [
+        {
+          "source": "popf",
+          "bytes": "9D"
+        }
+      ]
+    },
+    "push": {
+      "family": "data",
+      "aliases": [],
+      "summary": "sp -= 2, then store the word at sp",
+      "forms": [
+        {
+          "syntax": "push r16",
+          "encoding": "50+r"
+        },
+        {
+          "syntax": "push r/m16",
+          "encoding": "FF /6"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "push    ax",
+          "bytes": "50"
+        }
+      ]
+    },
+    "pushf": {
+      "family": "data",
+      "aliases": [],
+      "summary": "push FLAGS",
+      "forms": [
+        {
+          "syntax": "pushf",
+          "encoding": "9C"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "pushf",
+          "bytes": "9C"
+        }
+      ]
+    },
+    "rcl": {
+      "family": "shift",
+      "aliases": [],
+      "summary": "rotate left through CF",
+      "forms": [
+        {
+          "syntax": "rcl r/m8, 1",
+          "encoding": "D0 /2"
+        },
+        {
+          "syntax": "rcl r/m16, 1",
+          "encoding": "D1 /2"
+        },
+        {
+          "syntax": "rcl r/m8, cl",
+          "encoding": "D2 /2"
+        },
+        {
+          "syntax": "rcl r/m16, cl",
+          "encoding": "D3 /2"
+        }
+      ],
+      "flags": "*-------*",
+      "kills": false,
+      "example": [
+        {
+          "source": "shl     ax, 1",
+          "bytes": "D1 E0"
+        },
+        {
+          "source": "rcl     dx, 1",
+          "bytes": "D1 D2"
+        }
+      ]
+    },
+    "rcr": {
+      "family": "shift",
+      "aliases": [],
+      "summary": "rotate right through CF",
+      "forms": [
+        {
+          "syntax": "rcr r/m8, 1",
+          "encoding": "D0 /3"
+        },
+        {
+          "syntax": "rcr r/m16, 1",
+          "encoding": "D1 /3"
+        },
+        {
+          "syntax": "rcr r/m8, cl",
+          "encoding": "D2 /3"
+        },
+        {
+          "syntax": "rcr r/m16, cl",
+          "encoding": "D3 /3"
+        }
+      ],
+      "flags": "*-------*",
+      "kills": false,
+      "example": [
+        {
+          "source": "shr     dx, 1",
+          "bytes": "D1 EA"
+        },
+        {
+          "source": "rcr     ax, 1",
+          "bytes": "D1 D8"
+        }
+      ]
+    },
+    "ret": {
+      "family": "control",
+      "aliases": [],
+      "summary": "pop an address and jump to it; ret n then drops n more bytes",
+      "forms": [
+        {
+          "syntax": "ret",
+          "encoding": "C3"
+        },
+        {
+          "syntax": "ret imm16",
+          "encoding": "C2 iw"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "ret",
+          "bytes": "C3"
+        }
+      ]
+    },
+    "rol": {
+      "family": "shift",
+      "aliases": [],
+      "summary": "rotate left: the top bit goes to bit 0 and CF",
+      "forms": [
+        {
+          "syntax": "rol r/m8, 1",
+          "encoding": "D0 /0"
+        },
+        {
+          "syntax": "rol r/m16, 1",
+          "encoding": "D1 /0"
+        },
+        {
+          "syntax": "rol r/m8, cl",
+          "encoding": "D2 /0"
+        },
+        {
+          "syntax": "rol r/m16, cl",
+          "encoding": "D3 /0"
+        }
+      ],
+      "flags": "*-------*",
+      "kills": false,
+      "example": [
+        {
+          "source": "rol     ax, cl",
+          "bytes": "D3 C0"
+        }
+      ]
+    },
+    "ror": {
+      "family": "shift",
+      "aliases": [],
+      "summary": "rotate right: bit 0 goes to the top bit and CF",
+      "forms": [
+        {
+          "syntax": "ror r/m8, 1",
+          "encoding": "D0 /1"
+        },
+        {
+          "syntax": "ror r/m16, 1",
+          "encoding": "D1 /1"
+        },
+        {
+          "syntax": "ror r/m8, cl",
+          "encoding": "D2 /1"
+        },
+        {
+          "syntax": "ror r/m16, cl",
+          "encoding": "D3 /1"
+        }
+      ],
+      "flags": "*-------*",
+      "kills": false,
+      "example": [
+        {
+          "source": "ror     bx, 1",
+          "bytes": "D1 CB"
+        }
+      ]
+    },
+    "sahf": {
+      "family": "data",
+      "aliases": [],
+      "summary": "copy ah into SF ZF AF PF CF",
+      "forms": [
+        {
+          "syntax": "sahf",
+          "encoding": "9E"
+        }
+      ],
+      "flags": "----*****",
+      "kills": false,
+      "example": [
+        {
+          "source": "sahf",
+          "bytes": "9E"
+        }
+      ]
+    },
+    "sar": {
+      "family": "shift",
+      "aliases": [],
+      "summary": "shift right, copies of the sign bit in: a signed halve",
+      "forms": [
+        {
+          "syntax": "sar r/m8, 1",
+          "encoding": "D0 /7"
+        },
+        {
+          "syntax": "sar r/m16, 1",
+          "encoding": "D1 /7"
+        },
+        {
+          "syntax": "sar r/m8, cl",
+          "encoding": "D2 /7"
+        },
+        {
+          "syntax": "sar r/m16, cl",
+          "encoding": "D3 /7"
+        }
+      ],
+      "flags": "0---**0**",
+      "kills": false,
+      "example": [
+        {
+          "source": "sar     ax, 1",
+          "bytes": "D1 F8"
+        }
+      ]
+    },
+    "sbb": {
+      "family": "arithmetic",
+      "aliases": [],
+      "summary": "subtract with borrow: dst -= src + CF, to chain subtracts past 16 bits",
+      "forms": [
+        {
+          "syntax": "sbb r/m8, r8",
+          "encoding": "18 /r"
+        },
+        {
+          "syntax": "sbb r/m16, r16",
+          "encoding": "19 /r"
+        },
+        {
+          "syntax": "sbb r8, r/m8",
+          "encoding": "1A /r"
+        },
+        {
+          "syntax": "sbb r16, r/m16",
+          "encoding": "1B /r"
+        },
+        {
+          "syntax": "sbb al, imm8",
+          "encoding": "1C ib"
+        },
+        {
+          "syntax": "sbb ax, imm16",
+          "encoding": "1D iw"
+        },
+        {
+          "syntax": "sbb r/m8, imm8",
+          "encoding": "80 /3 ib"
+        },
+        {
+          "syntax": "sbb r/m16, imm16",
+          "encoding": "81 /3 iw"
+        },
+        {
+          "syntax": "sbb r/m16, imm8",
+          "encoding": "83 /3 ib"
+        }
+      ],
+      "flags": "*---*****",
+      "kills": false,
+      "example": [
+        {
+          "source": "sub     ax, bx",
+          "bytes": "29 D8"
+        },
+        {
+          "source": "sbb     dx, cx",
+          "bytes": "19 CA"
+        }
+      ]
+    },
+    "scasb": {
+      "family": "string",
+      "aliases": [],
+      "summary": "compare al with the byte at di; step di",
+      "forms": [
+        {
+          "syntax": "scasb",
+          "encoding": "AE"
+        },
+        {
+          "syntax": "repe scasb",
+          "encoding": "F3 AE"
+        },
+        {
+          "syntax": "repne scasb",
+          "encoding": "F2 AE"
+        }
+      ],
+      "flags": "*---*****",
+      "kills": false,
+      "example": [
+        {
+          "source": "repne   scasb",
+          "bytes": "F2 AE"
+        }
+      ]
+    },
+    "scasw": {
+      "family": "string",
+      "aliases": [],
+      "summary": "compare ax with the word at di; step di",
+      "forms": [
+        {
+          "syntax": "scasw",
+          "encoding": "AF"
+        },
+        {
+          "syntax": "repe scasw",
+          "encoding": "F3 AF"
+        },
+        {
+          "syntax": "repne scasw",
+          "encoding": "F2 AF"
+        }
+      ],
+      "flags": "*---*****",
+      "kills": false,
+      "example": [
+        {
+          "source": "repe    scasw",
+          "bytes": "F3 AF"
+        }
+      ]
+    },
+    "shl": {
+      "family": "shift",
+      "aliases": [
+        "sal"
+      ],
+      "summary": "shift left, zeros in: an unsigned double",
+      "forms": [
+        {
+          "syntax": "shl r/m8, 1",
+          "encoding": "D0 /4"
+        },
+        {
+          "syntax": "shl r/m16, 1",
+          "encoding": "D1 /4"
+        },
+        {
+          "syntax": "shl r/m8, cl",
+          "encoding": "D2 /4"
+        },
+        {
+          "syntax": "shl r/m16, cl",
+          "encoding": "D3 /4"
+        }
+      ],
+      "flags": "*---*****",
+      "kills": false,
+      "example": [
+        {
+          "source": "shl     ax, 1",
+          "bytes": "D1 E0"
+        }
+      ]
+    },
+    "shr": {
+      "family": "shift",
+      "aliases": [],
+      "summary": "shift right, zeros in: an unsigned halve",
+      "forms": [
+        {
+          "syntax": "shr r/m8, 1",
+          "encoding": "D0 /5"
+        },
+        {
+          "syntax": "shr r/m16, 1",
+          "encoding": "D1 /5"
+        },
+        {
+          "syntax": "shr r/m8, cl",
+          "encoding": "D2 /5"
+        },
+        {
+          "syntax": "shr r/m16, cl",
+          "encoding": "D3 /5"
+        }
+      ],
+      "flags": "*---0*0**",
+      "kills": false,
+      "example": [
+        {
+          "source": "shr     ax, cl",
+          "bytes": "D3 E8"
+        }
+      ]
+    },
+    "spl": {
+      "family": "process",
+      "aliases": [],
+      "summary": "start a new process at the target; this one goes on to the next line",
+      "forms": [
+        {
+          "syntax": "spl rel8",
+          "encoding": "60 cb"
+        },
+        {
+          "syntax": "spl rel16",
+          "encoding": "61 cw"
+        },
+        {
+          "syntax": "spl r/m16",
+          "encoding": "62 /0"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "        spl     bomber",
+          "bytes": "60 02"
+        },
+        {
+          "source": "guard:  jmp     guard",
+          "bytes": "EB FE"
+        },
+        {
+          "source": "bomber: mov     word [di], 0",
+          "bytes": "C7 05 00 00"
+        }
+      ]
+    },
+    "stc": {
+      "family": "flags",
+      "aliases": [],
+      "summary": "set the carry flag",
+      "forms": [
+        {
+          "syntax": "stc",
+          "encoding": "F9"
+        }
+      ],
+      "flags": "--------1",
+      "kills": false,
+      "example": [
+        {
+          "source": "stc",
+          "bytes": "F9"
+        }
+      ]
+    },
+    "std": {
+      "family": "string",
+      "aliases": [],
+      "summary": "set the direction flag: string instructions step down",
+      "forms": [
+        {
+          "syntax": "std",
+          "encoding": "FD"
+        }
+      ],
+      "flags": "-1-------",
+      "kills": false,
+      "example": [
+        {
+          "source": "std",
+          "bytes": "FD"
+        },
+        {
+          "source": "rep     movsw",
+          "bytes": "F3 A5"
+        }
+      ]
+    },
+    "stosb": {
+      "family": "string",
+      "aliases": [],
+      "summary": "store al at di; step di",
+      "forms": [
+        {
+          "syntax": "stosb",
+          "encoding": "AA"
+        },
+        {
+          "syntax": "rep stosb",
+          "encoding": "F3 AA"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "rep     stosb",
+          "bytes": "F3 AA"
+        }
+      ]
+    },
+    "stosw": {
+      "family": "string",
+      "aliases": [],
+      "summary": "store ax at di; step di",
+      "forms": [
+        {
+          "syntax": "stosw",
+          "encoding": "AB"
+        },
+        {
+          "syntax": "rep stosw",
+          "encoding": "F3 AB"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "xor     ax, ax",
+          "bytes": "31 C0"
+        },
+        {
+          "source": "stosw",
+          "bytes": "AB"
+        }
+      ]
+    },
+    "sub": {
+      "family": "arithmetic",
+      "aliases": [],
+      "summary": "subtract: dst -= src",
+      "forms": [
+        {
+          "syntax": "sub r/m8, r8",
+          "encoding": "28 /r"
+        },
+        {
+          "syntax": "sub r/m16, r16",
+          "encoding": "29 /r"
+        },
+        {
+          "syntax": "sub r8, r/m8",
+          "encoding": "2A /r"
+        },
+        {
+          "syntax": "sub r16, r/m16",
+          "encoding": "2B /r"
+        },
+        {
+          "syntax": "sub al, imm8",
+          "encoding": "2C ib"
+        },
+        {
+          "syntax": "sub ax, imm16",
+          "encoding": "2D iw"
+        },
+        {
+          "syntax": "sub r/m8, imm8",
+          "encoding": "80 /5 ib"
+        },
+        {
+          "syntax": "sub r/m16, imm16",
+          "encoding": "81 /5 iw"
+        },
+        {
+          "syntax": "sub r/m16, imm8",
+          "encoding": "83 /5 ib"
+        }
+      ],
+      "flags": "*---*****",
+      "kills": false,
+      "example": [
+        {
+          "source": "sub     di, 4",
+          "bytes": "83 EF 04"
+        }
+      ]
+    },
+    "test": {
+      "family": "logic",
+      "aliases": [],
+      "summary": "and without storing: set the flags from dst & src",
+      "forms": [
+        {
+          "syntax": "test r/m8, r8",
+          "encoding": "84 /r"
+        },
+        {
+          "syntax": "test r/m16, r16",
+          "encoding": "85 /r"
+        },
+        {
+          "syntax": "test al, imm8",
+          "encoding": "A8 ib"
+        },
+        {
+          "syntax": "test ax, imm16",
+          "encoding": "A9 iw"
+        },
+        {
+          "syntax": "test r/m8, imm8",
+          "encoding": "F6 /0 ib"
+        },
+        {
+          "syntax": "test r/m16, imm16",
+          "encoding": "F7 /0 iw"
+        }
+      ],
+      "flags": "0---**0*0",
+      "kills": false,
+      "example": [
+        {
+          "source": "test    al, 1",
+          "bytes": "A8 01"
+        }
+      ]
+    },
+    "xchg": {
+      "family": "data",
+      "aliases": [],
+      "summary": "swap the two operands",
+      "forms": [
+        {
+          "syntax": "xchg r/m8, r8",
+          "encoding": "86 /r"
+        },
+        {
+          "syntax": "xchg r/m16, r16",
+          "encoding": "87 /r"
+        },
+        {
+          "syntax": "xchg ax, r16",
+          "encoding": "90+r"
+        }
+      ],
+      "flags": "---------",
+      "kills": false,
+      "example": [
+        {
+          "source": "xchg    ax, bx",
+          "bytes": "93"
+        }
+      ]
+    },
+    "xor": {
+      "family": "logic",
+      "aliases": [],
+      "summary": "bitwise xor: dst ^= src; clears CF and OF",
+      "forms": [
+        {
+          "syntax": "xor r/m8, r8",
+          "encoding": "30 /r"
+        },
+        {
+          "syntax": "xor r/m16, r16",
+          "encoding": "31 /r"
+        },
+        {
+          "syntax": "xor r8, r/m8",
+          "encoding": "32 /r"
+        },
+        {
+          "syntax": "xor r16, r/m16",
+          "encoding": "33 /r"
+        },
+        {
+          "syntax": "xor al, imm8",
+          "encoding": "34 ib"
+        },
+        {
+          "syntax": "xor ax, imm16",
+          "encoding": "35 iw"
+        },
+        {
+          "syntax": "xor r/m8, imm8",
+          "encoding": "80 /6 ib"
+        },
+        {
+          "syntax": "xor r/m16, imm16",
+          "encoding": "81 /6 iw"
+        },
+        {
+          "syntax": "xor r/m16, imm8",
+          "encoding": "83 /6 ib"
+        }
+      ],
+      "flags": "0---**0*0",
+      "kills": false,
+      "example": [
+        {
+          "source": "xor     ax, ax",
+          "bytes": "31 C0"
+        }
+      ]
+    }
+  },
+  "prefixes": {
+    "rep": {
+      "byte": "F3",
+      "aliases": [],
+      "summary": "repeat a string instruction while cx is not 0, cx -= 1 each time, one a cycle",
+      "takes": [
+        "movsb",
+        "movsw",
+        "stosb",
+        "stosw",
+        "lodsb",
+        "lodsw"
+      ],
+      "example": [
+        {
+          "source": "mov     cx, 16",
+          "bytes": "B9 10 00"
+        },
+        {
+          "source": "rep     movsw",
+          "bytes": "F3 A5"
+        }
+      ]
+    },
+    "repe": {
+      "byte": "F3",
+      "aliases": [
+        "repz"
+      ],
+      "summary": "repeat cmps or scas while cx is not 0 and ZF=1 (equal), one a cycle",
+      "takes": [
+        "cmpsb",
+        "cmpsw",
+        "scasb",
+        "scasw"
+      ],
+      "example": [
+        {
+          "source": "repe    cmpsb",
+          "bytes": "F3 A6"
+        }
+      ]
+    },
+    "repne": {
+      "byte": "F2",
+      "aliases": [
+        "repnz"
+      ],
+      "summary": "repeat cmps or scas while cx is not 0 and ZF=0 (not equal), one a cycle",
+      "takes": [
+        "cmpsb",
+        "cmpsw",
+        "scasb",
+        "scasw"
+      ],
+      "example": [
+        {
+          "source": "repne   scasb",
+          "bytes": "F2 AE"
+        }
+      ]
+    }
+  }
+}

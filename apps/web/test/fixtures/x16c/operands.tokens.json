@@ -1,0 +1,112 @@
+[
+  [
+    ["mov", "mnemonic"],
+    ["word", "size"],
+    ["[", "bracket"],
+    ["bx", "register"],
+    ["+", "operator"],
+    ["si", "register"],
+    ["+", "operator"],
+    ["4", "number"],
+    ["]", "bracket"],
+    [",", "punctuation"],
+    ["0x41", "number"],
+    ["; a comment, with 'quotes' and [brackets]", "comment"]
+  ],
+  [
+    ["mov", "mnemonic"],
+    ["byte", "size"],
+    ["[", "bracket"],
+    ["bp", "register"],
+    ["]", "bracket"],
+    [",", "punctuation"],
+    ["-", "operator"],
+    ["1", "number"]
+  ],
+  [
+    ["lea", "mnemonic"],
+    ["di", "register"],
+    [",", "punctuation"],
+    ["[", "bracket"],
+    ["bx", "register"],
+    ["+", "operator"],
+    ["bomb", "symbol"],
+    ["-", "operator"],
+    ["2", "number"],
+    ["]", "bracket"]
+  ],
+  [
+    ["add", "mnemonic"],
+    ["ax", "register"],
+    [",", "punctuation"],
+    ["(", "operator"],
+    ["1", "number"],
+    ["<<", "operator"],
+    ["4", "number"],
+    [")", "operator"],
+    ["|", "operator"],
+    ["~", "operator"],
+    ["0", "number"],
+    ["&", "operator"],
+    ["0xFF", "number"],
+    ["^", "operator"],
+    ["3", "number"]
+  ],
+  [
+    ["sub", "mnemonic"],
+    ["cx", "register"],
+    [",", "punctuation"],
+    ["10", "number"],
+    [">>", "operator"],
+    ["1", "number"]
+  ],
+  [["jmp", "mnemonic"], ["short", "size"], ["$", "here"], ["+", "operator"], ["2", "number"]],
+  [["jmp", "mnemonic"], ["near", "size"], ["$$", "here"]],
+  [
+    ["add", "mnemonic"],
+    ["ax", "register"],
+    [",", "punctuation"],
+    ["strict", "size"],
+    ["word", "size"],
+    ["1", "number"]
+  ],
+  [
+    ["mov", "mnemonic"],
+    ["ax", "register"],
+    [",", "punctuation"],
+    ["[", "bracket"],
+    ["es", "symbol"],
+    [":", "punctuation"],
+    ["bx", "register"],
+    ["]", "bracket"]
+  ],
+  [
+    ["mov", "mnemonic"],
+    ["ax", "register"],
+    [",", "punctuation"],
+    ["5", "number"],
+    ["<", "invalid"],
+    ["3", "number"]
+  ],
+  [
+    ["mov", "mnemonic"],
+    ["ax", "register"],
+    [",", "punctuation"],
+    ["5", "number"],
+    ["/", "operator"],
+    ["/", "operator"],
+    ["2", "number"],
+    ["@", "invalid"],
+    ["!", "invalid"]
+  ],
+  [["spl", "mnemonic"], ["dx", "register"]],
+  [["jnz", "mnemonic"], [".loop", "symbol"]],
+  [
+    ["mov", "mnemonic"],
+    ["ax", "register"],
+    [",", "punctuation"],
+    ["bx", "register"],
+    ["; tabs", "comment"]
+  ],
+  [[";", "comment"]]
+]
