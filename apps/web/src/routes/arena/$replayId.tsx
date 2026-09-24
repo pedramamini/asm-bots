@@ -1,17 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Placeholder } from '../../app/Placeholder'
 import { titleHead } from '../../app/title'
+import { ReplayPage } from '../../features/arena/ReplayPage'
 
 export const Route = createFileRoute('/arena/$replayId')({
-  head: ({ params }) => titleHead('arena', params.replayId),
-  component: ArenaDetail,
+  // A replay link: `/arena/<match key>#r=<base64url of the replay's JSON>`.
+  head: ({ params }) => titleHead('arena', `replay ${params.replayId}`),
+  component: ReplayRoute,
 })
 
-function ArenaDetail() {
+function ReplayRoute() {
   const { replayId } = Route.useParams()
-  return (
-    <Placeholder title="arena" status={replayId}>
-      the replay plays here once the arena lands.
-    </Placeholder>
-  )
+  return <ReplayPage replayId={replayId} />
 }

@@ -11,7 +11,7 @@ import {
 } from '@tanstack/react-router'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import type { MDXContent } from 'mdx/types'
-import type { ReactNode } from 'react'
+import { lazy, type ReactNode, useEffect } from 'react'
 import * as runtime from 'react/jsx-runtime'
 import { useDom, window } from '../../../packages/ui/test/dom'
 import { DocsFrame } from '../src/app/DocsFrame'
@@ -21,6 +21,7 @@ import { NotFound } from '../src/app/NotFound'
 import { useTicker } from '../src/app/ticker'
 import { DOCS, type DocSection, docEntries, findDoc, searchDocs } from '../src/docs'
 import { MDX_COMPONENTS } from '../src/docs/components'
+import type { HomeDemoProps } from '../src/features/arena/demo/HomeDemo'
 
 useDom()
 // The router restores the scroll on each navigation; jsdom has no scrolling.
@@ -167,9 +168,15 @@ describe('DocsFrame', () => {
   })
 })
 
+/** A demo that never loads: the hero keeps its loader. */
+const NeverLoads = lazy(() => new Promise<never>(() => {}))
+
 describe('HomePage', () => {
   it('draws the hero, its two ways in, and the three panels in skeleton', async () => {
-    await renderAt(HomePage)
+    await renderAt(() => <HomePage demo={NeverLoads} />)
+    expect(screen.getByRole('region', { name: 'live demo' }).textContent).toContain(
+      '4 bots · loading',
+    )
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('ASM BOTS')
     expect(screen.getByText('Write 8086 assembly. Fight for 64 KB.')).toBeTruthy()
     expect(screen.getByRole('link', { name: 'open arena' }).getAttribute('href')).toBe('/arena')
@@ -187,6 +194,21 @@ describe('HomePage', () => {
     expect(within(matches).getAllByRole('columnheader')).toHaveLength(3)
     const cup = screen.getByRole('region', { name: 'championship' })
     expect(within(cup).getByRole('button', { name: 'enter' })).toHaveProperty('disabled', true)
+  })
+
+  it('puts the demo under the hero once the page is idle, and its status in the panel', async () => {
+    function Demo({ onStatus }: HomeDemoProps) {
+      useEffect(() => onStatus?.('4 bots · seed 7'), [onStatus])
+      return <p>the demo</p>
+    }
+    await renderAt(() => <HomePage demo={Demo} />)
+    const hero = screen.getByRole('region', { name: 'live demo' })
+    // The loader first: the demo waits for the load event and an idle moment.
+    expect(within(hero).getByRole('status').textContent).toContain('loading the demo battle')
+    expect(within(hero).queryByText('the demo')).toBeNull()
+    expect(await within(hero).findByText('the demo')).toBeTruthy()
+    expect(hero.textContent).toContain('4 bots · seed 7')
+    expect(within(hero).queryByRole('status')).toBeNull()
   })
 })
 

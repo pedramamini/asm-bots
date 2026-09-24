@@ -78,6 +78,11 @@ export interface ArenaCanvasProps extends Omit<ComponentProps<'div'>, 'ref'> {
   isolated?: readonly number[] | undefined
   /** Whether a pointer resting on a byte shows the crosshair and the byte's tooltip. */
   hover?: boolean | undefined
+  /**
+   * Whether the camera takes the wheel, drags, and keys. False: the arena is a picture (the home
+   * page's demo), `role="img"`, out of the tab order, and the wheel scrolls the page past it.
+   */
+  interactive?: boolean | undefined
   /** A band this tall, CSS px, over the core for the HUD's row: the core fits under it. */
   insetTop?: number | undefined
   /** The arena's accessible name. */
@@ -92,14 +97,16 @@ export interface ArenaCanvasProps extends Omit<ComponentProps<'div'>, 'ref'> {
  * the view there, and with the arena focused the arrows pan, `+` and `-` zoom, and `0` resets. A
  * pointer resting on a byte draws a crosshair through it and a tooltip of what it holds. Where
  * WebGL2 is missing it draws in 2D, and a `2D` chip says so. `children` lie over the arena: the
- * HUD, which then shows the chip, and reads the arena through `useArenaCanvas`.
+ * HUD, which then shows the chip, and reads the arena through `useArenaCanvas`. With
+ * `interactive={false}` it is a picture that takes none of this: the home page's demo.
  */
 export function ArenaCanvas({
   client,
   renderer: want = 'auto',
   minimap = true,
   isolated,
-  hover: hovers = true,
+  hover: hoverWanted = true,
+  interactive = true,
   insetTop = 0,
   label = 'arena',
   ref,
@@ -120,6 +127,7 @@ export function ArenaCanvas({
   const theme = useSettings((state) => state.theme)
   const effects = useSettings((state) => state.effects)
   const reduced = useMotionReduced()
+  const hovers = hoverWanted && interactive
   const isolation = isolated?.join(',') ?? ''
   const parts = useMemo(() => ({ scene, camera, kind: mode }), [scene, camera, mode])
 
@@ -240,7 +248,7 @@ export function ArenaCanvas({
   // The wheel: a native listener, since React's is passive and cannot keep the page from scrolling.
   useEffect(() => {
     const node = box.current
-    if (node === null) return
+    if (node === null || !interactive) return
     const onWheel = (event: WheelEvent) => {
       event.preventDefault()
       const rect = node.getBoundingClientRect()
@@ -253,7 +261,7 @@ export function ArenaCanvas({
     }
     node.addEventListener('wheel', onWheel, { passive: false })
     return () => node.removeEventListener('wheel', onWheel)
-  }, [camera])
+  }, [camera, interactive])
 
   // The cursor says what a drag does: `grab` once zoomed in.
   useEffect(() => {
@@ -356,32 +364,8 @@ export function ArenaCanvas({
     event.preventDefault()
   }
 
-  return (
-    <div
-      {...rest}
-      ref={box}
-      role="application"
-      aria-roledescription="arena map"
-      aria-label={label}
-      aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight + - 0"
-      // biome-ignore lint/a11y/noNoninteractiveTabindex: a pan-and-zoom surface that the keyboard drives.
-      tabIndex={0}
-      data-renderer={renderer?.kind}
-      className={cx(
-        'relative touch-none overflow-hidden bg-arena-bg select-none focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-accent data-[dragging=true]:cursor-grabbing data-[zoomed=true]:cursor-grab',
-        className,
-      )}
-      data-isolated={isolation === '' ? undefined : isolation}
-      onPointerDown={(event) => {
-        setHover(null)
-        onPointerDown(event)
-      }}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerEnd}
-      onPointerCancel={onPointerEnd}
-      onPointerLeave={() => setHover(null)}
-      onKeyDown={onKeyDown}
-    >
+  const layers = (
+    <>
       <canvas key={mode} ref={canvasRef} className="absolute inset-0 size-full" />
       <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 size-full" />
       <PartsContext value={parts}>
@@ -398,6 +382,52 @@ export function ArenaCanvas({
           />
         )}
       </PartsContext>
+    </>
+  )
+  const isolatedBots = isolation === '' ? undefined : isolation
+
+  if (!interactive) {
+    return (
+      <div
+        {...rest}
+        ref={box}
+        role="img"
+        aria-label={label}
+        data-renderer={renderer?.kind}
+        data-isolated={isolatedBots}
+        className={cx('relative overflow-hidden bg-arena-bg select-none', className)}
+      >
+        {layers}
+      </div>
+    )
+  }
+  return (
+    <div
+      {...rest}
+      ref={box}
+      role="application"
+      aria-roledescription="arena map"
+      aria-label={label}
+      aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight + - 0"
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: a pan-and-zoom surface that the keyboard drives.
+      tabIndex={0}
+      data-renderer={renderer?.kind}
+      className={cx(
+        'relative touch-none overflow-hidden bg-arena-bg select-none focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-accent data-[dragging=true]:cursor-grabbing data-[zoomed=true]:cursor-grab',
+        className,
+      )}
+      data-isolated={isolatedBots}
+      onPointerDown={(event) => {
+        setHover(null)
+        onPointerDown(event)
+      }}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerEnd}
+      onPointerCancel={onPointerEnd}
+      onPointerLeave={() => setHover(null)}
+      onKeyDown={onKeyDown}
+    >
+      {layers}
     </div>
   )
 }

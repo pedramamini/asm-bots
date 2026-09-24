@@ -1,10 +1,12 @@
 import type { BotResult, Result } from '@asmbots/engine'
 import { type MatchResult, type MeleeStanding, meleeStandings } from '@asmbots/tourney'
 import { Button, HueSwatch, IconButton, Table, type TableColumn, Toggle } from '@asmbots/ui'
-import { Bug, Dices, Download, Link, RotateCcw, SkipForward, X } from 'lucide-react'
+import { Bug, Dices, Download, Film, Link, RotateCcw, SkipForward, X } from 'lucide-react'
 import { useId, useMemo } from 'react'
 import { botResults } from '../worker/protocol'
 import { reasonText } from './log'
+import { ReplayChip } from './ReplayChip'
+import type { ReplayCheck } from './verify'
 
 const count = (n: number) => n.toLocaleString('en-US')
 
@@ -73,12 +75,15 @@ export function matchOutcome(match: MatchResult, standings: readonly MeleeStandi
   }
 }
 
+/** What the overlay offers. An action left out has no button: a replay's seeds are its own. */
 export interface VictoryActions {
   onRematch: () => void
-  onNewSeed: () => void
+  onNewSeed?: (() => void) | undefined
   onShare: () => void
-  onDebug: () => void
+  onDebug?: (() => void) | undefined
   onDownload: () => void
+  /** Copies the link that replays the match and checks it: `/arena/$replayId`. */
+  onReplayLink?: (() => void) | undefined
 }
 
 export interface VictoryProps extends VictoryActions {
@@ -91,6 +96,8 @@ export interface VictoryProps extends VictoryActions {
   match: MatchResult
   names: readonly string[]
   maxCycles: number
+  /** On a replay: how its check stands, beside the result hash. */
+  check?: ReplayCheck | undefined
   /** Hides the overlay. */
   onDismiss: () => void
 }
@@ -104,8 +111,8 @@ interface RoundRow {
 /**
  * The end of a battle (PRODUCT_SPEC §2): `WINNER · dwarf-v3 · last bot standing · cycle 41,203`
  * over the arena, the bots' numbers, and what to do next: `rematch`, `new seed`, `share`, `open
- * in debugger`, `download replay`. A match of more rounds shows its standings. The result hash is
- * the one a replay checks (ISA §5.6).
+ * in debugger`, `download replay`, `replay link`. A match of more rounds shows its standings. The
+ * result hash is the one a replay checks (ISA §5.6); on a replay, the check's chip stands beside it.
  */
 export function Victory({
   result,
@@ -114,6 +121,7 @@ export function Victory({
   match,
   names,
   maxCycles,
+  check,
   onDismiss,
   ...actions
 }: VictoryProps) {
@@ -145,37 +153,61 @@ export function Victory({
         ) : (
           <RoundTable result={result} order={order} names={names} winners={outcome.winners} />
         )}
-        <p
-          className="truncate text-data text-dim"
-          title="the result hash a replay checks (ISA §5.6)"
-        >
-          result {hash}
-          {multi && ` · round ${match.rounds.length} of ${match.of}`}
-        </p>
+        <div className="flex min-w-0 items-center gap-2">
+          <p
+            className="min-w-0 truncate text-data text-dim"
+            title="the result hash a replay checks (ISA §5.6)"
+          >
+            result {hash}
+            {multi && ` · round ${match.rounds.length} of ${match.of}`}
+          </p>
+          {check !== undefined && <ReplayChip check={check} />}
+        </div>
+        {check?.state === 'mismatch' && <p className="text-data text-danger">{check.reason}</p>}
         <Actions {...actions} />
       </section>
     </div>
   )
 }
 
-function Actions({ onRematch, onNewSeed, onShare, onDebug, onDownload }: VictoryActions) {
+function Actions({
+  onRematch,
+  onNewSeed,
+  onShare,
+  onDebug,
+  onDownload,
+  onReplayLink,
+}: VictoryActions) {
   return (
     <div className="flex flex-wrap gap-2">
       <Button variant="primary" icon={RotateCcw} onClick={onRematch}>
         rematch
       </Button>
-      <Button icon={Dices} onClick={onNewSeed}>
-        new seed
-      </Button>
+      {onNewSeed !== undefined && (
+        <Button icon={Dices} onClick={onNewSeed}>
+          new seed
+        </Button>
+      )}
       <Button icon={Link} onClick={onShare}>
         share
       </Button>
-      <Button icon={Bug} onClick={onDebug}>
-        open in debugger
-      </Button>
+      {onDebug !== undefined && (
+        <Button icon={Bug} onClick={onDebug}>
+          open in debugger
+        </Button>
+      )}
       <Button icon={Download} onClick={onDownload}>
         download replay
       </Button>
+      {onReplayLink !== undefined && (
+        <Button
+          icon={Film}
+          onClick={onReplayLink}
+          title="copies a link that plays this match again and checks its result hash"
+        >
+          replay link
+        </Button>
+      )}
     </div>
   )
 }

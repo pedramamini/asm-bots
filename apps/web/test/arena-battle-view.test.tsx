@@ -8,6 +8,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, mock } from 'bun:test'
 import { fighter } from '@asmbots/bots'
 import { Battle, type LoadedBot, NullSink } from '@asmbots/engine'
+import type { MatchResult } from '@asmbots/tourney'
 import { ToastProvider } from '@asmbots/ui'
 import {
   createMemoryHistory,
@@ -22,58 +23,21 @@ import { stubLayout, useDom, window } from '../../../packages/ui/test/dom'
 import { useKeymapListener } from '../src/app/keys'
 import { ArenaBattle } from '../src/features/arena/ArenaBattle'
 import { BattleLog } from '../src/features/arena/battle/log'
+import { readReplayFragment } from '../src/features/arena/battle/replay'
 import { useArenaView } from '../src/features/arena/battle/view'
 import type { ArenaFight } from '../src/features/arena/setup/bots'
 import { DEFAULT_ARENA_CONFIG } from '../src/features/arena/setup/config'
 import { validateArenaSearch } from '../src/features/arena/setup/search'
-import { ArenaClient, createArenaStore, type Schedule } from '../src/features/arena/worker/client'
-import type { ArenaMessage, ArenaRequest } from '../src/features/arena/worker/protocol'
-import { ArenaSession } from '../src/features/arena/worker/session'
+import type { ArenaClient } from '../src/features/arena/worker/client'
 import { stringifySearch } from '../src/router'
 import { stubCanvas } from './fake-canvas'
+import { manualSchedule, sessionClient } from './session-worker'
 
 useDom()
 window.scrollTo = () => {}
 
 /** Dwarf beats Imp at seed 1 in cycle 16,140. */
 const DUEL: readonly LoadedBot[] = [fighter('dwarf'), fighter('imp')]
-
-/** An `ArenaSession` behind the Worker's interface: requests in, messages out a moment later. */
-class SessionWorker {
-  readonly session = new ArenaSession()
-  private listener: ((event: { data: ArenaMessage }) => void) | null = null
-
-  addEventListener(type: string, listener: (event: { data: ArenaMessage }) => void): void {
-    if (type === 'message') this.listener = listener
-  }
-
-  postMessage(request: ArenaRequest): void {
-    const messages = this.session.handle(request)
-    queueMicrotask(() => {
-      for (const message of messages) this.listener?.({ data: message })
-    })
-  }
-
-  terminate(): void {}
-}
-
-/** Display frames that come only when the test calls `tick`. */
-function manualSchedule(): { schedule: Schedule; tick: () => void } {
-  let pending: (() => void) | null = null
-  return {
-    schedule: (callback) => {
-      pending = callback
-      return () => {
-        pending = null
-      }
-    },
-    tick: () => {
-      const callback = pending
-      pending = null
-      callback?.()
-    },
-  }
-}
 
 function fightOf(rounds = 1, seed = 1): ArenaFight {
   return {
@@ -102,11 +66,7 @@ const clients: ArenaClient[] = []
 /** The battle of `fight` on `/arena`, loaded, with the app's key listener. */
 async function renderBattle(fight = fightOf()) {
   const frames = manualSchedule()
-  const client = new ArenaClient({
-    worker: new SessionWorker() as unknown as Worker,
-    store: createArenaStore(),
-    schedule: frames.schedule,
-  })
+  const { client } = sessionClient(frames.schedule)
   clients.push(client)
   const log = new BattleLog()
   log.attach(client)
@@ -410,6 +370,41 @@ describe('the end', () => {
       URL.createObjectURL = url.create
       URL.revokeObjectURL = url.revoke
       window.HTMLAnchorElement.prototype.click = click
+      if (clipboard === undefined) Reflect.deleteProperty(globalThis.navigator, 'clipboard')
+      else Object.defineProperty(globalThis.navigator, 'clipboard', clipboard)
+    }
+  })
+})
+
+describe('the replay link', () => {
+  it('copies a link to the match’s replay: the bots’ bytes, the config, and the match', async () => {
+    const writeText = mock((_text: string) => Promise.resolve())
+    const clipboard = Object.getOwnPropertyDescriptor(globalThis.navigator, 'clipboard')
+    Object.defineProperty(globalThis.navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    })
+    try {
+      const { client } = await renderBattle()
+      client.seek(100_000)
+      await settle()
+      const victory = await screen.findByRole('region', { name: 'winner · Dwarf' })
+      fireEvent.click(within(victory).getByRole('button', { name: 'replay link' }))
+      await screen.findByText('replay link copied.')
+      const link = new URL(writeText.mock.calls[0]?.[0] as string)
+      const { match } = client.store.getState()
+      expect(link.pathname).toBe(`/arena/${match?.key}`)
+      const read = readReplayFragment(link.hash)
+      if (read.kind !== 'ok') throw new Error(read.kind)
+      expect(read.replay.match).toEqual(match as MatchResult)
+      expect(read.replay.config).toMatchObject({ seed: 1, maxCycles: 100_000, maxProcesses: 64 })
+      // A link carries bytes, not sources (PRODUCT_SPEC §10).
+      expect(read.replay.bots.map((bot) => [bot.name, bot.source])).toEqual([
+        ['Dwarf', undefined],
+        ['Imp', undefined],
+      ])
+      expect(read.bots.map((bot) => [...bot.bytes])).toEqual(DUEL.map((bot) => [...bot.bytes]))
+    } finally {
       if (clipboard === undefined) Reflect.deleteProperty(globalThis.navigator, 'clipboard')
       else Object.defineProperty(globalThis.navigator, 'clipboard', clipboard)
     }

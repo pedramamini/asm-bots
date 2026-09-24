@@ -14,37 +14,15 @@ import {
   simulate,
 } from '@asmbots/engine'
 import { runMatch } from '@asmbots/tourney'
-import {
-  ArenaClient,
-  type ArenaState,
-  createArenaStore,
-  type Schedule,
-} from '../src/features/arena/worker/client'
+import { ArenaClient, type ArenaState, createArenaStore } from '../src/features/arena/worker/client'
 import type { ArenaRequest, FrameMessage } from '../src/features/arena/worker/protocol'
+import { manualSchedule } from './session-worker'
 
 /** Dwarf and Paper at seed 1 fight for 23,823 cycles. */
 const DUEL: readonly LoadedBot[] = [fighter('dwarf'), fighter('paper')]
 const DUEL_CONFIG: BattleConfigInput = { seed: 1 }
 
 const WORKER_URL = new URL('../src/features/arena/worker/arena.worker.ts', import.meta.url)
-
-/** A display frame that comes only when the test calls `tick`. */
-function manualSchedule(): { schedule: Schedule; tick: () => void } {
-  let pending: (() => void) | null = null
-  return {
-    schedule: (callback) => {
-      pending = callback
-      return () => {
-        pending = null
-      }
-    },
-    tick: () => {
-      const callback = pending
-      pending = null
-      callback?.()
-    },
-  }
-}
 
 /** A real Worker whose requests the test can read. */
 function watchedWorker(): { worker: Worker; sent: ArenaRequest[] } {

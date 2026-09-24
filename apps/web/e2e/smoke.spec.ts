@@ -8,7 +8,7 @@ import { expect, type Page, test } from '@playwright/test'
 const ROUTES: readonly (readonly [path: string, title: string])[] = [
   ['/', 'ASM BOTS // HOME'],
   ['/arena', 'ASM BOTS // ARENA'],
-  ['/arena/r-1a2b', 'ASM BOTS // ARENA · r-1a2b'],
+  ['/arena/r-1a2b', 'ASM BOTS // ARENA · replay r-1a2b'],
   ['/editor', 'ASM BOTS // EDITOR'],
   ['/editor/b-42', 'ASM BOTS // EDITOR · b-42'],
   ['/tournaments', 'ASM BOTS // TOURNAMENTS'],
@@ -79,8 +79,17 @@ test('frames each route: brand, nav, and status row', async ({ page }) => {
   )
 })
 
-test('? opens the key help with the global keys', async ({ page }) => {
+/**
+ * Goes to `/` and waits for the app to render: `goto` returns at the load event, which comes
+ * before the app's first render and so before its key listener.
+ */
+async function openHome(page: Page): Promise<void> {
   await page.goto('/')
+  await expect(page).toHaveTitle('ASM BOTS // HOME')
+}
+
+test('? opens the key help with the global keys', async ({ page }) => {
+  await openHome(page)
   await page.keyboard.press('?')
   const help = page.getByRole('dialog', { name: 'keys' })
   for (const description of ['show the keys', 'next theme', 'search this page', 'go to arena']) {
@@ -97,7 +106,7 @@ test('t cycles the theme and the choice survives a reload', async ({ page }) => 
       sessionStorage.setItem('seeded', '1')
     }
   })
-  await page.goto('/')
+  await openHome(page)
   const html = page.locator('html')
   await expect(html).toHaveAttribute('data-theme', 'sentinel')
   await page.keyboard.press('t')
@@ -108,8 +117,7 @@ test('t cycles the theme and the choice survives a reload', async ({ page }) => 
 })
 
 test('g a goes to the arena without a reload', async ({ page }) => {
-  await page.goto('/')
-  await expect(page).toHaveTitle('ASM BOTS // HOME')
+  await openHome(page)
   await page.keyboard.press('g')
   await page.keyboard.press('a')
   await expect(page).toHaveTitle('ASM BOTS // ARENA')

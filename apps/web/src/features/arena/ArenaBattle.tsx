@@ -1,3 +1,4 @@
+import type { MatchResult } from '@asmbots/tourney'
 import { Button, Panel, PanelGrid, useToast } from '@asmbots/ui'
 import { useNavigate } from '@tanstack/react-router'
 import { Settings2, Trophy } from 'lucide-react'
@@ -12,21 +13,33 @@ import { HUD_BAND, Hud } from './battle/Hud'
 import { useFrameRate, useFullscreen } from './battle/hooks'
 import { useArenaKeys } from './battle/keys'
 import type { BattleLog } from './battle/log'
-import { buildReplay } from './battle/replay'
+import { ReplayChip } from './battle/ReplayChip'
+import { buildReplay, replayUrl } from './battle/replay'
 import { StandingsPanel } from './battle/StandingsPanel'
 import { captureArena } from './battle/screenshot'
 import { speedLabel } from './battle/speed'
 import { Transport } from './battle/Transport'
 import { RoundOver, roundOutcome, Victory } from './battle/Victory'
+import type { ReplayCheck } from './battle/verify'
 import { useArenaView } from './battle/view'
 import type { ArenaFight } from './setup/bots'
 import { searchFromSetup, sharedFragment } from './setup/url'
-import { copyShareLink } from './share'
+import { copyLink, copyShareLink } from './share'
 import type { ArenaClient } from './worker/client'
 import { STAT_FIELDS, STAT_PROCS } from './worker/protocol'
 
 /** How long a match rests between rounds when autoplay is on, ms: time to read the round's end. */
 export const ROUND_PAUSE_MS = 1500
+
+/** A replay in the arena (`/arena/$replayId`): its check, and its own `share` and download. */
+export interface ReplayView {
+  /** How the check stands: the chip in the arena's header and beside the victory's hash. */
+  readonly check: ReplayCheck
+  /** Copies the replay's link. */
+  readonly onShare: () => void
+  /** Saves the replay file as it came. */
+  readonly onDownload: () => void
+}
 
 export interface ArenaBattleProps {
   /** The client the fight was loaded into. */
@@ -38,8 +51,13 @@ export interface ArenaBattleProps {
   onExit: () => void
   /** The same fight again: the same bots and seed. */
   onRematch: () => void
-  /** The same bots with a new random seed. */
-  onNewSeed: () => void
+  /** The same bots with a new random seed. None on a replay, whose seeds are its own. */
+  onNewSeed?: (() => void) | undefined
+  /**
+   * The battle is a replay: its check shows, `share` and `download replay` are the replay's, and
+   * there is no `open in debugger` or `replay link`.
+   */
+  replay?: ReplayView | undefined
   /** How long autoplay rests between rounds, ms. */
   roundPause?: number | undefined
 }
@@ -51,7 +69,7 @@ const count = (n: number) => n.toLocaleString('en-US')
  * of 12 columns; the rail at 4: the bots, the events log, and, for a match of more rounds, the
  * standings. When the match is over, the victory overlay; between rounds, the round's end and
  * `next round`. The arena's keys (`space . , [ ] 0 1-9 f s`) live in the app's registry while it
- * shows.
+ * shows. A replay (`replay`) shows its check beside the arena's title.
  */
 export function ArenaBattle({
   client,
@@ -60,6 +78,7 @@ export function ArenaBattle({
   onExit,
   onRematch,
   onNewSeed,
+  replay,
   roundPause = ROUND_PAUSE_MS,
 }: ArenaBattleProps) {
   const navigate = useNavigate()
@@ -145,9 +164,33 @@ export function ArenaBattle({
 
   const download = async () => {
     if (match === null) return
-    const replay = await buildReplay(fight.bots, fight.sources, fight.config, fight.rounds, match)
-    const blob = new Blob([`${JSON.stringify(replay, null, 2)}\n`], { type: 'application/json' })
+    const file = await buildReplay(fight.bots, fight.sources, fight.config, fight.rounds, match)
+    const blob = new Blob([`${JSON.stringify(file, null, 2)}\n`], { type: 'application/json' })
     downloadBlob(blob, replayName(names, seed))
+  }
+
+  /** The match's replay link, made as the match ends, so that a click copies it at once. */
+  const link = useRef<string | null>(null)
+  const finished = over && !between && replay === undefined ? match : null
+  useEffect(() => {
+    link.current = null
+    if (finished === null) return
+    let live = true
+    void replayLinkOf(fight, finished).then((url) => {
+      if (live) link.current = url
+    })
+    return () => {
+      live = false
+    }
+  }, [finished, fight])
+
+  const copyReplayLink = () => {
+    const copied = 'replay link copied.'
+    // Made already, as a rule: Safari takes the clipboard only within the click itself.
+    if (link.current !== null) void copyLink(link.current, toast, copied)
+    else if (finished !== null) {
+      void replayLinkOf(fight, finished).then((url) => copyLink(url, toast, copied))
+    }
   }
 
   useArenaKeys({
@@ -170,6 +213,7 @@ export function ArenaBattle({
         status={status === 'error' ? 'failed' : roundStatus}
         actions={
           <>
+            {replay !== undefined && <ReplayChip check={replay.check} live />}
             {over && hidden && (
               <Button icon={Trophy} size="sm" onClick={() => setHidden(false)}>
                 result
@@ -218,12 +262,14 @@ export function ArenaBattle({
                   match={match}
                   names={names}
                   maxCycles={maxCycles}
+                  check={replay?.check}
                   onDismiss={() => setHidden(true)}
                   onRematch={onRematch}
                   onNewSeed={onNewSeed}
-                  onShare={share}
-                  onDebug={debug}
-                  onDownload={() => void download()}
+                  onShare={replay?.onShare ?? share}
+                  onDebug={replay === undefined ? debug : undefined}
+                  onDownload={replay?.onDownload ?? (() => void download())}
+                  onReplayLink={replay === undefined ? copyReplayLink : undefined}
                 />
               )}
               {between && (
@@ -266,6 +312,12 @@ export function ArenaBattle({
       )}
     </PanelGrid>
   )
+}
+
+/** The link that replays `match` of `fight`: the bots' bytes alone, no sources (PRODUCT_SPEC §10). */
+async function replayLinkOf(fight: ArenaFight, match: MatchResult): Promise<string> {
+  const file = await buildReplay(fight.bots, [], fight.config, fight.rounds, match)
+  return replayUrl(window.location.origin, file)
 }
 
 /** The header's stat line for the battle: `8 bots · 41 procs · cycle 12,480`, every frame. */
