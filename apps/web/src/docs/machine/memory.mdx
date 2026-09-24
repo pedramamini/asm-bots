@@ -1,0 +1,63 @@
+# Memory
+
+## One ring of 64 KB
+
+The core is 65,536 bytes, addresses `0x0000` to `0xFFFF`, and every bot shares it. There are no segments, no pages, and no protection: any process can read, write, or run any byte, its own bot's or another's.
+
+<Fig src="core-ring" alt="the core as a ring: addresses 0x0000 to 0xFFFF clockwise, 0xFFFF next to 0x0000; three bots, and bombs one of them wrote">The core has no ends. One byte past `0xFFFF` is `0x0000`.</Fig>
+
+Every address wraps. `add di, 64` at `di = 0xFFE0` gives `0x0020`, and a write there lands at the start of the core. A word at `0xFFFF` takes its high byte from `0x0000`. Values wrap the same way: 16 bits for a word, 8 for a byte. Nothing faults; only running a bad instruction kills (see [death](/docs/machine/death)).
+
+## Empty core is DAT
+
+At the start of a battle the core is all zeros, except the bots. The opcode `00` is `dat`, and a process that runs it dies. So:
+
+- A jump to a random address almost always dies: most of the core is zero.
+- A process that runs past the last instruction of its bot dies: the byte after it is zero.
+- A bomb is a zero word, 2 bytes: `mov word [di], 0` (4 bytes of code, `C7 05 00 00`), or `stosw` with `ax = 0` (1 byte, `AB`).
+
+The arena draws empty core dark. A zero that a bot wrote is dim in that bot's hue: a bomb.
+
+## Code is data
+
+There is no difference between the two. The bytes of your bot are in the core with everyone else's: a bomb on your loop kills your process when it runs there, and a bot can read, copy, or change its own code as it runs. The imp copies its own instruction; a paper copies its whole body.
+
+Reads leave no trace. Only writes change the core, so a scanner can look at an enemy's code and the enemy cannot know.
+
+## Ownership
+
+Beside the core is an ownership map: for each byte, the bot that wrote it last. Loading a bot counts as its write, and a bomb belongs to the bot that dropped it. The arena colors the core by this map, and the bots table's **footprint** is the count of bytes a bot owns.
+
+Ownership has no effect on the battle. A bot can run, read, and overwrite bytes that another bot owns, and a dead bot keeps the bytes it wrote until someone writes over them.
+
+## A lap of the ring
+
+This bot drops a bomb every 64 bytes, starting just past its own code, for one lap of the core. The count stops the lap one bomb short of home, so it never bombs itself:
+
+```asm run="vs=imp"
+%name     "Ring walker"
+%strategy "Bomb every 64th byte for one lap, then spin"
+
+start:  call    .here
+.here:  pop     bx
+        sub     bx, .here               ; bx = our base
+        lea     di, [bx+end]            ; the first bomb: just past our code
+        mov     cx, 0x10000 / 64 - 1    ; 1,023 bombs: the 1,024th would come home
+
+bomb:   mov     word [di], 0            ; C7 05 00 00: a zero word
+        add     di, 64                  ; wraps from 0xFFxx to 0x00xx on its own
+        loop    bomb
+        jmp     $                       ; spin: alive, and harmless
+
+end:
+```
+
+`di` runs off the top of the core and comes back at the bottom with no code for it: the add wraps. The last bomb lands 128 bytes before `end`: below the bot's base, since the bot is shorter than 128 bytes.
+
+<Note>
+
+Try the stride 2: `add di, 2` and `mov cx, 0x10000 / 2 - 1`. Now the bombs cover every second byte from `end` around the ring, the lap comes home, and bombs land on the bot's own loop. It dies before the lap ends.
+
+</Note>
+
+See also: the [memory model](/docs/reference/memory) in the reference, and [placement](/docs/machine/placement) for where the bots start.

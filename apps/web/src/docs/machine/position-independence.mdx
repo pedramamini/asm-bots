@@ -1,0 +1,80 @@
+# Position independence
+
+## Labels are offsets
+
+The assembler works as if the bot starts at address 0 (`org 0`). A label's value is its offset from the start of the bot: in the imp, `imp` is 13. The loader then puts the bot at a random base and does not change a byte. So wherever a bot needs its own address in the core, it must add its base to an offset at run time.
+
+## Relative is free
+
+Jumps, calls, conditional jumps, `loop`, and `spl label` hold the distance to their target, not its address. Distances do not change when the bot moves, so these work wherever the bot is, with no base:
+
+```asm fragment
+        jmp     next                    ; EB 00: 0 bytes past its own end
+next:   loop    next                    ; E2 FE: back 2 bytes, to itself
+```
+
+## `[label]` is absolute
+
+A memory operand with no register, `[label]`, is the ModR/M form mod 00, r/m 110: `[disp16]`, a fixed address. It points at address `label` in the core: 13, say, not the bot's own byte 13, which is somewhere else.
+
+<Fig src="modrm" alt="the ModR/M byte: mod in bits 7 and 6, reg in bits 5 to 3, r/m in bits 2 to 0">mod 00 with r/m 110 is `[disp16]`: an address with no register in it.</Fig>
+
+```asm fragment
+        mov     ax, [bomb]              ; A1 lo hi: reads address "bomb" of the core
+        mov     ax, [bx+bomb]           ; 8B 47 disp8: reads the bot's own bomb
+```
+
+The linter warns on the first line (`absolute-address`): "`[bomb]` is an absolute address: a fixed place in the core, not in this bot, which the loader places anywhere (ISA §6.4)." It proposes `[bx+bomb]`.
+
+## The base idiom
+
+Every bot that touches its own bytes starts the same way:
+
+```asm fragment
+start:  call    .here                   ; pushes the address of .here: base + 3
+.here:  pop     bx                      ; bx = base + 3
+        sub     bx, .here               ; bx = base
+```
+
+`call` is relative, so it works anywhere, and it pushes the address of the instruction after it, which is absolute. `pop` takes that address, and `sub` takes away its offset, 3. From then on, `[bx+label]` is the bot's own `label`, and `lea di, [bx+label]` puts its address in di.
+
+The idiom costs 7 bytes and 3 cycles, and uses 2 bytes of stack just under the bot. Keep bx for the base, or save it before you use bx for something else.
+
+## Other traps
+
+- **`mov di, label` loads the offset**, 13, not an address in the bot. Use `lea di, [bx+label]`.
+- **`$` is an offset too.** `jmp $` is relative and spins in place; `mov ax, $` is a number, not where the bot is.
+- **Absolute jumps and splits** (`jmp dx`, `call [bx+2]`, `spl dx`) go to the address in the operand. Build it from the base first: `lea dx, [bx+target]`.
+- **di starts at 0.** A bomb through di before di is set lands at address 0 of the core, not near the bot. The linter warns (`uninitialized-di`).
+
+## A bot that reads its own data
+
+This bot reads its bomb word through the base, then drops it every 16 bytes for one lap. The word is `0xCCCC`: two `int3` bytes, which kill as surely as a zero and are not zero.
+
+```asm run="vs=imp"
+%name     "Carrier"
+%strategy "Read my own bomb through the base, then drop it every 16 bytes"
+
+start:  call    .here
+.here:  pop     bx
+        sub     bx, .here               ; bx = our base
+        mov     ax, [bx+bomb]           ; our own bomb word
+        lea     di, [bx+end]            ; the first drop: just past our code
+        mov     cx, (0x10000 - end) / 16 ; one lap that stops short of home
+
+drop:   stosw                           ; [di] = ax, di += 2
+        add     di, 14                  ; 16 bytes on
+        loop    drop
+        jmp     $
+
+bomb:   dw      0xCCCC                  ; int3, int3
+end:
+```
+
+<Note>
+
+Try `mov ax, [bomb]` in place of `mov ax, [bx+bomb]`. The linter warns, and the bot reads address 24 of the core, not its own word. Most likely that is empty core, so it drops zero words, which kill just as well, and you might never see the bug. Unless the bot sits at address 0, the bomb it reads is not its own.
+
+</Note>
+
+See also: the [memory model](/docs/reference/memory#position-independence) in the reference, and [ModR/M addressing](/docs/reference/addressing).

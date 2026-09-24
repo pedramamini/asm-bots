@@ -1,0 +1,70 @@
+# Start here
+
+ASM BOTS is a Core War arena for 8086 assembly. You write a bot of at most 512 bytes, and the arena loads it into 64 KB of shared memory beside the other bots. It runs them one instruction at a time, and the last bot with a live process wins.
+
+## The 60-second tour
+
+### Watch
+
+<Shot src="tour-arena" alt="the arena mid-battle: four bots in four hues on a 256 by 256 grid of the core, with the bots table and the events log in the right rail">The arena: one cell for each byte of the core, 256 bytes to a row. A bot's hue marks the bytes it wrote last; a dim cell is a zero it owns, most often a bomb.</Shot>
+
+[Open the arena](/arena), add two or more bots from the roster, and press `fight`. Each bright outline is a process, running one instruction a cycle. When a process runs a zero byte it dies, and a bot with no process left is dead. Press <Keys>space</Keys> to pause, <Keys>.</Keys> to step one cycle, and <Keys>?</Keys> for every key.
+
+### Write
+
+<Shot src="tour-editor" alt="the editor: the bot library, the imp's source with each line's address and bytes, the debugger's registers and processes after six steps, and the arena strip below">The editor and the debugger: the source, its bytes, and the machine one step at a time.</Shot>
+
+[Open the editor](/editor) and write a bot, or open one from the roster. It assembles as you type: the gutter shows each line's address and bytes, and errors and warnings mark the line and say how to fix it. `test vs` fights 10 rounds against a roster bot in the background and reports wins, ties, and losses. The debugger on the right steps your bot one instruction at a time, against opponents or alone.
+
+### Compete
+
+<Shot src="tour-tournament" alt="a finished bracket of eight roster bots: quarterfinals, semifinals, the final, the third-place match, and the champion, each match with its points">A bracket of eight roster bots, played in the browser: the winner of each match goes on.</Shot>
+
+[Tournaments](/tournaments) run brackets, round robins, and melees of your bots and roster bots, in your browser. Every result is reproducible: a battle is a pure function of the bots, the settings, and one seed, so a share link carries the inputs, and the page that opens it plays the same battle to the same end. Hills, where your bot fights a standing field for a rank, arrive with the server.
+
+## Write your first bot
+
+The imp is one of the first two Core War bots (A. K. Dewdney, 1984; the dwarf is the other). It copies the instruction it runs to the next word, then runs into the copy, forever:
+
+```asm run="vs=dwarf"
+%name "Imp"
+
+start:  call    .here
+.here:  pop     bx
+        sub     bx, .here
+        lea     si, [bx+imp]
+        lea     di, [bx+imp+2]
+
+imp:    movsw
+        nop
+```
+
+Line by line, with the bytes each line assembles to:
+
+| line | bytes | what it does |
+|---|---|---|
+| `start: call .here` | `E8 00 00` | Pushes the address of the next line, `.here`, and jumps there. The loader put the bot at an address you cannot know, and this is how a bot finds it. |
+| `.here: pop bx` | `5B` | Takes that address into bx: the bot's start, plus 3. |
+| `sub bx, .here` | `83 EB 03` | Takes away the offset of `.here` (3). bx is now the bot's base, its first byte in the core. |
+| `lea si, [bx+imp]` | `8D 77 0D` | si = the address of `imp`: where `movsw` copies from. |
+| `lea di, [bx+imp+2]` | `8D 7F 0F` | di = one word past it: where `movsw` copies to. |
+| `imp: movsw` | `A5` | Copies the word at si (`A5 90`, this line and the next) to di, and adds 2 to si and di. |
+| `nop` | `90` | Does nothing. The next instruction is at `imp+2`: the copy. |
+
+The first five lines run once. Then the process runs the copy, which copies itself 2 bytes on, and so on around the core: one `movsw` and one `nop` for each word, so the imp moves one byte a cycle. The labels are offsets from the start of the bot, so `[bx+imp]` is the bot's own `imp` wherever it was loaded; [position independence](/docs/machine/position-independence) explains why that `bx+` is needed.
+
+Press **open in arena · vs dwarf**, then `fight`. The dwarf drops a zero word every 4 bytes across the core, and a bomb on the word just ahead of the imp kills it. The imp writes nothing but copies of itself, so it seldom kills: over seeds 1 to 20 the dwarf wins 9 rounds, 10 last to the cycle cap and tie, and the imp wins 1, where its copies run over the dwarf's code.
+
+<Note>
+
+Try changing `lea di, [bx+imp+2]` to `lea di, [bx+imp+4]`. The copy now lands one word too far, the process runs into the zero word between, and the bot dies with `dat` on its 8th instruction, at cycle 7 (cycles count from 0). Step it in the debugger to watch it happen.
+
+</Note>
+
+## What next
+
+1. **[The machine](/docs/machine/memory)**: memory, registers, processes, death, placement, and scoring. Read it once; everything else stands on it.
+2. **[Language reference](/docs/reference/data)**: every instruction, with its encoding, flags, and an example.
+3. **Strategy guide**, **tournaments**, and **tools**: soon.
+
+> Press `/` to search the docs, and `?` to see every key.

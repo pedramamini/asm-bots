@@ -1,4 +1,4 @@
-/** The docs' small blocks: `Keys`, the `Note` and `Warn` callouts, and `Fig`. */
+/** The docs' small blocks: `Keys`, the `Note` and `Warn` callouts, `Fig`, and `Shot`. */
 import { cx, Kbd } from '@asmbots/ui'
 import { Fragment, type ReactNode } from 'react'
 import { FIGURES } from './figures'
@@ -72,6 +72,35 @@ export function Fig({ src, alt, children }: { src: string; alt: string; children
         aria-label={alt}
         className="overflow-x-auto [&>svg]:h-auto [&>svg]:max-w-full"
         dangerouslySetInnerHTML={{ __html: svg }}
+      />
+      {children !== undefined && (
+        <figcaption className="mt-1 text-data text-muted">{children}</figcaption>
+      )}
+    </figure>
+  )
+}
+
+/** Where the docs' screenshots are served: `public/docs-shots/<name>.webp`. */
+export const SHOT_PATH = '/docs-shots/'
+
+/** Every screenshot's size in px: the viewport `e2e/docs-shots.spec.ts` takes them at. */
+export const SHOT_SIZE = { width: 1280, height: 800 } as const
+
+/**
+ * A screenshot of the app: `<Shot src="tour-arena" alt="…">caption</Shot>`. It loads lazily, and
+ * its size is set, so the page does not move when it arrives.
+ */
+export function Shot({ src, alt, children }: { src: string; alt: string; children?: ReactNode }) {
+  return (
+    <figure className="my-4">
+      <img
+        src={`${SHOT_PATH}${src}.webp`}
+        alt={alt}
+        width={SHOT_SIZE.width}
+        height={SHOT_SIZE.height}
+        loading="lazy"
+        decoding="async"
+        className="h-auto w-full rounded-sm border border-border"
       />
       {children !== undefined && (
         <figcaption className="mt-1 text-data text-muted">{children}</figcaption>

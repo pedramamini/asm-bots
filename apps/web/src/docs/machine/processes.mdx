@@ -1,0 +1,68 @@
+# Processes and cycles
+
+## A bot is a queue of processes
+
+A process is one thread of the bot: its registers, its flags, and its ip. A bot holds its processes in a queue, first in, first out. It starts with one process, at its base. A bot whose queue is empty is dead.
+
+## One cycle
+
+A battle runs in cycles. In each cycle every living bot takes one turn, and in its turn the process at the front of its queue runs one instruction. If that process is still alive, it goes to the back of the queue.
+
+<Fig src="process-queue" alt="one cycle: each living bot runs the front process of its queue for one instruction, and that process goes to the back; a child from spl queues just ahead of its parent">A turn is one instruction of one process. A bot with 4 processes runs each of them once every 4 cycles.</Fig>
+
+The bots take their turns in an order that rotates: cycle c starts with bot `c mod N`, where N is the count of bots loaded (dead ones included), so no bot always goes first.
+
+Every instruction costs one cycle: `nop`, `div`, and `rep movsw` alike. There is no timing table.
+
+## rep: one iteration a cycle
+
+A `rep` string instruction runs one iteration a cycle. After each iteration, while the repeat goes on, ip stays on the `rep` prefix, and the process runs it again on its next turn. So `rep movsw` with `cx = 100` takes 100 turns, and the other bots run in between: an enemy can bomb the block while it is being copied, or bomb the `rep` itself and kill the process mid-copy.
+
+## spl: more processes
+
+`spl target` starts a new process at the target. The child gets a copy of the parent's registers and flags, with ip at the target, and goes into the queue just ahead of its parent. The parent goes on to the instruction after `spl`.
+
+With n processes, each one runs once every n turns of its bot. More processes do not make a bot faster: a bot runs one instruction a cycle whatever it holds. They make it harder to kill. A bomb kills only the process that runs it, and the bot lives while one process is left.
+
+| processes | a process runs | to kill the bot |
+|---|---|---|
+| 1 | every cycle | 1 bomb run |
+| 4 | every 4th cycle | 4 processes, each must run a bad instruction |
+| 64 | every 64th cycle | all 64 |
+
+<Warn>
+
+Processes on the same code die to the same bomb. Eight processes looping on one `jmp` all run into a bomb on it, one after the other. Spread them out.
+
+</Warn>
+
+## The process cap
+
+A bot may have at most 64 processes (the arena's **process cap** setting). At the cap, `spl` does nothing: no child, no error, and the parent goes on. So a bot can split in a loop without a count.
+
+## Four spinners
+
+This bot starts 3 children, each on its own `jmp $`, and spins on a fourth: 4 processes at 4 addresses, so one bomb kills one process, not four.
+
+```asm run="vs=dwarf"
+%name     "Spinners"
+%strategy "Four processes on four jmp $ loops: a bomb takes one at a time"
+
+start:  spl     a                       ; child at a; the parent goes on
+        spl     b                       ; child at b
+        spl     c                       ; child at c
+d:      jmp     d                       ; the parent spins here
+a:      jmp     a
+b:      jmp     b
+c:      jmp     c
+```
+
+Six cycles in, the queue holds 4 processes: each child takes its turn before the parent reaches the next `spl`. From then on each process runs every 4th cycle. Load it in the debugger and step it: the **processes** panel shows the queue, the running process lit, a different one each cycle.
+
+<Note>
+
+Try replacing the three `spl` lines with `spl $ + 2` three times. You get 8 processes, all on `d`, and one bomb on `d` kills them all.
+
+</Note>
+
+See also: [`spl`](/docs/reference/process#spl) in the reference, and [death](/docs/machine/death) for what ends a process.

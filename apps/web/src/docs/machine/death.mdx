@@ -1,0 +1,67 @@
+# Death
+
+A process dies when it runs a bad instruction. Nothing else kills it. A bot dies when its last process dies, and the battle ends when one bot or none is left.
+
+## Every reason
+
+The engine records a reason for each death. The arena's events log and its end table show it in their own words, with whose byte the process ran: `dat · by Stone`, `bad opcode · self`, `dat · empty core`.
+
+| reason | the arena says | the process ran | how it happens |
+|---|---|---|---|
+| `dat` | dat | opcode `00` | A bomb, empty core, the padding of `resb`, `resw`, and `align`, or the byte just past a bot's last instruction. By far the most common. |
+| `undefined` | bad opcode | a byte that is not an x16c instruction | Opcodes outside the table: `0F`, the segment prefixes `26` `2E` `36` `3E`, `F0`, `INT`, `IN`, `OUT`, far jumps and calls, and more; a `rep` prefix before anything but a string instruction; `lea` with a register operand; `F6 /1`, `F7 /1`, shift `/6`, `FF /3 /5 /7`. |
+| `hlt` | hlt | `F4` | On purpose, to end a process, or a bomb of `F4` bytes. |
+| `int3` | int3 | `CC` | A bomb of `CC` bytes: 1 byte, and not zero, so a scanner that looks for code stops on it. |
+| `div` | divide error | `div` or `idiv` that fails | A divisor of 0, or a quotient too large for its register: `div cx` with dx at or above cx, or `idiv bl` of -32,768 by -128. |
+
+## What does not kill
+
+- **Writing anywhere.** No address is protected, the bot's own code included.
+- **Reading anywhere.** Reads leave no trace.
+- **Jumping anywhere.** Only running the bytes there can kill.
+- **The stack.** sp wraps like any address; a `push` past the bottom of the core writes at the top. A `ret` that pops garbage jumps to garbage, and the process most often dies there, not at the `ret`.
+- **The cycle cap.** A bot alive when the battle reaches its last cycle survives, and [scores](/docs/machine/scoring).
+
+## After death
+
+A dead bot's bytes stay in the core, in its hue, dimmed. Its code can still run: a live process of another bot that jumps into it runs it as its own. The dead bot has no process, so it never moves again.
+
+## One of each
+
+Each of these bots dies at once, alone in the core, one reason each. Open one in the editor and press **run until … dies** in the debugger:
+
+```asm
+%name "dies-dat"
+
+        nop
+        nop                             ; the byte after this is zero
+```
+
+```asm
+%name "dies-undefined"
+
+        db      0x0F                    ; the 286's two-byte opcodes: not x16c
+```
+
+```asm
+%name "dies-hlt"
+
+        hlt
+```
+
+```asm
+%name "dies-int3"
+
+        int3
+```
+
+```asm
+%name "dies-div"
+
+        xor     cx, cx
+        div     cx                      ; dx:ax / 0
+```
+
+Of the five, the linter warns only on `dies-hlt` (`hlt-in-code`), besides the missing `%strategy`. In the debugger, `int3` in a bot's own code is a breakpoint first: the debugger stops before it, and the next step runs it. Breakpoints you set never write `CC`; they are checks the debugger makes, not bytes in the core.
+
+See also: [`dat`](/docs/reference/process#dat), [`hlt`](/docs/reference/process#hlt), and [`int3`](/docs/reference/process#int3) in the reference, and the [8086 divergences](/docs/reference/divergences).

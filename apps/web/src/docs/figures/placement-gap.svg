@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 162" width="520" height="162" font-family="var(--font-mono)" font-size="12">
+  <title>Placement: each bot is at least 1,024 free bytes from every other bot on both sides, around the wrap too; a bot's stack grows down from its base into the gap below it</title>
+  <text x="12" y="18" fill="var(--text-muted)" font-size="11">the core, laid flat: the right end wraps to the left end</text>
+  <rect x="12" y="44" width="496" height="28" fill="var(--panel-2)" stroke="var(--border)" />
+  <rect x="150" y="44" width="40" height="28" fill="var(--bot-0)" />
+  <rect x="380" y="44" width="40" height="28" fill="var(--bot-1)" />
+  <g text-anchor="middle" font-size="11">
+    <text x="170" y="36" fill="var(--bot-0)">bot 0</text>
+    <text x="400" y="36" fill="var(--bot-1)">bot 1</text>
+  </g>
+  <g fill="var(--text-dim)" font-size="10">
+    <text x="12" y="88">0x0000</text>
+    <text x="508" y="88" text-anchor="end">0xFFFF</text>
+  </g>
+  <g stroke="var(--accent)" fill="none">
+    <path d="M190 100h190M190 95v10M380 95v10" />
+    <path d="M420 100h88M12 100h138M150 95v10M420 95v10" />
+  </g>
+  <g fill="var(--accent)" font-size="11" text-anchor="middle">
+    <text x="285" y="118">≥ 1,024 free bytes</text>
+    <text x="81" y="118">≥ 1,024 free,</text>
+    <text x="81" y="131">around the wrap</text>
+  </g>
+  <path d="M148 58h-40M114 53l-6 5l6 5" stroke="var(--text-bright)" fill="none" />
+  <text x="12" y="154" fill="var(--text-muted)" font-size="11">sp starts at the base: the stack grows down into the gap</text>
+</svg>

@@ -1,0 +1,72 @@
+# The debugger tour
+
+The debugger is the right half of [the editor](/editor). It runs the same engine as the arena, on the page, so it can stop between any two cycles, show every register and byte, and go back.
+
+## Load a bot
+
+The debugger loads the editor's last assemble with no errors, and loads each new one by itself until you move. Alone, the bot runs until it dies or the cycle cap. To fight, add opponents from the roster next to **vs** in the debugger's top row, and set the **seed** for their placement. Once you have moved, an edit leaves the session alone and shows a **source changed** chip; **reload** loads the new text, breakpoints kept.
+
+## The panels
+
+| panel | what it shows |
+|---|---|
+| **registers** | The followed process's registers, ip, and FLAGS as `O D I T S Z A P C` toggles. A value the last step changed is lit. Click a value to edit it; Enter sets it, Esc puts it back. |
+| **processes** | Each bot's queue, front first: `▸` marks the process that runs in the bot's next turn. Click a process to follow it: the other panels show that process. |
+| **memory** | The core as instructions: address, bytes over a stripe in their owner's hue, label, and disassembly. It follows ip; `goto` takes an address, a label, or `di + 4`. A written byte lights up and fades. Click a row to set a breakpoint there. |
+| **watch** | Addresses to keep an eye on, each an expression (`bomb`, `di`, `bx + 0x10`), read as a byte or a word. |
+| **breakpoints** | An address or a label, with an optional condition on the registers, such as `ax == 0x10 && cx < 3`, and a count of its hits. |
+| **trace** | The last 200 instructions the followed process ran. |
+
+The **arena strip** below draws the debugger's battle with the arena's renderer. With its lock on, it stays zoomed on the followed process.
+
+## Moving
+
+| move | key | what it does |
+|---|---|---|
+| run, pause | <Keys>F5</Keys>, <Keys>F6</Keys>, <Keys>space</Keys> | Runs until a breakpoint, an `int3` in the bot's own code, or the end of the battle. |
+| step | <Keys>F11</Keys>, <Keys>.</Keys> | Runs until the followed process has run one instruction. Other bots, and the bot's other processes, run their turns in between. |
+| step over | <Keys>F10</Keys> | A step, except that a `call` runs until it returns, and a `rep` until it is done. |
+| step out | <Keys>shift+F11</Keys> | Runs until the process returns from the current call. |
+| run to cursor | | Runs until a process is about to run the editor cursor's line. |
+| run until … dies | | Runs until the followed process's bot has no process left. |
+| run N cycles | | Runs the count of cycles in the field beside it. |
+| step back | <Keys>,</Keys> | Goes back one step, or one cycle of a run: 256 deep. |
+| reset | | Starts the battle again from cycle 0, breakpoints kept. |
+| breakpoint | <Keys>F9</Keys> | Sets or clears a breakpoint on the cursor's line. |
+| speed | <Keys>[</Keys> <Keys>]</Keys> | Slower or faster runs. <Keys>0</Keys> shows the whole core in the strip. |
+
+The function keys work with the focus anywhere, the editor included. Press <Keys>?</Keys> for every key of the page.
+
+<Note>
+
+Breakpoints are checks the debugger makes before each cycle, never `CC` bytes in the core, so a breakpoint cannot change the battle. An `int3` in the bot's own code is a stop too: the debugger halts before it, and the next move runs it, and the process dies as it would in the arena.
+
+</Note>
+
+## Walk through the imp
+
+Open this block in the editor, then step it with <Keys>F11</Keys> and watch the registers:
+
+```asm run="vs=dwarf"
+%name "Imp"
+
+start:  call    .here
+.here:  pop     bx
+        sub     bx, .here
+        lea     si, [bx+imp]
+        lea     di, [bx+imp+2]
+
+imp:    movsw
+        nop
+```
+
+1. **`call .here`**: sp drops by 2, from the base. In memory, the 2 bytes under the base light up: the address of `.here`, base + 3.
+2. **`pop bx`**: bx is base + 3, and sp is back at the base.
+3. **`sub bx, .here`**: bx is the base. Compare it with the base the processes panel shows.
+4. **`lea si, [bx+imp]`** and **`lea di, [bx+imp+2]`**: si and di are 2 apart, 13 and 15 bytes past the base.
+5. **`movsw`**: the 2 bytes at di light up in memory, `A5 90`, and si and di each grow by 2.
+6. **`nop`**, and ip is on the copy. Press <Keys>F5</Keys>: the imp walks.
+
+Then add the dwarf next to **vs**, press **run until Imp dies**, and step back from the end to see the bomb that killed it. Not every seed has one: at some the imp lives to the cycle cap.
+
+See also: [processes and cycles](/docs/machine/processes), for what a step runs, and [death](/docs/machine/death), for what ends one.

@@ -1,0 +1,79 @@
+# Registers and flags
+
+## The registers
+
+Each process has its own registers: eight 16-bit general registers, the instruction pointer, and FLAGS. The first four split into 8-bit halves.
+
+| register | halves | in a bot |
+|---|---|---|
+| `ax` | `ah` `al` | The value to store: `stosw` writes ax, `stosb` al. `mul` and `div` use it. |
+| `bx` | `bh` `bl` | The base register: by habit it holds the bot's base address, from the [base idiom](/docs/machine/position-independence). |
+| `cx` | `ch` `cl` | The counter: `loop` and `rep` count it down. Shifts by `cl`. |
+| `dx` | `dh` `dl` | Free. `mul` and `div` use it for the high word. |
+| `si` | | The source: `movs`, `lods`, and `cmps` read at si. |
+| `di` | | The target: `movs`, `stos`, and `scas` work at di. Most bombs go through di. |
+| `bp` | | Free, and it can address memory, `[bp+4]`. |
+| `sp` | | The stack pointer. It starts at the bot's base, so the stack grows down into the core below the bot. |
+| `ip` | | The address of the next instruction. Only jumps, calls, `ret`, and `loop` change it by hand. |
+| FLAGS | | The results of the last compare or arithmetic, below. |
+
+Only bx, bp, si, and di can address memory, in 8 forms: `[bx+si]`, `[bx+di]`, `[bp+si]`, `[bp+di]`, `[si]`, `[di]`, `[bp]`, `[bx]`, each with an optional constant, and `[constant]` alone. See [ModR/M addressing](/docs/reference/addressing).
+
+## The start of a process
+
+A bot's first process starts with ip and sp at the bot's base, FLAGS at `0x0002`, and every other register 0. So `di` is 0, a fixed place in the core: a bot that bombs through di before it sets di bombs address 0, and the linter warns (`uninitialized-di`).
+
+A process that `spl` starts copies all of its parent's registers and flags, with ip at the target. Its registers are then its own: a change in one process does not reach another.
+
+## The flags
+
+FLAGS holds seven flags that x16c uses. The row reads, left to right, O D I T S Z A P C, as the debugger's registers panel shows it; I and T are always 0.
+
+<Flags set="ODSZAPC" />
+
+| flag | name | set when |
+|---|---|---|
+| C | carry | an add carries out of the top bit, or a subtract borrows; a shift's last bit out |
+| P | parity | the low 8 bits of the result have an even count of 1 bits |
+| A | adjust | a carry or borrow crosses bit 3 |
+| Z | zero | the result is 0 |
+| S | sign | the top bit of the result is 1 |
+| D | direction | `std` sets it, `cld` clears it: string instructions walk down when it is set |
+| O | overflow | a signed result does not fit |
+
+Each instruction changes its own set of flags, and the reference shows it on every entry. Two to know by heart:
+
+<Flags op="add" />
+
+<Flags op="inc" />
+
+`inc` and `dec` leave C alone, so a loop can count with them and keep a carry. `and`, `or`, `xor`, and `test` clear C and O. `mov`, `lea`, `push`, `pop`, jumps, `loop`, and the string moves change no flags.
+
+Conditional jumps read the flags: `jz` jumps if Z is 1, `jc` if C is 1, `jl` if S and O differ. The [flags reference](/docs/reference/flags) lists each flag with what sets it and what reads it.
+
+## D walks the string instructions
+
+D is 0 at the start, so `stosw` writes at di and adds 2. After `std`, it takes 2 away. With `rep`, one instruction fills a block, one word a cycle:
+
+```asm run="vs=imp"
+%name     "Backstep"
+%strategy "Fill the core below me with zero words, walking down"
+
+start:  call    .here
+.here:  pop     bx
+        sub     bx, .here               ; bx = our base
+        lea     di, [bx-2]              ; the word just below the base
+        xor     ax, ax                  ; ax = 0, so each stosw drops a DAT
+        std                             ; D = 1: di walks down
+        mov     cx, 0x10000 / 2 - 256   ; stop 512 bytes short of home
+        rep     stosw                   ; [di] = ax, di -= 2, cx -= 1: one a cycle
+        jmp     $
+```
+
+`xor ax, ax` also sets Z and clears C; nothing here reads them. The fill takes 32,512 cycles, one word each, and ends 512 bytes above the base, past the bot's code.
+
+<Note>
+
+Try deleting `std`. D stays 0, and di walks up instead, into the bot's own code. The tenth zero word lands on `rep stosw` itself, and the bot dies with `dat`.
+
+</Note>

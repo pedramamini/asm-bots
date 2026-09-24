@@ -1,0 +1,42 @@
+# Placement and seeds
+
+## Where the bots go
+
+The loader places the bots one at a time, in the order they were entered. For each bot it draws a base address from a random number generator (PCG32) seeded with the battle's **seed**, and draws again until the bot keeps at least 1,024 free bytes from every bot placed before it, on both sides, around the wrap too.
+
+<Fig src="placement-gap" alt="placement: each bot is at least 1,024 free bytes from every other bot on both sides, around the wrap too; a bot's stack grows down from its base into the gap below it">No enemy byte is ever within 1,024 bytes of your bot at the start.</Fig>
+
+It copies the bot's bytes to the base as they are: no relocation, no fix-ups. Then the bot's first process starts at the base, with sp at the base too, so the stack grows down into the free gap below it. Each bot may draw 1,000 times; if one finds no place, the battle is invalid and does not run. That takes a crowded core: 8 bots of 512 bytes fit with ease.
+
+What this means for a bot:
+
+- It cannot know where it is. It finds its base at run time, with the [base idiom](/docs/machine/position-independence).
+- It cannot know where the enemy is, only that at least 1,024 free bytes lie between them at the start.
+- At the start, the first 1,024 bytes on either side of it hold nothing but empty core, and its own stack.
+
+## The seed
+
+The seed is a 32-bit number, and it is the only random thing in a battle. The same bots, in the same order, with the same settings and the same seed, give the same battle, write for write, on any machine. That is why a share link carries the seed and not a recording, and why a replay can check its own result (the `verified` chip).
+
+A bot that wins at one seed may lose at the next: placement decides who is close, who is aligned to whose bombs, and who is hit first. So one round proves little. The arena's **seed** setting is random by default, or fixed.
+
+This imp fights the dwarf at seed 1. Open it twice: the battle is the same both times, and the imp wins, as its copies run over the dwarf's code. Change the seed to 20 in the arena setup, and the dwarf wins before cycle 6,500:
+
+```asm run="vs=dwarf seed=1"
+%name "Imp"
+
+start:  call    .here
+.here:  pop     bx
+        sub     bx, .here
+        lea     si, [bx+imp]
+        lea     di, [bx+imp+2]
+
+imp:    movsw
+        nop
+```
+
+## Rounds and matches
+
+A **match** is K rounds. Round i (from 0) uses the seed plus i, and rotates the order of the bots by i, so each bot is placed first in turn. The match score is the sum of the rounds' [points](/docs/machine/scoring). The arena runs 1 to 10 rounds; `test vs` in the editor runs 10.
+
+See also: [memory](/docs/machine/memory), and the [memory model](/docs/reference/memory#placement) in the reference.

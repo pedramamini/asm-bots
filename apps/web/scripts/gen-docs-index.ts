@@ -34,8 +34,8 @@ interface MdNode {
   children?: MdNode[]
 }
 
-/** The blocks whose text is not prose: code, and the diagrams that draw from data. */
-const SKIPPED_ELEMENTS = new Set(['Asm', 'Encoding', 'Flags', 'Fig'])
+/** The blocks whose text is not prose: code, the diagrams that draw from data, and pictures. */
+const SKIPPED_ELEMENTS = new Set(['Asm', 'Encoding', 'Flags', 'Fig', 'Shot'])
 
 /** Nodes whose children run together as one line of text; any other parent spaces them. */
 const PHRASING = new Set([

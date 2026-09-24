@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 548 262" width="548" height="262" font-family="var(--font-mono)" font-size="12">
+  <title>One cycle: each living bot runs the front process of its queue for one instruction, and that process goes to the back; a child from spl queues just ahead of its parent</title>
+  <text x="12" y="18" fill="var(--text-muted)" font-size="11">cycle c: each living bot takes one turn, from bot c mod N</text>
+  <g stroke="var(--border-strong)" fill="var(--panel-2)">
+    <rect x="12" y="28" width="84" height="28" />
+    <rect x="130" y="28" width="84" height="28" />
+    <rect x="248" y="28" width="84" height="28" />
+  </g>
+  <g text-anchor="middle">
+    <text x="54" y="46" fill="var(--bot-0)">bot 0</text>
+    <text x="172" y="46" fill="var(--bot-1)">bot 1</text>
+    <text x="290" y="46" fill="var(--bot-2)">bot 2</text>
+  </g>
+  <g stroke="var(--text-dim)" fill="none">
+    <path d="M100 42h26M120 37l6 5l-6 5" />
+    <path d="M218 42h26M238 37l6 5l-6 5" />
+  </g>
+  <text x="346" y="46" fill="var(--text-dim)" font-size="11">one instruction each</text>
+  <text x="12" y="92" fill="var(--text-muted)" font-size="11">bot 0's turn: the front process runs, then goes to the back</text>
+  <g font-size="11" fill="var(--text-dim)">
+    <text x="12" y="120">front</text>
+    <text x="224" y="120">back</text>
+  </g>
+  <g stroke="var(--border-strong)" fill="var(--panel-2)">
+    <rect x="52" y="102" width="52" height="28" stroke="var(--accent)" />
+    <rect x="104" y="102" width="52" height="28" />
+    <rect x="156" y="102" width="52" height="28" />
+  </g>
+  <g text-anchor="middle">
+    <text x="78" y="120" fill="var(--accent)">p0</text>
+    <text x="130" y="120" fill="var(--text)">p1</text>
+    <text x="182" y="120" fill="var(--text)">p2</text>
+  </g>
+  <path d="M258 116h36M288 111l6 5l-6 5" stroke="var(--text-dim)" fill="none" />
+  <g stroke="var(--border-strong)" fill="var(--panel-2)">
+    <rect x="306" y="102" width="52" height="28" />
+    <rect x="358" y="102" width="52" height="28" />
+    <rect x="410" y="102" width="52" height="28" stroke="var(--accent)" />
+  </g>
+  <g text-anchor="middle">
+    <text x="332" y="120" fill="var(--text)">p1</text>
+    <text x="384" y="120" fill="var(--text)">p2</text>
+    <text x="436" y="120" fill="var(--accent)">p0</text>
+  </g>
+  <text x="306" y="148" fill="var(--text-dim)" font-size="11">p1 runs next turn</text>
+  <text x="12" y="186" fill="var(--text-muted)" font-size="11">if p0 ran spl: the child queues just ahead of p0</text>
+  <path d="M258 214h36M288 209l6 5l-6 5" stroke="var(--text-dim)" fill="none" />
+  <g stroke="var(--border-strong)" fill="var(--panel-2)">
+    <rect x="52" y="200" width="52" height="28" stroke="var(--accent)" />
+    <rect x="104" y="200" width="52" height="28" />
+    <rect x="156" y="200" width="52" height="28" />
+    <rect x="306" y="200" width="52" height="28" />
+    <rect x="358" y="200" width="52" height="28" />
+    <rect x="410" y="200" width="52" height="28" stroke="var(--info)" />
+    <rect x="462" y="200" width="52" height="28" stroke="var(--accent)" />
+  </g>
+  <g text-anchor="middle">
+    <text x="78" y="218" fill="var(--accent)">p0</text>
+    <text x="130" y="218" fill="var(--text)">p1</text>
+    <text x="182" y="218" fill="var(--text)">p2</text>
+    <text x="332" y="218" fill="var(--text)">p1</text>
+    <text x="384" y="218" fill="var(--text)">p2</text>
+    <text x="436" y="218" fill="var(--info)">child</text>
+    <text x="488" y="218" fill="var(--accent)">p0</text>
+  </g>
+  <text x="306" y="246" fill="var(--text-dim)" font-size="11">4 processes, still one turn a cycle</text>
+</svg>

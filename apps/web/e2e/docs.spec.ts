@@ -1,6 +1,7 @@
 /**
  * The docs framework (EXEC 2.6 task 1) against the build: a code block's colors and its links
- * into the editor and the arena, and the full-text search landing on a heading.
+ * into the editor and the arena, the full-text search landing on a heading, and the start page's
+ * screenshots (task 3).
  */
 import { expect, type Page, test } from '@playwright/test'
 
@@ -47,10 +48,26 @@ test('search: a section hit opens the page at its heading', async ({ page }) => 
   await page.keyboard.press('/')
   const search = page.getByRole('searchbox', { name: 'search the docs' })
   await expect(search).toBeFocused()
-  await search.fill('smallest bot')
+  await search.fill('first bot')
   const results = page.getByRole('navigation', { name: 'search results' })
-  await expect(results.getByRole('link').first()).toContainText('start here › The smallest bot')
+  await expect(results.getByRole('link').first()).toContainText('start here › Write your first bot')
   await search.press('Enter')
-  await expect(page).toHaveURL(/\/docs\/start-here#the-smallest-bot$/)
-  await expect(page.getByRole('heading', { level: 2, name: 'The smallest bot' })).toBeInViewport()
+  await expect(page).toHaveURL(/\/docs\/start-here#write-your-first-bot$/)
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Write your first bot' }),
+  ).toBeInViewport()
+})
+
+test("the start page's tour screenshots load from the build", async ({ page }) => {
+  const errors = watch(page)
+  await page.goto('/docs/start-here')
+  const shots = page.getByRole('region', { name: 'start here' }).locator('figure img')
+  await expect(shots).toHaveCount(3)
+  for (const shot of await shots.all()) {
+    await shot.scrollIntoViewIfNeeded()
+    await expect
+      .poll(() => shot.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth))
+      .toBe(1280)
+  }
+  expect(errors).toEqual([])
 })
