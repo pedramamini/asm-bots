@@ -4,16 +4,23 @@
  * runs in the browser, the Worker, and Bun: no Node built-ins.
  */
 export {
+  AssembleRequest,
+  AssembleResult,
   BotDetail,
   BotLabel,
   BotPlacement,
   BotVersionDetail,
+  Diagnostic,
   HillDetail,
   HillList,
   HillStanding,
   HillSummary,
+  MAX_SOURCE_TEXT,
+  MAX_VERIFIED_CYCLES,
   MatchList,
   MatchSummary,
+  ReplayUpload,
+  StoredReplay,
   TournamentDetail,
   TournamentList,
   UserDetail,

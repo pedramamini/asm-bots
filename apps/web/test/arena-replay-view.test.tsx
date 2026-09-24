@@ -30,7 +30,7 @@ import { useArenaView } from '../src/features/arena/battle/view'
 import { ReplayPage } from '../src/features/arena/ReplayPage'
 import type { ArenaClient } from '../src/features/arena/worker/client'
 import type { ArenaBot } from '../src/features/arena/worker/protocol'
-import { answer, refuse, useApiServer, WithQueries } from './api-server'
+import { answer, answerPost, refuse, useApiServer, WithQueries } from './api-server'
 import { stubCanvas } from './fake-canvas'
 import { manualSchedule, type SessionWorker, sessionClient } from './session-worker'
 
@@ -175,6 +175,39 @@ describe('a replay link', () => {
     expect(chip().textContent).toBe('verified')
   })
 
+  it('shares its link as the server stores it, or its own when the server does not', async () => {
+    const writeText = mock((_text: string) => Promise.resolve())
+    const clipboard = Object.getOwnPropertyDescriptor(globalThis.navigator, 'clipboard')
+    Object.defineProperty(globalThis.navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    })
+    try {
+      const replay = await duel()
+      const key = await replayKey(replay)
+      const seen: unknown[] = []
+      const url = `http://localhost/arena/${key}`
+      server.use(answerPost('/replays', { key, url }, 201, seen))
+      const { client } = await renderReplay(replay)
+      client.seek(100_000)
+      await settle()
+      const victory = await screen.findByRole('region', { name: 'winner · Dwarf' })
+      fireEvent.click(within(victory).getByRole('button', { name: 'share' }))
+      await screen.findByText('replay link copied.')
+      expect(seen).toEqual([{ replay }])
+      expect(writeText).toHaveBeenLastCalledWith(url)
+
+      const refusal = { error: { code: 'unprocessable', message: 'no' } }
+      server.use(answerPost('/replays', refusal, 422))
+      fireEvent.click(within(victory).getByRole('button', { name: 'share' }))
+      await waitFor(() => expect(writeText).toHaveBeenCalledTimes(2))
+      expect(writeText).toHaveBeenLastCalledWith(replayUrl('http://localhost', replay))
+    } finally {
+      if (clipboard === undefined) Reflect.deleteProperty(globalThis.navigator, 'clipboard')
+      else Object.defineProperty(globalThis.navigator, 'clipboard', clipboard)
+    }
+  })
+
   it('shares its own link, and saves the replay as it came', async () => {
     const writeText = mock((_text: string) => Promise.resolve())
     const clipboard = Object.getOwnPropertyDescriptor(globalThis.navigator, 'clipboard')
@@ -196,6 +229,7 @@ describe('a replay link', () => {
     }
     try {
       const replay = await duel()
+      server.use(answerPost('/replays', { error: { code: 'internal', message: 'down' } }, 500))
       const { client } = await renderReplay(replay)
       client.seek(100_000)
       await settle()

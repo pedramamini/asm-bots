@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { isNotFound } from '../../api/client'
 import { useReplay } from '../../api/queries'
+import { storeReplay } from '../../api/writes'
 import { Placeholder } from '../../app/Placeholder'
 import { ArenaBattle } from './ArenaBattle'
 import { downloadBlob, replayName } from './battle/files'
@@ -37,9 +38,10 @@ const OPEN_ARENA = { label: 'open the arena', to: '/arena' } as const
  * the link's fragment, `#r=` (`battle/replay.ts`), or, for a link with none whose id is a replay
  * key (a SHA-256), from the server's store (`GET /api/replays/:key`); it loads and plays at once. Its check's chip
  * says `verifying` until the rounds end, then `verified` when each round's result hash equals the
- * recorded one, or `mismatch` (`battle/verify.ts`). `share` copies the replay's link (a stored
- * replay's is its page alone), `download replay` saves the replay as it came, and `setup` goes to
- * the arena's setup.
+ * recorded one, or `mismatch` (`battle/verify.ts`). `share` copies the replay's link: a stored
+ * replay's is its page alone; a linked one is stored first (`POST /api/replays`) for the same short
+ * link, or keeps its `#r=` link when the server does not take it. `download replay` saves the
+ * replay as it came, and `setup` goes to the arena's setup.
  */
 export function ReplayPage({ replayId, createClient = () => new ArenaClient() }: ReplayPageProps) {
   const hash = useLocation({ select: (location) => location.hash })
@@ -150,6 +152,18 @@ export function ReplayPage({ replayId, createClient = () => new ArenaClient() }:
     session.client.play()
   }
 
+  const share = async () => {
+    const origin = window.location.origin
+    const key =
+      stored ??
+      (await storeReplay(loaded).then(
+        (answer) => answer.key,
+        () => null,
+      ))
+    const url = key === null ? replayUrl(origin, loaded) : `${origin}/arena/${key}`
+    await copyLink(url, toast, 'replay link copied.')
+  }
+
   const download = () => {
     const blob = new Blob([`${JSON.stringify(loaded, null, 2)}\n`], { type: 'application/json' })
     downloadBlob(
@@ -170,14 +184,7 @@ export function ReplayPage({ replayId, createClient = () => new ArenaClient() }:
       onRematch={rematch}
       replay={{
         check: checkReplay(loaded, run, bytes),
-        onShare: () =>
-          void copyLink(
-            stored === null
-              ? replayUrl(window.location.origin, loaded)
-              : `${window.location.origin}/arena/${stored}`,
-            toast,
-            'replay link copied.',
-          ),
+        onShare: () => void share(),
         onDownload: download,
       }}
     />

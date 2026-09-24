@@ -17,12 +17,14 @@
     "@asmbots/engine": "workspace:*",
     "@asmbots/protocol": "workspace:*",
     "@asmbots/tourney": "workspace:*",
+    "@asmbots/ui": "workspace:*",
     "hono": "4.13.9"
   },
   "devDependencies": {
     "@asmbots/bots": "workspace:*",
     "@cloudflare/vitest-pool-workers": "0.22.0",
     "@cloudflare/workers-types": "5.20260924.1",
+    "saxes": "6.0.0",
     "vitest": "4.1.11",
     "wrangler": "4.137.0"
   }

@@ -8,6 +8,7 @@ import { scheduled } from './cron'
 import type { AppEnv, Env } from './env'
 import { appCors, errorResponse, onError, requestLog } from './middleware'
 import { rateLimit, WRITE_LIMIT } from './rate-limit'
+import { assembler } from './routes/assemble'
 import { bots } from './routes/bots'
 import { health } from './routes/health'
 import { hills } from './routes/hills'
@@ -25,6 +26,7 @@ app.on(['POST', 'PUT', 'PATCH', 'DELETE'], '/api/*', rateLimit(WRITE_LIMIT))
 
 app.route('/api/health', health)
 app.route('/api/version', version)
+app.route('/api/assemble', assembler)
 app.route('/api/bots', bots)
 app.route('/api/hills', hills)
 app.route('/api/replays', replays)

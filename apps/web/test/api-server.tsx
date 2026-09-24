@@ -27,6 +27,14 @@ export function refuse(path: string, status: number, code: string, message: stri
   return answer(path, { error: { code, message } }, status)
 }
 
+/** `POST /api<path>` answers `body` as JSON, and puts each request's JSON body in `seen`. */
+export function answerPost(path: string, body: unknown, status = 200, seen: unknown[] = []) {
+  return http.post(`*/api${path}`, async ({ request }) => {
+    seen.push(await request.json())
+    return HttpResponse.json(body as object, { status })
+  })
+}
+
 /** `GET /api<path>` never answers: the page stays loading. */
 export function hang(path: string) {
   return http.get(`*/api${path}`, () => new Promise<never>(() => {}))

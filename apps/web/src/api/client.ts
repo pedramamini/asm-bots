@@ -1,7 +1,7 @@
 /**
- * The API's client: `GET /api/...` on the page's own origin (in dev, Vite proxies it to `wrangler
- * dev`). A response is read through its protocol schema, so a page gets typed records or an error
- * that says what went wrong.
+ * The API's client: `GET` and `POST /api/...` on the page's own origin (in dev, Vite proxies it to
+ * `wrangler dev`). A response is read through its protocol schema, so a page gets typed records or
+ * an error that says what went wrong.
  */
 import { ApiError, ProtocolError } from '@asmbots/protocol'
 
@@ -25,17 +25,38 @@ export function apiUrl(path: string): string {
 }
 
 /** `GET /api<path>`, its JSON body as `read` takes it. */
-export async function apiGet<T>(
+export function apiGet<T>(
   path: string,
   read: (value: unknown) => T,
   signal?: AbortSignal,
 ): Promise<T> {
+  return request(path, { headers: { Accept: 'application/json' } }, read, signal)
+}
+
+/** `POST /api<path>` with `body` as JSON, its JSON answer as `read` takes it. */
+export function apiPost<T>(
+  path: string,
+  body: unknown,
+  read: (value: unknown) => T,
+  signal?: AbortSignal,
+): Promise<T> {
+  const init = {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }
+  return request(path, init, read, signal)
+}
+
+async function request<T>(
+  path: string,
+  init: RequestInit,
+  read: (value: unknown) => T,
+  signal: AbortSignal | undefined,
+): Promise<T> {
   let res: Response
   try {
-    res = await fetch(apiUrl(path), {
-      headers: { Accept: 'application/json' },
-      signal: signal ?? null,
-    })
+    res = await fetch(apiUrl(path), { ...init, signal: signal ?? null })
   } catch (error) {
     if (signal?.aborted) throw error
     throw new ApiRequestError(0, 'network', 'the server did not answer.')
