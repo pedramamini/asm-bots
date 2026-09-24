@@ -23,7 +23,12 @@ import { ogCacheKey, replayObjectKey } from '../src/storage'
 
 const worker = exports.default
 
-function post(path: string, body: unknown, ip = '192.0.2.1'): Promise<Response> {
+/** A fresh client IP, so the per-IP rate limits count each request apart. */
+function someIp(): string {
+  return `10.${[0, 0, 0].map(() => Math.floor(Math.random() * 256)).join('.')}`
+}
+
+function post(path: string, body: unknown, ip = someIp()): Promise<Response> {
   return worker.fetch(
     new Request(`https://asmbots.test${path}`, {
       method: 'POST',
@@ -134,9 +139,10 @@ describe('POST /api/assemble', () => {
     })
   })
 
-  it('is rate limited as a write', async () => {
-    const res = await post('/api/assemble', { source: SPIN }, '192.0.2.99')
-    expect(res.headers.get('X-RateLimit-Limit')).toBe('60')
+  it('is rate limited at 30 a minute', async () => {
+    const res = await post('/api/assemble', { source: SPIN })
+    expect(res.headers.get('X-RateLimit-Limit')).toBe('30')
+    expect(res.headers.get('X-RateLimit-Remaining')).toBe('29')
   })
 })
 

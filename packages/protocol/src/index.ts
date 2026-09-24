@@ -6,6 +6,10 @@
 export {
   AssembleRequest,
   AssembleResult,
+  AUDIT_ACTIONS,
+  AuditAction,
+  AuditEntry,
+  AuditList,
   BotDetail,
   BotLabel,
   BotPlacement,
@@ -61,6 +65,7 @@ export {
 export {
   Bot,
   BotVersion,
+  DELETED_HANDLE,
   Handle,
   Hill,
   HillEntry,

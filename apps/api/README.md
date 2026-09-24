@@ -40,7 +40,7 @@ Copy `.dev.vars.example` to `.dev.vars` (git-ignored) for `wrangler dev`. Produc
 | `ASSETS` | Static assets | `../web/dist` | The SPA; unknown paths get `index.html`, except `/api/*` (`run_worker_first`) |
 | `DB` | D1 | `asmbots` | Users, bots, versions, hills, tournaments, matches (`src/db/migrations`) |
 | `REPLAYS` | R2 | `asmbots-replays` | Replays at `replays/<key>.json`, bot binaries; content-addressed |
-| `KV` | KV | `asmbots-kv` | Sessions (`sess:<id>`, 30 days), rate-limit counters, OG image cache (`og:<key>`, 1 day) |
+| `KV` | KV | `asmbots-kv` | Sessions (`sess:<id>`, 30 days, and `usess:<user>:<id>` beside each so a user's sessions list by prefix), rate-limit counters (`rl:<scope>:<client>:<window>`), OG image cache (`og:<key>`, 1 day) |
 | `RUNNER` | Durable Object | `Runner` | Tournament and hill runs (stub until EXEC 3.3) |
 | `LIVE_ROOM` | Durable Object | `LiveRoom` | Live match WebSocket room (stub until EXEC 3.3) |
 | `ISA_VERSION` | var | `x16c-v1` | The ISA the hills run |
@@ -62,7 +62,19 @@ A new migration is the next `src/db/migrations/NNNN_name.sql`; never edit one th
 
 ## Routes
 
-Every error is the protocol shape `{ error: { code, message } }` with an `X-Request-Id` header. Write routes (`POST`, `PUT`, `PATCH`, `DELETE`) are rate limited to 60 requests a minute per IP (KV).
+Every error is the protocol shape `{ error: { code, message } }` with an `X-Request-Id` header.
+
+Rate limits (`src/rate-limit.ts`, fixed one-minute windows in KV) count a signed-in user by user id and anyone else by IP. Past one, the answer is 429 `rate_limited` with `Retry-After`; every limited answer carries `X-RateLimit-Limit` and `X-RateLimit-Remaining` (the tightest limit's).
+
+| Requests | Per minute |
+| --- | --- |
+| Every write (`POST`, `PUT`, `PATCH`, `DELETE`) | 60 |
+| `POST /api/assemble` | 30 |
+| `POST /api/bots` and every `POST` under it (import, versions) | 20 |
+| `POST /api/replays` | 10 |
+| Every `/api/auth/*` request, reads too (a sign-in is two) | 10 |
+
+The audit log (D1 `audit`: `id, user_id, action, target, at`) gets a row in the same batch as each change: `bot.create` (per imported bot too), `bot.update`, `bot.version` (target `<bot id>/v<n>`; a save of the same bytes makes none), `bot.delete`. `hill.submit` and `tournament.create` are in the protocol's `AUDIT_ACTIONS` for EXEC 3.3's routes (`auditInsert` in `src/db/queries.ts`).
 
 ### Sign-in and sessions (`src/auth`)
 
@@ -83,8 +95,10 @@ Test sign-in: with the var `DEV_FAKE_AUTH=1` (`wrangler dev --var DEV_FAKE_AUTH:
 | `GET /api/auth/github/callback` | Checks the state, trades the code, makes or refreshes the user by `github_id` (first handle: the login, else login plus a suffix), starts a session, 302 to `returnTo` or `/?signed-in=1`; 400 on a bad state or code |
 | `POST /api/auth/logout` | Ends the session (KV and cookie); 204 |
 | `GET /api/me` | `{ user, onboarded }` for the signed-in user; 401 otherwise. `onboarded` is false until the user picks a handle |
-| `PATCH /api/me` | `{ handle }`: 3..24 of `[a-z0-9-]`, lowercased, no hyphen first, last, or doubled, not reserved (`admin api system roster docs hills arena`), 400 otherwise; 409 when someone has it in any case. Marks the user onboarded → `{ user, onboarded }` |
+| `PATCH /api/me` | `{ handle }`: 3..24 of `[a-z0-9-]`, lowercased, no hyphen first, last, or doubled, not reserved (`admin api system roster docs hills arena deleted`), 400 otherwise; 409 when someone has it in any case. Marks the user onboarded → `{ user, onboarded }` |
 | `GET /api/me/bots` | `{ bots: [{ bot, latest }] }`: the signed-in user's bots, every visibility, the latest change first; `latest` is the newest version without its source |
+| `GET /api/me/audit?limit=` | `{ entries: [{ id, action, target, at }] }`: the signed-in user's audit log, newest first; `limit` 1..100, 50 by default |
+| `DELETE /api/me` | Deletes the signed-in account in one D1 batch, then every session it has (KV) → 204. Its bots go with their versions, but a bot with a version on a hill or in a tournament stays so standings keep their shape: owned by the reserved user `deleted`, named and authored `[deleted]`, its sources blanked, 404 to all. Draft tournaments go; others pass to `deleted`. The audit log goes. The GitHub account can sign up again as a new user |
 | `GET /api/version` | `{ version, isa, live }` (`live`: the `LiveRoom` protocol version) |
 | `POST /api/assemble` | `{ source }` → `{ bytes, size, diagnostics, sha256 }`; `bytes: null` when the source has errors |
 | `POST /api/bots` | `{ name, source, visibility? }`, signed in: assembled here (422 with the first error when it does not), made a bot at version 1 (private by default, bytes in R2) → 201 `{ bot, version }`. 409 past 200 bots an account (deleted ones do not count) |
@@ -99,7 +113,7 @@ Test sign-in: with the var `DEV_FAKE_AUTH=1` (`wrangler dev --var DEV_FAKE_AUTH:
 | `GET /api/hills/:slug/matches?bot=&limit=` | Its finished matches, newest first |
 | `GET /api/tournaments` | Running first, then by start time |
 | `GET /api/tournaments/:id` | The tournament, its entrants, and its matches; a draft is 404 to all but its owner |
-| `GET /api/users/:handle` | The user (any case) and their public bots (all of them for the user themself), their best place on each hill, and their results in finished championships (W/T/L, and `champion` when they won the last match) |
+| `GET /api/users/:handle` | 404 for `deleted`. The user (any case) and their public bots (all of them for the user themself), their best place on each hill, and their results in finished championships (W/T/L, and `champion` when they won the last match) |
 | `POST /api/replays` | `{ replay }`: re-simulated (≤ 16 bots, ≤ 10 rounds, ≤ 200k cycles, else 413), result hash checked (422 on a mismatch), stored in R2 → `{ key, url }` |
 | `GET /api/replays/:key` | The stored protocol `Replay` |
 | `GET /api/replays/:key/og.svg` | The replay's Open Graph image (SVG), cached a day in KV |

@@ -53,6 +53,11 @@ export function deleteBot(id: string): Promise<void> {
   return apiDelete(`/bots/${segment(id)}`)
 }
 
+/** `DELETE /api/me`: deletes the account, its cloud bots, and every session it has. */
+export function deleteAccount(): Promise<void> {
+  return apiDelete('/me')
+}
+
 /** `POST /api/auth/logout`: ends the session here and on the server. */
 export async function signOut(): Promise<void> {
   await apiPost('/auth/logout', {}, () => undefined)

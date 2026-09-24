@@ -3,24 +3,27 @@
  * each `to*` maps one to its protocol record (camelCase, `_json` columns parsed). The rows are
  * ours, so the mappers trust them rather than parse them again.
  */
-import type {
-  Bot,
-  BotLabel,
-  BotPlacement,
-  BotVersion,
-  ChampionshipResult,
-  Hill,
-  HillBest,
-  HillEntry,
-  HillStanding,
-  HillSummary,
-  Match,
-  MatchOutcome,
-  MyBot,
-  ReplayConfig,
-  Tournament,
-  TournamentConfig,
-  User,
+import {
+  type AuditAction,
+  type AuditEntry,
+  type Bot,
+  type BotLabel,
+  type BotPlacement,
+  type BotVersion,
+  type ChampionshipResult,
+  DELETED_HANDLE,
+  type Hill,
+  type HillBest,
+  type HillEntry,
+  type HillStanding,
+  type HillSummary,
+  type Match,
+  type MatchOutcome,
+  type MyBot,
+  type ReplayConfig,
+  type Tournament,
+  type TournamentConfig,
+  type User,
 } from '@asmbots/protocol'
 
 export interface UserRow {
@@ -678,4 +681,86 @@ export async function listTournamentMatches(
     .bind(tournamentId)
     .all<MatchRow>()
   return results.map(toMatch)
+}
+
+export interface AuditRow {
+  id: string
+  user_id: string
+  action: AuditAction
+  target: string
+  at: string
+}
+
+/** The statement that records `action` on `target` by `userId`; batch it with the change. */
+export function auditInsert(
+  db: D1Database,
+  userId: string,
+  action: AuditAction,
+  target: string,
+): D1PreparedStatement {
+  return db
+    .prepare('INSERT INTO audit (id, user_id, action, target) VALUES (?, ?, ?, ?)')
+    .bind(crypto.randomUUID(), userId, action, target)
+}
+
+/** The latest `limit` changes of `userId`, newest first. */
+export async function listAudit(
+  db: D1Database,
+  userId: string,
+  limit: number,
+): Promise<AuditEntry[]> {
+  const { results } = await db
+    .prepare('SELECT * FROM audit WHERE user_id = ? ORDER BY at DESC, rowid DESC LIMIT ?')
+    .bind(userId, limit)
+    .all<AuditRow>()
+  return results.map((row) => ({ id: row.id, action: row.action, target: row.target, at: row.at }))
+}
+
+/** The user that owns what deleted accounts leave on hills and in tournaments. */
+export const DELETED_USER = { id: 'deleted', handle: DELETED_HANDLE } as const
+
+/** What a deleted account leaves behind in place of a name, an author, and a source. */
+const GONE = '[deleted]'
+
+/** A bot of `?1` with a version on a hill or in a tournament: it stays, anonymized. */
+const KEPT_BOT = `owner_id = ?1 AND id IN (
+  SELECT v.bot_id FROM bot_versions v
+  WHERE v.id IN (SELECT bot_version_id FROM hill_entries)
+     OR v.id IN (SELECT bot_version_id FROM tournament_entries))`
+
+/**
+ * Deletes user `userId` in one batch (a transaction). Their bots are hard-deleted with their
+ * versions, but for bots with a version on a hill or in a tournament: those stay, so standings and
+ * brackets keep their shape, owned by `DELETED_USER`, named and authored `[deleted]`, with no
+ * source, and deleted (404 to all). Their draft tournaments go; the others pass to `DELETED_USER`.
+ * Their audit rows go with them (cascade). Sessions are in KV: the caller ends them. False when
+ * there was no such user.
+ */
+export async function deleteAccount(db: D1Database, userId: string): Promise<boolean> {
+  const now = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')"
+  const results = await db.batch([
+    db
+      .prepare('INSERT OR IGNORE INTO users (id, handle) VALUES (?, ?)')
+      .bind(DELETED_USER.id, DELETED_USER.handle),
+    db
+      .prepare(
+        `UPDATE bot_versions SET source = '', author = ?2, strategy = NULL
+         WHERE bot_id IN (SELECT id FROM bots WHERE ${KEPT_BOT})`,
+      )
+      .bind(userId, GONE),
+    db
+      .prepare(
+        `UPDATE bots SET owner_id = ?2, slug = id, name = ?3, visibility = 'private',
+           updated_at = ${now}, deleted_at = COALESCE(deleted_at, ${now})
+         WHERE ${KEPT_BOT}`,
+      )
+      .bind(userId, DELETED_USER.id, GONE),
+    db.prepare('DELETE FROM bots WHERE owner_id = ?').bind(userId),
+    db.prepare("DELETE FROM tournaments WHERE owner_id = ? AND status = 'draft'").bind(userId),
+    db
+      .prepare('UPDATE tournaments SET owner_id = ? WHERE owner_id = ?')
+      .bind(DELETED_USER.id, userId),
+    db.prepare('DELETE FROM users WHERE id = ?').bind(userId),
+  ])
+  return (results.at(-1)?.meta.changes ?? 0) > 0
 }

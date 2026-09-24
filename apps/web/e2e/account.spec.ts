@@ -110,3 +110,33 @@ test('saves a bot in the account: v1, the same bytes again, v2, and the bot page
   await expect(page.getByRole('button', { name: 'fork' })).toBeEnabled()
   expect(errors).toEqual([])
 })
+
+test('deletes the account from settings: signed out, the profile gone', async ({ page }) => {
+  const errors = watch(page)
+  const login = `e2e-${Date.now().toString(36)}-d`
+  await page.route('**/api/auth/github?*', (route) =>
+    route.continue({ url: `${route.request().url()}&as=${login}` }),
+  )
+  await page.goto('/settings')
+  await page.getByRole('button', { name: 'sign in with github' }).first().click()
+  const pick = page.getByRole('dialog', { name: 'pick a handle' })
+  await pick.getByRole('button', { name: 'continue' }).click()
+  await expect(pick).toBeHidden()
+
+  const account = page.getByRole('region', { name: 'account' })
+  await expect(account).toContainText('github: linked')
+  await account.getByRole('button', { name: 'delete account' }).click()
+  const confirm = page.getByRole('dialog', { name: 'delete account' })
+  await expect(confirm.getByRole('button', { name: 'delete' })).toBeDisabled()
+  await confirm.getByRole('textbox', { name: 'your handle' }).fill(login)
+  await confirm.getByRole('button', { name: 'delete' }).click()
+  await expect(page.getByText('account deleted.')).toBeVisible()
+  await expect(account).toContainText('signed out')
+
+  // The session is gone on the server too: a reload stays signed out.
+  await page.reload()
+  await expect(page.getByRole('region', { name: 'account' })).toContainText('signed out')
+  const profile = await page.request.get(`/api/users/${login}`)
+  expect(profile.status()).toBe(404)
+  expect(errors).toEqual([])
+})

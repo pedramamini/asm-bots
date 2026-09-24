@@ -22,7 +22,11 @@ export const RESERVED_HANDLES: ReadonlySet<string> = new Set([
   'docs',
   'hills',
   'arena',
+  'deleted',
 ])
+
+/** The owner of the bots a deleted account leaves on hills (`DELETE /api/me`); no one signs in as it. */
+export const DELETED_HANDLE = 'deleted'
 
 /** A handle a user picks: 3..24 of `[a-z0-9-]`, no hyphen first, last, or doubled. */
 const ACCOUNT_HANDLE = /^[a-z0-9](?:[a-z0-9]|-(?=[a-z0-9])){2,23}$/

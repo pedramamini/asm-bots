@@ -29,6 +29,11 @@ export function authorOf(bot: BotLabel): string {
 
 export const count = (n: number) => n.toLocaleString('en-US')
 
+/** `1 bot`, `3 bots`. */
+export function plural(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? '' : 's'}`
+}
+
 /** `100k`, `50k`, `1,500`. */
 export function short(n: number): string {
   return n >= 10_000 && n % 1000 === 0 ? `${n / 1000}k` : count(n)

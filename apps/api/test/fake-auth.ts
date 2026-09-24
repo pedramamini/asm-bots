@@ -30,7 +30,7 @@ export async function send(
   path: string,
   { method = 'GET', body, site = LOCAL, vars = FAKE }: Send = {},
 ): Promise<Response> {
-  const headers = new Headers({ Cookie: jar.header() })
+  const headers = new Headers({ Cookie: jar.header(), 'CF-Connecting-IP': jar.ip })
   if (method !== 'GET') headers.set('Origin', site)
   if (body !== undefined) headers.set('Content-Type', 'application/json')
   const init = { method, headers, redirect: 'manual' as const }

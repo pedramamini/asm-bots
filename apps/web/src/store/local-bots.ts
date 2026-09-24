@@ -73,6 +73,15 @@ export async function markLocalBotsSynced(cloudIds: ReadonlyMap<string, string>)
   }
 }
 
+/** Forgets every local bot's link to the account (a deleted account): each is local only again. */
+export async function unlinkLocalBots(): Promise<void> {
+  for (const bot of await listLocalBots()) {
+    if (bot.cloudId === undefined) continue
+    const { cloudId: _, ...local } = bot
+    await set(bot.id, local, botStore())
+  }
+}
+
 /** Deletes a bot and its saved versions. */
 export async function deleteLocalBot(id: string): Promise<void> {
   await del(id, botStore())

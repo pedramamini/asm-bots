@@ -270,3 +270,31 @@ export type ImportedBot = z.output<typeof ImportedBot>
 /** `POST /api/bots/import`: one result per bot, in the request's order. */
 export const ImportBotsResult = z.object({ results: z.array(ImportedBot) })
 export type ImportBotsResult = z.output<typeof ImportBotsResult>
+
+/** What the audit log records, one row per change a user makes. */
+export const AUDIT_ACTIONS = [
+  'bot.create',
+  'bot.update',
+  'bot.version',
+  'bot.delete',
+  'hill.submit',
+  'tournament.create',
+] as const
+export const AuditAction = z.enum(AUDIT_ACTIONS)
+export type AuditAction = z.output<typeof AuditAction>
+
+/**
+ * One change the user made: `target` is what it changed, a bot id for `bot.*` (`<bot id>/v<n>`
+ * for `bot.version`), a submission id for `hill.submit`, a tournament id for `tournament.create`.
+ */
+export const AuditEntry = z.object({
+  id: Id,
+  action: AuditAction,
+  target: z.string(),
+  at: Timestamp,
+})
+export type AuditEntry = z.output<typeof AuditEntry>
+
+/** `GET /api/me/audit?limit=`: the signed-in user's changes, newest first. */
+export const AuditList = z.object({ entries: z.array(AuditEntry) })
+export type AuditList = z.output<typeof AuditList>

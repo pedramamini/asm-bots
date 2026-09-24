@@ -1,5 +1,7 @@
+import { handleProblem, type Me } from '@asmbots/protocol'
 import {
   Button,
+  Input,
   KeyHelp,
   Modal,
   Panel,
@@ -11,12 +13,23 @@ import {
   vars,
 } from '@asmbots/ui'
 import { applyTheme, THEMES, type Theme } from '@asmbots/ui/themes'
-import { Download, LogOut, Trash2, Upload } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { Download, LogOut, Trash2, Upload, UserX } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { useMe } from '../api/queries'
-import { SignInButton, useSignOut } from '../features/account/AccountSlot'
-import { UserLink } from '../features/hills/links'
-import { botsToZip, type LocalBot, useLocalBotActions, useLocalBots } from '../store/local-bots'
+import { ApiRequestError } from '../api/client'
+import { useMe, useMyBots } from '../api/queries'
+import { deleteAccount, updateMe } from '../api/writes'
+import { forgetAccount, SignInButton, useSignOut } from '../features/account/AccountSlot'
+import { HandleField } from '../features/account/HandleField'
+import { plural, UserLink } from '../features/hills/links'
+import {
+  botsToZip,
+  LOCAL_BOTS_KEY,
+  type LocalBot,
+  unlinkLocalBots,
+  useLocalBotActions,
+  useLocalBots,
+} from '../store/local-bots'
 import {
   type ArenaEffects,
   MOTION_PREFERENCES,
@@ -187,33 +200,179 @@ function SoundPanel() {
 function AccountPanel() {
   const { data: me } = useMe()
   const signOut = useSignOut()
+  const [deleting, setDeleting] = useState(false)
   return (
     <Panel
       className="col-span-12 lg:col-span-6"
       title="account"
       status={me ? `signed in: ${me.user.handle}` : 'signed out'}
     >
-      <div className="flex flex-col items-start gap-3">
-        {me ? (
-          <>
-            <p className="text-muted">
-              signed in with github as <UserLink handle={me.user.handle} />. local bots stay in this
-              browser too.
-            </p>
+      {me ? (
+        <div className="flex flex-col items-start gap-3">
+          <p className="text-muted">
+            github: <span className="text-accent">linked</span>. signed in as{' '}
+            <UserLink handle={me.user.handle} />. local bots stay in this browser too.
+          </p>
+          <HandleForm key={me.user.handle} me={me} />
+          <div className="flex flex-wrap gap-2">
             <Button icon={LogOut} onClick={() => void signOut()}>
               sign out
             </Button>
-          </>
-        ) : (
-          <>
-            <p className="text-muted">
-              signed out. local bots stay in this browser; sign in to keep them in the cloud.
-            </p>
-            <SignInButton />
-          </>
-        )}
-      </div>
+            <Button icon={UserX} variant="danger" onClick={() => setDeleting(true)}>
+              delete account
+            </Button>
+          </div>
+          {deleting && <DeleteAccount me={me} onClose={() => setDeleting(false)} />}
+        </div>
+      ) : (
+        <div className="flex flex-col items-start gap-3">
+          <p className="text-muted">
+            signed out. local bots stay in this browser; sign in to keep them in the cloud.
+          </p>
+          <SignInButton />
+        </div>
+      )}
     </Panel>
+  )
+}
+
+/** The handle, editable: `PATCH /api/me`, checked as it is typed and refused by the API if taken. */
+function HandleForm({ me }: { me: Me }) {
+  const client = useQueryClient()
+  const { toast } = useToast()
+  const [handle, setHandle] = useState(me.user.handle)
+  const [refused, setRefused] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const changed = handle !== me.user.handle
+  const problem = changed ? (handleProblem(handle) ?? refused) : null
+
+  const save = async () => {
+    if (!changed || handleProblem(handle) !== null || saving) return
+    setSaving(true)
+    try {
+      const next = await updateMe({ handle })
+      client.setQueryData(['me'], next)
+      await client.invalidateQueries({ queryKey: ['users'] })
+      toast(`your handle is ${next.user.handle}.`)
+    } catch (error) {
+      setRefused(error instanceof ApiRequestError ? error.message : 'could not save: try again')
+    }
+    setSaving(false)
+  }
+
+  return (
+    <form
+      className="flex w-full max-w-sm flex-col gap-1"
+      onSubmit={(event) => {
+        event.preventDefault()
+        void save()
+      }}
+    >
+      <span className="text-panel-status text-muted">handle</span>
+      <div className="flex items-start gap-2">
+        <div className="flex flex-1 flex-col gap-1">
+          <HandleField
+            id="settings-handle-problem"
+            value={handle}
+            problem={problem}
+            onChange={(next) => {
+              setHandle(next)
+              setRefused(null)
+            }}
+          />
+        </div>
+        <Button
+          type="submit"
+          loading={saving}
+          disabled={!changed || handleProblem(handle) !== null}
+        >
+          save
+        </Button>
+      </div>
+    </form>
+  )
+}
+
+/**
+ * The confirm step of `delete account`: the user types their handle. The API deletes the account,
+ * its cloud bots (those on hills stay there as `[deleted]`), and every session; the local bots
+ * stay, no longer linked.
+ */
+function DeleteAccount({ me, onClose }: { me: Me; onClose: () => void }) {
+  const client = useQueryClient()
+  const { toast } = useToast()
+  const { data: bots } = useMyBots()
+  const [typed, setTyped] = useState('')
+  const [busy, setBusy] = useState(false)
+  const { handle } = me.user
+  const cloud = bots === undefined ? 'your cloud bots' : plural(bots.bots.length, 'cloud bot')
+
+  const run = async () => {
+    if (typed !== handle || busy) return
+    setBusy(true)
+    try {
+      await deleteAccount()
+    } catch (error) {
+      const why = error instanceof ApiRequestError ? error.message : 'the server did not answer'
+      toast(`could not delete the account: ${why}.`, { variant: 'danger' })
+      setBusy(false)
+      return
+    }
+    await unlinkLocalBots()
+    await client.invalidateQueries({ queryKey: LOCAL_BOTS_KEY })
+    await forgetAccount(client)
+    toast('account deleted.')
+    onClose()
+  }
+
+  return (
+    <Modal
+      open
+      onClose={busy ? () => {} : onClose}
+      title="delete account"
+      size="sm"
+      actions={
+        <>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>
+            cancel
+          </Button>
+          <Button
+            type="submit"
+            form="delete-account"
+            variant="danger"
+            loading={busy}
+            disabled={typed !== handle}
+          >
+            delete
+          </Button>
+        </>
+      }
+    >
+      <form
+        id="delete-account"
+        className="flex flex-col gap-2"
+        onSubmit={(event) => {
+          event.preventDefault()
+          void run()
+        }}
+      >
+        <p>
+          deletes <b>{handle}</b>, {cloud}, and every session. bots on a hill stay there as
+          [deleted]. local bots stay in this browser.
+        </p>
+        <p className="text-muted">
+          type <b>{handle}</b> to confirm.
+        </p>
+        <Input
+          aria-label="your handle"
+          autoFocus
+          autoComplete="off"
+          spellCheck={false}
+          value={typed}
+          onChange={(event) => setTyped(event.currentTarget.value)}
+        />
+      </form>
+    </Modal>
   )
 }
 

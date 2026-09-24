@@ -71,7 +71,11 @@ async function send(
   path: string,
   { method = 'GET', origin }: { method?: string; origin?: string } = {},
 ): Promise<Response> {
-  const headers = new Headers({ Cookie: jar.header(), 'User-Agent': 'auth-test' })
+  const headers = new Headers({
+    Cookie: jar.header(),
+    'User-Agent': 'auth-test',
+    'CF-Connecting-IP': jar.ip,
+  })
   if (origin) headers.set('Origin', origin)
   const request = new Request(`${SITE}${path}`, { method, headers, redirect: 'manual' })
   const res = await worker.fetch(request)

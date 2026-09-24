@@ -9,7 +9,14 @@ import { loadSession, sameOrigin } from './auth/session'
 import { scheduled } from './cron'
 import type { AppEnv, Env } from './env'
 import { appCors, errorResponse, onError, requestLog } from './middleware'
-import { rateLimit, WRITE_LIMIT } from './rate-limit'
+import {
+  ASSEMBLE_LIMIT,
+  AUTH_LIMIT,
+  BOTS_LIMIT,
+  REPLAYS_LIMIT,
+  rateLimit,
+  WRITE_LIMIT,
+} from './rate-limit'
 import { assembler } from './routes/assemble'
 import { bots } from './routes/bots'
 import { health } from './routes/health'
@@ -25,8 +32,15 @@ const app = new Hono<AppEnv>()
 app.use(requestId())
 app.use(requestLog)
 app.use('/api/*', appCors)
-app.on(['POST', 'PUT', 'PATCH', 'DELETE'], '/api/*', sameOrigin, rateLimit(WRITE_LIMIT))
+app.on(['POST', 'PUT', 'PATCH', 'DELETE'], '/api/*', sameOrigin)
+// The session before the limits: they count a signed-in user's requests by user, not by IP.
 app.use('/api/*', loadSession)
+app.on(['POST', 'PUT', 'PATCH', 'DELETE'], '/api/*', rateLimit(WRITE_LIMIT))
+app.use('/api/auth/*', rateLimit(AUTH_LIMIT))
+app.post('/api/assemble', rateLimit(ASSEMBLE_LIMIT))
+// `/api/bots/*` covers `/api/bots` too: a second pattern for it would count each request twice.
+app.post('/api/bots/*', rateLimit(BOTS_LIMIT))
+app.post('/api/replays', rateLimit(REPLAYS_LIMIT))
 
 app.route('/api/health', health)
 app.route('/api/version', version)

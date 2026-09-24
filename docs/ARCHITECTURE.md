@@ -157,6 +157,7 @@ tournaments(id, slug, name, kind, status, config_json, bracket_json, owner_id, s
 tournament_entries(tournament_id, bot_version_id, seed)
 matches(id, tournament_id, hill_id, a_version_id, b_version_id, participants_json, rounds, seed, result_json, replay_key, finished_at)
 ratings(bot_version_id, hill_id, rating, rd, volatility, updated_at)
+audit(id, user_id, action, target, at)                                     -- action: protocol AUDIT_ACTIONS
 ```
 
 ## 8. CLI (apps/cli)

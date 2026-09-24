@@ -48,6 +48,37 @@ export function sessionKey(id: string): string {
   return `sess:${id}`
 }
 
+/**
+ * Beside each session, an empty key per user that names it, so `endAllSessions` can find a user's
+ * sessions by prefix. It lives as long as the session.
+ */
+function userSessionKey(userId: string, id: string): string {
+  return `usess:${userId}:${id}`
+}
+
+/** Deletes session `id` of `userId` from KV: the session and its entry in the user's list. */
+export async function dropSession(kv: KVNamespace, userId: string, id: string): Promise<void> {
+  await Promise.all([kv.delete(sessionKey(id)), kv.delete(userSessionKey(userId, id))])
+}
+
+/**
+ * Deletes every session of `userId` from KV (a deleted account). KV lists are eventually
+ * consistent, so a session started elsewhere in the last minute can be missed; it then names a
+ * user who is gone, and `GET /api/me` ends it.
+ */
+export async function endAllSessions(kv: KVNamespace, userId: string): Promise<number> {
+  const prefix = `usess:${userId}:`
+  let ended = 0
+  let cursor: string | undefined
+  do {
+    const page = await kv.list({ prefix, ...(cursor !== undefined && { cursor }) })
+    await Promise.all(page.keys.map((k) => dropSession(kv, userId, k.name.slice(prefix.length))))
+    ended += page.keys.length
+    cursor = page.list_complete ? undefined : page.cursor
+  } while (cursor !== undefined)
+  return ended
+}
+
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
 
 /** Whether sign-in skips GitHub for a test user: `DEV_FAKE_AUTH=1`, on localhost only. */
@@ -82,9 +113,10 @@ export async function startSession(c: Context<AppEnv>, userId: string): Promise<
     createdAt: new Date().toISOString(),
     ua: (c.req.header('User-Agent') ?? '').slice(0, 256),
   }
-  await c.env.KV.put(sessionKey(id), JSON.stringify(session), {
-    expirationTtl: SESSION_TTL_SECONDS,
-  })
+  await Promise.all([
+    c.env.KV.put(sessionKey(id), JSON.stringify(session), { expirationTtl: SESSION_TTL_SECONDS }),
+    c.env.KV.put(userSessionKey(userId, id), '', { expirationTtl: SESSION_TTL_SECONDS }),
+  ])
   await setSignedCookie(c, SESSION_COOKIE, id, secret, {
     ...cookieOptions(SESSION_TTL_SECONDS),
     prefix: SESSION_PREFIX,
@@ -96,7 +128,7 @@ export async function startSession(c: Context<AppEnv>, userId: string): Promise<
 /** Ends the request's session, if any, in KV and in the browser. */
 export async function endSession(c: Context<AppEnv>): Promise<void> {
   const session = c.get('session')
-  if (session) await c.env.KV.delete(sessionKey(session.id))
+  if (session) await dropSession(c.env.KV, session.userId, session.id)
   c.set('session', null)
   deleteCookie(c, SESSION_COOKIE, { path: '/', secure: true, prefix: SESSION_PREFIX })
   deleteCookie(c, SIGNED_IN_COOKIE, { path: '/', secure: true })

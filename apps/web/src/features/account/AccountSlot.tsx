@@ -1,6 +1,6 @@
 import type { Me } from '@asmbots/protocol'
 import { Button, Menu, type TriggerProps, useToast } from '@asmbots/ui'
-import { useQueryClient } from '@tanstack/react-query'
+import { type QueryClient, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { LogIn, LogOut, Settings, UserRound } from 'lucide-react'
 import type { Ref } from 'react'
@@ -20,6 +20,13 @@ export function SignInButton() {
   )
 }
 
+/** Forgets the account in the query cache: the user, their cloud bots, and the profiles. */
+export async function forgetAccount(client: QueryClient): Promise<void> {
+  client.setQueryData(['me'], null)
+  client.removeQueries({ queryKey: ['me', 'bots'] })
+  await client.invalidateQueries({ queryKey: ['users'] })
+}
+
 /** Signs out here and on the server, then forgets the account in the query cache. */
 export function useSignOut(): () => Promise<void> {
   const client = useQueryClient()
@@ -31,9 +38,7 @@ export function useSignOut(): () => Promise<void> {
       toast('could not sign out: try again.', { variant: 'danger' })
       return
     }
-    client.setQueryData(['me'], null)
-    client.removeQueries({ queryKey: ['me', 'bots'] })
-    await client.invalidateQueries({ queryKey: ['users'] })
+    await forgetAccount(client)
     toast('signed out.')
   }
 }

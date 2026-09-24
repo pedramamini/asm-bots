@@ -1,5 +1,5 @@
 import { handleProblem, MAX_IMPORT, type Me, type NewBot } from '@asmbots/protocol'
-import { Button, Input, Modal, useToast } from '@asmbots/ui'
+import { Button, Modal, useToast } from '@asmbots/ui'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { ApiRequestError } from '../../api/client'
@@ -10,6 +10,8 @@ import {
   listLocalBots,
   markLocalBotsSynced,
 } from '../../store/local-bots'
+import { plural } from '../hills/links'
+import { HandleField } from './HandleField'
 
 /** A local bot's name as the API takes one: one line, 1..64 characters. */
 export function cloudBotName(name: string): string {
@@ -48,10 +50,6 @@ export async function importLocalBots(bots: readonly LocalBot[]): Promise<Import
     outcome.imported += synced.size
   }
   return outcome
-}
-
-function plural(n: number, word: string): string {
-  return `${n} ${word}${n === 1 ? '' : 's'}`
 }
 
 /**
@@ -133,23 +131,16 @@ function HandleStep({
         <p className="text-muted">
           signed in with github. your handle names your profile: <b>/u/{handle || '…'}</b>
         </p>
-        <Input
-          aria-label="handle"
-          aria-invalid={problem !== null}
-          aria-describedby="first-sign-in-problem"
+        <HandleField
+          id="first-sign-in-problem"
           autoFocus
-          autoComplete="off"
-          spellCheck={false}
-          maxLength={24}
           value={handle}
-          onChange={(event) => {
-            setHandle(event.currentTarget.value.toLowerCase())
+          problem={problem}
+          onChange={(next) => {
+            setHandle(next)
             setRefused(null)
           }}
         />
-        <p id="first-sign-in-problem" role="status" className="min-h-4 text-data text-danger">
-          {problem ?? ''}
-        </p>
       </form>
     </Modal>
   )

@@ -76,6 +76,7 @@ describe('the schema', () => {
       "SELECT name FROM sqlite_master WHERE type = 'index' AND name NOT LIKE 'sqlite_%' ORDER BY name",
     ).all<{ name: string }>()
     expect(results.map((r) => r.name)).toEqual([
+      'audit_user_at',
       'bot_versions_bot_version',
       'bots_owner',
       'hill_entries_rank',

@@ -18,9 +18,16 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { HttpResponse, http } from 'msw'
 import type { ReactNode } from 'react'
 import { useDom, window } from '../../../packages/ui/test/dom'
+import { SettingsPage } from '../src/app/SettingsPage'
 import { AccountSlot } from '../src/features/account/AccountSlot'
 import { cloudBotName, FirstSignIn, importLocalBots } from '../src/features/account/FirstSignIn'
-import { clearLocalBots, listLocalBots, saveLocalBot } from '../src/store/local-bots'
+import {
+  clearLocalBots,
+  getLocalBot,
+  listLocalBots,
+  markLocalBotsSynced,
+  saveLocalBot,
+} from '../src/store/local-bots'
 import { answer, useApiServer, WithQueries } from './api-server'
 
 useDom()
@@ -157,6 +164,72 @@ describe('the account slot', () => {
     renderWith(() => <AccountSlot />)
     expect(await screen.findByRole('button', { name: 'sign in with github' })).toBeTruthy()
     await waitFor(() => expect(document.cookie).not.toContain('signed_in=1'))
+  })
+})
+
+describe('the settings account panel', () => {
+  const onboarded: Me = { ...ME, onboarded: true }
+
+  it('shows the github link, and edits the handle with the same checks as the first sign-in', async () => {
+    signedIn(true)
+    const seen: unknown[] = []
+    server.use(
+      answer('/me', onboarded),
+      answer('/me/bots', { bots: [] }),
+      answerPatch({ error: { code: 'conflict', message: 'taken-one is taken' } }, 409, seen),
+    )
+    renderWith(() => <SettingsPage />)
+    const account = await screen.findByRole('region', { name: 'account' })
+    await waitFor(() => expect(account.textContent).toContain('github: linked'))
+    const input = within(account).getByRole('textbox', { name: 'handle' }) as HTMLInputElement
+    const save = within(account).getByRole('button', { name: 'save' }) as HTMLButtonElement
+    expect(input.value).toBe('octo')
+    expect(save.disabled).toBe(true)
+    fireEvent.change(input, { target: { value: 'No' } })
+    expect(input.value).toBe('no')
+    expect(account.textContent).toContain('a handle is 3 to 24 characters')
+    expect(save.disabled).toBe(true)
+    fireEvent.change(input, { target: { value: 'taken-one' } })
+    fireEvent.click(save)
+    expect(await within(account).findByText('taken-one is taken')).toBeTruthy()
+    expect(seen).toEqual([{ handle: 'taken-one' }])
+
+    server.use(answerPatch({ ...onboarded, user: { ...onboarded.user, handle: 'octo-2' } }))
+    fireEvent.change(input, { target: { value: 'octo-2' } })
+    fireEvent.click(save)
+    expect(await screen.findByText('your handle is octo-2.')).toBeTruthy()
+    await waitFor(() => expect(account.textContent).toContain('signed in: octo-2'))
+  })
+
+  it('deletes the account only after the handle is typed, and unlinks the local bots', async () => {
+    signedIn(true)
+    const local = await saveLocalBot({ name: 'Spin', source: 'jmp $' })
+    await markLocalBotsSynced(new Map([[local.id, 'cloud-1']]))
+    let deleted = 0
+    server.use(
+      answer('/me', onboarded),
+      answer('/me/bots', { bots: [] }),
+      http.delete('*/api/me', () => {
+        deleted++
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+    renderWith(() => <SettingsPage />)
+    fireEvent.click(await screen.findByRole('button', { name: 'delete account' }))
+    const dialog = await screen.findByRole('dialog', { name: 'delete account' })
+    await waitFor(() => expect(dialog.textContent).toContain('0 cloud bots'))
+    const confirm = within(dialog).getByRole('button', { name: 'delete' }) as HTMLButtonElement
+    expect(confirm.disabled).toBe(true)
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'your handle' }), {
+      target: { value: 'octo' },
+    })
+    expect(confirm.disabled).toBe(false)
+    fireEvent.click(confirm)
+    expect(await screen.findByText('account deleted.')).toBeTruthy()
+    expect(deleted).toBe(1)
+    const account = screen.getByRole('region', { name: 'account' })
+    await waitFor(() => expect(account.textContent).toContain('signed out'))
+    expect((await getLocalBot(local.id))?.cloudId).toBeUndefined()
   })
 })
 

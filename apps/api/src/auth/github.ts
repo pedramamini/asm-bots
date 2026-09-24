@@ -26,9 +26,9 @@ import { handleCandidates } from './handle'
 import {
   authConfigured,
   cookieOptions,
+  dropSession,
   endSession,
   fakeAuth,
-  sessionKey,
   startSession,
 } from './session'
 
@@ -114,7 +114,7 @@ async function finishSignIn(
 ): Promise<Response> {
   const user = await signInUser(c.env.DB, account)
   const old = c.get('session')
-  if (old) await c.env.KV.delete(sessionKey(old.id))
+  if (old) await dropSession(c.env.KV, old.userId, old.id)
   await startSession(c, user.id)
   return c.redirect(back, 302)
 }

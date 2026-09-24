@@ -2,6 +2,11 @@
 export class Jar {
   readonly cookies = new Map<string, string>()
 
+  /** `ip` is the client's IP (`CF-Connecting-IP`): its own by default, so rate limits count each jar apart. */
+  constructor(
+    readonly ip = `10.${[0, 0, 0].map(() => Math.floor(Math.random() * 256)).join('.')}`,
+  ) {}
+
   take(res: Response): void {
     for (const line of res.headers.getSetCookie()) {
       const [pair = '', ...attrs] = line.split(';')

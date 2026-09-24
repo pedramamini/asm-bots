@@ -1,14 +1,15 @@
 /**
- * A fixed-window rate limit per client IP, counted in KV. KV is eventually consistent and has no
- * atomic increment, so a burst across edge locations can slip a few requests past the limit: fine
- * for abuse control, not for billing.
+ * A fixed-window rate limit per client, counted in KV: per user when the request carries a
+ * session (`loadSession` runs first), else per IP. KV is eventually consistent and has no atomic
+ * increment, so a burst across edge locations can slip a few requests past the limit: fine for
+ * abuse control, not for billing.
  */
 import type { MiddlewareHandler } from 'hono'
 import type { AppEnv } from './env'
 import { errorResponse } from './middleware'
 
 export interface RateLimit {
-  /** Names the counter, so two limits on one IP do not share it. */
+  /** Names the counter, so two limits on one client do not share it. */
   scope: string
   /** Requests allowed per window. */
   limit: number
@@ -16,8 +17,16 @@ export interface RateLimit {
   windowSeconds: number
 }
 
-/** The limit on every write route: 60 requests a minute per IP. */
+/** Every write route: 60 requests a minute. The limits below apply on top of it. */
 export const WRITE_LIMIT: RateLimit = { scope: 'write', limit: 60, windowSeconds: 60 }
+/** `POST /api/assemble` */
+export const ASSEMBLE_LIMIT: RateLimit = { scope: 'assemble', limit: 30, windowSeconds: 60 }
+/** `POST /api/bots` and every `POST` under it (import, versions). */
+export const BOTS_LIMIT: RateLimit = { scope: 'bots', limit: 20, windowSeconds: 60 }
+/** `POST /api/replays`: each one runs a match again. */
+export const REPLAYS_LIMIT: RateLimit = { scope: 'replays', limit: 10, windowSeconds: 60 }
+/** Every `/api/auth/*` request, reads too: a sign-in is two (start, callback). */
+export const AUTH_LIMIT: RateLimit = { scope: 'auth', limit: 10, windowSeconds: 60 }
 
 /** The client's IP as Cloudflare saw it; `unknown` only outside Cloudflare's edge. */
 export function clientIp(request: Request): string {
@@ -28,7 +37,9 @@ export function rateLimit({ scope, limit, windowSeconds }: RateLimit): Middlewar
   return async (c, next) => {
     const now = Math.floor(Date.now() / 1000)
     const window = Math.floor(now / windowSeconds)
-    const key = `rl:${scope}:${clientIp(c.req.raw)}:${window}`
+    const userId = c.get('session')?.userId
+    const client = userId === undefined ? `ip:${clientIp(c.req.raw)}` : `u:${userId}`
+    const key = `rl:${scope}:${client}:${window}`
     const used = Number((await c.env.KV.get(key)) ?? 0)
     const resetIn = (window + 1) * windowSeconds - now
     c.header('X-RateLimit-Limit', String(limit))

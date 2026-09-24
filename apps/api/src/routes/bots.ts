@@ -22,6 +22,7 @@ import { HTTPException } from 'hono/http-exception'
 import { requireUser } from '../auth/session'
 import { jsonBody, limitBody } from '../body'
 import {
+  auditInsert,
   type BotRow,
   type BotVersionRow,
   countBots,
@@ -170,6 +171,7 @@ async function createBot(c: Context<AppEnv>): Promise<Response> {
   const [botRows, versionRows] = await c.env.DB.batch([
     botInsert(c, botId, bot, slugs),
     await versionInsert(c, botId, 1, bot.source, made),
+    auditInsert(c.env.DB, userId(c), 'bot.create', botId),
   ])
   const saved: SavedBot = {
     bot: toBot(botRows?.results[0] as BotRow),
@@ -182,13 +184,15 @@ async function createBot(c: Context<AppEnv>): Promise<Response> {
 async function updateBot(c: Context<AppEnv>): Promise<Response> {
   const bot = await ownBot(c, c.req.param('id') ?? '')
   const { name, visibility } = parse(UpdateBot, await jsonBody(c), 'the request')
-  const row = await c.env.DB.prepare(
-    `UPDATE bots SET name = COALESCE(?, name), visibility = COALESCE(?, visibility),
-       updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-     WHERE id = ? RETURNING *`,
-  )
-    .bind(name ?? null, visibility ?? null, bot.id)
-    .first<BotRow>()
+  const [updated] = await c.env.DB.batch([
+    c.env.DB.prepare(
+      `UPDATE bots SET name = COALESCE(?, name), visibility = COALESCE(?, visibility),
+         updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+       WHERE id = ? RETURNING *`,
+    ).bind(name ?? null, visibility ?? null, bot.id),
+    auditInsert(c.env.DB, userId(c), 'bot.update', bot.id),
+  ])
+  const row = (updated?.results[0] as BotRow | undefined) ?? null
   if (row === null) throw new HTTPException(404, { message: `no bot ${bot.id}` })
   return c.json({ bot: toBot(row) } satisfies UpdatedBot)
 }
@@ -220,6 +224,7 @@ async function addVersion(c: Context<AppEnv>): Promise<Response> {
         `UPDATE bots SET updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?
          RETURNING *`,
       ).bind(bot.id),
+      auditInsert(c.env.DB, userId(c), 'bot.version', `${bot.id}/v${next}`),
     ])
   } catch (err) {
     if (err instanceof Error && /UNIQUE constraint failed: bot_versions/.test(err.message)) {
@@ -241,11 +246,12 @@ async function addVersion(c: Context<AppEnv>): Promise<Response> {
  */
 async function deleteBot(c: Context<AppEnv>): Promise<Response> {
   const bot = await ownBot(c, c.req.param('id') ?? '')
-  await c.env.DB.prepare(
-    `UPDATE bots SET deleted_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?`,
-  )
-    .bind(bot.id)
-    .run()
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      `UPDATE bots SET deleted_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?`,
+    ).bind(bot.id),
+    auditInsert(c.env.DB, userId(c), 'bot.delete', bot.id),
+  ])
   return c.body(null, 204)
 }
 
@@ -263,6 +269,8 @@ async function importBots(c: Context<AppEnv>): Promise<Response> {
   const slugs = await listBotSlugs(c.env.DB, userId(c))
   const results: (ImportedBot | null)[] = []
   const statements: D1PreparedStatement[] = []
+  // After the bots, so each bot's two rows stay a pair in the batch's results.
+  const audits: D1PreparedStatement[] = []
   for (const bot of bots) {
     const made = await assembleSource(bot.source)
     if (!made.ok) {
@@ -274,10 +282,11 @@ async function importBots(c: Context<AppEnv>): Promise<Response> {
       botInsert(c, botId, bot, slugs),
       await versionInsert(c, botId, 1, bot.source, made),
     )
+    audits.push(auditInsert(c.env.DB, userId(c), 'bot.create', botId))
     // Filled in from the batch below.
     results.push(null)
   }
-  const made = statements.length === 0 ? [] : await c.env.DB.batch(statements)
+  const made = statements.length === 0 ? [] : await c.env.DB.batch([...statements, ...audits])
   let next = 0
   const filled = results.map((result): ImportedBot => {
     if (result !== null) return result
