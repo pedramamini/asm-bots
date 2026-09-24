@@ -89,6 +89,11 @@ export interface HillResult {
   readonly board: readonly HillBoardRow[]
   /** The challenger as ranked in the field, before the lowest entry went. */
   readonly challenger: HillEntry
+  /**
+   * The field (the defenders and the challenger) as ranked before the lowest entry went, each
+   * scored over its matches with the others: the scores the challenger was measured against.
+   */
+  readonly field: readonly HillEntry[]
   readonly accepted: boolean
   /** The challenger's rank on the new board, or null when it did not stay. */
   readonly rank: number | null
@@ -279,6 +284,7 @@ function settle(
     state: { config, entries, matches },
     board,
     challenger: field.find((e) => e.id === challenger.id) as HillEntry,
+    field,
     accepted: at >= 0,
     rank: at >= 0 ? at + 1 : null,
     evicted,

@@ -41,6 +41,7 @@ const MAIN = {
   size: 32,
   rounds: 10,
   config: CONFIG,
+  scoring: 'duel' as const,
   createdAt: T,
 }
 
@@ -60,9 +61,9 @@ const entry = (bot: BotLabel, rank: number, score: number) => ({
 export const MAIN_DETAIL: HillDetail = {
   hill: MAIN,
   standings: [
-    { entry: entry(PAPER, 1, 321), bot: PAPER },
-    { entry: entry(DWARF, 2, 145), bot: DWARF },
-    { entry: entry(IMP, 3, 42), bot: { ...IMP, author: null } },
+    { entry: entry(PAPER, 1, 321), bot: PAPER, rd: null },
+    { entry: entry(DWARF, 2, 145), bot: DWARF, rd: null },
+    { entry: entry(IMP, 3, 42), bot: { ...IMP, author: null }, rd: null },
   ],
 }
 

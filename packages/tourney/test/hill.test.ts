@@ -120,6 +120,13 @@ describe('submitToHill', () => {
     // Ranked with the challenger: d 9, c 6, b 3, a 0.
     expect(result.challenger.points).toBe(9)
     expect(result.evicted).toMatchObject({ id: 'a', points: 0, losses: 3 })
+    // The field before the eviction: every entry scored over its matches with the other three.
+    expect(result.field.map((e) => [e.id, e.points])).toEqual([
+      ['d', 9],
+      ['c', 6],
+      ['b', 3],
+      ['a', 0],
+    ])
     // Re-scored without the matches against a.
     expect(ids(state.entries)).toEqual(['d', 'c', 'b'])
     expect(state.entries.map((e) => [e.points, e.wins, e.ties, e.losses])).toEqual([
@@ -160,6 +167,8 @@ describe('submitToHill', () => {
     expect(final.rank).toBeNull()
     expect(final.evicted?.id).toBe('z')
     expect(final.challenger.points).toBe(0)
+    // Last in the field; the entry above it is the score it had to beat.
+    expect(ids(final.field)).toEqual(['c', 'b', 'a', 'z'])
     expect(ids(final.state.entries)).toEqual(['c', 'b', 'a'])
     expect(final.state.entries.map((e) => e.age)).toEqual([1, 2, 3])
     expect(final.state.matches).toEqual(state.matches)

@@ -15,6 +15,7 @@ import {
   BOTS_LIMIT,
   REPLAYS_LIMIT,
   rateLimit,
+  SUBMIT_LIMIT,
   WRITE_LIMIT,
 } from './rate-limit'
 import { assembler } from './routes/assemble'
@@ -41,6 +42,7 @@ app.post('/api/assemble', rateLimit(ASSEMBLE_LIMIT))
 // `/api/bots/*` covers `/api/bots` too: a second pattern for it would count each request twice.
 app.post('/api/bots/*', rateLimit(BOTS_LIMIT))
 app.post('/api/replays', rateLimit(REPLAYS_LIMIT))
+app.post('/api/hills/:slug/submit', rateLimit(SUBMIT_LIMIT))
 
 app.route('/api/health', health)
 app.route('/api/version', version)

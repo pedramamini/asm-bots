@@ -84,6 +84,19 @@ export const BotVersion = z.object({
 })
 export type BotVersion = z.output<typeof BotVersion>
 
+/**
+ * How a hill scores a challenge: `duel`, one match against each entry, or `melee`, all its
+ * entrants in one core. Submissions go to duel hills.
+ */
+export const HillScoring = z.enum(['duel', 'melee'])
+export type HillScoring = z.output<typeof HillScoring>
+
+/**
+ * The seed of every hill match: a hill's matches all place from it, so a match of two bots under
+ * a hill's rules is the same match wherever it runs (the `challenge` in the arena too).
+ */
+export const HILL_SEED = 1
+
 /** A king-of-the-hill ladder (PRODUCT_SPEC §5): `size` places, `rounds` rounds a match. */
 export const Hill = z.object({
   id: Id,
@@ -93,6 +106,7 @@ export const Hill = z.object({
   size: whole('size', 2, 1000),
   rounds: whole('rounds', 1, 100),
   config: ReplayConfig,
+  scoring: HillScoring,
   createdAt: Timestamp,
 })
 export type Hill = z.output<typeof Hill>
@@ -113,6 +127,59 @@ export const HillEntry = z.object({
   rank: whole('rank', 1, Number.MAX_SAFE_INTEGER),
 })
 export type HillEntry = z.output<typeof HillEntry>
+
+/** Where a hill submission is: waiting for its `Runner`, fighting, or ended one of three ways. */
+export const SUBMISSION_STATUSES = ['queued', 'running', 'finished', 'cancelled', 'failed'] as const
+export const SubmissionStatus = z.enum(SUBMISSION_STATUSES)
+export type SubmissionStatus = z.output<typeof SubmissionStatus>
+
+/** A bot version submitted to a hill: one `Runner` job (`hill:<slug>:<id>`). */
+export const HillSubmission = z.object({
+  id: Id,
+  hillId: Id,
+  botVersionId: Id,
+  status: SubmissionStatus,
+  /** Its score in the field: the sum of its match points; null until it is finished. */
+  score: z.nullable(z.number()),
+  /** Its rank on the new board; null when it did not stay, or has not finished. */
+  rank: z.nullable(whole('rank', 1, Number.MAX_SAFE_INTEGER)),
+  /** When it did not stay: the field score of the lowest entry that did, the score to beat. */
+  needed: z.nullable(z.number()),
+  createdAt: Timestamp,
+})
+export type HillSubmission = z.output<typeof HillSubmission>
+
+/**
+ * What a submission did to its hill's board: its challenger `entered` or was `rejected`; an entry
+ * was `evicted` to make room, or `replaced` by a challenger with its bytes.
+ */
+export const HILL_EVENT_KINDS = ['entered', 'rejected', 'evicted', 'replaced'] as const
+export const HillEventKind = z.enum(HILL_EVENT_KINDS)
+export type HillEventKind = z.output<typeof HillEventKind>
+
+/** A line of a hill's history: the feed of its board's changes. */
+export const HillEvent = z.object({
+  id: Id,
+  hillId: Id,
+  /** The submission whose board write made it. */
+  submissionId: z.nullable(Id),
+  kind: HillEventKind,
+  botVersionId: Id,
+  /**
+   * `entered`: the challenger's rank on the new board. `evicted`, `replaced`: the entry's rank on
+   * the board before. `rejected`: null.
+   */
+  rank: z.nullable(whole('rank', 1, Number.MAX_SAFE_INTEGER)),
+  /** The bot's score in the field of the challenge; `replaced`: its score before. */
+  score: z.number(),
+  /**
+   * `entered`: the bot's best rank on the board before (another version, or the entry it replaced)
+   * less its new rank, so up is positive; null when it had no place. Null for the other kinds.
+   */
+  delta: z.nullable(z.number()),
+  at: Timestamp,
+})
+export type HillEvent = z.output<typeof HillEvent>
 
 export const TournamentKind = z.enum(['roundrobin', 'bracket', 'melee'])
 export type TournamentKind = z.output<typeof TournamentKind>

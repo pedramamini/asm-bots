@@ -10,6 +10,8 @@ import {
   Handle,
   Hill,
   HillEntry,
+  HillEvent,
+  HillSubmission,
   Match,
   Tournament,
   User,
@@ -31,8 +33,15 @@ export const BotLabel = z.object({
 })
 export type BotLabel = z.output<typeof BotLabel>
 
-/** A line of a hill's standings. */
-export const HillStanding = z.object({ entry: HillEntry, bot: BotLabel })
+/**
+ * A line of a hill's standings: the entry, its bot, and the RD of its Glicko-2 rating (the
+ * rating's ±), null until a submission has rated it.
+ */
+export const HillStanding = z.object({
+  entry: HillEntry,
+  bot: BotLabel,
+  rd: z.nullable(z.number()),
+})
 export type HillStanding = z.output<typeof HillStanding>
 
 /** A hill in the list: its entrant count and its king (rank 1), if it has one. */
@@ -58,6 +67,51 @@ export type MatchSummary = z.output<typeof MatchSummary>
 /** `GET /api/hills/:slug/matches`: finished matches, newest first. */
 export const MatchList = z.object({ matches: z.array(MatchSummary) })
 export type MatchList = z.output<typeof MatchList>
+
+/** A line of a hill's history and its bot's label; null for a version since deleted. */
+export const HillEventSummary = z.object({ event: HillEvent, bot: z.nullable(BotLabel) })
+export type HillEventSummary = z.output<typeof HillEventSummary>
+
+/** `GET /api/hills/:slug/history`: the hill's events, newest first. */
+export const HillHistory = z.object({ events: z.array(HillEventSummary) })
+export type HillHistory = z.output<typeof HillHistory>
+
+/** `POST /api/hills/:slug/submit`: a version of one of the signed-in user's bots. */
+export const HillSubmitRequest = z.object({ botVersionId: Id })
+export type HillSubmitRequest = z.output<typeof HillSubmitRequest>
+
+/**
+ * `POST /api/hills/:slug/submit`: the submission, its job started, and the `LiveRoom` of the hill
+ * (`liveRoomName`), where its job says how far it is.
+ */
+export const HillSubmitted = z.object({ submissionId: Id, liveRoom: z.string() })
+export type HillSubmitted = z.output<typeof HillSubmitted>
+
+/** How far a submission's job is: `done` of the `of` matches it knows of ("fighting 24 of 32"). */
+export const SubmissionProgress = z.object({
+  done: whole('done', 0, Number.MAX_SAFE_INTEGER),
+  of: whole('of', 0, Number.MAX_SAFE_INTEGER),
+  /**
+   * The bots of the match it is fighting (the challenger first), labeled; null when none is: the
+   * job is settling, or has ended.
+   */
+  next: z.nullable(z.array(z.nullable(BotLabel))),
+})
+export type SubmissionProgress = z.output<typeof SubmissionProgress>
+
+/**
+ * `GET /api/hills/:slug/submissions/:id`: the submission, its bot, how far its job is (null once
+ * it has finished, or when its `Runner` does not answer), its matches in the order played, and
+ * what it did to the board (its events, once it has finished).
+ */
+export const SubmissionDetail = z.object({
+  submission: HillSubmission,
+  bot: z.nullable(BotLabel),
+  progress: z.nullable(SubmissionProgress),
+  matches: z.array(MatchSummary),
+  events: z.array(HillEventSummary),
+})
+export type SubmissionDetail = z.output<typeof SubmissionDetail>
 
 /** A bot version's place on a hill. */
 export const BotPlacement = z.object({

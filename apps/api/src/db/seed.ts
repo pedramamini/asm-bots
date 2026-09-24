@@ -4,7 +4,8 @@
  *
  * `buildSeed` assembles each bot's source with `@asmbots/asm` and fights the hills with the engine
  * (a few seconds for the roster): the duel hills take the bots one challenge at a time
- * (`@asmbots/tourney` `hill`), and the melee hill is one melee of the bots marked for it. The
+ * (`@asmbots/tourney` `hill`), each challenge a Glicko-2 rating period as a submission is
+ * (`rateChallenge`), and the melee hill is one melee of the bots marked for it. The
  * result is rows and R2 objects: its `statements` are D1 statements, every one an `INSERT ... ON
  * CONFLICT DO NOTHING`, so a second run adds nothing. `scripts/seed.ts` loads it
  * into local or remote D1 and R2 with wrangler; the tests load it with `applySeed`.
@@ -13,6 +14,7 @@ import { assembleOrThrow } from '@asmbots/asm'
 import { DEFAULT_CONFIG, type LoadedBot } from '@asmbots/engine'
 import {
   buildReplay,
+  HILL_SEED,
   ISA,
   type MatchOutcome,
   type Replay,
@@ -20,7 +22,16 @@ import {
   replayKey,
   sha256Hex,
 } from '@asmbots/protocol'
-import { createHill, type HillState, hill, type MatchResult, melee } from '@asmbots/tourney'
+import {
+  createHill,
+  DEFAULT_RATING,
+  type HillState,
+  hill,
+  type MatchResult,
+  melee,
+  type Rating,
+} from '@asmbots/tourney'
+import { rateChallenge } from '../runner/rating'
 import { botBytesKey, replayObjectKey } from '../storage'
 
 /** A bot to seed: its source, and whether it enters the melee hill. */
@@ -78,8 +89,8 @@ export const SEED_HILLS: readonly SeedHill[] = [
   },
 ]
 
-/** Every seeded match's seed: the hills' seed base. */
-export const SEED_MATCH_SEED = 1
+/** Every seeded match's seed: the hills' (`HILL_SEED`). */
+export const SEED_MATCH_SEED = HILL_SEED
 
 export const SYSTEM_USER = { id: 'system', handle: 'system' } as const
 
@@ -177,10 +188,14 @@ interface Standing {
   readonly age: number
 }
 
-/** The duel hill `spec` after each bot, in order, challenges it: its board and its matches. */
+/**
+ * The duel hill `spec` after each bot, in order, challenges it: its board, its matches, and the
+ * ratings the challenges left, by bot version (the entries' and those pushed off).
+ */
 async function duelHill(spec: SeedHill, bots: readonly Made[], now: Date) {
   const byId = new Map(bots.map((m) => [m.versionId, m]))
   const results = new Map<string, MatchResult>()
+  const ratings = new Map<string, Rating>()
   let state: HillState = createHill({
     size: spec.size,
     rounds: spec.rounds,
@@ -194,6 +209,9 @@ async function duelHill(spec: SeedHill, bots: readonly Made[], now: Date) {
       return defender.bot
     })
     for (const match of result.matches) results.set(match.key, match)
+    const defenders = state.entries.filter((e) => e.id !== result.replaced?.id).map((e) => e.id)
+    const rated = rateChallenge((id) => ratings.get(id), made.versionId, defenders, result.matches)
+    for (const [id, rating] of rated) ratings.set(id, rating)
     state = result.state
   }
   const matches = await Promise.all(
@@ -212,7 +230,7 @@ async function duelHill(spec: SeedHill, bots: readonly Made[], now: Date) {
     losses: e.losses,
     age: e.age,
   }))
-  return { standings, matches }
+  return { standings, matches, ratings }
 }
 
 /** The melee hill `spec`: one melee of the bots marked for it, up to its size. */
@@ -220,7 +238,9 @@ async function meleeHill(spec: SeedHill, bots: readonly Made[], now: Date) {
   const entrants = bots
     .filter((m) => m.melee && m.bot.bytes.length <= spec.config.maxBotBytes)
     .slice(0, spec.size)
-  if (entrants.length < 2) return { standings: [], matches: [] }
+  if (entrants.length < 2) {
+    return { standings: [], matches: [], ratings: new Map<string, Rating>() }
+  }
   const result = melee(
     entrants.map((m) => m.bot),
     { ...spec.config, seed: SEED_MATCH_SEED },
@@ -235,7 +255,7 @@ async function meleeHill(spec: SeedHill, bots: readonly Made[], now: Date) {
     age: 0,
   }))
   const match = await fought(spec.slug, spec.config, spec.rounds, entrants, result.match, now)
-  return { standings, matches: [match] }
+  return { standings, matches: [match], ratings: new Map<string, Rating>() }
 }
 
 /**
@@ -299,15 +319,27 @@ export async function buildSeed(
         created_at: at,
       }),
     )
-    const { standings, matches } =
+    const { standings, matches, ratings } =
       spec.scoring === 'duel' ? await duelHill(spec, bots, now) : await meleeHill(spec, bots, now)
+    for (const [versionId, r] of ratings) {
+      statements.push(
+        insert('ratings', {
+          bot_version_id: versionId,
+          hill_id: hillId,
+          rating: r.rating,
+          rd: r.rd,
+          volatility: r.volatility,
+          updated_at: at,
+        }),
+      )
+    }
     standings.forEach((s, i) => {
       statements.push(
         insert('hill_entries', {
           hill_id: hillId,
           bot_version_id: s.made.versionId,
           score: s.score,
-          rating: 1500,
+          rating: ratings.get(s.made.versionId)?.rating ?? DEFAULT_RATING.rating,
           wins: s.wins,
           ties: s.ties,
           losses: s.losses,

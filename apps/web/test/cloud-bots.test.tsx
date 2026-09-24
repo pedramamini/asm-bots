@@ -213,6 +213,27 @@ describe('challengeLink', () => {
     expect(parseRefs(linked.search.b ?? '')[1]).toEqual({ kind: 'local', id: here.id })
     expect(linked.hash).toBe('')
   })
+
+  it('carries a version this browser’s copy has moved on from, under the config given', async () => {
+    const mine = await saveLocalBot({ name: 'Mine', source: SPIN })
+    const here = await saveLocalBot({
+      name: 'Theirs',
+      source: `${SPIN}; edited\n`,
+      cloudId: 'b-43',
+    })
+    const config = {
+      preset: null,
+      rounds: 10,
+      maxCycles: 50_000,
+      seed: 1,
+      maxProcesses: 64,
+      minSpacing: 1024,
+    }
+    const old = challengeLink({ id: 'b-43' }, SPIN, mine, [mine, here], config)
+    expect(parseRefs(old.search.b ?? '')[1]).toEqual({ kind: 'local', id: 'b-43' })
+    expect(sharedBots(old.hash).get('b-43')).toBe(SPIN)
+    expect(old.search).toMatchObject({ seed: 1, rounds: 10, cycles: 50_000 })
+  })
 })
 
 describe('the library', () => {

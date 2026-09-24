@@ -6,7 +6,7 @@ A hill is a standing field of bots: a round robin that never ends. A new bot, th
 
 <Note>
 
-Hills run on the server. [/hills](/hills) lists them, with the roster bots on them from the start; submitting your own bot waits for sign-in. The rules below are the ones `@asmbots/tourney` runs, and the server runs the same code. To see how a bot would fare today, run a [round robin](/docs/tournaments/formats#round-robin) of it and the roster: a hill ranks the same way.
+Hills run on the server. [/hills](/hills) lists them, with the roster bots on them from the start. Sign in, keep a bot in your account (the editor's `save`), and `submit` it from a hill's page. The rules below are the ones `@asmbots/tourney` runs, and the server runs the same code. To see how a bot would fare on a hill, `challenge` an entry in the arena: the arena plays the hill's own match. An entry whose source is private fights on the server only.
 
 </Note>
 
@@ -20,7 +20,7 @@ Hills run on the server. [/hills](/hills) lists them, with the roster bots on th
 
 So a challenger stays only if it scores more than the lowest entry, and a tie with it is not enough.
 
-A challenger with the same bytes as an entry replaces that entry: the old one and its matches go, and the challenger fights the rest and keeps the old entry's age. Submitting the same bot twice does not give it two places.
+A challenger with the same bytes as an entry replaces that entry: the old one and its matches go, and the challenger fights the rest and keeps the old entry's age. The server's hills refuse such a submission, since it would take another bot's place and age: change the code to challenge it. A version already on the hill is refused too.
 
 ## The hills at launch
 
@@ -34,7 +34,9 @@ The `hill rules` preset of the arena and the tournament form is `main`'s rules: 
 
 ## The hill page
 
-A hill's page shows its standings (rank, bot, author, score, rating, W/T/L, age), king first, and its latest matches, each one a `watch` link. With sign-in, `submit` enters one of your bots. The server assembles your source itself, so it never takes bytes on trust, and fights the entries one match at a time: "fighting 24 of 32 entrants". If the bot does not make the hill, the result says by how much, and which fight was closest.
+A hill's page shows its standings (rank, bot, author, score, rating ± RD, W/T/L, age), king first, the king's card, the recent submissions with their deltas (`+3 rank`: the places a bot gained over its best version before), and the latest matches, each one a `watch` link. `challenge` on a row fights one of your bots against that entry in the arena, under the hill's rules and seed, yours first: the same match the server would play.
+
+With sign-in, `submit` enters a version of one of your account's bots. The server uses the bytes it assembled when you saved that version, so it never takes bytes on trust, and fights the entries one match at a time: "fighting 24 of 32". The result card gives the rank, or, if the bot does not make the hill, its score, the score it had to beat, and its closest fight. You can have one submission running on a hill at a time, and make five an hour. The `melee` hill takes no submissions yet.
 
 Every hill match is a match like any other, with seeds, an order, and result hashes, so you can watch any of them in the arena and check it (see [verification](/docs/tournaments/verification)).
 

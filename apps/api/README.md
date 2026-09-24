@@ -41,7 +41,7 @@ Copy `.dev.vars.example` to `.dev.vars` (git-ignored) for `wrangler dev`. Produc
 | `DB` | D1 | `asmbots` | Users, bots, versions, hills, tournaments, matches (`src/db/migrations`) |
 | `REPLAYS` | R2 | `asmbots-replays` | Replays at `replays/<key>.json`, bot binaries; content-addressed |
 | `KV` | KV | `asmbots-kv` | Sessions (`sess:<id>`, 30 days, and `usess:<user>:<id>` beside each so a user's sessions list by prefix), rate-limit counters (`rl:<scope>:<client>:<window>`), OG image cache (`og:<key>`, 1 day) |
-| `RUNNER` | Durable Object | `Runner` | One per job (`hill:<slug>:<submissionId>`, `tournament:<id>`): plays one match an alarm into D1 and R2, then writes the hill board or the tournament's end (`src/do/runner.ts`, `src/runner/`) |
+| `RUNNER` | Durable Object | `Runner` | One per job (`hill:<slug>:<submissionId>`, `tournament:<id>`): plays one match an alarm into D1 and R2, then writes the hill board, its ratings (a Glicko-2 period per submission, `src/runner/rating.ts`), and its `hill_history` in one batch, or the tournament's end (`src/do/runner.ts`, `src/runner/`) |
 | `LIVE_ROOM` | Durable Object | `LiveRoom` | One per hill or tournament (`hill:<id>`, `tournament:<id>`): takes its Runners' messages and keeps the last 20; the sockets come later in EXEC 3.3 |
 | `ISA_VERSION` | var | `x16c-v1` | The ISA the hills run |
 | `APP_VERSION` | var | `dev` | Build stamp; deploy passes `--var APP_VERSION:<bun run version>` |
@@ -57,7 +57,7 @@ Run from `apps/api`:
 | Script | Does |
 | --- | --- |
 | `bun run migrate:local` / `migrate:remote` | `wrangler d1 migrations apply asmbots` on local or production D1 |
-| `bun run seed:local` / `seed:remote` | The launch seed: the roster's bots (less test bots) into D1 and R2; showcase bots enter the melee hill. Migrate first; running it again adds nothing. |
+| `bun run seed:local` / `seed:remote` | The launch seed: the roster's bots (less test bots) into D1 and R2; showcase bots enter the melee hill. The duel hills are built one challenge at a time, each rated as a Glicko-2 period, so the seeded entries start with ratings. Migrate first; running it again adds nothing. Flags after `--local` go to wrangler: `bun run scripts/seed.ts --local --persist-to <dir>` seeds that storage. |
 
 A new migration is the next `src/db/migrations/NNNN_name.sql`; never edit one that has shipped. Queries are typed prepared statements in `src/db/queries.ts` (no ORM).
 
@@ -74,8 +74,9 @@ Rate limits (`src/rate-limit.ts`, fixed one-minute windows in KV) count a signed
 | `POST /api/bots` and every `POST` under it (import, versions) | 20 |
 | `POST /api/replays` | 10 |
 | Every `/api/auth/*` request, reads too (a sign-in is two) | 10 |
+| `POST /api/hills/:slug/submit`: submissions made (201) only, so a refused one costs nothing | 5 an hour |
 
-The audit log (D1 `audit`: `id, user_id, action, target, at`) gets a row in the same batch as each change: `bot.create` (per imported bot too), `bot.update`, `bot.version` (target `<bot id>/v<n>`; a save of the same bytes makes none), `bot.delete`. `hill.submit` and `tournament.create` are in the protocol's `AUDIT_ACTIONS` for EXEC 3.3's routes (`auditInsert` in `src/db/queries.ts`).
+The audit log (D1 `audit`: `id, user_id, action, target, at`) gets a row in the same batch as each change: `bot.create` (per imported bot too), `bot.update`, `bot.version` (target `<bot id>/v<n>`; a save of the same bytes makes none), `bot.delete`, `hill.submit` (target the submission id). `tournament.create` is in the protocol's `AUDIT_ACTIONS` for the tournaments route (`auditInsert` in `src/db/queries.ts`).
 
 ### Sign-in and sessions (`src/auth`)
 
@@ -87,7 +88,7 @@ Beside the session the API sets `signed_in=1`, a cookie the page can read that p
 
 In dev, sign in from a browser that keeps a Secure cookie on `http://localhost` (Chrome, Firefox).
 
-Test sign-in: with the var `DEV_FAKE_AUTH=1` (`wrangler dev --var DEV_FAKE_AUTH:1`), a request to localhost never goes to GitHub. `/api/auth/github` returns straight to the callback, which signs in `e2e-tester`, or the login `?as=` names. Any other host ignores the var. The web e2e (`apps/web/e2e/account.spec.ts`) runs on it: Playwright starts `wrangler dev` on :8788 with its own storage in `.wrangler/e2e`, emptied and migrated each start.
+Test sign-in: with the var `DEV_FAKE_AUTH=1` (`wrangler dev --var DEV_FAKE_AUTH:1`), a request to localhost never goes to GitHub. `/api/auth/github` returns straight to the callback, which signs in `e2e-tester`, or the login `?as=` names. Any other host ignores the var. The web e2e (`apps/web/e2e/account.spec.ts`, `hills.spec.ts`) runs on it: Playwright starts `wrangler dev` on :8788 with its own storage in `.wrangler/e2e`, emptied, migrated, and seeded each start, and `RUNNER_ALARM_DELAY_MS=300`, so a spec can watch a submission's progress.
 
 | Method and path | Answers |
 | --- | --- |
@@ -110,8 +111,11 @@ Test sign-in: with the var `DEV_FAKE_AUTH=1` (`wrangler dev --var DEV_FAKE_AUTH:
 | `GET /api/bots/:id` | The bot, its owner, its versions (no sources), and its hill places; a private bot is 404 to others, a deleted one to all |
 | `GET /api/bots/:id/versions/:v` | One version, with its source when the bot is public or the reader's |
 | `GET /api/hills` | Every hill, its entrant count, and its king |
-| `GET /api/hills/:slug` | The hill and its standings |
+| `GET /api/hills/:slug` | The hill (with its `scoring`, `duel` or `melee`) and its standings, each with its rating's RD (null until a submission or the seed rated it) |
 | `GET /api/hills/:slug/matches?bot=&limit=` | Its finished matches, newest first |
+| `GET /api/hills/:slug/history?limit=` | `{ events }`, newest first (`limit` 1..100, 20 by default): what each submission did to the board. `entered` (its new rank, and `delta`: its bot's best rank before less the new one, null when the bot had none), `rejected`, `evicted` and `replaced` (the entry's rank before), each with the bot's label |
+| `POST /api/hills/:slug/submit` | `{ botVersionId }`, signed in: a version of one of your bots (404 when you may not see it, 403 when it is not yours), its bytes the ones assembled when it was saved. Refused: a `melee`-scored hill (409), a version over the hill's `maxBotBytes` (422), a version on the hill, bytes an entry has (it would take that entry's place and age), a second submission while one is queued or running on that hill (409; a partial unique index backs the check). Makes the `hill_submissions` row and its `hill.submit` audit row in one batch, starts its `Runner` → 201 `{ submissionId, liveRoom }`. A job the Runner refuses is marked `failed` → 409 with the reason |
+| `GET /api/hills/:slug/submissions/:id` | `{ submission, bot, progress, matches, events }`: the row (status, score, rank, `needed`: the field score of the lowest entry that stayed, when it did not), its bot version's label, the Runner's `{ done, of, next }` until it has finished (`next`: the bots of the match it is on), its matches in the order played (`<id>-<n>` rows), and its `hill_history` events |
 | `GET /api/tournaments` | Running first, then by start time |
 | `GET /api/tournaments/:id` | The tournament, its entrants, and its matches; a draft is 404 to all but its owner |
 | `GET /api/users/:handle` | 404 for `deleted`. The user (any case) and their public bots (all of them for the user themself), their best place on each hill, and their results in finished championships (W/T/L, and `champion` when they won the last match) |

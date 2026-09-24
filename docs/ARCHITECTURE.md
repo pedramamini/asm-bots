@@ -156,9 +156,10 @@ hill_entries(hill_id, bot_version_id, score, rating, wins, ties, losses, age, en
 tournaments(id, slug, name, kind, status, config_json, bracket_json, owner_id, starts_at, created_at)  -- kind: roundrobin|bracket|melee
 tournament_entries(tournament_id, bot_version_id, seed)
 matches(id, tournament_id, hill_id, a_version_id, b_version_id, participants_json, rounds, seed, result_json, replay_key, finished_at, match_key)  -- match_key: tourney matchHash
-ratings(bot_version_id, hill_id, rating, rd, volatility, updated_at)
+ratings(bot_version_id, hill_id, rating, rd, volatility, updated_at)          -- Glicko-2; each hill submission is one rating period
 audit(id, user_id, action, target, at)                                     -- action: protocol AUDIT_ACTIONS
-hill_submissions(id, hill_id, bot_version_id, user_id, status, score, rank, created_at)  -- one Runner job each
+hill_submissions(id, hill_id, bot_version_id, user_id, status, score, rank, needed, created_at)  -- one Runner job each; one queued|running per user per hill
+hill_history(id, hill_id, submission_id, event, bot_version_id, rank, score, delta, at)  -- event: entered|rejected|evicted|replaced; the hill page's feed
 ```
 
 ## 8. CLI (apps/cli)

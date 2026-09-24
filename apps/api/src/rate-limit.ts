@@ -15,6 +15,11 @@ export interface RateLimit {
   limit: number
   /** The window, in seconds; at least 60 (KV's shortest expiry). */
   windowSeconds: number
+  /**
+   * Which answers count, by status; every one when left out. A limit on work counts the
+   * requests that made some, so a refused one costs the client nothing of it.
+   */
+  counts?: ((status: number) => boolean) | undefined
 }
 
 /** Every write route: 60 requests a minute. The limits below apply on top of it. */
@@ -27,13 +32,28 @@ export const BOTS_LIMIT: RateLimit = { scope: 'bots', limit: 20, windowSeconds: 
 export const REPLAYS_LIMIT: RateLimit = { scope: 'replays', limit: 10, windowSeconds: 60 }
 /** Every `/api/auth/*` request, reads too: a sign-in is two (start, callback). */
 export const AUTH_LIMIT: RateLimit = { scope: 'auth', limit: 10, windowSeconds: 60 }
+/**
+ * `POST /api/hills/:slug/submit`: submissions a user makes an hour, each a match against every
+ * entry of a hill. Only a submission made (201) counts: a refused one runs nothing.
+ */
+export const SUBMIT_LIMIT: RateLimit = {
+  scope: 'submit',
+  limit: 5,
+  windowSeconds: 60 * 60,
+  counts: (status) => status === 201,
+}
 
 /** The client's IP as Cloudflare saw it; `unknown` only outside Cloudflare's edge. */
 export function clientIp(request: Request): string {
   return request.headers.get('CF-Connecting-IP') ?? 'unknown'
 }
 
-export function rateLimit({ scope, limit, windowSeconds }: RateLimit): MiddlewareHandler<AppEnv> {
+export function rateLimit({
+  scope,
+  limit,
+  windowSeconds,
+  counts,
+}: RateLimit): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
     const now = Math.floor(Date.now() / 1000)
     const window = Math.floor(now / windowSeconds)
@@ -48,9 +68,20 @@ export function rateLimit({ scope, limit, windowSeconds }: RateLimit): Middlewar
       c.header('X-RateLimit-Remaining', '0')
       return errorResponse(c, 'rate_limited', `too many requests: try again in ${resetIn} s`)
     }
-    c.header('X-RateLimit-Remaining', String(limit - used - 1))
     // Expire with the window (plus a minute of slack); KV refuses a TTL under 60 s.
-    await c.env.KV.put(key, String(used + 1), { expirationTtl: windowSeconds + 60 })
+    const count = (n: number) => c.env.KV.put(key, String(n), { expirationTtl: windowSeconds + 60 })
+    if (counts === undefined) {
+      c.header('X-RateLimit-Remaining', String(limit - used - 1))
+      await count(used + 1)
+      await next()
+      return
+    }
+    c.header('X-RateLimit-Remaining', String(limit - used))
     await next()
+    if (!counts(c.res.status)) return
+    // Read again: another request may have counted while this one ran.
+    const counted = Number((await c.env.KV.get(key)) ?? 0)
+    c.res.headers.set('X-RateLimit-Remaining', String(Math.max(0, limit - counted - 1)))
+    await count(counted + 1)
   }
 }

@@ -43,6 +43,8 @@ export interface HillOutcome {
   readonly rank: number | null
   /** Its score in the field, before the lowest entry went. */
   readonly score: number
+  /** When it did not stay: the field score of the lowest entry that did, the score to beat. */
+  readonly needed: number | null
   /** The bot version pushed off: the challenger itself when it did not stay. */
   readonly evicted: string | null
 }
@@ -100,9 +102,20 @@ export interface RunnerStatus {
   readonly error: string | null
   /** A hill job's outcome, once it is finished. */
   readonly outcome: HillOutcome | null
+  /**
+   * The bot versions of the match it is playing (the head of its queue), in entrant order; null
+   * when it is not running, has no match queued, or was asked without its bots.
+   */
+  readonly next: readonly string[] | null
 }
 
-export function statusOf(state: JobState): RunnerStatus {
+/** `state` as its status; with its `bots`, the status names the match it is playing. */
+export function statusOf(state: JobState, bots?: readonly JobBot[]): RunnerStatus {
+  const head = state.status === 'running' ? state.queue[0] : undefined
+  const next =
+    head === undefined || bots === undefined
+      ? null
+      : head.entrants.map((i) => bots[i]?.versionId ?? '')
   return {
     job: state.id,
     status: state.status,
@@ -111,6 +124,7 @@ export function statusOf(state: JobState): RunnerStatus {
     alarms: state.alarms,
     error: state.error,
     outcome: state.outcome,
+    next,
   }
 }
 

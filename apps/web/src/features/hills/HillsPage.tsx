@@ -1,7 +1,7 @@
-import type { HillSummary } from '@asmbots/protocol'
+import type { HillBest, HillSummary } from '@asmbots/protocol'
 import { Panel, PanelGrid, Skeleton, Table, type TableColumn } from '@asmbots/ui'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useHills } from '../../api/queries'
+import { useHills, useMaybeUser, useMe } from '../../api/queries'
 import { LoadFailure, readStatus } from '../../app/LoadFailure'
 import { BotLink, CELL_LINK, count, rules } from './links'
 
@@ -46,9 +46,35 @@ const COLUMNS: TableColumn<HillSummary>[] = [
   },
 ]
 
-/** `/hills` (PRODUCT_SPEC §5): each hill, its rules, how full it is, and its king. */
+/** The column of the reader's best place on each hill: rank and bot, or `–`. */
+function bestColumn(best: ReadonlyMap<string, HillBest> | null): TableColumn<HillSummary> {
+  return {
+    id: 'best',
+    header: 'your best',
+    cell: ({ hill }) => {
+      if (best === null) return ''
+      const place = best.get(hill.slug)
+      return place === undefined ? (
+        <span className="text-muted">–</span>
+      ) : (
+        <span>
+          #{place.entry.rank} <BotLink bot={place.bot} />
+        </span>
+      )
+    },
+    sortValue: ({ hill }) => best?.get(hill.slug)?.entry.rank ?? Number.POSITIVE_INFINITY,
+  }
+}
+
+/**
+ * `/hills` (PRODUCT_SPEC §5): each hill, its rules, how full it is, its king, and, signed in, the
+ * reader's best place there.
+ */
 export function HillsPage() {
   const { data, error } = useHills()
+  const handle = useMe().data?.user.handle ?? null
+  const profile = useMaybeUser(handle)
+  const best = profile.data ? new Map(profile.data.hills.map((b) => [b.hill.slug, b])) : null
   const navigate = useNavigate()
   return (
     <PanelGrid className="p-3">
@@ -62,7 +88,7 @@ export function HillsPage() {
         ) : (
           <Table
             aria-label="hills"
-            columns={COLUMNS}
+            columns={handle === null ? COLUMNS : [...COLUMNS, bestColumn(best)]}
             rows={data?.hills ?? []}
             rowKey={({ hill }) => hill.id}
             empty={

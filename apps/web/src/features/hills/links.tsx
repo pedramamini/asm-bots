@@ -46,3 +46,12 @@ export function rules(rounds: number, config: ReplayConfig): string {
 
 /** The day of an ISO time: `2026-09-24`. */
 export const day = (iso: string) => iso.slice(0, 10)
+
+/** How long before `now` the ISO time `iso` was: `now`, `5m ago`, `3h ago`, else its day. */
+export function ago(iso: string, now = Date.now()): string {
+  const seconds = Math.max(0, Math.floor((now - Date.parse(iso)) / 1000))
+  if (seconds < 60) return 'now'
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
+  if (seconds < 86_400) return `${Math.floor(seconds / 3600)}h ago`
+  return day(iso)
+}

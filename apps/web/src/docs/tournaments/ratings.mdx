@@ -42,7 +42,7 @@ And Glickman's own example, three games in one period: a 1500 ± 200 bot beats 1
 
 ## Where ratings show
 
-Ratings belong to hills, which run on the server (see [hills](/docs/tournaments/hills)). The rank on a hill comes from the score, not the rating. The rating is a second number beside it: the bot's strength over its whole history on that hill, and its bot page draws it as a line over time. A bracket can seed by rating: the highest rating gets seed 1.
+Ratings belong to hills, which run on the server (see [hills](/docs/tournaments/hills)). On a hill, each submission is one rating period: the challenger plays a game against each entry it fought, and each of those entries a game against it. The launch seed rates the challenges that built each hill the same way. The rank on a hill comes from the score, not the rating. The rating is a second number beside it: the bot's strength over its whole history on that hill, and its bot page draws it as a line over time. A bracket can seed by rating: the highest rating gets seed 1.
 
 The code is `updateRating` and `rateMatches` in `@asmbots/tourney`. Its test runs Glickman's example to the decimal.
 

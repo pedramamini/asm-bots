@@ -125,12 +125,12 @@ async function addBot(id: string, source: string): Promise<LoadedBot> {
   return bot
 }
 
-/** A queued submission of `versionId` to hill `slug`, and its job. */
-async function submit(id: string, slug: string, versionId: string): Promise<HillJob> {
+/** A queued submission of `versionId` to hill `slug` by `user`, and its job. */
+async function submit(id: string, slug: string, versionId: string, user = 'u1'): Promise<HillJob> {
   await env.DB.prepare(
-    `INSERT INTO hill_submissions (id, hill_id, bot_version_id, user_id) VALUES (?, ?, ?, 'u1')`,
+    'INSERT INTO hill_submissions (id, hill_id, bot_version_id, user_id) VALUES (?, ?, ?, ?)',
   )
-    .bind(id, `hill-${slug}`, versionId)
+    .bind(id, `hill-${slug}`, versionId, user)
     .run()
   return { kind: 'hill', hill: slug, submissionId: id, botVersionId: versionId }
 }
@@ -213,7 +213,9 @@ function matchLogs(spy: { mock: { calls: unknown[][] } }): { match: string; reus
 
 beforeAll(async () => {
   await applySeed(env, await buildSeed(DEFENDERS, { hills: HILLS }))
-  await env.DB.prepare("INSERT INTO users (id, handle) VALUES ('u1', 'tester')").run()
+  await env.DB.prepare(
+    "INSERT INTO users (id, handle) VALUES ('u1', 'tester'), ('u2', 'rival')",
+  ).run()
   for (const { slug, source } of DEFENDERS) BOTS.set(`roster-${slug}-v1`, loaded(source))
   BOTS.set('imp-v1', await addBot('imp', IMP))
   BOTS.set('imp2-v1', await addBot('imp2', IMP))
@@ -248,8 +250,10 @@ describe('a hill job', () => {
         accepted: expected.accepted,
         rank: expected.rank,
         score: expected.challenger.points,
+        needed: expected.accepted ? null : (expected.field.at(-2)?.points ?? null),
         evicted: expected.evicted?.id ?? null,
       },
+      next: null,
     })
     expect(await board('alpha')).toEqual(expectedBoard(expected))
     expect(await submissionRow('s-alpha')).toEqual({
@@ -344,7 +348,8 @@ describe('a hill job', () => {
 
   it('fights an entry that came onto the hill while it ran, then writes over the new board', async () => {
     const first = await submit('s-gamma-1', 'gamma', 'imp-v1')
-    const second = await submit('s-gamma-2', 'gamma', 'loop-v1')
+    // Another user: one user has one submission running on a hill at a time.
+    const second = await submit('s-gamma-2', 'gamma', 'loop-v1', 'u2')
     const a = runnerOf(env, first)
     const b = runnerOf(env, second)
     await a.start(first)

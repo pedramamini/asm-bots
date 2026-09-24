@@ -1,7 +1,9 @@
 /**
  * `bun run seed:local` / `bun run seed:remote` (in `apps/api`): the launch seed (`src/db/seed.ts`)
  * of the roster's bots, less its test bots, into D1 and R2 through wrangler. The showcase bots
- * enter the melee hill. Apply the migrations first; running it again adds nothing.
+ * enter the melee hill. Apply the migrations first; running it again adds nothing. Flags after
+ * `--local` go to every wrangler command: `--persist-to <dir>` seeds that local storage (the web
+ * e2e's Worker).
  */
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
@@ -11,9 +13,9 @@ import { fileURLToPath } from 'node:url'
 import { loadRoster, ROSTER } from '@asmbots/bots'
 import { buildSeed, type SeedObject, sqlScript } from '../src/db/seed'
 
-const where = process.argv[2]
+const [where, ...flags] = process.argv.slice(2)
 if (where !== '--local' && where !== '--remote') {
-  console.error('usage: bun run scripts/seed.ts --local | --remote')
+  console.error('usage: bun run scripts/seed.ts --local [--persist-to <dir>] | --remote')
   process.exit(2)
 }
 
@@ -21,7 +23,7 @@ if (where !== '--local' && where !== '--remote') {
 const wrangler = fileURLToPath(new URL('../node_modules/.bin/wrangler', import.meta.url))
 const cwd = fileURLToPath(new URL('..', import.meta.url))
 const run = (...args: string[]) =>
-  execFileSync(wrangler, [...args, where], { cwd, stdio: 'inherit' })
+  execFileSync(wrangler, [...args, where, ...flags], { cwd, stdio: 'inherit' })
 
 const roster = loadRoster()
 const started = performance.now()

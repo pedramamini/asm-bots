@@ -3,18 +3,9 @@
  * hills list, a hill, a bot, a profile, and the home page's panels, loading, loaded, and refused.
  */
 import { describe, expect, it } from 'bun:test'
-import { ToastProvider } from '@asmbots/ui'
-import {
-  createMemoryHistory,
-  createRootRoute,
-  createRoute,
-  createRouter,
-  Outlet,
-  RouterProvider,
-} from '@tanstack/react-router'
-import { act, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, renderHook, screen, waitFor, within } from '@testing-library/react'
 import { HttpResponse, http } from 'msw'
-import { lazy, type ReactNode } from 'react'
+import { lazy } from 'react'
 import { useDom, window } from '../../../packages/ui/test/dom'
 import { ApiRequestError, apiGet, shouldRetry } from '../src/api/client'
 import { useHills, useReplay } from '../src/api/queries'
@@ -25,7 +16,7 @@ import { HillsPage } from '../src/features/hills/HillsPage'
 import { rules } from '../src/features/hills/links'
 import { matchScore, matchTitle, matchWinner } from '../src/features/hills/MatchesTable'
 import { ProfilePage } from '../src/features/profile/ProfilePage'
-import { answer, hang, refuse, useApiServer, WithQueries } from './api-server'
+import { answer, hang, refuse, renderAt, useApiServer, WithQueries } from './api-server'
 import {
   CONFIG,
   DWARF_DETAIL,
@@ -44,6 +35,7 @@ const server = useApiServer(
   answer('/hills', HILLS),
   answer('/hills/main', MAIN_DETAIL),
   answer('/hills/main/matches', MATCHES),
+  answer('/hills/main/history', { events: [] }),
   answer('/bots/roster-dwarf', DWARF_DETAIL),
   answer('/bots/roster-dwarf/versions/1', {
     version: { ...DWARF_DETAIL.versions[0], source: 'start: jmp $\n' },
@@ -56,31 +48,6 @@ const server = useApiServer(
     matches: [],
   }),
 )
-
-/** `content` at `path` of a memory router that knows the app's read pages by name. */
-async function renderAt(path: string, content: () => ReactNode) {
-  const root = createRootRoute({ component: Outlet })
-  const at = (routePath: string, component: () => ReactNode) =>
-    createRoute({ getParentRoute: () => root, path: routePath, component })
-  const router = createRouter({
-    routeTree: root.addChildren([
-      at(path, content),
-      ...['/hills/$slug', '/bots/$id', '/u/$handle', '/arena/$replayId', '/']
-        .filter((p) => p !== path)
-        .map((p) => at(p, () => <p>page {p}</p>)),
-    ]),
-    history: createMemoryHistory({ initialEntries: [path] }),
-  })
-  render(
-    <WithQueries>
-      <ToastProvider>
-        <RouterProvider router={router as never} />
-      </ToastProvider>
-    </WithQueries>,
-  )
-  await act(() => router.load())
-  return router
-}
 
 const cells = (table: HTMLElement) =>
   within(table)
@@ -210,6 +177,7 @@ describe('/hills/$slug', () => {
       '0',
       '0',
       '2',
+      'challenge ▾',
     ])
     // With no %author, the owner is the author.
     expect(cells(standings)[2]?.[2]).toBe('system')
@@ -225,6 +193,7 @@ describe('/hills/$slug', () => {
   it('says so when there is no such hill', async () => {
     server.use(refuse('/hills/nope', 404, 'not_found', 'no hill nope'))
     server.use(refuse('/hills/nope/matches', 404, 'not_found', 'no hill nope'))
+    server.use(refuse('/hills/nope/history', 404, 'not_found', 'no hill nope'))
     await renderAt('/hills/nope', () => <HillPage slug="nope" />)
     expect(await screen.findByText('there is no hill named nope.')).toBeTruthy()
     expect(screen.getByRole('link', { name: 'all hills' }).getAttribute('href')).toBe('/hills')

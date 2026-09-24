@@ -19,6 +19,9 @@ import {
   fromBase64Url,
   Hill,
   HillEntry,
+  HillEvent,
+  HillSubmission,
+  HillSubmitRequest,
   type LiveMessage,
   liveRoomName,
   Match,
@@ -36,6 +39,7 @@ import {
   replayMatch,
   runnerJobId,
   type ShareLink,
+  SubmissionDetail,
   sha256Hex,
   Tournament,
   toBase64,
@@ -301,7 +305,35 @@ describe('records', () => {
           size: 20,
           rounds: 10,
           config,
+          scoring: 'duel',
           createdAt: at,
+        },
+      ],
+      [
+        HillSubmission,
+        {
+          id: 's1',
+          hillId: 'h1',
+          botVersionId: 'v1',
+          status: 'finished',
+          score: 112,
+          rank: null,
+          needed: 131,
+          createdAt: at,
+        },
+      ],
+      [
+        HillEvent,
+        {
+          id: 'e1',
+          hillId: 'h1',
+          submissionId: 's1',
+          kind: 'entered',
+          botVersionId: 'v1',
+          rank: 5,
+          score: 152,
+          delta: 3,
+          at,
         },
       ],
       [
@@ -355,6 +387,45 @@ describe('records', () => {
     }
     expect(Bot.safeParse({ ...records[1][1], visibility: 'secret' }).success).toBe(false)
     expect(User.safeParse({ ...records[0][1], handle: '-bad' }).success).toBe(false)
+    expect(Hill.safeParse({ ...records[3][1], scoring: 'swiss' }).success).toBe(false)
+    expect(HillSubmission.safeParse({ ...records[4][1], status: 'paused' }).success).toBe(false)
+    expect(HillEvent.safeParse({ ...records[5][1], kind: 'crowned' }).success).toBe(false)
+  })
+
+  it('read a submission as the hill page polls it, and a submit request', () => {
+    const label = {
+      botId: 'b1',
+      versionId: 'v1',
+      slug: 'dwarf',
+      name: 'Dwarf',
+      version: 1,
+      owner: 'pedram',
+      author: null,
+    }
+    const detail = {
+      submission: {
+        id: 's1',
+        hillId: 'h1',
+        botVersionId: 'v1',
+        status: 'running',
+        score: null,
+        rank: null,
+        needed: null,
+        createdAt: at,
+      },
+      bot: label,
+      progress: { done: 24, of: 32, next: [label, null] },
+      matches: [],
+      events: [],
+    }
+    expect(parse(SubmissionDetail, JSON.parse(JSON.stringify(detail)), 'it')).toEqual(detail)
+    expect(parse(HillSubmitRequest, { botVersionId: 'v1' }, 'the request')).toEqual({
+      botVersionId: 'v1',
+    })
+    expect(() => parse(HillSubmitRequest, {}, 'the request')).toThrow('botVersionId is missing')
+    expect(() => parse(HillSubmitRequest, { botVersionId: '' }, 'the request')).toThrow(
+      ProtocolError,
+    )
   })
 
   it('read LiveRoom messages and refuse others', () => {

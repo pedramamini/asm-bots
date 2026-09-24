@@ -7,12 +7,14 @@ import {
   BotDetail,
   BotVersionDetail,
   HillDetail,
+  HillHistory,
   HillList,
   MatchList,
   Me,
   MyBotList,
   parse,
   parseReplay,
+  SubmissionDetail,
   TournamentDetail,
   TournamentList,
   UserDetail,
@@ -57,6 +59,42 @@ export const hillMatchesQuery = (slug: string, { bot, limit }: HillMatchesFilter
       ),
   })
 }
+
+export const hillHistoryQuery = (slug: string, limit?: number) =>
+  queryOptions({
+    queryKey: ['hills', slug, 'history', { limit: limit ?? null }],
+    queryFn: ({ signal }) =>
+      apiGet(
+        `/hills/${segment(slug)}/history${limit === undefined ? '' : `?limit=${limit}`}`,
+        (v) => parse(HillHistory, v, 'the history'),
+        signal,
+      ),
+  })
+
+/** How often a submission's page asks how far its job is, while the job runs. */
+export const SUBMISSION_POLL_MS = 1000
+
+/** Whether a submission's job may still change it: queued or running. */
+export function submissionActive(detail: SubmissionDetail | undefined): boolean {
+  const status = detail?.submission.status
+  return status === 'queued' || status === 'running'
+}
+
+/**
+ * A hill submission, asked again every `SUBMISSION_POLL_MS` while its job runs (the hill's
+ * `LiveRoom` socket, which says the same as it happens, comes with spectating).
+ */
+export const submissionQuery = (slug: string, id: string) =>
+  queryOptions({
+    queryKey: ['hills', slug, 'submissions', id],
+    queryFn: ({ signal }) =>
+      apiGet(
+        `/hills/${segment(slug)}/submissions/${segment(id)}`,
+        (v) => parse(SubmissionDetail, v, 'the submission'),
+        signal,
+      ),
+    refetchInterval: (query) => (submissionActive(query.state.data) ? SUBMISSION_POLL_MS : false),
+  })
 
 export const botQuery = (id: string) =>
   queryOptions({
@@ -146,6 +184,11 @@ export const useHills = () => useQuery(hillsQuery())
 export const useHill = (slug: string) => useQuery(hillQuery(slug))
 export const useHillMatches = (slug: string, filter?: HillMatchesFilter) =>
   useQuery(hillMatchesQuery(slug, filter))
+export const useHillHistory = (slug: string, limit?: number) =>
+  useQuery(hillHistoryQuery(slug, limit))
+/** A hill submission, polled while its job runs; waits while `id` is null. */
+export const useSubmission = (slug: string, id: string | null) =>
+  useQuery({ ...submissionQuery(slug, id ?? ''), enabled: id !== null })
 export const useBot = (id: string) => useQuery(botQuery(id))
 /** One version of a bot; waits while `version` is null. */
 export const useBotVersion = (id: string, version: number | null) =>
@@ -158,6 +201,9 @@ export const useTournaments = () => useQuery(tournamentsQuery())
 export const useTournament = (id: string | null) =>
   useQuery({ ...tournamentQuery(id ?? ''), enabled: id !== null })
 export const useUser = (handle: string) => useQuery(userQuery(handle))
+/** A profile; waits while `handle` is null. */
+export const useMaybeUser = (handle: string | null) =>
+  useQuery({ ...userQuery(handle ?? ''), enabled: handle !== null })
 export const useMe = () => useQuery(meQuery())
 /** The signed-in user's cloud bots; asks nothing while nobody is signed in. */
 export function useMyBots() {

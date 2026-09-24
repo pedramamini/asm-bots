@@ -5,29 +5,28 @@ import { useNavigate } from '@tanstack/react-router'
 import { GitFork, Swords } from 'lucide-react'
 import { meQuery } from '../../api/queries'
 import { LOCAL_BOTS_KEY, type LocalBot, useLocalBots } from '../../store/local-bots'
+import type { ArenaConfig } from '../../store/settings'
 import { DEFAULT_ARENA_CONFIG } from '../arena/setup/config'
 import type { ArenaSearch } from '../arena/setup/search'
 import { type BotRef, type SharedBot, searchFromSetup, sharedFragment } from '../arena/setup/url'
 import { forkIntoMyBots } from './cloud'
 
 /**
- * The arena of `challenge`: my bot `mine` against `bot`, a duel on a random seed. The bot plays as
- * the local bot linked to it when this browser has one, else as a bot the link carries, keyed by
- * its account id.
+ * The arena of `challenge`: my bot `mine` against `bot` (`source`, the version to fight), mine
+ * first, under `config`: a duel on a random seed unless given. The bot plays as the local bot
+ * linked to it when this browser has one, else as a bot the link carries, keyed by its account id.
  */
 export function challengeLink(
-  bot: Bot,
+  bot: Pick<Bot, 'id'>,
   source: string,
   mine: LocalBot,
   local: readonly LocalBot[],
+  config: ArenaConfig = DEFAULT_ARENA_CONFIG,
 ): { search: ArenaSearch; hash: string } {
-  const linked = local.find((b) => b.cloudId === bot.id)
+  const linked = local.find((b) => b.cloudId === bot.id && b.source === source)
   const theirs: BotRef = { kind: 'local', id: linked?.id ?? bot.id }
   const shared: SharedBot[] = linked === undefined ? [{ id: bot.id, source }] : []
-  const search = searchFromSetup({
-    bots: [{ kind: 'local', id: mine.id }, theirs],
-    config: DEFAULT_ARENA_CONFIG,
-  })
+  const search = searchFromSetup({ bots: [{ kind: 'local', id: mine.id }, theirs], config })
   return { search, hash: sharedFragment(shared) }
 }
 

@@ -1,5 +1,6 @@
 /** The write routes the web app calls (`apps/api/src/routes`). */
 import {
+  HillSubmitted,
   ImportBotsResult,
   Me,
   type NewBot,
@@ -45,6 +46,13 @@ export function updateBot(id: string, update: UpdateBot): Promise<UpdatedBot> {
 export function addBotVersion(id: string, source: string): Promise<SavedBotVersion> {
   return apiPost(`/bots/${segment(id)}/versions`, { source }, (v) =>
     parse(SavedBotVersion, v, 'the version'),
+  )
+}
+
+/** `POST /api/hills/:slug/submit`: a version of one of my bots challenges the hill; its job starts. */
+export function submitToHill(slug: string, botVersionId: string): Promise<HillSubmitted> {
+  return apiPost(`/hills/${segment(slug)}/submit`, { botVersionId }, (v) =>
+    parse(HillSubmitted, v, 'the submission'),
   )
 }
 

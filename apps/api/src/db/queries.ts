@@ -15,7 +15,10 @@ import {
   type Hill,
   type HillBest,
   type HillEntry,
+  type HillEvent,
+  type HillEventSummary,
   type HillStanding,
+  type HillSubmission,
   type HillSummary,
   type Match,
   type MatchOutcome,
@@ -101,7 +104,21 @@ export interface HillSubmissionRow {
   score: number | null
   /** Its rank on the new board; null when it did not stay, or is not finished. */
   rank: number | null
+  /** When it did not stay: the field score of the lowest entry that did. */
+  needed: number | null
   created_at: string
+}
+
+export interface HillHistoryRow {
+  id: string
+  hill_id: string
+  submission_id: string | null
+  event: HillEvent['kind']
+  bot_version_id: string
+  rank: number | null
+  score: number
+  delta: number | null
+  at: string
 }
 
 export interface TournamentRow {
@@ -188,7 +205,35 @@ export function toHill(row: HillRow): Hill {
     size: row.size,
     rounds: row.rounds,
     config: JSON.parse(row.config_json) as ReplayConfig,
+    scoring: row.scoring,
     createdAt: row.created_at,
+  }
+}
+
+export function toHillSubmission(row: HillSubmissionRow): HillSubmission {
+  return {
+    id: row.id,
+    hillId: row.hill_id,
+    botVersionId: row.bot_version_id,
+    status: row.status,
+    score: row.score,
+    rank: row.rank,
+    needed: row.needed,
+    createdAt: row.created_at,
+  }
+}
+
+export function toHillEvent(row: HillHistoryRow): HillEvent {
+  return {
+    id: row.id,
+    hillId: row.hill_id,
+    submissionId: row.submission_id,
+    kind: row.event,
+    botVersionId: row.bot_version_id,
+    rank: row.rank,
+    score: row.score,
+    delta: row.delta,
+    at: row.at,
   }
 }
 
@@ -456,17 +501,27 @@ export async function listHillEntries(db: D1Database, hillId: string): Promise<H
   return results.map(toHillEntry)
 }
 
-/** A hill's standings with each entry's label, king first. */
+/** An entry's rating deviation: `RD_COLUMN` from `hill_entries e` and `RD_JOIN`. */
+const RD_COLUMN = 'r.rd'
+const RD_JOIN =
+  'LEFT JOIN ratings r ON r.bot_version_id = e.bot_version_id AND r.hill_id = e.hill_id'
+
+/** A standing from a row of `hill_entries e`, its label, and its `RD_COLUMN`. */
+function toHillStanding(row: HillEntryRow & BotLabelRow & { rd: number | null }): HillStanding {
+  return { entry: toHillEntry(row), bot: toBotLabel(row), rd: row.rd }
+}
+
+/** A hill's standings with each entry's label and RD, king first. */
 export async function listHillStandings(db: D1Database, hillId: string): Promise<HillStanding[]> {
   const { results } = await db
     .prepare(
-      `SELECT e.*, ${LABEL_COLUMNS} FROM hill_entries e
-       JOIN bot_versions v ON v.id = e.bot_version_id ${LABEL_JOINS}
+      `SELECT e.*, ${LABEL_COLUMNS}, ${RD_COLUMN} FROM hill_entries e
+       JOIN bot_versions v ON v.id = e.bot_version_id ${LABEL_JOINS} ${RD_JOIN}
        WHERE e.hill_id = ? ORDER BY e.rank`,
     )
     .bind(hillId)
-    .all<HillEntryRow & BotLabelRow>()
-  return results.map((row) => ({ entry: toHillEntry(row), bot: toBotLabel(row) }))
+    .all<HillEntryRow & BotLabelRow & { rd: number | null }>()
+  return results.map(toHillStanding)
 }
 
 /** Every hill, with its entrant count and its king. */
@@ -478,17 +533,16 @@ export async function listHillSummaries(db: D1Database): Promise<HillSummary[]> 
       .all<{ hill_id: string; n: number }>(),
     db
       .prepare(
-        `SELECT e.*, ${LABEL_COLUMNS} FROM hill_entries e
-         JOIN bot_versions v ON v.id = e.bot_version_id ${LABEL_JOINS}
+        `SELECT e.*, ${LABEL_COLUMNS}, ${RD_COLUMN} FROM hill_entries e
+         JOIN bot_versions v ON v.id = e.bot_version_id ${LABEL_JOINS} ${RD_JOIN}
          WHERE e.rank = 1 ORDER BY e.entered_at`,
       )
-      .all<HillEntryRow & BotLabelRow>(),
+      .all<HillEntryRow & BotLabelRow & { rd: number | null }>(),
   ])
   const count = new Map(counts.results.map((row) => [row.hill_id, row.n]))
   const king = new Map<string, HillStanding>()
   for (const row of kings.results) {
-    if (!king.has(row.hill_id))
-      king.set(row.hill_id, { entry: toHillEntry(row), bot: toBotLabel(row) })
+    if (!king.has(row.hill_id)) king.set(row.hill_id, toHillStanding(row))
   }
   return hills.map((hill) => ({
     hill,
@@ -644,6 +698,135 @@ export async function listHillMatches(
           .bind(hillId, botVersionId, clampLimit(limit))
   const { results } = await statement.all<MatchRow>()
   return results.map(toMatch)
+}
+
+/** A bot version, with what a hill submission needs of its bot. */
+export interface SubmittedVersionRow extends BotVersionRow {
+  owner_id: string
+  visibility: Bot['visibility']
+  deleted_at: string | null
+  /** The bot's name. */
+  name: string
+}
+
+export async function getSubmittedVersion(
+  db: D1Database,
+  versionId: string,
+): Promise<SubmittedVersionRow | null> {
+  return db
+    .prepare(
+      `SELECT v.*, b.owner_id, b.visibility, b.deleted_at, b.name FROM bot_versions v
+       JOIN bots b ON b.id = v.bot_id WHERE v.id = ?`,
+    )
+    .bind(versionId)
+    .first<SubmittedVersionRow>()
+}
+
+/**
+ * The entry of hill `hillId` that is bot version `versionId`, else one with the bytes `sha256`;
+ * null when there is none. With its bot's name.
+ */
+export async function findHillEntryOf(
+  db: D1Database,
+  hillId: string,
+  versionId: string,
+  sha256: string,
+): Promise<{ bot_version_id: string; name: string } | null> {
+  return db
+    .prepare(
+      `SELECT e.bot_version_id, b.name FROM hill_entries e
+       JOIN bot_versions v ON v.id = e.bot_version_id JOIN bots b ON b.id = v.bot_id
+       WHERE e.hill_id = ?1 AND (e.bot_version_id = ?2 OR v.bytes_sha256 = ?3)
+       ORDER BY e.bot_version_id = ?2 DESC LIMIT 1`,
+    )
+    .bind(hillId, versionId, sha256)
+    .first<{ bot_version_id: string; name: string }>()
+}
+
+/** The id of `userId`'s submission queued or running on hill `hillId`; null when none is. */
+export async function findActiveSubmission(
+  db: D1Database,
+  userId: string,
+  hillId: string,
+): Promise<string | null> {
+  const row = await db
+    .prepare(
+      `SELECT id FROM hill_submissions
+       WHERE user_id = ? AND hill_id = ? AND status IN ('queued', 'running') LIMIT 1`,
+    )
+    .bind(userId, hillId)
+    .first<{ id: string }>()
+  return row?.id ?? null
+}
+
+export async function getHillSubmission(
+  db: D1Database,
+  id: string,
+): Promise<HillSubmissionRow | null> {
+  return db
+    .prepare('SELECT * FROM hill_submissions WHERE id = ?')
+    .bind(id)
+    .first<HillSubmissionRow>()
+}
+
+/**
+ * The matches submission `submissionId` has played on hill `hillId`, in the order played. Its
+ * `Runner` names them `<submission id>-<n>`, the ids from `<id>-` to just before `<id>.` (`.`
+ * follows `-`), which the primary key's index finds. The route makes submission ids as UUIDs, all
+ * one length, so no id is another's with a tail.
+ */
+export async function listSubmissionMatches(
+  db: D1Database,
+  hillId: string,
+  submissionId: string,
+): Promise<Match[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT * FROM matches WHERE id >= ?2 AND id < ?3 AND hill_id = ?1
+       ORDER BY finished_at, rowid`,
+    )
+    .bind(hillId, `${submissionId}-`, `${submissionId}.`)
+    .all<MatchRow>()
+  return results.map(toMatch)
+}
+
+async function eventSummaries(
+  db: D1Database,
+  rows: readonly HillHistoryRow[],
+): Promise<HillEventSummary[]> {
+  const labels = await listBotLabels(
+    db,
+    rows.map((row) => row.bot_version_id),
+  )
+  return rows.map((row) => ({
+    event: toHillEvent(row),
+    bot: labels.get(row.bot_version_id) ?? null,
+  }))
+}
+
+/** Hill `hillId`'s history, newest first, each event with its bot's label. */
+export async function listHillHistory(
+  db: D1Database,
+  hillId: string,
+  limit = 20,
+): Promise<HillEventSummary[]> {
+  const { results } = await db
+    .prepare('SELECT * FROM hill_history WHERE hill_id = ? ORDER BY at DESC, rowid LIMIT ?')
+    .bind(hillId, clampLimit(limit))
+    .all<HillHistoryRow>()
+  return eventSummaries(db, results)
+}
+
+/** Submission `submissionId`'s events, the challenger's first. */
+export async function listSubmissionEvents(
+  db: D1Database,
+  submissionId: string,
+): Promise<HillEventSummary[]> {
+  const { results } = await db
+    .prepare('SELECT * FROM hill_history WHERE submission_id = ? ORDER BY rowid')
+    .bind(submissionId)
+    .all<HillHistoryRow>()
+  return eventSummaries(db, results)
 }
 
 /**

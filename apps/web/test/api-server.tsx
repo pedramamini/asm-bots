@@ -1,9 +1,20 @@
 /**
  * The API as a test sees it: `msw` answers the page's `fetch` to `/api/...`, and each render gets
- * its own query cache that does not retry, so an error shows at once.
+ * its own query cache that does not retry, so an error shows at once. `renderAt` puts a page in a
+ * memory router that knows the app's other pages as stubs.
  */
 import { afterAll, afterEach, beforeAll } from 'bun:test'
+import { ToastProvider } from '@asmbots/ui'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  Outlet,
+  RouterProvider,
+} from '@tanstack/react-router'
+import { act, render } from '@testing-library/react'
 import { HttpResponse, http, type RequestHandler } from 'msw'
 import { setupServer } from 'msw/node'
 import type { ReactNode } from 'react'
@@ -46,4 +57,47 @@ export function testQueryClient(): QueryClient {
 
 export function WithQueries({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={testQueryClient()}>{children}</QueryClientProvider>
+}
+
+/** The pages a test router knows beside the one under test: each a stub that names itself. */
+const STUBS = [
+  '/',
+  '/hills',
+  '/hills/$slug',
+  '/bots/$id',
+  '/u/$handle',
+  '/arena',
+  '/arena/$replayId',
+  '/editor',
+]
+
+/**
+ * `content` at `url` (its path, and any query) of a memory router that knows the app's pages by
+ * name, with queries and toasts: on a route of its own, `path` (`/hills/$slug`), or `url`'s path.
+ * Resolves once the router has loaded.
+ */
+export async function renderAt(
+  url: string,
+  content: () => ReactNode,
+  path = url.split(/[?#]/)[0] as string,
+) {
+  const root = createRootRoute({ component: Outlet })
+  const at = (routePath: string, component: () => ReactNode) =>
+    createRoute({ getParentRoute: () => root, path: routePath, component })
+  const router = createRouter({
+    routeTree: root.addChildren([
+      at(path, content),
+      ...STUBS.filter((p) => p !== path).map((p) => at(p, () => <p>page {p}</p>)),
+    ]),
+    history: createMemoryHistory({ initialEntries: [url] }),
+  })
+  render(
+    <WithQueries>
+      <ToastProvider>
+        <RouterProvider router={router as never} />
+      </ToastProvider>
+    </WithQueries>,
+  )
+  await act(() => router.load())
+  return router
 }

@@ -59,7 +59,7 @@ export class Runner extends DurableObject<Env> {
         const had = await this.job()
         if (had !== null) {
           if (had.id !== id) throw new JobError(`the runner of ${had.id} cannot start ${id}`)
-          return { state: had, fresh: false }
+          return { state: had, bots: await this.bots(), fresh: false }
         }
         const { bots, ...setup } = await this.setup(job)
         const state: JobState = {
@@ -78,24 +78,24 @@ export class Runner extends DurableObject<Env> {
         }
         await this.ctx.storage.put<unknown>({ job: state, bots })
         await this.arm()
-        return { state, fresh: true }
+        return { state, bots, fresh: true }
       } catch (error) {
         return { error }
       }
     })
     if ('error' in begun) throw begun.error
-    const { state, fresh } = begun
+    const { state, bots, fresh } = begun
     if (fresh) {
       log('info', 'runner.start', { job: id, of: state.of })
       await this.publish(state, [this.progress(state)])
     }
-    return statusOf(state)
+    return statusOf(state, bots)
   }
 
-  /** The job's status, or null when this runner has none. */
+  /** The job's status, with the match it is playing, or null when this runner has none. */
   async status(): Promise<RunnerStatus | null> {
     const state = await this.job()
-    return state && statusOf(state)
+    return state && statusOf(state, await this.bots())
   }
 
   /**
