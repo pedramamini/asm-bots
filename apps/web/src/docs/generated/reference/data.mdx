@@ -1,0 +1,397 @@
+# Data movement
+
+These instructions move bytes and words between registers, memory, and the stack. None changes a flag, except `popf` and `sahf`, which load them. Every write to memory marks the bytes as the writer's in the [ownership map](/docs/reference/memory#ownership).
+
+On this page: [`mov`](/docs/reference/data#mov) · [`lea`](/docs/reference/data#lea) · [`xchg`](/docs/reference/data#xchg) · [`push`](/docs/reference/data#push) · [`pop`](/docs/reference/data#pop) · [`pushf`](/docs/reference/data#pushf) · [`popf`](/docs/reference/data#popf) · [`sahf`](/docs/reference/data#sahf) · [`lahf`](/docs/reference/data#lahf) · [`cbw`](/docs/reference/data#cbw) · [`cwd`](/docs/reference/data#cwd).
+
+## mov
+
+Copy a byte or word: dst = src.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `mov r/m8, r8` | `88 /r` | `mov [bx+4], dl` | `88 57 04` |
+| `mov r/m16, r16` | `89 /r` | `mov [di], dx` | `89 15` |
+| `mov r8, r/m8` | `8A /r` | `mov dl, [bx+4]` | `8A 57 04` |
+| `mov r16, r/m16` | `8B /r` | `mov dx, [di]` | `8B 15` |
+| `mov al, [moffs16]` | `A0 iw` | `mov al, [0x0100]` | `A0 00 01` |
+| `mov ax, [moffs16]` | `A1 iw` | `mov ax, [0x0100]` | `A1 00 01` |
+| `mov [moffs16], al` | `A2 iw` | `mov [0x0100], al` | `A2 00 01` |
+| `mov [moffs16], ax` | `A3 iw` | `mov [0x0100], ax` | `A3 00 01` |
+| `mov r8, imm8` | `B0+r ib` | `mov bl, 0x41` | `B3 41` |
+| `mov r16, imm16` | `B8+r iw` | `mov si, 0x1234` | `BE 34 12` |
+| `mov r/m8, imm8` | `C6 /0 ib` | `mov byte [bx+4], 0x41` | `C6 47 04 41` |
+| `mov r/m16, imm16` | `C7 /0 iw` | `mov word [di], 0x1234` | `C7 05 34 12` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Writes bombs and reads data. `mov word [di], 0` is the dwarf's bomb: two zero bytes, one DAT.
+
+```asm fragment
+        mov     word [di], 0            ; C7 05 00 00
+```
+
+**Idiom:**
+
+```asm fragment
+        xor     ax, ax                  ; ax = 0, the bomb
+        mov     [di], ax                ; 2 bytes: mov word [di], 0 is 4
+```
+
+<Warn>
+
+`mov ax, [label]` reads the fixed address `label` of the core, not your copy of it: the loader does not relocate. Read your own data as `[bx+label]` after the base idiom.
+
+</Warn>
+
+**See also:** [`lea`](/docs/reference/data#lea) · [`xchg`](/docs/reference/data#xchg) · [`stosw`](/docs/reference/string#stosw)
+
+## lea
+
+Load the address of a memory operand, not the value there.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `lea r16, m` | `8D /r` | `lea dx, [bx+di-2]` | `8D 51 FE` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Computes an address from a base register, with no memory access: `lea di, [bx+end]` points di just past the bot.
+
+```asm fragment
+        lea     si, [bx+di-2]           ; 8D 71 FE
+```
+
+**Idiom:**
+
+```asm fragment
+start:  call    .here
+.here:  pop     bx
+        sub     bx, .here
+        lea     di, [bx+start-2]        ; di = the word just under the bot
+```
+
+<Warn>
+
+`lea` takes a memory operand only: `lea ax, bx` is an error, and the bytes `8D` with mod = 11 kill. It changes no flags, so it cannot stand in for `add` before a `jz`.
+
+</Warn>
+
+**See also:** [`mov`](/docs/reference/data#mov) · [`add`](/docs/reference/arithmetic#add)
+
+## xchg
+
+Swap the two operands.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `xchg r/m8, r8` | `86 /r` | `xchg [bx+4], dl` | `86 57 04` |
+| `xchg r/m16, r16` | `87 /r` | `xchg [di], dx` | `87 15` |
+| `xchg ax, r16` | `90+r` | `xchg ax, si` | `96` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Swaps two values in one instruction, with no scratch register. Paper swaps the bytes of its base to start its path far away.
+
+```asm fragment
+        xchg    ax, bx                  ; 93
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     dx, bx
+        xchg    dl, dh                  ; our base, bytes swapped: a far-away address
+```
+
+<Warn>
+
+`xchg` with a memory operand writes that memory: `xchg ax, [si]` to read a word also stores ax there. `xchg ax, ax` assembles to `87 C0`, because `90` is `nop`.
+
+</Warn>
+
+**See also:** [`mov`](/docs/reference/data#mov) · [`push`](/docs/reference/data#push) · [`nop`](/docs/reference/flag-ops#nop)
+
+## push
+
+Sp -= 2, then store the word at sp.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `push r16` | `50+r` | `push si` | `56` |
+| `push r/m16` | `FF /6` | `push word [di]` | `FF 35` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Writes a word at sp - 2 and moves sp down: a store and a step in 1 byte. sp starts at the base, so the stack grows into the core under the bot.
+
+```asm fragment
+        push    ax                      ; 50
+```
+
+**Idiom:**
+
+```asm fragment
+        xor     ax, ax
+        mov     sp, di                  ; aim the stack at the target
+        push    ax                      ; DAT at di-2
+        push    ax                      ; DAT at di-4
+```
+
+<Warn>
+
+`push sp` pushes sp after the decrement, as the 8086 does. `push 5` is an error: the 8086 has no `push imm`. Load a register first.
+
+</Warn>
+
+**See also:** [`pop`](/docs/reference/data#pop) · [`call`](/docs/reference/control#call) · [`pushf`](/docs/reference/data#pushf)
+
+## pop
+
+Load the word at sp into dst, then sp += 2.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `pop r16` | `58+r` | `pop si` | `5E` |
+| `pop r/m16` | `8F /0` | `pop word [di]` | `8F 05` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Reads the word at sp and moves sp up. After `call`, it gets the address of the next line: the base idiom.
+
+```asm fragment
+        pop     bx                      ; 5B
+```
+
+**Idiom:**
+
+```asm fragment
+start:  call    .here
+.here:  pop     bx                      ; bx = the address of .here
+        sub     bx, .here               ; bx = the base of the bot
+```
+
+<Warn>
+
+The word at sp is whatever the core holds there, enemy bombs included. `pop sp` leaves sp equal to the popped word, not that word plus 2.
+
+</Warn>
+
+**See also:** [`push`](/docs/reference/data#push) · [`call`](/docs/reference/control#call) · [`ret`](/docs/reference/control#ret)
+
+## pushf
+
+Push FLAGS.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `pushf` | `9C` | `pushf` | `9C` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Saves the flags across code that changes them.
+
+```asm fragment
+        pushf                           ; 9C
+```
+
+**Idiom:**
+
+```asm fragment
+        pushf
+        cmp     ax, bx
+        popf                            ; the flags from before the cmp are back
+```
+
+<Warn>
+
+It writes 2 bytes at sp - 2 like any push: with sp at the base, the word just under the bot. Bit 1 of the word is 1, and I and T are 0.
+
+</Warn>
+
+**See also:** [`popf`](/docs/reference/data#popf) · [`lahf`](/docs/reference/data#lahf) · [`push`](/docs/reference/data#push)
+
+## popf
+
+Pop a word into FLAGS: OF DF SF ZF AF PF CF.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `popf` | `9D` | `popf` | `9D` |
+
+<Flags op="popf" />
+
+**Cycles:** 1.
+
+**In a bot:** Puts back flags that `pushf` saved, or sets several flags from a word.
+
+```asm fragment
+        popf                            ; 9D
+```
+
+**Idiom:**
+
+```asm fragment
+        pushf
+        std
+        rep     movsw                   ; a copy that steps down
+        popf                            ; DF is what it was
+```
+
+<Warn>
+
+Only OF DF SF ZF AF PF CF take bits from the word; the others are lost. A stray word on the stack can set DF, and then every string instruction runs backward.
+
+</Warn>
+
+**See also:** [`pushf`](/docs/reference/data#pushf) · [`sahf`](/docs/reference/data#sahf) · [`std`](/docs/reference/string#std)
+
+## sahf
+
+Copy ah into SF ZF AF PF CF.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `sahf` | `9E` | `sahf` | `9E` |
+
+<Flags op="sahf" />
+
+**Cycles:** 1.
+
+**In a bot:** Sets SF ZF AF PF CF from ah in one byte.
+
+```asm fragment
+        sahf                            ; 9E
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     ah, 0x41                ; bits 6 and 0: ZF and CF
+        sahf                            ; ZF = 1, CF = 1, SF AF PF = 0
+```
+
+<Warn>
+
+It does not touch OF or DF. The bits of ah are SF ZF - AF - PF - CF from bit 7 down, so ZF is bit 6, not bit 0.
+
+</Warn>
+
+**See also:** [`lahf`](/docs/reference/data#lahf) · [`popf`](/docs/reference/data#popf)
+
+## lahf
+
+Copy SF ZF AF PF CF into ah.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `lahf` | `9F` | `lahf` | `9F` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Copies SF ZF AF PF CF into ah, so a flag becomes a value to test, store, or add.
+
+```asm fragment
+        lahf                            ; 9F
+```
+
+**Idiom:**
+
+```asm fragment
+        cmp     ax, bx
+        lahf
+        and     ah, 0x40                ; ah = 0x40 if ax = bx, else 0
+```
+
+<Warn>
+
+Bits 5, 3, and 1 of ah are 0, 0, and 1, not flags. OF is not in ah: use `pushf` for it.
+
+</Warn>
+
+**See also:** [`sahf`](/docs/reference/data#sahf) · [`pushf`](/docs/reference/data#pushf)
+
+## cbw
+
+Sign-extend al into ax.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `cbw` | `98` | `cbw` | `98` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Widens a signed byte to a word before word math: al = -8 becomes ax = -8.
+
+```asm fragment
+        mov     al, -5                  ; B0 FB
+        cbw                             ; 98
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     al, -8
+        cbw                             ; ax = 0xFFF8
+        add     di, ax                  ; di -= 8
+```
+
+<Warn>
+
+It overwrites ah. For an unsigned byte, clear ah instead (`mov ah, 0`): cbw turns 0x80..0xFF into 0xFF80..0xFFFF.
+
+</Warn>
+
+**See also:** [`cwd`](/docs/reference/data#cwd) · [`lodsb`](/docs/reference/string#lodsb)
+
+## cwd
+
+Sign-extend ax into dx:ax.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `cwd` | `99` | `cwd` | `99` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Sets dx to the sign of ax before a signed divide.
+
+```asm fragment
+        cwd                             ; 99
+        idiv    bx                      ; F7 FB
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     ax, -1000
+        cwd                             ; dx:ax = -1000
+        mov     cx, 7
+        idiv    cx                      ; ax = -142, dx = -6
+```
+
+<Warn>
+
+Before an unsigned `div`, clear dx with `xor dx, dx`: when ax is 0x8000 or more, cwd sets dx to 0xFFFF, the quotient does not fit, and the divide kills.
+
+</Warn>
+
+**See also:** [`cbw`](/docs/reference/data#cbw) · [`div`](/docs/reference/arithmetic#div) · [`idiv`](/docs/reference/arithmetic#idiv)

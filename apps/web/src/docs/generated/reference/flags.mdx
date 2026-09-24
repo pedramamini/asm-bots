@@ -1,0 +1,41 @@
+# Flags
+
+FLAGS is a 16-bit register of each process. x16c uses seven of its bits: six status flags, which instructions set from their results, and DF, which steers the string instructions. Bit 1 always reads 1, and every other bit reads 0, the I and T of the 8086 included. The debugger shows them in the 8086 order:
+
+<Flags set="ODSZAPC" />
+
+## The flags
+
+| flag | bit | name | is 1 when | read by |
+|---|---|---|---|---|
+| `CF` | 0 | carry | an add carries out of the top bit, a subtract borrows, or a shift pushes a 1 out | `jc`, `jnc`, `ja`, `jna`, `adc`, `sbb`, `rcl`, `rcr` |
+| `PF` | 2 | parity | the low byte of the result has an even count of 1 bits | `jpe`, `jpo` |
+| `AF` | 4 | auxiliary carry | a carry or borrow crosses bit 3 (for decimal math, which x16c leaves out) | `lahf`, `pushf` |
+| `ZF` | 6 | zero | the result is 0 | `jz`, `jnz`, `ja`, `jna`, `jg`, `jng`, `loope`, `loopne`, `repe`, `repne` |
+| `SF` | 7 | sign | bit 15 of the result (bit 7 of a byte) is 1 | `js`, `jns`, `jl`, `jnl`, `jg`, `jng` |
+| `DF` | 10 | direction | `std` sets it and `cld` clears it | every string instruction: it steps si and di down when DF = 1 |
+| `OF` | 11 | overflow | a signed result does not fit | `jo`, `jno`, `jl`, `jnl`, `jg`, `jng` |
+
+## What changes each flag
+
+Each instruction page shows its flags row. This is the same, flag by flag: "from the result" is set or cleared by what the instruction computed. An instruction not listed never changes the flag.
+
+| flag | from the result | set to 0 | set to 1 |
+|---|---|---|---|
+| `CF` | [`popf`](/docs/reference/data#popf), [`sahf`](/docs/reference/data#sahf), [`add`](/docs/reference/arithmetic#add), [`adc`](/docs/reference/arithmetic#adc), [`sub`](/docs/reference/arithmetic#sub), [`sbb`](/docs/reference/arithmetic#sbb), [`cmp`](/docs/reference/arithmetic#cmp), [`neg`](/docs/reference/arithmetic#neg), [`cmpsb`](/docs/reference/string#cmpsb), [`cmpsw`](/docs/reference/string#cmpsw), [`scasb`](/docs/reference/string#scasb), [`scasw`](/docs/reference/string#scasw), [`mul`](/docs/reference/arithmetic#mul), [`imul`](/docs/reference/arithmetic#imul), [`shl`](/docs/reference/shifts#shl), [`shr`](/docs/reference/shifts#shr), [`sar`](/docs/reference/shifts#sar), [`rol`](/docs/reference/shifts#rol), [`ror`](/docs/reference/shifts#ror), [`rcl`](/docs/reference/shifts#rcl), [`rcr`](/docs/reference/shifts#rcr), [`cmc`](/docs/reference/flag-ops#cmc) | [`and`](/docs/reference/logic#and), [`or`](/docs/reference/logic#or), [`xor`](/docs/reference/logic#xor), [`test`](/docs/reference/logic#test), [`clc`](/docs/reference/flag-ops#clc) | [`stc`](/docs/reference/flag-ops#stc) |
+| `PF` | [`popf`](/docs/reference/data#popf), [`sahf`](/docs/reference/data#sahf), [`add`](/docs/reference/arithmetic#add), [`adc`](/docs/reference/arithmetic#adc), [`sub`](/docs/reference/arithmetic#sub), [`sbb`](/docs/reference/arithmetic#sbb), [`cmp`](/docs/reference/arithmetic#cmp), [`neg`](/docs/reference/arithmetic#neg), [`cmpsb`](/docs/reference/string#cmpsb), [`cmpsw`](/docs/reference/string#cmpsw), [`scasb`](/docs/reference/string#scasb), [`scasw`](/docs/reference/string#scasw), [`inc`](/docs/reference/arithmetic#inc), [`dec`](/docs/reference/arithmetic#dec), [`and`](/docs/reference/logic#and), [`or`](/docs/reference/logic#or), [`xor`](/docs/reference/logic#xor), [`test`](/docs/reference/logic#test), [`shl`](/docs/reference/shifts#shl), [`shr`](/docs/reference/shifts#shr), [`sar`](/docs/reference/shifts#sar) | [`mul`](/docs/reference/arithmetic#mul), [`imul`](/docs/reference/arithmetic#imul) |  |
+| `AF` | [`popf`](/docs/reference/data#popf), [`sahf`](/docs/reference/data#sahf), [`add`](/docs/reference/arithmetic#add), [`adc`](/docs/reference/arithmetic#adc), [`sub`](/docs/reference/arithmetic#sub), [`sbb`](/docs/reference/arithmetic#sbb), [`cmp`](/docs/reference/arithmetic#cmp), [`neg`](/docs/reference/arithmetic#neg), [`cmpsb`](/docs/reference/string#cmpsb), [`cmpsw`](/docs/reference/string#cmpsw), [`scasb`](/docs/reference/string#scasb), [`scasw`](/docs/reference/string#scasw), [`inc`](/docs/reference/arithmetic#inc), [`dec`](/docs/reference/arithmetic#dec), [`shl`](/docs/reference/shifts#shl) | [`mul`](/docs/reference/arithmetic#mul), [`imul`](/docs/reference/arithmetic#imul), [`and`](/docs/reference/logic#and), [`or`](/docs/reference/logic#or), [`xor`](/docs/reference/logic#xor), [`test`](/docs/reference/logic#test), [`shr`](/docs/reference/shifts#shr), [`sar`](/docs/reference/shifts#sar) |  |
+| `ZF` | [`popf`](/docs/reference/data#popf), [`sahf`](/docs/reference/data#sahf), [`add`](/docs/reference/arithmetic#add), [`adc`](/docs/reference/arithmetic#adc), [`sub`](/docs/reference/arithmetic#sub), [`sbb`](/docs/reference/arithmetic#sbb), [`cmp`](/docs/reference/arithmetic#cmp), [`neg`](/docs/reference/arithmetic#neg), [`cmpsb`](/docs/reference/string#cmpsb), [`cmpsw`](/docs/reference/string#cmpsw), [`scasb`](/docs/reference/string#scasb), [`scasw`](/docs/reference/string#scasw), [`inc`](/docs/reference/arithmetic#inc), [`dec`](/docs/reference/arithmetic#dec), [`and`](/docs/reference/logic#and), [`or`](/docs/reference/logic#or), [`xor`](/docs/reference/logic#xor), [`test`](/docs/reference/logic#test), [`shl`](/docs/reference/shifts#shl), [`shr`](/docs/reference/shifts#shr), [`sar`](/docs/reference/shifts#sar) | [`mul`](/docs/reference/arithmetic#mul), [`imul`](/docs/reference/arithmetic#imul) |  |
+| `SF` | [`popf`](/docs/reference/data#popf), [`sahf`](/docs/reference/data#sahf), [`add`](/docs/reference/arithmetic#add), [`adc`](/docs/reference/arithmetic#adc), [`sub`](/docs/reference/arithmetic#sub), [`sbb`](/docs/reference/arithmetic#sbb), [`cmp`](/docs/reference/arithmetic#cmp), [`neg`](/docs/reference/arithmetic#neg), [`cmpsb`](/docs/reference/string#cmpsb), [`cmpsw`](/docs/reference/string#cmpsw), [`scasb`](/docs/reference/string#scasb), [`scasw`](/docs/reference/string#scasw), [`inc`](/docs/reference/arithmetic#inc), [`dec`](/docs/reference/arithmetic#dec), [`and`](/docs/reference/logic#and), [`or`](/docs/reference/logic#or), [`xor`](/docs/reference/logic#xor), [`test`](/docs/reference/logic#test), [`shl`](/docs/reference/shifts#shl), [`sar`](/docs/reference/shifts#sar) | [`mul`](/docs/reference/arithmetic#mul), [`imul`](/docs/reference/arithmetic#imul), [`shr`](/docs/reference/shifts#shr) |  |
+| `DF` | [`popf`](/docs/reference/data#popf) | [`cld`](/docs/reference/string#cld) | [`std`](/docs/reference/string#std) |
+| `OF` | [`popf`](/docs/reference/data#popf), [`add`](/docs/reference/arithmetic#add), [`adc`](/docs/reference/arithmetic#adc), [`sub`](/docs/reference/arithmetic#sub), [`sbb`](/docs/reference/arithmetic#sbb), [`cmp`](/docs/reference/arithmetic#cmp), [`neg`](/docs/reference/arithmetic#neg), [`cmpsb`](/docs/reference/string#cmpsb), [`cmpsw`](/docs/reference/string#cmpsw), [`scasb`](/docs/reference/string#scasb), [`scasw`](/docs/reference/string#scasw), [`mul`](/docs/reference/arithmetic#mul), [`imul`](/docs/reference/arithmetic#imul), [`inc`](/docs/reference/arithmetic#inc), [`dec`](/docs/reference/arithmetic#dec), [`shl`](/docs/reference/shifts#shl), [`shr`](/docs/reference/shifts#shr), [`rol`](/docs/reference/shifts#rol), [`ror`](/docs/reference/shifts#ror), [`rcl`](/docs/reference/shifts#rcl), [`rcr`](/docs/reference/shifts#rcr) | [`and`](/docs/reference/logic#and), [`or`](/docs/reference/logic#or), [`xor`](/docs/reference/logic#xor), [`test`](/docs/reference/logic#test), [`sar`](/docs/reference/shifts#sar) |  |
+
+Where the 8086 leaves a flag undefined, x16c gives it a fixed value, the one the silicon gives: `and`, `or`, `xor`, and `test` clear AF; `mul` and `imul` clear SF, ZF, AF, and PF; `div` and `idiv` change no flag. A shift or rotate by a count of 0 changes no flag.
+
+## Saving and loading
+
+[`pushf`](/docs/reference/data#pushf) and [`popf`](/docs/reference/data#popf) save and load all of FLAGS through the stack. [`lahf`](/docs/reference/data#lahf) and [`sahf`](/docs/reference/data#sahf) copy SF, ZF, AF, PF, and CF to and from ah. A child of [`spl`](/docs/reference/process#spl) starts with its parent's flags, DF included.
+
+## Conditions
+
+The conditional jumps read the flags: [control flow](/docs/reference/control#conditions) has the table of what each one tests.

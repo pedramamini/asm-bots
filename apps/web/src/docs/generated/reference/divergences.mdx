@@ -1,0 +1,56 @@
+# 8086 divergences
+
+x16c is real 8086 machine code: every instruction the assembler writes is the 8086 encoding, `ndisasm -b16` reads a bot, and any 8086 reference holds for it. It differs in three places, all on purpose (ISA §9).
+
+## 00 is DAT
+
+On the 8086, `00 /r` is `add r/m8, r8`. Here `00` is [`dat`](/docs/reference/process#dat), whatever byte follows, because empty core must kill. So `add byte [bx], al` is an error:
+
+> this form encodes as 0x00 (DAT) and is unavailable; use `add <mem8>, imm8` or a word operation
+
+A byte `add` of two registers takes the other encoding, `02 /r`: `add al, bl` is `02 C3`.
+
+## 60, 61, and 62 are spl
+
+On the 8086, `60`..`62` are undefined; the 80186 made them `pusha`, `popa`, and `bound`. Here they are [`spl`](/docs/reference/process#spl): `60 cb`, `61 cw`, and `62 /0`.
+
+## No segments, interrupts, I/O, or timing
+
+- One flat 64 KB core. No segment registers, segment prefixes, or far jumps and calls: those bytes are undefined, and kill.
+
+- [`hlt`](/docs/reference/process#hlt), [`int3`](/docs/reference/process#int3), and every undefined opcode kill the process instead of stopping or trapping. There is no `int n`, `in`, `out`, `cli`, or `sti`.
+
+- Every instruction takes one cycle. A `rep` instruction takes one cycle per iteration, and can be stopped between two, as an interrupt stops the 8086.
+
+## Where the 8086 decides
+
+Where the ISA leaves a behavior open, x16c does what the 8086 silicon does:
+
+- `push sp` pushes the value of sp after the decrement; the 80286 and later push the value before. `pop sp` leaves sp holding the popped word.
+
+- A shift count in cl is not masked to 5 bits, as later CPUs do: a count of 40 shifts 40 times.
+
+- `idiv` kills on a quotient of -32768 (-128 for a byte), as the 8086 does.
+
+- A shift or rotate by a count of 0 changes no flag, but writes its memory operand back.
+
+- The flags the 8086 manual leaves undefined have fixed values: see [flags](/docs/reference/flags#what-changes-each-flag).
+
+## Where the assembler differs from NASM
+
+`nasm -f bin` assembles most bots to the same bytes. Where the two differ, x16c gives an error instead of a guess, or these bytes:
+
+| source | x16c | NASM | why |
+|---|---|---|---|
+| `add al, bl` | `02 C3` | `00 D8` | `00 /r` is DAT (ISA §9), so a byte `add` of two registers uses `02 /r`. |
+| `xchg bx, cx` | `87 CB` | `87 D9` | The first operand goes in the ModR/M `rm` field, so the decoder gives the operands back in their order. |
+| `xchg ax, ax` | `87 C0` | `90` | `90` is `nop`. |
+| `start: add bx, start` | `83 C3 00` | `81 C3 00 00` | x16c sizes a label like any number, so a small address takes the short form. NASM always gives a label 16 bits. |
+| `start: mov ax, [bx+start]` | `8B 07` | `8B 87 00 00` | The same rule for a displacement. The dwarf in [Listing](/docs/reference/divergences) is 21 bytes, and 23 in NASM. |
+| `a: add bx, (b - a) * 32`<br />`b:` | `81 C3 80 00` | `83 C3 60` | Pass 1 gives an unknown value the long form, where NASM guesses the short one. Only code whose size depends on itself can end differently. |
+| `nop`<br />`align 4` | `90 00 00 00` | `90 90 90 90` | `align` pads with `00`, which is DAT (ISA §6.2). |
+| `mov ax, -5 / 3` | `B8 FF FF` | `B8 53 55` | `/` is signed and truncates toward zero, as in C. NASM's `/` is unsigned; its signed one is `//`. |
+| `mov ax, -5 % 3` | `B8 FE FF` | `B8 02 00` | `%` is signed and takes the sign of the dividend, as in C. NASM's `%` is unsigned; its signed one is `%%`. |
+| `mov ax, -1 >> 63` | `B8 FF FF` | `B8 01 00` | `>>` is arithmetic. NASM's `>>` is logical; its arithmetic one is `>>>`. |
+| `db 'a\n'` | `61 0A` | `61 5C 6E` | The escapes `\n \t \r \0 \\ \' \"` work in both quote styles. NASM has escapes only in backquotes. |
+| `mov ax, 'é'` | `B8 E9 00` | `B8 C3 A9` | A one-character literal in an expression is its UTF-16 code. NASM uses its UTF-8 bytes. In `db`, both give the UTF-8 bytes. |

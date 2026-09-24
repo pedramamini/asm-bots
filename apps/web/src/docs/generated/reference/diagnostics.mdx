@@ -1,0 +1,349 @@
+# Diagnostics
+
+The assembler gives errors, and a bot with an error has no bytes. The linter gives warnings about a bot that assembles but may not do what its author means; each comes with a fix. Each has a code, which the editor shows beside the message: `3:9: error: jump out of range [jump-out-of-range]`.
+
+Each example below gives its code and no other (after a `%name` and a `%strategy` line), and the quote under it is the message the editor shows for it.
+
+## Errors
+
+### bad-char
+
+**error**, from the lexer. A character that starts no token.
+
+```asm fragment
+db 1 @
+```
+
+> unexpected character '@'
+
+### bad-escape
+
+**error**, from the lexer. An escape other than `\n \t \r \0 \\ \' \"`.
+
+```asm fragment
+db 'a\q'
+```
+
+> unknown escape '\q'; the escapes are \n \t \r \0 \\ \' \"
+
+### bad-number
+
+**error**, from the lexer. A number that is not one of the ISA §6.1 forms.
+
+```asm fragment
+mov ax, 0x
+```
+
+> invalid number '0x': no digits after '0x'
+
+### unterminated-string
+
+**error**, from the lexer. A string with no closing quote on its line.
+
+```asm fragment
+db "abc
+```
+
+> unterminated string: no closing "
+
+### syntax
+
+**error**, from the parser. A token out of place.
+
+```asm fragment
+mov ax bx
+```
+
+> expected `,` or end of line, found `bx`
+
+### unknown-mnemonic
+
+**error**, from the parser. A word that is not an x16c instruction.
+
+```asm fragment
+foo ax
+```
+
+> unknown mnemonic `foo`
+
+### invalid-address
+
+**error**, from the parser. A memory operand that the 8086 cannot address. The forms are `bx` or `bp`, `si` or `di`, and a displacement, each optional.
+
+```asm fragment
+mov ax, [bx+bp]
+```
+
+> invalid effective address (8086 allows bx/bp + si/di + disp)
+
+### bad-operand
+
+**error**, from the parser. An operand of the wrong kind.
+
+```asm fragment
+dw "ab"
+```
+
+> `dw` takes numbers; a string goes in `db`
+
+### bad-label
+
+**error**, from the parser. A register, size word, or directive word as a label.
+
+```asm fragment
+ax: nop
+```
+
+> `ax` is a register, not a label name
+
+### bad-directive
+
+**error**, from the parser, assembler. A directive with a value it cannot take, or a metadata directive given twice.
+
+```asm fragment
+org 0x100
+```
+
+> `org` must be 0: bots are position independent (ISA §6.4)
+
+### unsupported
+
+**error**, from the parser. A NASM feature that x16c leaves out (see [Dialect](/docs/reference/directives#not-supported)).
+
+```asm fragment
+section .text
+```
+
+> sections are not supported: a bot is one block of code and data
+
+### undefined-symbol
+
+**error**, from the expressions. A name that no label or `equ` defines.
+
+```asm fragment
+jmp nowhere
+```
+
+> undefined symbol `nowhere`
+
+### div-zero
+
+**error**, from the expressions. A division or `%` by zero.
+
+```asm fragment
+mov ax, 1/0
+```
+
+> division by zero
+
+### invalid-prefix
+
+**error**, from the encoder. A prefix on an instruction that cannot take it.
+
+```asm fragment
+rep add ax, bx
+```
+
+> `rep` needs a string instruction
+
+### invalid-operands
+
+**error**, from the encoder. No form of the instruction takes these operands.
+
+```asm fragment
+push 5
+```
+
+> invalid combination of opcode and operands
+
+### size-not-specified
+
+**error**, from the encoder. No operand gives the size: add `byte` or `word`.
+
+```asm fragment
+mov [bx], 0
+```
+
+> operation size not specified
+
+### size-mismatch
+
+**error**, from the encoder. Operands of different sizes.
+
+```asm fragment
+mov al, bx
+```
+
+> operand sizes do not match
+
+### dat-form
+
+**error**, from the encoder. `add <mem8>, r8`, whose opcode `00` is DAT (ISA §9).
+
+```asm fragment
+add byte [bx], al
+```
+
+> this form encodes as 0x00 (DAT) and is unavailable; use `add <mem8>, imm8` or a word operation
+
+### jump-out-of-range
+
+**error**, from the encoder. A rel8 target out of reach: `short`, a conditional jump, a `loop` form, or `jcxz`.
+
+```asm fragment
+jz $ + 200
+```
+
+> jump out of range
+
+### out-of-range
+
+**error**, from the encoder. A value too big for its field.
+
+```asm fragment
+mov al, 256
+```
+
+> immediate 256 does not fit in a byte
+
+### duplicate-symbol
+
+**error**, from the assembler. A label or `equ` name defined twice.
+
+```asm fragment
+x: nop
+x: nop
+```
+
+> `x` is already defined on line 1
+
+### circular-equ
+
+**error**, from the assembler. An `equ` defined in terms of itself.
+
+```asm fragment
+a equ a
+```
+
+> `a` is defined in terms of itself
+
+### missing-name
+
+**error**, from the assembler. No `%name` line.
+
+```asm fragment
+nop
+```
+
+> a bot needs a name: add a `%name "..."` line
+
+### no-convergence
+
+**error**, from the assembler. Instruction sizes that still change after 16 passes.
+
+```asm fragment
+a: add bx, 131 - (b - a)
+b:
+```
+
+> assembly did not converge: the size of this line still changed in pass 16
+
+### size-over-cap
+
+**error**, from the assembler. A bot bigger than `maxBytes`.
+
+```asm fragment
+times 600 nop
+```
+
+> the bot is 600 bytes, 88 over the limit of 512
+
+## Warnings
+
+A roster bot allows a warning it needs with a comment on its line: `; lint: allow hlt-in-code: dying at once is the whole bot`.
+
+### absolute-address
+
+**warning**, from the lint. A memory operand with no register: a fixed place in the core, not in the bot (ISA §6.4).
+
+```asm fragment
+mov ax, [0x0100]
+```
+
+> `[0x0100]` is an absolute address: a fixed place in the core, not in this bot, which the loader places anywhere (ISA §6.4)
+
+**Fix:** for the bot's own data, add a base register: `[bx+0x0100]`, with bx from the base idiom `call .here` / `.here: pop bx` / `sub bx, .here`
+
+### unreachable
+
+**warning**, from the lint. Code after a `jmp`, `ret`, `hlt`, `int3`, or DAT, with no label before it.
+
+```asm fragment
+ret
+nop
+```
+
+> unreachable code: the `ret` on line 1 never falls through, and no label lets a jump in here
+
+**Fix:** add a label if a jump should reach this code, or delete the code up to the next label
+
+### dat-in-code
+
+**warning**, from the lint. DAT that code falls into: `dat`, or the zeros of `resb`, `resw`, and `align`.
+
+```asm fragment
+nop
+dat
+```
+
+> the line before falls through into `dat`: the process dies there
+
+**Fix:** end the code before it with a `jmp`, or move the data after the code
+
+### size-near-cap
+
+**warning**, from the lint. A bot of 90% of `maxBytes` or more.
+
+```asm fragment
+times 470 nop
+```
+
+> the bot is 470 bytes, 91% of the limit of 512 (42 left); it reaches 90% on this line
+
+**Fix:** keep room for changes: rel8 jumps, `inc` and `dec` for small steps, fewer `times` repeats, less data
+
+### no-strategy
+
+**warning**, from the lint. No `%strategy`, or an empty one.
+
+```asm fragment
+nop
+```
+
+> no `%strategy`
+
+**Fix:** say in one line how the bot fights: `%strategy "..."`; the arena and the hills show it
+
+### hlt-in-code
+
+**warning**, from the lint. A `hlt` that the bot runs.
+
+```asm fragment
+hlt
+```
+
+> `hlt` is the first instruction: the bot halts itself at once
+
+**Fix:** to park a process, spin with `jmp $`; keep a bomb template after a `jmp`, where no code runs into it
+
+### uninitialized-di
+
+**warning**, from the lint. A string instruction that uses di before any line sets di.
+
+```asm fragment
+movsb
+```
+
+> `movsb` uses di, and no line before it sets di: di starts at 0, a fixed place in the core
+
+**Fix:** set di first, from the base register: `lea di, [bx+target]`

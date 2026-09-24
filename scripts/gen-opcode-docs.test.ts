@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
+import { basename } from 'node:path'
 import { decode, MNEMONICS, TABLE } from '../packages/codec/src/index'
 import { hasModrm } from '../packages/codec/src/table'
 import {
@@ -33,6 +34,7 @@ import {
   OUT,
   render,
 } from './gen-opcode-docs'
+import { link, prose, REFERENCE_DIR, referenceFiles, referencePages } from './gen-reference'
 
 const notes: Notes = JSON.parse(readFileSync(NOTES, 'utf8'))
 const docs: OpcodeDocs = generate(notes)
@@ -46,7 +48,9 @@ describe('gen-opcode-docs: the file', () => {
     const run = Bun.spawnSync(['bun', 'scripts/gen-opcode-docs.ts', '--check'], {
       cwd: `${import.meta.dir}/..`,
     })
-    expect(run.stdout.toString()).toBe('docs/opcodes.json is up to date\n')
+    expect(run.stdout.toString()).toBe(
+      'docs/opcodes.json and apps/web/src/docs/generated/reference are up to date\n',
+    )
     expect(run.exitCode).toBe(0)
   })
 })
@@ -218,5 +222,71 @@ describe('gen-opcode-docs: FLAGS against the engine', () => {
     expect(idle).toEqual([])
     // Every mnemonic ran without a kill at least once, DIV and IDIV included.
     expect(seen.size).toBe(MNEMONICS.length - 3)
+  })
+})
+
+describe('gen-reference: the language reference', () => {
+  const files = referenceFiles(notes)
+  const pages = referencePages(notes)
+  const pageOf = (name: string) => pages.find((p) => p.name === name)?.mdx ?? ''
+
+  it('is what the generator writes, and nothing else is in its folder', () => {
+    for (const [path, text] of files)
+      expect([path, readFileSync(path, 'utf8')]).toEqual([path, text])
+    expect(readdirSync(REFERENCE_DIR).sort()).toEqual(
+      [...files.keys()].map((p) => basename(p)).sort(),
+    )
+  })
+
+  it('has use, idiom, pitfall, and see for every mnemonic and prefix', () => {
+    for (const [what, note] of [
+      ...Object.entries(notes.mnemonics),
+      ...Object.entries(notes.prefixes),
+    ]) {
+      const filled = [note.use, note.idiom, note.pitfall].every((t) => (t ?? '').trim() !== '')
+      expect([what, filled, (note.see ?? []).length > 0]).toEqual([what, true, true])
+    }
+    const { mov, ...rest } = notes.mnemonics
+    const bare = { ...rest, mov: { summary: mov?.summary ?? '', example: mov?.example ?? '' } }
+    expect(() => referencePages({ ...notes, mnemonics: bare })).toThrow(
+      '`mov` needs use, idiom, pitfall, see',
+    )
+    const wrong = { ...notes.mnemonics, mov: { ...mov, idiom: 'mov [bx], 0' } as typeof mov }
+    expect(() => referencePages({ ...notes, mnemonics: wrong as Notes['mnemonics'] })).toThrow(
+      'the idiom of mov: `mov [bx], 0` does not assemble',
+    )
+  })
+
+  it('gives every mnemonic in MNEMONICS an entry on its family page, and links it', () => {
+    for (const m of MNEMONICS) {
+      const [, page, anchor] =
+        /^\/docs\/reference\/([a-z-]+)#(.+)$/.exec(/\((.*)\)$/.exec(link(m))?.[1] ?? '') ?? []
+      expect([m, anchor]).toEqual([m, m])
+      expect([m, pageOf(page ?? '').includes(`\n## ${m}\n`)]).toEqual([m, true])
+    }
+    for (const p of ['rep', 'repe', 'repne']) expect(pageOf('string')).toContain(`\n## ${p}\n`)
+  })
+
+  it('shows each form with an example that assembles to it', () => {
+    expect(pageOf('data')).toContain(
+      '| `mov r/m16, imm16` | `C7 /0 iw` | `mov word [di], 0x1234` | `C7 05 34 12` |',
+    )
+    expect(pageOf('data')).toContain('| `xchg ax, r16` | `90+r` | `xchg ax, si` | `96` |')
+    expect(pageOf('string')).toContain('| `rep movsw` | `F3 A5` | `rep movsw` | `F3 A5` |')
+    expect(pageOf('process')).toContain('| `spl r/m16` | `62 /0` | `spl dx` | `62 C2` |')
+  })
+
+  it('lists its pages in the sidebar section it writes', () => {
+    const nav = files.get(`${REFERENCE_DIR}nav.ts`) ?? ''
+    for (const page of pages) {
+      expect(nav).toContain(`slug: 'reference/${page.name}'`)
+      expect(nav).toContain(`load: () => import('./${page.name}.mdx')`)
+    }
+  })
+
+  it('keeps prose from reading as JSX, and code as it is', () => {
+    expect(prose('a < b, {x}, `cmp a, b` then `jl <x>`')).toBe(
+      'a &#60; b, &#123;x&#125;, `cmp a, b` then `jl <x>`',
+    )
   })
 })

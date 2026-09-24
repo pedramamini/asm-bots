@@ -1,0 +1,68 @@
+# Directives
+
+The source is NASM syntax for the 16-bit 8086, `bits 16` implied (ISA §6). Mnemonics, registers, and directives take any case; labels are case-sensitive. A `;` starts a comment to the end of the line.
+
+## Metadata
+
+| directive | does |
+|---|---|
+| `%name "Dwarf"` | The name the arena and the hills show. Required, once. |
+| `%author "A. K. Dewdney"` | Who wrote it. |
+| `%strategy "Bomb every 4th byte"` | One line on the tactic. The linter warns without it (`no-strategy`). |
+| `%version "1.2"` | Any text. |
+
+## Data and space
+
+| directive | does |
+|---|---|
+| `db 1, 2, "ab", 0` | Bytes. A string gives its bytes: UTF-8, with the escapes `\n \t \r \0 \\ \' \"`. |
+| `dw 0x1234, $` | Words, low byte first. |
+| `resb 16` | Reserves 16 zero bytes, which are DAT. |
+| `resw 8` | Reserves 8 zero words. |
+| `times 4 nop` | Repeats an instruction or data line. `$` is the address of the `times` line in every repeat. |
+| `align 4` | Pads with `00` (DAT) to a multiple of 4. The power of 2 is required. |
+
+<Warn>
+
+The zeros of `resb`, `resw`, and `align` are DAT: code that runs into them dies. Put data after the code, behind a jump (the linter warns: `dat-in-code`).
+
+</Warn>
+
+## Constants and macros
+
+| directive | does |
+|---|---|
+| `STRIDE equ 4` | A named number, from any constant expression. It can name labels: `SIZE equ end - start`. |
+| `%define GAP 0x100` | A one-line text macro, no parameters. It applies from its line on. |
+| `org 0` | Accepted; must be 0. Bots are position independent. |
+| `bits 16` | Accepted, and ignored. |
+
+## Labels
+
+- `name:` defines a label at the address of the line. The colon may be left out before a statement word: `size equ 4`, `msg db 1`.
+
+- `.name` is local to the last label without a dot, so each phase can have its own `.loop`. Its full name is `scan.again`.
+
+- `$` is the address of the line, and `$$` is 0. `jmp $` spins in place.
+
+```asm fragment
+scan:   add     di, 2
+.again: cmp     word [di], 0            ; scan.again
+        je      .again
+
+bomb:   mov     word [di], 0
+.again: jmp     scan                    ; bomb.again: a different label
+```
+
+## Size and jump words
+
+| word | does |
+|---|---|
+| `mov word [bx], 0` | `byte` and `word` give the size of a memory operand when no register does. |
+| `jmp short $+2` | `short` forces rel8. |
+| `jmp near $+2` | `near` forces rel16. |
+| `add ax, strict word 5` | `strict` keeps the field size given: here an imm16 where an imm8 would do. |
+
+## Not supported
+
+x16c leaves out what a one-file, one-segment bot has no use for, with an error that says so (`unsupported`): sections, `extern` and `global`, multi-line `%macro`, `%if`, `%include`, `incbin`, segment registers, far jumps, and 32-bit registers. See [diagnostics](/docs/reference/diagnostics#unsupported).

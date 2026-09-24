@@ -1,0 +1,471 @@
+# Arithmetic
+
+Integer math on bytes and words. Every result wraps: a word to 16 bits, a byte to 8. `add`, `adc`, `sub`, `sbb`, `cmp`, and `neg` set all six status flags; `inc` and `dec` set all but CF. `div` and `idiv` kill the process on a 0 divisor or a quotient that does not fit.
+
+`add byte [mem], reg` does not exist here: its opcode, `00`, is DAT (see [8086 divergences](/docs/reference/divergences)).
+
+On this page: [`add`](/docs/reference/arithmetic#add) · [`adc`](/docs/reference/arithmetic#adc) · [`sub`](/docs/reference/arithmetic#sub) · [`sbb`](/docs/reference/arithmetic#sbb) · [`cmp`](/docs/reference/arithmetic#cmp) · [`neg`](/docs/reference/arithmetic#neg) · [`mul`](/docs/reference/arithmetic#mul) · [`imul`](/docs/reference/arithmetic#imul) · [`div`](/docs/reference/arithmetic#div) · [`idiv`](/docs/reference/arithmetic#idiv) · [`inc`](/docs/reference/arithmetic#inc) · [`dec`](/docs/reference/arithmetic#dec).
+
+## add
+
+Add: dst += src.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `add r/m16, r16` | `01 /r` | `add [di], dx` | `01 15` |
+| `add r8, r/m8` | `02 /r` | `add dl, [bx+4]` | `02 57 04` |
+| `add r16, r/m16` | `03 /r` | `add dx, [di]` | `03 15` |
+| `add al, imm8` | `04 ib` | `add al, 0x41` | `04 41` |
+| `add ax, imm16` | `05 iw` | `add ax, 0x1234` | `05 34 12` |
+| `add r/m8, imm8` | `80 /0 ib` | `add byte [bx+4], 0x41` | `80 47 04 41` |
+| `add r/m16, imm16` | `81 /0 iw` | `add word [di], 0x1234` | `81 05 34 12` |
+| `add r/m16, imm8` | `83 /0 ib` | `add word [di], 4` | `83 05 04` |
+
+<Flags op="add" />
+
+**Cycles:** 1.
+
+**In a bot:** Steps a pointer by the stride: the heart of every bomber loop.
+
+```asm fragment
+        add     di, 4                   ; 83 C7 04
+```
+
+**Idiom:**
+
+```asm fragment
+bomb:   add     di, 4                   ; the stride
+        mov     word [di], 0
+        jmp     bomb
+```
+
+<Warn>
+
+`add byte [bx], al` is an error: its opcode `00` is DAT (ISA §9). Use a word add or `add byte [bx], imm8`. A byte add of two registers works: it uses `02 /r`.
+
+</Warn>
+
+**See also:** [`adc`](/docs/reference/arithmetic#adc) · [`sub`](/docs/reference/arithmetic#sub) · [`inc`](/docs/reference/arithmetic#inc)
+
+## adc
+
+Add with carry: dst += src + CF, to chain adds past 16 bits.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `adc r/m8, r8` | `10 /r` | `adc [bx+4], dl` | `10 57 04` |
+| `adc r/m16, r16` | `11 /r` | `adc [di], dx` | `11 15` |
+| `adc r8, r/m8` | `12 /r` | `adc dl, [bx+4]` | `12 57 04` |
+| `adc r16, r/m16` | `13 /r` | `adc dx, [di]` | `13 15` |
+| `adc al, imm8` | `14 ib` | `adc al, 0x41` | `14 41` |
+| `adc ax, imm16` | `15 iw` | `adc ax, 0x1234` | `15 34 12` |
+| `adc r/m8, imm8` | `80 /2 ib` | `adc byte [bx+4], 0x41` | `80 57 04 41` |
+| `adc r/m16, imm16` | `81 /2 iw` | `adc word [di], 0x1234` | `81 15 34 12` |
+| `adc r/m16, imm8` | `83 /2 ib` | `adc word [di], 4` | `83 15 04` |
+
+<Flags op="adc" />
+
+**Cycles:** 1.
+
+**In a bot:** Carries a 16-bit add into a second word: 32-bit counters and random-number math.
+
+```asm fragment
+        add     ax, bx                  ; 01 D8
+        adc     dx, cx                  ; 11 CA
+```
+
+**Idiom:**
+
+```asm fragment
+        add     ax, 0x4E6D              ; the low word
+        adc     dx, 0x41C6              ; the high word, plus the carry out of the low one
+```
+
+<Warn>
+
+It adds CF, whatever set it. At the start of a chain, use `add`, or clear CF with `clc` first.
+
+</Warn>
+
+**See also:** [`add`](/docs/reference/arithmetic#add) · [`sbb`](/docs/reference/arithmetic#sbb) · [`clc`](/docs/reference/flag-ops#clc)
+
+## sub
+
+Subtract: dst -= src.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `sub r/m8, r8` | `28 /r` | `sub [bx+4], dl` | `28 57 04` |
+| `sub r/m16, r16` | `29 /r` | `sub [di], dx` | `29 15` |
+| `sub r8, r/m8` | `2A /r` | `sub dl, [bx+4]` | `2A 57 04` |
+| `sub r16, r/m16` | `2B /r` | `sub dx, [di]` | `2B 15` |
+| `sub al, imm8` | `2C ib` | `sub al, 0x41` | `2C 41` |
+| `sub ax, imm16` | `2D iw` | `sub ax, 0x1234` | `2D 34 12` |
+| `sub r/m8, imm8` | `80 /5 ib` | `sub byte [bx+4], 0x41` | `80 6F 04 41` |
+| `sub r/m16, imm16` | `81 /5 iw` | `sub word [di], 0x1234` | `81 2D 34 12` |
+| `sub r/m16, imm8` | `83 /5 ib` | `sub word [di], 4` | `83 2D 04` |
+
+<Flags op="sub" />
+
+**Cycles:** 1.
+
+**In a bot:** Steps down, and turns an address into a distance: `sub bx, .here` in the base idiom, and `sub dx, bx` to find a hit relative to the base.
+
+```asm fragment
+        sub     di, 4                   ; 83 EF 04
+```
+
+**Idiom:**
+
+```asm fragment
+        sub     dx, bx                  ; dx = hit - base
+        cmp     dx, 64                  ; our body is 64 bytes
+        jb      skip                    ; one unsigned compare: under 64 is us
+        mov     word [di], 0
+
+skip:   add     di, 2
+```
+
+<Warn>
+
+`sub` changes CF and `dec` does not. A distance under the base wraps to a large number: that is why one unsigned `cmp` checks both ends of a range.
+
+</Warn>
+
+**See also:** [`sbb`](/docs/reference/arithmetic#sbb) · [`cmp`](/docs/reference/arithmetic#cmp) · [`neg`](/docs/reference/arithmetic#neg) · [`dec`](/docs/reference/arithmetic#dec)
+
+## sbb
+
+Subtract with borrow: dst -= src + CF, to chain subtracts past 16 bits.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `sbb r/m8, r8` | `18 /r` | `sbb [bx+4], dl` | `18 57 04` |
+| `sbb r/m16, r16` | `19 /r` | `sbb [di], dx` | `19 15` |
+| `sbb r8, r/m8` | `1A /r` | `sbb dl, [bx+4]` | `1A 57 04` |
+| `sbb r16, r/m16` | `1B /r` | `sbb dx, [di]` | `1B 15` |
+| `sbb al, imm8` | `1C ib` | `sbb al, 0x41` | `1C 41` |
+| `sbb ax, imm16` | `1D iw` | `sbb ax, 0x1234` | `1D 34 12` |
+| `sbb r/m8, imm8` | `80 /3 ib` | `sbb byte [bx+4], 0x41` | `80 5F 04 41` |
+| `sbb r/m16, imm16` | `81 /3 iw` | `sbb word [di], 0x1234` | `81 1D 34 12` |
+| `sbb r/m16, imm8` | `83 /3 ib` | `sbb word [di], 4` | `83 1D 04` |
+
+<Flags op="sbb" />
+
+**Cycles:** 1.
+
+**In a bot:** Subtracts past 16 bits, and turns CF into a mask: `sbb ax, ax` is 0 or 0xFFFF.
+
+```asm fragment
+        sub     ax, bx                  ; 29 D8
+        sbb     dx, cx                  ; 19 CA
+```
+
+**Idiom:**
+
+```asm fragment
+        cmp     si, di
+        sbb     ax, ax                  ; ax = 0xFFFF if si < di (unsigned), else 0
+```
+
+<Warn>
+
+It subtracts CF as well. After `cmp` or `sub`, CF is a borrow; clear it with `clc` when the chain starts fresh.
+
+</Warn>
+
+**See also:** [`sub`](/docs/reference/arithmetic#sub) · [`adc`](/docs/reference/arithmetic#adc) · [`cmc`](/docs/reference/flag-ops#cmc)
+
+## cmp
+
+Compare: set the flags from dst - src; dst keeps its value.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `cmp r/m8, r8` | `38 /r` | `cmp [bx+4], dl` | `38 57 04` |
+| `cmp r/m16, r16` | `39 /r` | `cmp [di], dx` | `39 15` |
+| `cmp r8, r/m8` | `3A /r` | `cmp dl, [bx+4]` | `3A 57 04` |
+| `cmp r16, r/m16` | `3B /r` | `cmp dx, [di]` | `3B 15` |
+| `cmp al, imm8` | `3C ib` | `cmp al, 0x41` | `3C 41` |
+| `cmp ax, imm16` | `3D iw` | `cmp ax, 0x1234` | `3D 34 12` |
+| `cmp r/m8, imm8` | `80 /7 ib` | `cmp byte [bx+4], 0x41` | `80 7F 04 41` |
+| `cmp r/m16, imm16` | `81 /7 iw` | `cmp word [di], 0x1234` | `81 3D 34 12` |
+| `cmp r/m16, imm8` | `83 /7 ib` | `cmp word [di], 4` | `83 3D 04` |
+
+<Flags op="cmp" />
+
+**Cycles:** 1.
+
+**In a bot:** Tests a value and keeps it: the scanner's `cmp word [si], 0` asks if a word is empty core.
+
+```asm fragment
+scan:   add     si, 8                   ; 83 C6 08
+        cmp     word [si], 0            ; 83 3C 00
+        jz      scan                    ; 74 F8
+```
+
+**Idiom:**
+
+```asm fragment
+scan:   add     di, 2
+        cmp     word [di], 0            ; empty core?
+        je      scan                    ; yes: go on
+        mov     word [di], 0            ; no: bomb it
+```
+
+<Warn>
+
+The jump after it picks signed or unsigned: `jb` and `ja` compare unsigned, `jl` and `jg` compare signed. Addresses are unsigned.
+
+</Warn>
+
+**See also:** [`sub`](/docs/reference/arithmetic#sub) · [`test`](/docs/reference/logic#test) · [`jz`](/docs/reference/control#jz) · [`ja`](/docs/reference/control#ja) · [`jl`](/docs/reference/control#jl)
+
+## neg
+
+Negate: dst = 0 - dst.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `neg r/m8` | `F6 /3` | `neg byte [bx+4]` | `F6 5F 04` |
+| `neg r/m16` | `F7 /3` | `neg word [di]` | `F7 1D` |
+
+<Flags op="neg" />
+
+**Cycles:** 1.
+
+**In a bot:** Turns a stride around, or a negative distance into a positive one.
+
+```asm fragment
+        neg     ax                      ; F7 D8
+```
+
+**Idiom:**
+
+```asm fragment
+        neg     dx                      ; walk the other way
+        add     di, dx
+```
+
+<Warn>
+
+CF is 1 for every value but 0. `neg` of 0x8000 is 0x8000, with OF set.
+
+</Warn>
+
+**See also:** [`not`](/docs/reference/logic#not) · [`sub`](/docs/reference/arithmetic#sub)
+
+## mul
+
+Unsigned multiply: ax = al * src (word: dx:ax = ax * src).
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `mul r/m8` | `F6 /4` | `mul byte [bx+4]` | `F6 67 04` |
+| `mul r/m16` | `F7 /4` | `mul word [di]` | `F7 25` |
+
+<Flags op="mul" />
+
+**Cycles:** 1.
+
+**In a bot:** Multiplies for a random walk: one step of a linear congruential generator (LCG).
+
+```asm fragment
+        mul     cx                      ; F7 E1
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     cx, 25173
+        mul     cx                      ; dx:ax = ax * 25173
+        add     ax, 13849               ; ax = the next LCG value
+```
+
+<Warn>
+
+It writes dx (ah for a byte) even when the product is small. It takes no immediate: `mul 5` is an error.
+
+</Warn>
+
+**See also:** [`imul`](/docs/reference/arithmetic#imul) · [`div`](/docs/reference/arithmetic#div) · [`shl`](/docs/reference/shifts#shl)
+
+## imul
+
+Signed multiply: ax = al * src (word: dx:ax = ax * src).
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `imul r/m8` | `F6 /5` | `imul byte [bx+4]` | `F6 6F 04` |
+| `imul r/m16` | `F7 /5` | `imul word [di]` | `F7 2D` |
+
+<Flags op="imul" />
+
+**Cycles:** 1.
+
+**In a bot:** Multiplies signed values, for strides that can be negative.
+
+```asm fragment
+        imul    bx                      ; F7 EB
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     ax, -3
+        mov     cx, 100
+        imul    cx                      ; dx:ax = -300: dx = 0xFFFF, ax = 0xFED4
+```
+
+<Warn>
+
+Only the 1-operand form exists: `imul ax, bx, 3` (80186) is an error. ZF SF AF PF read 0 after it, so `jz` does not test the product.
+
+</Warn>
+
+**See also:** [`mul`](/docs/reference/arithmetic#mul) · [`idiv`](/docs/reference/arithmetic#idiv) · [`cwd`](/docs/reference/data#cwd)
+
+## div
+
+Unsigned divide ax (word: dx:ax) by src; a 0 divisor or an overflow kills.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `div r/m8` | `F6 /6` | `div byte [bx+4]` | `F6 77 04` |
+| `div r/m16` | `F7 /6` | `div word [di]` | `F7 35` |
+
+**Flags:** none change.
+
+**Cycles:** 1. A 0 divisor, or a quotient that does not fit, kills the process with reason `div`.
+
+**In a bot:** Divides unsigned: the remainder wraps a counter into a range.
+
+```asm fragment
+        xor     dx, dx                  ; 31 D2
+        div     bx                      ; F7 F3
+```
+
+**Idiom:**
+
+```asm fragment
+        xor     dx, dx                  ; dx:ax = ax
+        mov     cx, 7
+        div     cx                      ; ax = ax / 7, dx = ax mod 7
+```
+
+<Warn>
+
+A 0 divisor, or a quotient too big for ax (al for a byte), kills the process with reason `div`. dx is the high half of the dividend: clear it first.
+
+</Warn>
+
+**See also:** [`idiv`](/docs/reference/arithmetic#idiv) · [`mul`](/docs/reference/arithmetic#mul) · [`cwd`](/docs/reference/data#cwd)
+
+## idiv
+
+Signed divide ax (word: dx:ax) by src; a 0 divisor or an overflow kills.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `idiv r/m8` | `F6 /7` | `idiv byte [bx+4]` | `F6 7F 04` |
+| `idiv r/m16` | `F7 /7` | `idiv word [di]` | `F7 3D` |
+
+**Flags:** none change.
+
+**Cycles:** 1. A 0 divisor, or a quotient that does not fit, kills the process with reason `div`.
+
+**In a bot:** Divides signed; the quotient rounds toward 0.
+
+```asm fragment
+        cwd                             ; 99
+        idiv    cx                      ; F7 F9
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     ax, -7
+        cwd
+        mov     cx, 2
+        idiv    cx                      ; ax = -3, dx = -1
+```
+
+<Warn>
+
+It kills on a 0 divisor, on a quotient out of range, and on a quotient of exactly -32768 (-128 for a byte), as the 8086 does.
+
+</Warn>
+
+**See also:** [`div`](/docs/reference/arithmetic#div) · [`cwd`](/docs/reference/data#cwd) · [`cbw`](/docs/reference/data#cbw)
+
+## inc
+
+Add 1; CF keeps its value.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `inc r16` | `40+r` | `inc si` | `46` |
+| `inc r/m8` | `FE /0` | `inc byte [bx+4]` | `FE 47 04` |
+| `inc r/m16` | `FF /0` | `inc word [di]` | `FF 05` |
+
+<Flags op="inc" />
+
+**Cycles:** 1.
+
+**In a bot:** Counts up. `inc r16` is 1 byte (`40+r`); `add r16, 1` is 3.
+
+```asm fragment
+        inc     word [bx]               ; FF 07
+```
+
+**Idiom:**
+
+```asm fragment
+        inc     word [bx+hits]          ; count in our own data, through the base
+        jmp     $
+
+hits:   dw      0
+```
+
+<Warn>
+
+It keeps CF, so a `jc` after it reads an older carry. At 0xFFFF it wraps to 0 and sets ZF.
+
+</Warn>
+
+**See also:** [`dec`](/docs/reference/arithmetic#dec) · [`add`](/docs/reference/arithmetic#add)
+
+## dec
+
+Subtract 1; CF keeps its value.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `dec r16` | `48+r` | `dec si` | `4E` |
+| `dec r/m8` | `FE /1` | `dec byte [bx+4]` | `FE 4F 04` |
+| `dec r/m16` | `FF /1` | `dec word [di]` | `FF 0D` |
+
+<Flags op="dec" />
+
+**Cycles:** 1.
+
+**In a bot:** Counts down. `dec word [x]` in a tight loop is an imp gate: the word changes every turn, so an imp that lands on it breaks.
+
+```asm fragment
+        dec     cx                      ; 49
+```
+
+**Idiom:**
+
+```asm fragment
+gate:   dec     word [bx-16]            ; an imp word here changes before it runs
+        jmp     gate
+```
+
+<Warn>
+
+It keeps CF, like `inc`. For a counted loop, `loop` does the `dec cx` and the jump in one instruction and keeps the flags.
+
+</Warn>
+
+**See also:** [`inc`](/docs/reference/arithmetic#inc) · [`loop`](/docs/reference/control#loop) · [`sub`](/docs/reference/arithmetic#sub)

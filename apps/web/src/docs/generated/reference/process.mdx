@@ -1,0 +1,147 @@
+# Process control
+
+The ASM Bots additions (ISA §3.6). On an 8086, `00` is `add r/m8, r8`, `60`..`62` are undefined, and `F4` and `CC` stop or trap; here they kill the process or start a new one (see [8086 divergences](/docs/reference/divergences)).
+
+A process dies with a reason, which the arena and the debugger show: `dat`, `hlt`, and `int3` for these instructions, `undefined` for any other opcode not in the table, and `div` for a bad divide.
+
+On this page: [`dat`](/docs/reference/process#dat) · [`spl`](/docs/reference/process#spl) · [`hlt`](/docs/reference/process#hlt) · [`int3`](/docs/reference/process#int3).
+
+## dat
+
+Kills the process that runs it: opcode 00, what empty core holds.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `dat imm8` | `00 ib` | `dat 7` | `00 07` |
+
+**Flags:** none change.
+
+**Cycles:** 1, and the process dies, with reason `dat`.
+
+**In a bot:** The bomb. A word of two zero bytes is a DAT, and empty core is all DAT.
+
+```asm fragment
+bomb:   dat                             ; 00 00
+```
+
+**Idiom:**
+
+```asm fragment
+        jmp     $
+bomb:   dat                             ; 00 00: data after the jump, never run
+```
+
+<Warn>
+
+Code that falls into `dat` dies (the linter warns: `dat-in-code`). `resb`, `resw`, and `align` pad with DAT too.
+
+</Warn>
+
+**See also:** [`hlt`](/docs/reference/process#hlt) · [`mov`](/docs/reference/data#mov) · [`stosw`](/docs/reference/string#stosw)
+
+## spl
+
+Start a new process at the target; this one goes on to the next line.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `spl rel8` | `60 cb` | `spl $+0x10` | `60 0E` |
+| `spl rel16` | `61 cw` | `spl $+0x300` | `61 FD 02` |
+| `spl r/m16` | `62 /0` | `spl dx` | `62 C2` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Starts another process of the bot at the target. The bot still runs one instruction a cycle, shared by its processes: splitting buys survival, not speed.
+
+```asm fragment
+        spl     bomber                  ; 60 02
+guard:  jmp     guard                   ; EB FE
+bomber: mov     word [di], 0            ; C7 05 00 00
+```
+
+**Idiom:**
+
+```asm fragment
+        spl     $ + 2                   ; 2 processes on the next line
+        spl     $ + 2                   ; 4
+        spl     $ + 2                   ; 8, each running the code below
+```
+
+<Warn>
+
+At the process cap (64 a bot by default) `spl` does nothing. `spl label` is relative; `spl dx` goes to the absolute address in dx. The child copies all registers, so it starts with the parent's di and bx.
+
+</Warn>
+
+**See also:** [`jmp`](/docs/reference/control#jmp) · [`hlt`](/docs/reference/process#hlt) · [`movsw`](/docs/reference/string#movsw)
+
+## hlt
+
+Kill the process that runs it.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `hlt` | `F4` | `hlt` | `F4` |
+
+**Flags:** none change.
+
+**Cycles:** 1, and the process dies, with reason `hlt`.
+
+**In a bot:** Ends a process on purpose. With fewer processes, each of the rest gets more turns.
+
+```asm fragment
+        hlt                             ; F4
+```
+
+**Idiom:**
+
+```asm fragment
+        spl     worker
+        hlt                             ; the parent ends; the child goes on
+
+worker: nop
+```
+
+<Warn>
+
+It kills: a bot whose last process runs `hlt` loses. The linter warns: `hlt-in-code`.
+
+</Warn>
+
+**See also:** [`spl`](/docs/reference/process#spl) · [`dat`](/docs/reference/process#dat) · [`int3`](/docs/reference/process#int3)
+
+## int3
+
+Kill the process that runs it; debugger breakpoints never write it.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `int3` | `CC` | `int3` | `CC` |
+
+**Flags:** none change.
+
+**Cycles:** 1, and the process dies, with reason `int3`.
+
+**In a bot:** A 1-byte kill. A fill of `0xCC` kills a process that runs any byte of it, and a scan for non-zero bytes stops on it: a decoy that bites.
+
+```asm fragment
+        int3                            ; CC
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     al, 0xCC
+        mov     cx, 32
+        rep     stosb                   ; 32 bytes that kill
+```
+
+<Warn>
+
+It kills in the arena and in the debugger alike: the debugger's breakpoints are its own and never write `CC`.
+
+</Warn>
+
+**See also:** [`hlt`](/docs/reference/process#hlt) · [`dat`](/docs/reference/process#dat) · [`stosb`](/docs/reference/string#stosb)

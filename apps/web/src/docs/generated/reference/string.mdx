@@ -1,0 +1,560 @@
+# String instructions
+
+Block copies, fills, loads, and scans. Each uses si as the source and di as the destination, and steps them after it runs: by 1 for a byte and 2 for a word, up when DF = 0 and down when DF = 1. DF starts at 0.
+
+A prefix repeats an instruction, one iteration a cycle. After each iteration, while cx is not 0 (and, for `repe` and `repne`, while ZF says so), ip stays on the prefix, and the process runs the next iteration on its next turn. So `rep movsw` is not a free 64 KB copy, and an enemy can bomb a copy while it runs.
+
+On this page: [`movsb`](/docs/reference/string#movsb) · [`movsw`](/docs/reference/string#movsw) · [`cmpsb`](/docs/reference/string#cmpsb) · [`cmpsw`](/docs/reference/string#cmpsw) · [`stosb`](/docs/reference/string#stosb) · [`stosw`](/docs/reference/string#stosw) · [`lodsb`](/docs/reference/string#lodsb) · [`lodsw`](/docs/reference/string#lodsw) · [`scasb`](/docs/reference/string#scasb) · [`scasw`](/docs/reference/string#scasw) · [`cld`](/docs/reference/string#cld) · [`std`](/docs/reference/string#std) · [`rep`](/docs/reference/string#rep) · [`repe`](/docs/reference/string#repe) · [`repne`](/docs/reference/string#repne).
+
+## movsb
+
+Copy the byte at si to di; step si and di.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `movsb` | `A4` | `movsb` | `A4` |
+| `rep movsb` | `F3 A4` | `rep movsb` | `F3 A4` |
+
+**Flags:** none change.
+
+**Cycles:** 1; under a prefix, 1 per iteration.
+
+**In a bot:** Copies one byte and steps si and di. `rep movsb` copies an odd length exactly.
+
+```asm fragment
+        movsb                           ; A4
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     cx, 33
+        rep     movsb                   ; 33 bytes, 33 cycles
+```
+
+<Warn>
+
+`movsw` copies twice the bytes per cycle; use `movsb` for an odd tail only.
+
+</Warn>
+
+**See also:** [`movsw`](/docs/reference/string#movsw) · [`rep`](/docs/reference/string#rep) · [`stosb`](/docs/reference/string#stosb)
+
+## movsw
+
+Copy the word at si to di; step si and di.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `movsw` | `A5` | `movsw` | `A5` |
+| `rep movsw` | `F3 A5` | `rep movsw` | `F3 A5` |
+
+**Flags:** none change.
+
+**Cycles:** 1; under a prefix, 1 per iteration.
+
+**In a bot:** The imp's instruction and paper's copy. With di one word after si, `movsw` copies the word it runs to the next word.
+
+```asm fragment
+        mov     cx, 16                  ; B9 10 00
+        rep     movsw                   ; F3 A5
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     si, bx                  ; from our base
+        mov     di, dx
+        mov     cx, 32
+        rep     movsw                   ; 64 bytes to dx, a word a cycle
+        spl     dx                      ; start the copy
+```
+
+<Warn>
+
+`rep movsw` takes one cycle per word, and an enemy can bomb the copy before it ends. After it, si and di point past the copy, not at its start.
+
+</Warn>
+
+**See also:** [`movsb`](/docs/reference/string#movsb) · [`rep`](/docs/reference/string#rep) · [`spl`](/docs/reference/process#spl) · [`cld`](/docs/reference/string#cld)
+
+## cmpsb
+
+Compare the byte at si with the byte at di; step si and di.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `cmpsb` | `A6` | `cmpsb` | `A6` |
+| `repe cmpsb` | `F3 A6` | `repe cmpsb` | `F3 A6` |
+| `repne cmpsb` | `F2 A6` | `repne cmpsb` | `F2 A6` |
+
+<Flags op="cmpsb" />
+
+**Cycles:** 1; under a prefix, 1 per iteration.
+
+**In a bot:** Compares two runs of bytes: `repe cmpsb` finds where a copy differs from its source.
+
+```asm fragment
+        repe    cmpsb                   ; F3 A6
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     cx, 64
+        repe    cmpsb                   ; while the bytes match
+        jz      intact                  ; all 64 match
+        dec     si                      ; si and di: the byte that differs
+        dec     di
+
+intact: nop
+```
+
+<Warn>
+
+The flags come from [si] - [di]. Both pointers step after the compare, so when it stops they are one past the byte that differs.
+
+</Warn>
+
+**See also:** [`cmpsw`](/docs/reference/string#cmpsw) · [`repe`](/docs/reference/string#repe) · [`scasb`](/docs/reference/string#scasb)
+
+## cmpsw
+
+Compare the word at si with the word at di; step si and di.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `cmpsw` | `A7` | `cmpsw` | `A7` |
+| `repe cmpsw` | `F3 A7` | `repe cmpsw` | `F3 A7` |
+| `repne cmpsw` | `F2 A7` | `repne cmpsw` | `F2 A7` |
+
+<Flags op="cmpsw" />
+
+**Cycles:** 1; under a prefix, 1 per iteration.
+
+**In a bot:** Compares two runs of words: a bot checks its body against a spare copy.
+
+```asm fragment
+        repe    cmpsw                   ; F3 A7
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     cx, 16
+        repe    cmpsw                   ; 16 words, while they match
+        jnz     hurt                    ; a word differs: we were hit
+        jmp     $
+
+hurt:   nop
+```
+
+<Warn>
+
+si and di step by 2, so they stop 2 past the word that differs.
+
+</Warn>
+
+**See also:** [`cmpsb`](/docs/reference/string#cmpsb) · [`repe`](/docs/reference/string#repe) · [`repne`](/docs/reference/string#repne)
+
+## stosb
+
+Store al at di; step di.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `stosb` | `AA` | `stosb` | `AA` |
+| `rep stosb` | `F3 AA` | `rep stosb` | `F3 AA` |
+
+**Flags:** none change.
+
+**Cycles:** 1; under a prefix, 1 per iteration.
+
+**In a bot:** Writes al at di and steps di: bytes of code one at a time, or a fill with `rep`.
+
+```asm fragment
+        rep     stosb                   ; F3 AA
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     al, 0xEB                ; jmp short
+        stosb
+        mov     al, 0xFE                ; -2
+        stosb                           ; EB FE: jmp $, a trap that spins
+```
+
+<Warn>
+
+It steps di down when DF = 1. `stosw` fills twice as fast.
+
+</Warn>
+
+**See also:** [`stosw`](/docs/reference/string#stosw) · [`rep`](/docs/reference/string#rep) · [`lodsb`](/docs/reference/string#lodsb)
+
+## stosw
+
+Store ax at di; step di.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `stosw` | `AB` | `stosw` | `AB` |
+| `rep stosw` | `F3 AB` | `rep stosw` | `F3 AB` |
+
+**Flags:** none change.
+
+**Cycles:** 1; under a prefix, 1 per iteration.
+
+**In a bot:** The carpet bomb: `rep stosw` with ax = 0 writes a run of DAT, a word a cycle.
+
+```asm fragment
+        xor     ax, ax                  ; 31 C0
+        stosw                           ; AB
+```
+
+**Idiom:**
+
+```asm fragment
+        xor     ax, ax
+        mov     cx, 16
+        rep     stosw                   ; 32 bytes of DAT at di
+```
+
+<Warn>
+
+Point di first: registers start at 0, so a bot that never sets di bombs from address 0 (the linter warns: `uninitialized-di`).
+
+</Warn>
+
+**See also:** [`stosb`](/docs/reference/string#stosb) · [`rep`](/docs/reference/string#rep) · [`movsw`](/docs/reference/string#movsw)
+
+## lodsb
+
+Load the byte at si into al; step si.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `lodsb` | `AC` | `lodsb` | `AC` |
+| `rep lodsb` | `F3 AC` | `rep lodsb` | `F3 AC` |
+
+**Flags:** none change.
+
+**Cycles:** 1; under a prefix, 1 per iteration.
+
+**In a bot:** Reads the next byte at si and steps si.
+
+```asm fragment
+        lodsb                           ; AC
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     cx, 8
+        xor     dx, dx
+
+sum:    lodsb
+        add     dl, al                  ; dl = the sum of 8 bytes: a cheap checksum
+        loop    sum
+```
+
+<Warn>
+
+`rep lodsb` is legal and useless: each load overwrites al. To find a byte, use `repne scasb`.
+
+</Warn>
+
+**See also:** [`lodsw`](/docs/reference/string#lodsw) · [`scasb`](/docs/reference/string#scasb) · [`stosb`](/docs/reference/string#stosb)
+
+## lodsw
+
+Load the word at si into ax; step si.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `lodsw` | `AD` | `lodsw` | `AD` |
+| `rep lodsw` | `F3 AD` | `rep lodsw` | `F3 AD` |
+
+**Flags:** none change.
+
+**Cycles:** 1; under a prefix, 1 per iteration.
+
+**In a bot:** Reads the next word at si and steps si: a sampler.
+
+```asm fragment
+        lodsw                           ; AD
+```
+
+**Idiom:**
+
+```asm fragment
+top:    lodsw
+        add     si, 14                  ; a word every 16 bytes
+        test    ax, ax
+        jz      top                     ; skip empty core
+```
+
+<Warn>
+
+si steps by 2 whatever the data; add to si for a larger stride.
+
+</Warn>
+
+**See also:** [`lodsb`](/docs/reference/string#lodsb) · [`scasw`](/docs/reference/string#scasw) · [`loope`](/docs/reference/control#loope)
+
+## scasb
+
+Compare al with the byte at di; step di.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `scasb` | `AE` | `scasb` | `AE` |
+| `repe scasb` | `F3 AE` | `repe scasb` | `F3 AE` |
+| `repne scasb` | `F2 AE` | `repne scasb` | `F2 AE` |
+
+<Flags op="scasb" />
+
+**Cycles:** 1; under a prefix, 1 per iteration.
+
+**In a bot:** The scanner's search: `repe scasb` with al = 0 runs over empty core and stops after the first non-zero byte.
+
+```asm fragment
+        repne   scasb                   ; F2 AE
+```
+
+**Idiom:**
+
+```asm fragment
+        xor     al, al
+        mov     cx, 0xFFFF
+        repe    scasb                   ; stops one past the first non-zero byte
+        dec     di                      ; di = the byte found
+```
+
+<Warn>
+
+`repe` goes on while the byte equals al; `repne` goes on while it does not. Each byte is one cycle, so a scan across a long empty gap is slow.
+
+</Warn>
+
+**See also:** [`scasw`](/docs/reference/string#scasw) · [`repe`](/docs/reference/string#repe) · [`repne`](/docs/reference/string#repne)
+
+## scasw
+
+Compare ax with the word at di; step di.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `scasw` | `AF` | `scasw` | `AF` |
+| `repe scasw` | `F3 AF` | `repe scasw` | `F3 AF` |
+| `repne scasw` | `F2 AF` | `repne scasw` | `F2 AF` |
+
+<Flags op="scasw" />
+
+**Cycles:** 1; under a prefix, 1 per iteration.
+
+**In a bot:** Compares ax with a word at di and steps di: a faster scan, 2 bytes a cycle.
+
+```asm fragment
+        repe    scasw                   ; F3 AF
+```
+
+**Idiom:**
+
+```asm fragment
+        xor     ax, ax
+        mov     cx, 32
+        repe    scasw                   ; pass up to 32 empty words
+        jnz     found                   ; a word was not empty
+        jmp     $
+
+found:  nop
+```
+
+<Warn>
+
+It stops 2 past the word it found. One non-zero byte stops it, in either half.
+
+</Warn>
+
+**See also:** [`scasb`](/docs/reference/string#scasb) · [`repe`](/docs/reference/string#repe) · [`lodsw`](/docs/reference/string#lodsw)
+
+## cld
+
+Clear the direction flag: string instructions step up.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `cld` | `FC` | `cld` | `FC` |
+
+<Flags op="cld" />
+
+**Cycles:** 1.
+
+**In a bot:** Makes string instructions step up. DF starts at 0, so `cld` matters after an `std`.
+
+```asm fragment
+        cld                             ; FC
+        rep     movsw                   ; F3 A5
+```
+
+**Idiom:**
+
+```asm fragment
+        std
+        rep     stosw                   ; bomb down
+        cld
+        rep     movsw                   ; copy up
+```
+
+<Warn>
+
+A child from `spl` copies the flags of its parent, DF included.
+
+</Warn>
+
+**See also:** [`std`](/docs/reference/string#std) · [`movsw`](/docs/reference/string#movsw) · [`popf`](/docs/reference/data#popf)
+
+## std
+
+Set the direction flag: string instructions step down.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `std` | `FD` | `std` | `FD` |
+
+<Flags op="std" />
+
+**Cycles:** 1.
+
+**In a bot:** Makes string instructions step down: scan or bomb toward lower addresses.
+
+```asm fragment
+        std                             ; FD
+        rep     movsw                   ; F3 A5
+```
+
+**Idiom:**
+
+```asm fragment
+        std
+        xor     ax, ax
+        mov     cx, 16
+        rep     stosw                   ; 16 words of DAT, down from di
+```
+
+<Warn>
+
+With DF = 1, a copy starts at the last word: point si and di at the ends of the blocks, not the starts.
+
+</Warn>
+
+**See also:** [`cld`](/docs/reference/string#cld) · [`scasb`](/docs/reference/string#scasb) · [`stosw`](/docs/reference/string#stosw)
+
+## rep
+
+Repeat a string instruction while cx is not 0, cx -= 1 each time, one a cycle.
+
+| prefix | byte | takes |
+|---|---|---|
+| `rep` | `F3` | [`movsb`](/docs/reference/string#movsb), [`movsw`](/docs/reference/string#movsw), [`stosb`](/docs/reference/string#stosb), [`stosw`](/docs/reference/string#stosw), [`lodsb`](/docs/reference/string#lodsb), [`lodsw`](/docs/reference/string#lodsw) |
+
+**Flags:** the prefix changes none; the string instruction sets its own.
+
+**Cycles:** 1 per iteration. With cx = 0, 1 cycle and no iteration.
+
+**In a bot:** Repeats `movs`, `stos`, or `lods` cx times, one iteration a cycle: the copy and the carpet.
+
+```asm fragment
+        mov     cx, 16                  ; B9 10 00
+        rep     movsw                   ; F3 A5
+```
+
+**Idiom:**
+
+```asm fragment
+        xor     ax, ax
+        mov     cx, 64
+        rep     stosw                   ; 128 bytes of DAT in 64 cycles
+```
+
+<Warn>
+
+Between iterations, ip stays on the prefix: a bomb there ends the copy and the process. With cx = 0, it takes one cycle and does nothing. `rep` and `repe` are one byte, `F3`: on `cmps` and `scas`, `rep` repeats while equal.
+
+</Warn>
+
+**See also:** [`repe`](/docs/reference/string#repe) · [`repne`](/docs/reference/string#repne) · [`movsw`](/docs/reference/string#movsw) · [`stosw`](/docs/reference/string#stosw) · [`loop`](/docs/reference/control#loop)
+
+## repe
+
+Repeat cmps or scas while cx is not 0 and ZF=1 (equal), one a cycle.
+
+Also written `repz`.
+
+| prefix | byte | takes |
+|---|---|---|
+| `repe` | `F3` | [`cmpsb`](/docs/reference/string#cmpsb), [`cmpsw`](/docs/reference/string#cmpsw), [`scasb`](/docs/reference/string#scasb), [`scasw`](/docs/reference/string#scasw) |
+
+**Flags:** the prefix changes none; the string instruction sets its own.
+
+**Cycles:** 1 per iteration. With cx = 0, 1 cycle and no iteration.
+
+**In a bot:** Repeats `cmps` or `scas` while the values are equal: with al = 0, `repe scasb` passes over empty core.
+
+```asm fragment
+        repe    cmpsb                   ; F3 A6
+```
+
+**Idiom:**
+
+```asm fragment
+        xor     al, al
+        mov     cx, 512
+        repe    scasb                   ; stops after a non-zero byte, or after 512
+```
+
+<Warn>
+
+It also stops when cx reaches 0. Test ZF after it to tell a hit from the end of the count.
+
+</Warn>
+
+**See also:** [`rep`](/docs/reference/string#rep) · [`repne`](/docs/reference/string#repne) · [`scasb`](/docs/reference/string#scasb) · [`cmpsb`](/docs/reference/string#cmpsb)
+
+## repne
+
+Repeat cmps or scas while cx is not 0 and ZF=0 (not equal), one a cycle.
+
+Also written `repnz`.
+
+| prefix | byte | takes |
+|---|---|---|
+| `repne` | `F2` | [`cmpsb`](/docs/reference/string#cmpsb), [`cmpsw`](/docs/reference/string#cmpsw), [`scasb`](/docs/reference/string#scasb), [`scasw`](/docs/reference/string#scasw) |
+
+**Flags:** the prefix changes none; the string instruction sets its own.
+
+**Cycles:** 1 per iteration. With cx = 0, 1 cycle and no iteration.
+
+**In a bot:** Repeats `cmps` or `scas` while the values differ: finds a given byte or word.
+
+```asm fragment
+        repne   scasb                   ; F2 AE
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     al, 0xE9                ; a jmp rel16 opcode
+        mov     cx, 512
+        repne   scasb                   ; stops one past it, or after 512
+```
+
+<Warn>
+
+di stops one past the match (two for `scasw`). `repnz` and `repne` are one prefix.
+
+</Warn>
+
+**See also:** [`rep`](/docs/reference/string#rep) · [`repe`](/docs/reference/string#repe) · [`scasb`](/docs/reference/string#scasb) · [`loopne`](/docs/reference/control#loopne)

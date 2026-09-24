@@ -25,7 +25,7 @@ import * as runtime from 'react/jsx-runtime'
 import { useDom, window } from '../../../packages/ui/test/dom'
 import { DocsArticle, DocsFrame } from '../src/app/DocsFrame'
 import { focusRouteSearch } from '../src/app/keys'
-import { DOCS, type DocSection, docEntries, docNeighbors, findDoc } from '../src/docs'
+import { DOCS, type DocSection, docEntries, docFile, docNeighbors, findDoc } from '../src/docs'
 import { Asm, blockSource, loadAsmRuntime, parseRun } from '../src/docs/Asm'
 import { MDX_COMPONENTS, metaAttributes } from '../src/docs/components'
 import { encodingFields, findForm } from '../src/docs/reference'
@@ -278,6 +278,21 @@ describe('fenced blocks', () => {
     )
     expect(screen.getByRole('heading', { level: 3, name: 'Sub part' }).id).toBe('sub-part')
   })
+
+  it('takes an app link through the router, to its heading', async () => {
+    const Content = await compile('See [add](/docs/q#add), or [the site](https://example.com).')
+    const router = await renderDocs('/docs/p', {
+      pages: { p: () => <Content components={MDX_COMPONENTS} /> },
+    })
+    const add = screen.getByRole('link', { name: 'add' })
+    expect(add.getAttribute('href')).toBe('/docs/q#add')
+    expect(add.getAttribute('target')).toBeNull()
+    expect(screen.getByRole('link', { name: 'the site' }).getAttribute('target')).toBe('_blank')
+    fireEvent.click(add)
+    await screen.findByText('page q')
+    expect(router.state.location.pathname).toBe('/docs/q')
+    expect(router.state.location.hash).toBe('add')
+  })
 })
 
 describe('Encoding and Flags', () => {
@@ -512,11 +527,11 @@ interface DirEntry {
   isDirectory(): boolean
 }
 
-/** Every `.mdx` file under `src/docs`, as the slug a page would give it. */
-function mdxSlugs(dir = DOCS_DIR): string[] {
+/** Every `.mdx` file under `src/docs`, as `docFile` names it. */
+function mdxFiles(dir = DOCS_DIR): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry: DirEntry) => {
     const path = join(dir, entry.name)
-    if (entry.isDirectory()) return mdxSlugs(path)
+    if (entry.isDirectory()) return mdxFiles(path)
     return entry.name.endsWith('.mdx') ? [relative(DOCS_DIR, path).replace(/\.mdx$/, '')] : []
   })
 }
@@ -527,7 +542,7 @@ describe('the pages', () => {
   it('are every MDX file, each once, with a unique slug and title', () => {
     const slugs = entries.map(({ page }) => page.slug)
     expect(new Set(slugs).size).toBe(slugs.length)
-    expect([...slugs].sort()).toEqual(mdxSlugs().sort())
+    expect(entries.map(({ page }) => docFile(page)).sort()).toEqual(mdxFiles().sort())
     const titles = entries.map(({ page }) => page.title)
     expect(new Set(titles).size).toBe(titles.length)
     for (const { page } of entries) expect(page.title).toBe(page.title.toLowerCase())
@@ -535,7 +550,7 @@ describe('the pages', () => {
 
   for (const { page } of entries) {
     it(`${page.slug}: compiles, draws, and each open in editor snippet assembles`, async () => {
-      const source = readFileSync(`${DOCS_DIR}${page.slug}.mdx`, 'utf8')
+      const source = readFileSync(`${DOCS_DIR}${docFile(page)}.mdx`, 'utf8')
       const Content = await compile(source)
       await renderDocs(`/docs/${page.slug}`, {
         pages: { [page.slug]: () => <Content components={MDX_COMPONENTS} /> },

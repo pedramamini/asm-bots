@@ -1,0 +1,72 @@
+# Expressions
+
+Anywhere a number goes, an expression can: an immediate, a displacement, a jump target, a `dw`, an `equ`, a `times` count. The assembler folds each one to a number (ISA §6.1).
+
+## Numbers
+
+| write | value | is |
+|---|---|---|
+| `123` | `0x007B` (123) | decimal |
+| `0x1F` | `0x001F` (31) | hexadecimal |
+| `1Fh` | `0x001F` (31) | hexadecimal, NASM suffix: it must start with a digit (`0FFh`) |
+| `0b1010` | `0x000A` (10) | binary |
+| `'A'` | `0x0041` (65) | a character: its code |
+| `-7` | `0xFFF9` (65529) | a negative number, as 16 bits |
+
+## Operators
+
+C operators and C precedence, all left to right. From the first to bind to the last:
+
+| operators | are |
+|---|---|
+| `-x` `+x` `~x` | negate, plus, flip every bit |
+| `*` `/` `%` | multiply, divide, remainder |
+| `+` `-` | add, subtract |
+| `<<` `>>` | shift left, shift right |
+| `&` | and |
+| `^` | xor |
+| `\|` | or |
+| `( )` | group |
+
+| expression | value | because |
+|---|---|---|
+| `2 + 3 * 4` | `0x000E` (14) | `*` binds first |
+| `(2 + 3) * 4` | `0x0014` (20) | parentheses first |
+| `1 << 4 \| 1` | `0x0011` (17) | `<<` binds before `\|` |
+| `0xFF & ~0x0F` | `0x00F0` (240) | `~` flips every bit of 0x000F |
+| `-5 / 3` | `0xFFFF` (65535) | `/` is signed and rounds toward 0, as in C |
+| `-5 % 3` | `0xFFFE` (65534) | `%` takes the sign of the left side, as in C |
+| `-1 >> 4` | `0xFFFF` (65535) | `>>` is arithmetic: the sign stays |
+| `(0x8000 * 4) / 8` | `0x4000` (16384) | the math is exact, and wraps to 16 bits once, at the end |
+| `0x10000 + 5` | `0x0005` (5) | a value wraps to 16 bits |
+
+<Note>
+
+NASM differs: its `/`, `%`, and `>>` are unsigned (its signed ones are `//`, `%%`, and `>>>`, which x16c does not have). See [8086 divergences](/docs/reference/divergences#where-the-assembler-differs-from-nasm).
+
+</Note>
+
+## Labels and $
+
+A label is a number: its offset from the start of the bot. So `end - start` is the size of the code between them, and `$` is the offset of the current line.
+
+```asm fragment
+SIZE    equ     end - start             ; bytes of code
+WORDS   equ     (SIZE + 1) / 2          ; words, rounded up
+
+start:  mov     cx, WORDS
+        rep     movsw
+        jmp     $                       ; $: this line
+
+end:
+```
+
+<Warn>
+
+A label is an offset, not an address in the core: `mov ax, [label]` reads the absolute address `label`. Add the base: `[bx+label]` (see [memory model](/docs/reference/memory#position-independence)).
+
+</Warn>
+
+## Errors
+
+A name no label or `equ` defines is `undefined-symbol`; a division by 0 is `div-zero`; an `equ` defined through itself is `circular-equ`; a value too big for its field is `out-of-range`. A byte field takes -256..255, a sign-extended byte -128..127, and a word any value, wrapped.

@@ -13,11 +13,16 @@ const FOCUS = 'focus-visible:outline-1 focus-visible:outline-offset-2 focus-visi
 
 const LINK = cx('text-accent underline-offset-2 hover:underline', FOCUS)
 
-/** A docs link: an app path goes through the router (no reload); anything else leaves the app. */
+/**
+ * A docs link: an app path goes through the router (no reload), its `#anchor` as the router's
+ * hash; anything else leaves the app.
+ */
 function DocLink({ href = '', children }: ComponentProps<'a'>) {
   if (href.startsWith('/')) {
+    const at = href.indexOf('#')
+    const to = at < 0 ? { to: href } : { to: href.slice(0, at), hash: href.slice(at + 1) }
     return (
-      <Link to={href} className={LINK}>
+      <Link {...to} className={LINK}>
         {children}
       </Link>
     )

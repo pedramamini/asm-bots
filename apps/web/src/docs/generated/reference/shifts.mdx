@@ -1,0 +1,264 @@
+# Shifts and rotates
+
+Shifts and rotates by 1 or by cl, the only counts the 8086 takes. The count is not masked: a count of 40 in cl shifts 40 times, in one cycle like any instruction. Shifts set ZF, SF, and PF from the result; rotates change only CF and OF. A count of 0 changes no flag.
+
+On this page: [`rol`](/docs/reference/shifts#rol) · [`ror`](/docs/reference/shifts#ror) · [`rcl`](/docs/reference/shifts#rcl) · [`rcr`](/docs/reference/shifts#rcr) · [`shl`](/docs/reference/shifts#shl) · [`shr`](/docs/reference/shifts#shr) · [`sar`](/docs/reference/shifts#sar).
+
+## rol
+
+Rotate left: the top bit goes to bit 0 and CF.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `rol r/m8, 1` | `D0 /0` | `rol byte [bx+4], 1` | `D0 47 04` |
+| `rol r/m16, 1` | `D1 /0` | `rol word [di], 1` | `D1 05` |
+| `rol r/m8, cl` | `D2 /0` | `rol byte [bx+4], cl` | `D2 47 04` |
+| `rol r/m16, cl` | `D3 /0` | `rol word [di], cl` | `D3 05` |
+
+<Flags op="rol" />
+
+**Cycles:** 1.
+
+**In a bot:** Rotates bits around with none lost: a stride that changes each pass and never becomes 0.
+
+```asm fragment
+        rol     ax, cl                  ; D3 C0
+```
+
+**Idiom:**
+
+```asm fragment
+        rol     dx, 1                   ; a new stride from the old one
+        add     di, dx
+```
+
+<Warn>
+
+The count is `1` or `cl`, and a count in cl is not masked: a word rotate by 17 is a rotate by 1, 17 steps. A count of 0 changes no flag.
+
+</Warn>
+
+**See also:** [`ror`](/docs/reference/shifts#ror) · [`rcl`](/docs/reference/shifts#rcl) · [`shl`](/docs/reference/shifts#shl)
+
+## ror
+
+Rotate right: bit 0 goes to the top bit and CF.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `ror r/m8, 1` | `D0 /1` | `ror byte [bx+4], 1` | `D0 4F 04` |
+| `ror r/m16, 1` | `D1 /1` | `ror word [di], 1` | `D1 0D` |
+| `ror r/m8, cl` | `D2 /1` | `ror byte [bx+4], cl` | `D2 4F 04` |
+| `ror r/m16, cl` | `D3 /1` | `ror word [di], cl` | `D3 0D` |
+
+<Flags op="ror" />
+
+**Cycles:** 1.
+
+**In a bot:** Rotates right. A word rotate by 8 swaps its bytes.
+
+```asm fragment
+        ror     bx, 1                   ; D1 CB
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     cl, 8
+        ror     ax, cl                  ; swap al and ah
+```
+
+<Warn>
+
+Only `1` and `cl` are counts: `ror ax, 8` is an error on the 8086. `xchg al, ah` is shorter.
+
+</Warn>
+
+**See also:** [`rol`](/docs/reference/shifts#rol) · [`rcr`](/docs/reference/shifts#rcr) · [`xchg`](/docs/reference/data#xchg)
+
+## rcl
+
+Rotate left through CF.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `rcl r/m8, 1` | `D0 /2` | `rcl byte [bx+4], 1` | `D0 57 04` |
+| `rcl r/m16, 1` | `D1 /2` | `rcl word [di], 1` | `D1 15` |
+| `rcl r/m8, cl` | `D2 /2` | `rcl byte [bx+4], cl` | `D2 57 04` |
+| `rcl r/m16, cl` | `D3 /2` | `rcl word [di], cl` | `D3 15` |
+
+<Flags op="rcl" />
+
+**Cycles:** 1.
+
+**In a bot:** Shifts CF into bit 0: carries a shift into a second word, or turns a flag into a bit.
+
+```asm fragment
+        shl     ax, 1                   ; D1 E0
+        rcl     dx, 1                   ; D1 D2
+```
+
+**Idiom:**
+
+```asm fragment
+        xor     ax, ax
+        cmp     si, di
+        rcl     ax, 1                   ; ax = 1 if si < di (unsigned), else 0
+```
+
+<Warn>
+
+It reads CF: a stale carry goes into bit 0. Use `clc` first when it must be 0.
+
+</Warn>
+
+**See also:** [`rcr`](/docs/reference/shifts#rcr) · [`rol`](/docs/reference/shifts#rol) · [`clc`](/docs/reference/flag-ops#clc)
+
+## rcr
+
+Rotate right through CF.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `rcr r/m8, 1` | `D0 /3` | `rcr byte [bx+4], 1` | `D0 5F 04` |
+| `rcr r/m16, 1` | `D1 /3` | `rcr word [di], 1` | `D1 1D` |
+| `rcr r/m8, cl` | `D2 /3` | `rcr byte [bx+4], cl` | `D2 5F 04` |
+| `rcr r/m16, cl` | `D3 /3` | `rcr word [di], cl` | `D3 1D` |
+
+<Flags op="rcr" />
+
+**Cycles:** 1.
+
+**In a bot:** Shifts CF into the top bit: the low word of a 32-bit right shift.
+
+```asm fragment
+        shr     dx, 1                   ; D1 EA
+        rcr     ax, 1                   ; D1 D8
+```
+
+**Idiom:**
+
+```asm fragment
+        stc
+        rcr     ax, 1                   ; bit 15 of ax is now 1
+```
+
+<Warn>
+
+It reads CF into bit 15. After `shr dx, 1`, CF is the bit that fell out of dx, which is what a 32-bit shift needs.
+
+</Warn>
+
+**See also:** [`rcl`](/docs/reference/shifts#rcl) · [`shr`](/docs/reference/shifts#shr) · [`stc`](/docs/reference/flag-ops#stc)
+
+## shl
+
+Shift left, zeros in: an unsigned double.
+
+Also written `sal`.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `shl r/m8, 1` | `D0 /4` | `shl byte [bx+4], 1` | `D0 67 04` |
+| `shl r/m16, 1` | `D1 /4` | `shl word [di], 1` | `D1 25` |
+| `shl r/m8, cl` | `D2 /4` | `shl byte [bx+4], cl` | `D2 67 04` |
+| `shl r/m16, cl` | `D3 /4` | `shl word [di], cl` | `D3 25` |
+
+<Flags op="shl" />
+
+**Cycles:** 1.
+
+**In a bot:** Doubles: `shl ax, 1` is ax * 2 in one cycle, with no `mul`.
+
+```asm fragment
+        shl     ax, 1                   ; D1 E0
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     ax, bx
+        shl     ax, 1
+        shl     ax, 1                   ; ax = bx * 4
+```
+
+<Warn>
+
+`sal` is the same instruction. Bits shifted past bit 15 are gone; CF holds the last one out.
+
+</Warn>
+
+**See also:** [`shr`](/docs/reference/shifts#shr) · [`sar`](/docs/reference/shifts#sar) · [`mul`](/docs/reference/arithmetic#mul)
+
+## shr
+
+Shift right, zeros in: an unsigned halve.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `shr r/m8, 1` | `D0 /5` | `shr byte [bx+4], 1` | `D0 6F 04` |
+| `shr r/m16, 1` | `D1 /5` | `shr word [di], 1` | `D1 2D` |
+| `shr r/m8, cl` | `D2 /5` | `shr byte [bx+4], cl` | `D2 6F 04` |
+| `shr r/m16, cl` | `D3 /5` | `shr word [di], cl` | `D3 2D` |
+
+<Flags op="shr" />
+
+**Cycles:** 1.
+
+**In a bot:** Halves unsigned: bytes to words for a copy, or a step of a binary search.
+
+```asm fragment
+        shr     ax, cl                  ; D3 E8
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     cx, 34
+        shr     cx, 1                   ; 17 words in 34 bytes
+        rep     movsw
+```
+
+<Warn>
+
+An odd value loses its low bit. To round a byte count up to words, add 1 first: `(SIZE + 1) / 2`.
+
+</Warn>
+
+**See also:** [`shl`](/docs/reference/shifts#shl) · [`sar`](/docs/reference/shifts#sar) · [`rcr`](/docs/reference/shifts#rcr)
+
+## sar
+
+Shift right, copies of the sign bit in: a signed halve.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `sar r/m8, 1` | `D0 /7` | `sar byte [bx+4], 1` | `D0 7F 04` |
+| `sar r/m16, 1` | `D1 /7` | `sar word [di], 1` | `D1 3D` |
+| `sar r/m8, cl` | `D2 /7` | `sar byte [bx+4], cl` | `D2 7F 04` |
+| `sar r/m16, cl` | `D3 /7` | `sar word [di], cl` | `D3 3D` |
+
+<Flags op="sar" />
+
+**Cycles:** 1.
+
+**In a bot:** Halves signed: the sign bit stays.
+
+```asm fragment
+        sar     ax, 1                   ; D1 F8
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     ax, -7
+        sar     ax, 1                   ; ax = -4: it rounds down
+```
+
+<Warn>
+
+It rounds toward minus infinity, where `idiv` by 2 rounds toward 0. -1 stays -1 however far it shifts.
+
+</Warn>
+
+**See also:** [`shr`](/docs/reference/shifts#shr) · [`idiv`](/docs/reference/arithmetic#idiv)

@@ -3,11 +3,12 @@
  * cards and completions read. Per mnemonic: its encoding forms from the codec's `TABLE`, what it
  * does to FLAGS (`FLAGS` below, ISA §4), and the summary and example of
  * packages/codec/docs/notes.json, with the example assembled to its bytes. The prefixes get the
- * same, less the flags. `bun run opcodes --check` writes nothing and exits 1 when the file is not
- * what it would write; scripts/gen-opcode-docs.test.ts runs that check in `bun test`, and holds
- * `FLAGS` against the engine.
+ * same, less the flags. It also writes the docs' language reference, the MDX pages of
+ * apps/web/src/docs/generated/reference/ (scripts/gen-reference.ts). `bun run opcodes --check`
+ * writes nothing and exits 1 when a file is not what it would write; scripts/gen-opcode-docs.test.ts
+ * runs that check in `bun test`, and holds `FLAGS` against the engine.
  */
-import { readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { assemble, formatDiag, formatSource } from '../packages/asm/src/index'
@@ -85,11 +86,22 @@ export interface OpcodeDocs {
   prefixes: Record<string, PrefixDoc>
 }
 
-/** A mnemonic's or a prefix's entry in notes.json. */
+/**
+ * A mnemonic's or a prefix's entry in notes.json. `summary` and `example` go to the editor's
+ * hover cards and to the reference; the rest is the reference's prose (scripts/gen-reference.ts).
+ */
 export interface Note {
   summary: string
   /** One to four lines of source; the generator formats them. */
   example: string
+  /** What it is for in a bot. */
+  use?: string
+  /** A common idiom: a few lines of source that assemble. */
+  idiom?: string
+  /** A trap: what reads one way and runs another. */
+  pitfall?: string
+  /** Mnemonics and prefixes to cross-link. */
+  see?: string[]
 }
 
 export interface Notes {
@@ -248,28 +260,38 @@ export function syntax(row: OpcodeRow, prefix?: Prefix): string {
   return prefix === undefined ? text : `${prefix} ${text}`
 }
 
+/** A form and the first table row it stands for (a `+r` form stands for 8), with its prefix. */
+export interface FormRow {
+  form: OpcodeForm
+  row: OpcodeRow
+  prefix?: Prefix | undefined
+}
+
 /** The distinct forms of a mnemonic in table order, each prefix form after the plain one. */
-function forms(mnemonic: Mnemonic): OpcodeForm[] {
-  const out: OpcodeForm[] = []
+export function formRows(mnemonic: Mnemonic): FormRow[] {
+  const out: FormRow[] = []
   const seen = new Set<string>()
-  const add = (form: OpcodeForm) => {
+  const add = (form: OpcodeForm, row: OpcodeRow, prefix?: Prefix) => {
     const key = `${form.syntax}|${form.encoding}`
     if (seen.has(key)) return
     seen.add(key)
-    out.push(form)
+    out.push({ form, row, prefix })
   }
   for (const row of TABLE) {
     if (row.mnemonic !== mnemonic) continue
-    add({ syntax: syntax(row), encoding: encoding(row) })
+    add({ syntax: syntax(row), encoding: encoding(row) }, row)
     for (const prefix of row.prefixes ?? []) {
-      add({
+      const form = {
         syntax: syntax(row, prefix),
         encoding: `${hex2(PREFIX_BYTE[prefix])} ${encoding(row)}`,
-      })
+      }
+      add(form, row, prefix)
     }
   }
   return out
 }
+
+const forms = (mnemonic: Mnemonic): OpcodeForm[] => formRows(mnemonic).map(({ form }) => form)
 
 /**
  * The example of `what` in the formatter's layout, a line each with its bytes. Blank lines go, and
@@ -341,21 +363,35 @@ export function render(notes: Notes = JSON.parse(readFileSync(NOTES, 'utf8'))): 
 }
 
 if (import.meta.main) {
+  // The reference imports this module: loaded here, it finds this module's exports defined.
+  const { REFERENCE_DIR, referenceFiles, staleFiles } = await import('./gen-reference')
   const check = process.argv.includes('--check')
-  const text = render()
+  const notes: Notes = JSON.parse(readFileSync(NOTES, 'utf8'))
+  const files = new Map([[OUT, render(notes)], ...referenceFiles(notes)])
   const shown = relative(process.cwd(), OUT)
+  const dir = relative(process.cwd(), REFERENCE_DIR)
   if (check) {
-    let old = ''
-    try {
-      old = readFileSync(OUT, 'utf8')
-    } catch {}
-    if (old !== text) {
-      console.error(`${shown} is out of date: run \`bun run opcodes\``)
+    const old = [...files].filter(([path, text]) => {
+      try {
+        return readFileSync(path, 'utf8') !== text
+      } catch {
+        return true
+      }
+    })
+    const stale = staleFiles(files)
+    for (const [path] of old) console.error(`${relative(process.cwd(), path)} is out of date`)
+    for (const path of stale) console.error(`${relative(process.cwd(), path)} is not generated`)
+    if (old.length > 0 || stale.length > 0) {
+      console.error('run `bun run opcodes`')
       process.exit(1)
     }
-    console.log(`${shown} is up to date`)
+    console.log(`${shown} and ${dir} are up to date`)
   } else {
-    writeFileSync(OUT, text)
-    console.log(`wrote ${shown}: ${MNEMONICS.length} mnemonics`)
+    mkdirSync(REFERENCE_DIR, { recursive: true })
+    for (const path of staleFiles(files)) rmSync(path)
+    for (const [path, text] of files) writeFileSync(path, text)
+    console.log(
+      `wrote ${shown}: ${MNEMONICS.length} mnemonics, and ${files.size - 1} files in ${dir}`,
+    )
   }
 }

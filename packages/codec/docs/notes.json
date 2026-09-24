@@ -2,329 +2,969 @@
   "mnemonics": {
     "adc": {
       "summary": "add with carry: dst += src + CF, to chain adds past 16 bits",
-      "example": "add ax, bx\nadc dx, cx"
+      "example": "add ax, bx\nadc dx, cx",
+      "use": "Carries a 16-bit add into a second word: 32-bit counters and random-number math.",
+      "idiom": "add ax, 0x4E6D      ; the low word\nadc dx, 0x41C6      ; the high word, plus the carry out of the low one",
+      "pitfall": "It adds CF, whatever set it. At the start of a chain, use `add`, or clear CF with `clc` first.",
+      "see": [
+        "add",
+        "sbb",
+        "clc"
+      ]
     },
     "add": {
       "summary": "add: dst += src",
-      "example": "add di, 4"
+      "example": "add di, 4",
+      "use": "Steps a pointer by the stride: the heart of every bomber loop.",
+      "idiom": "bomb: add di, 4     ; the stride\nmov word [di], 0\njmp bomb",
+      "pitfall": "`add byte [bx], al` is an error: its opcode `00` is DAT (ISA §9). Use a word add or `add byte [bx], imm8`. A byte add of two registers works: it uses `02 /r`.",
+      "see": [
+        "adc",
+        "sub",
+        "inc"
+      ]
     },
     "and": {
       "summary": "bitwise and: dst &= src; clears CF and OF",
-      "example": "and ax, 0x00FF"
+      "example": "and ax, 0x00FF",
+      "use": "Masks: keeps a pointer inside a window, or picks bits out.",
+      "idiom": "add si, 2\nand si, 63          ; si walks 0, 2, ..., 62, 0: a 64-byte window",
+      "pitfall": "The mask wraps a counter only when it is a power of 2 minus 1. `and` sets CF and OF to 0.",
+      "see": [
+        "or",
+        "test",
+        "xor"
+      ]
     },
     "call": {
       "summary": "push the address of the next instruction, then jump",
-      "example": "start: call .here\n.here: pop bx"
+      "example": "start: call .here\n.here: pop bx",
+      "use": "Mostly the base idiom: `call .here` pushes the address of `.here`, and `pop bx` takes it.",
+      "idiom": "start: call .here\n.here: pop bx\nsub bx, .here       ; bx = our base",
+      "pitfall": "`call` writes the return address at sp - 2: with sp at the base, the 2 bytes just under the bot. A bomb there turns the `ret` into a jump to 0.",
+      "see": [
+        "ret",
+        "pop",
+        "push"
+      ]
     },
     "cbw": {
       "summary": "sign-extend al into ax",
-      "example": "mov al, -5\ncbw"
+      "example": "mov al, -5\ncbw",
+      "use": "Widens a signed byte to a word before word math: al = -8 becomes ax = -8.",
+      "idiom": "mov al, -8\ncbw                 ; ax = 0xFFF8\nadd di, ax          ; di -= 8",
+      "pitfall": "It overwrites ah. For an unsigned byte, clear ah instead (`mov ah, 0`): cbw turns 0x80..0xFF into 0xFF80..0xFFFF.",
+      "see": [
+        "cwd",
+        "lodsb"
+      ]
     },
     "clc": {
       "summary": "clear the carry flag",
-      "example": "clc"
+      "example": "clc",
+      "use": "Clears CF: before an `adc` or `rcl` chain, or as a \"no\" answer from a subroutine.",
+      "idiom": "clc                 ; CF = 0: no hit\nret",
+      "pitfall": "`and`, `or`, `xor`, and `test` clear CF too.",
+      "see": [
+        "stc",
+        "cmc",
+        "adc"
+      ]
     },
     "cld": {
       "summary": "clear the direction flag: string instructions step up",
-      "example": "cld\nrep movsw"
+      "example": "cld\nrep movsw",
+      "use": "Makes string instructions step up. DF starts at 0, so `cld` matters after an `std`.",
+      "idiom": "std\nrep stosw           ; bomb down\ncld\nrep movsw           ; copy up",
+      "pitfall": "A child from `spl` copies the flags of its parent, DF included.",
+      "see": [
+        "std",
+        "movsw",
+        "popf"
+      ]
     },
     "cmc": {
       "summary": "flip the carry flag",
-      "example": "cmc"
+      "example": "cmc",
+      "use": "Flips CF: turns \"below\" into \"above or equal\".",
+      "idiom": "cmp ax, bx\ncmc                 ; CF = 1 if ax >= bx (unsigned)",
+      "pitfall": "It flips CF only: ZF still says what the `cmp` said.",
+      "see": [
+        "clc",
+        "stc",
+        "jc"
+      ]
     },
     "cmp": {
       "summary": "compare: set the flags from dst - src; dst keeps its value",
-      "example": "scan: add si, 8\ncmp word [si], 0\njz scan"
+      "example": "scan: add si, 8\ncmp word [si], 0\njz scan",
+      "use": "Tests a value and keeps it: the scanner's `cmp word [si], 0` asks if a word is empty core.",
+      "idiom": "scan: add di, 2\ncmp word [di], 0    ; empty core?\nje scan             ; yes: go on\nmov word [di], 0    ; no: bomb it",
+      "pitfall": "The jump after it picks signed or unsigned: `jb` and `ja` compare unsigned, `jl` and `jg` compare signed. Addresses are unsigned.",
+      "see": [
+        "sub",
+        "test",
+        "jz",
+        "ja",
+        "jl"
+      ]
     },
     "cmpsb": {
       "summary": "compare the byte at si with the byte at di; step si and di",
-      "example": "repe cmpsb"
+      "example": "repe cmpsb",
+      "use": "Compares two runs of bytes: `repe cmpsb` finds where a copy differs from its source.",
+      "idiom": "mov cx, 64\nrepe cmpsb          ; while the bytes match\njz intact           ; all 64 match\ndec si              ; si and di: the byte that differs\ndec di\nintact: nop",
+      "pitfall": "The flags come from [si] - [di]. Both pointers step after the compare, so when it stops they are one past the byte that differs.",
+      "see": [
+        "cmpsw",
+        "repe",
+        "scasb"
+      ]
     },
     "cmpsw": {
       "summary": "compare the word at si with the word at di; step si and di",
-      "example": "repe cmpsw"
+      "example": "repe cmpsw",
+      "use": "Compares two runs of words: a bot checks its body against a spare copy.",
+      "idiom": "mov cx, 16\nrepe cmpsw          ; 16 words, while they match\njnz hurt            ; a word differs: we were hit\njmp $\nhurt: nop",
+      "pitfall": "si and di step by 2, so they stop 2 past the word that differs.",
+      "see": [
+        "cmpsb",
+        "repe",
+        "repne"
+      ]
     },
     "cwd": {
       "summary": "sign-extend ax into dx:ax",
-      "example": "cwd\nidiv bx"
+      "example": "cwd\nidiv bx",
+      "use": "Sets dx to the sign of ax before a signed divide.",
+      "idiom": "mov ax, -1000\ncwd                 ; dx:ax = -1000\nmov cx, 7\nidiv cx             ; ax = -142, dx = -6",
+      "pitfall": "Before an unsigned `div`, clear dx with `xor dx, dx`: when ax is 0x8000 or more, cwd sets dx to 0xFFFF, the quotient does not fit, and the divide kills.",
+      "see": [
+        "cbw",
+        "div",
+        "idiv"
+      ]
     },
     "dat": {
       "summary": "kills the process that runs it: opcode 00, what empty core holds",
-      "example": "bomb: dat"
+      "example": "bomb: dat",
+      "use": "The bomb. A word of two zero bytes is a DAT, and empty core is all DAT.",
+      "idiom": "jmp $\nbomb: dat           ; 00 00: data after the jump, never run",
+      "pitfall": "Code that falls into `dat` dies (the linter warns: `dat-in-code`). `resb`, `resw`, and `align` pad with DAT too.",
+      "see": [
+        "hlt",
+        "mov",
+        "stosw"
+      ]
     },
     "dec": {
       "summary": "subtract 1; CF keeps its value",
-      "example": "dec cx"
+      "example": "dec cx",
+      "use": "Counts down. `dec word [x]` in a tight loop is an imp gate: the word changes every turn, so an imp that lands on it breaks.",
+      "idiom": "gate: dec word [bx-16]  ; an imp word here changes before it runs\njmp gate",
+      "pitfall": "It keeps CF, like `inc`. For a counted loop, `loop` does the `dec cx` and the jump in one instruction and keeps the flags.",
+      "see": [
+        "inc",
+        "loop",
+        "sub"
+      ]
     },
     "div": {
       "summary": "unsigned divide ax (word: dx:ax) by src; a 0 divisor or an overflow kills",
-      "example": "xor dx, dx\ndiv bx"
+      "example": "xor dx, dx\ndiv bx",
+      "use": "Divides unsigned: the remainder wraps a counter into a range.",
+      "idiom": "xor dx, dx          ; dx:ax = ax\nmov cx, 7\ndiv cx              ; ax = ax / 7, dx = ax mod 7",
+      "pitfall": "A 0 divisor, or a quotient too big for ax (al for a byte), kills the process with reason `div`. dx is the high half of the dividend: clear it first.",
+      "see": [
+        "idiv",
+        "mul",
+        "cwd"
+      ]
     },
     "hlt": {
       "summary": "kill the process that runs it",
-      "example": "hlt"
+      "example": "hlt",
+      "use": "Ends a process on purpose. With fewer processes, each of the rest gets more turns.",
+      "idiom": "spl worker\nhlt                 ; the parent ends; the child goes on\nworker: nop",
+      "pitfall": "It kills: a bot whose last process runs `hlt` loses. The linter warns: `hlt-in-code`.",
+      "see": [
+        "spl",
+        "dat",
+        "int3"
+      ]
     },
     "idiv": {
       "summary": "signed divide ax (word: dx:ax) by src; a 0 divisor or an overflow kills",
-      "example": "cwd\nidiv cx"
+      "example": "cwd\nidiv cx",
+      "use": "Divides signed; the quotient rounds toward 0.",
+      "idiom": "mov ax, -7\ncwd\nmov cx, 2\nidiv cx             ; ax = -3, dx = -1",
+      "pitfall": "It kills on a 0 divisor, on a quotient out of range, and on a quotient of exactly -32768 (-128 for a byte), as the 8086 does.",
+      "see": [
+        "div",
+        "cwd",
+        "cbw"
+      ]
     },
     "imul": {
       "summary": "signed multiply: ax = al * src (word: dx:ax = ax * src)",
-      "example": "imul bx"
+      "example": "imul bx",
+      "use": "Multiplies signed values, for strides that can be negative.",
+      "idiom": "mov ax, -3\nmov cx, 100\nimul cx             ; dx:ax = -300: dx = 0xFFFF, ax = 0xFED4",
+      "pitfall": "Only the 1-operand form exists: `imul ax, bx, 3` (80186) is an error. ZF SF AF PF read 0 after it, so `jz` does not test the product.",
+      "see": [
+        "mul",
+        "idiv",
+        "cwd"
+      ]
     },
     "inc": {
       "summary": "add 1; CF keeps its value",
-      "example": "inc word [bx]"
+      "example": "inc word [bx]",
+      "use": "Counts up. `inc r16` is 1 byte (`40+r`); `add r16, 1` is 3.",
+      "idiom": "inc word [bx+hits]  ; count in our own data, through the base\njmp $\nhits: dw 0",
+      "pitfall": "It keeps CF, so a `jc` after it reads an older carry. At 0xFFFF it wraps to 0 and sets ZF.",
+      "see": [
+        "dec",
+        "add"
+      ]
     },
     "int3": {
       "summary": "kill the process that runs it; debugger breakpoints never write it",
-      "example": "int3"
+      "example": "int3",
+      "use": "A 1-byte kill. A fill of `0xCC` kills a process that runs any byte of it, and a scan for non-zero bytes stops on it: a decoy that bites.",
+      "idiom": "mov al, 0xCC\nmov cx, 32\nrep stosb           ; 32 bytes that kill",
+      "pitfall": "It kills in the arena and in the debugger alike: the debugger's breakpoints are its own and never write `CC`.",
+      "see": [
+        "hlt",
+        "dat",
+        "stosb"
+      ]
     },
     "ja": {
       "summary": "jump if above, unsigned: CF=0 and ZF=0",
-      "example": "top: sub cx, 2\ncmp cx, 8\nja top"
+      "example": "top: sub cx, 2\ncmp cx, 8\nja top",
+      "use": "Unsigned above: after `cmp a, b`, jumps if a > b.",
+      "idiom": "cmp ax, bx\nja keep\nmov ax, bx          ; ax = the larger, unsigned\nkeep: nop",
+      "pitfall": "`ja` is unsigned; `jg` is its signed twin. For addresses, use `ja`.",
+      "see": [
+        "jna",
+        "jg",
+        "cmp"
+      ]
     },
     "jc": {
       "summary": "jump if carry, or below unsigned: CF=1",
-      "example": "top: shr ax, 1\njc top"
+      "example": "top: shr ax, 1\njc top",
+      "use": "Unsigned below: after `cmp a, b`, jumps if a < b. It also reads the bit a shift pushed out.",
+      "idiom": "cmp dx, 64\njc skip             ; dx < 64: inside our body\nmov word [di], 0\nskip: add di, 4",
+      "pitfall": "`jb`, `jc`, and `jnae` are one instruction. `inc` and `dec` keep CF, so a `jc` after them reads an older carry.",
+      "see": [
+        "jnc",
+        "cmp",
+        "stc"
+      ]
     },
     "jcxz": {
       "summary": "jump if cx is 0: guards a loop that would run 65,536 times",
-      "example": "jcxz done\ncopy: movsw\nloop copy\ndone: ret"
+      "example": "jcxz done\ncopy: movsw\nloop copy\ndone: ret",
+      "use": "Skips a `loop` when the count is 0.",
+      "idiom": "jcxz done\ntop: mov word [di], 0\nadd di, 8\nloop top\ndone: nop",
+      "pitfall": "It reads cx, not the flags. There is no `jcxnz`: use `test cx, cx` and `jnz`. A `rep` needs no guard: with cx = 0 it does nothing.",
+      "see": [
+        "loop",
+        "rep"
+      ]
     },
     "jg": {
       "summary": "jump if greater, signed: ZF=0 and SF=OF",
-      "example": "top: dec ax\ncmp ax, 10\njg top"
+      "example": "top: dec ax\ncmp ax, 10\njg top",
+      "use": "Signed greater: after `cmp a, b`, jumps if a > b as signed values.",
+      "idiom": "cmp ax, bx\njg keep\nmov ax, bx          ; ax = the larger, signed\nkeep: nop",
+      "pitfall": "`jg` is signed; `ja` is its unsigned twin.",
+      "see": [
+        "jng",
+        "ja",
+        "cmp"
+      ]
     },
     "jl": {
       "summary": "jump if less, signed: SF≠OF",
-      "example": "top: inc ax\ncmp ax, bx\njl top"
+      "example": "top: inc ax\ncmp ax, bx\njl top",
+      "use": "Signed less: after `cmp a, b`, jumps if a < b as signed values.",
+      "idiom": "cmp ax, bx\njl keep\nmov ax, bx          ; ax = the smaller, signed\nkeep: nop",
+      "pitfall": "It is signed: 0xFFFF is -1, less than 0. For addresses, use `jb`.",
+      "see": [
+        "jnl",
+        "jc",
+        "cmp"
+      ]
     },
     "jmp": {
       "summary": "jump to a label, or to the address in a register or memory",
-      "example": "spin: jmp spin"
+      "example": "spin: jmp spin",
+      "use": "Loops and skips data. `jmp $` spins in place: a process that stays alive and does nothing.",
+      "idiom": "mov word [di], 0\njmp $               ; spin: EB FE",
+      "pitfall": "`jmp label` is relative and position independent; `jmp bx` and `jmp word [x]` go to an absolute address. There is no conditional rel16 jump: to reach far, jump over a `jmp` with the inverted condition.",
+      "see": [
+        "call",
+        "jz",
+        "spl"
+      ]
     },
     "jna": {
       "summary": "jump if not above, unsigned: CF=1 or ZF=1",
-      "example": "top: add di, 2\ncmp di, si\njna top"
+      "example": "top: add di, 2\ncmp di, si\njna top",
+      "use": "Unsigned below or equal: one compare checks that a value is in 0..n.",
+      "idiom": "cmp dx, 63\njbe skip            ; dx in 0..63: our own 64 bytes\nmov word [di], 0\nskip: add di, 4",
+      "pitfall": "It is unsigned: -1 (0xFFFF) is above 63. That is what makes one `cmp` a range check.",
+      "see": [
+        "ja",
+        "jc",
+        "cmp"
+      ]
     },
     "jnc": {
       "summary": "jump if no carry, or above or equal unsigned: CF=0",
-      "example": "top: shl ax, 1\njnc top"
+      "example": "top: shl ax, 1\njnc top",
+      "use": "Unsigned above or equal: after `cmp a, b`, jumps if a >= b.",
+      "idiom": "top: sub cx, 2\njnc top             ; loop until cx borrows",
+      "pitfall": "`jae`, `jnb`, and `jnc` are one instruction. It is unsigned: -1 (0xFFFF) is above everything.",
+      "see": [
+        "jc",
+        "ja"
+      ]
     },
     "jng": {
       "summary": "jump if not greater, signed: ZF=1 or SF≠OF",
-      "example": "top: inc ax\ncmp ax, 10\njng top"
+      "example": "top: inc ax\ncmp ax, 10\njng top",
+      "use": "Signed less or equal: guards a loop whose count may be 0 or negative.",
+      "idiom": "cmp cx, 0\njng done            ; a count of 0 or less: nothing to copy\ncopy: movsw\nloop copy\ndone: nop",
+      "pitfall": "`jle` and `jng` are one instruction. A count of 0x8000 or more is negative here.",
+      "see": [
+        "jg",
+        "jcxz",
+        "jna"
+      ]
     },
     "jnl": {
       "summary": "jump if not less, signed: SF=OF",
-      "example": "top: dec ax\ncmp ax, bx\njnl top"
+      "example": "top: dec ax\ncmp ax, bx\njnl top",
+      "use": "Signed greater or equal. After `sub ax, n`, it tests the old ax against n.",
+      "idiom": "top: sub ax, 7\njnl top             ; again while ax was 7 or more\nadd ax, 7           ; ax = ax mod 7, for ax >= 0",
+      "pitfall": "`jge` and `jnl` are one instruction. It reads SF and OF, not CF.",
+      "see": [
+        "jl",
+        "jng",
+        "jnc"
+      ]
     },
     "jno": {
       "summary": "jump if no overflow: OF=0",
-      "example": "top: add ax, 0x1000\njno top"
+      "example": "top: add ax, 0x1000\njno top",
+      "use": "Goes on while a signed value has not wrapped.",
+      "idiom": "add ax, bx\njno done\nmov ax, 0x7FFF      ; clamp, for ax and bx >= 0\ndone: nop",
+      "pitfall": "`inc` and `dec` set OF too: 0x7FFF + 1 overflows.",
+      "see": [
+        "jo",
+        "jnc"
+      ]
     },
     "jns": {
       "summary": "jump if not sign, 0 or positive: SF=0",
-      "example": "top: dec ax\njns top"
+      "example": "top: dec ax\njns top",
+      "use": "Zero or positive: bit 15 of the result is 0.",
+      "idiom": "test ax, ax\njns done\nneg ax              ; ax = |ax|\ndone: nop",
+      "pitfall": "Addresses 0x8000 and up read as negative: do not use `jns` to compare addresses.",
+      "see": [
+        "js",
+        "jnl"
+      ]
     },
     "jnz": {
       "summary": "jump if not zero, or not equal: ZF=0",
-      "example": "top: dec cx\njnz top"
+      "example": "top: dec cx\njnz top",
+      "use": "Loops until a count reaches 0, or jumps on not equal.",
+      "idiom": "mov cx, 8\ntop: mov word [di], 0\nadd di, 16\ndec cx\njnz top             ; 8 bombs, 16 bytes apart",
+      "pitfall": "`loop` does `dec cx` and the jump in one instruction; `dec` and `jnz` work with any register.",
+      "see": [
+        "jz",
+        "loop",
+        "dec"
+      ]
     },
     "jo": {
       "summary": "jump if overflow: OF=1",
-      "example": "add ax, bx\njo clip\nclip: mov ax, 0x7FFF"
+      "example": "add ax, bx\njo clip\nclip: mov ax, 0x7FFF",
+      "use": "Catches a signed overflow, to clamp a value. Rare in bots.",
+      "idiom": "count: inc dx\nadd ax, 0x0800\njo done             ; stop at the first signed wrap\njmp count\ndone: nop",
+      "pitfall": "OF is signed overflow; for an unsigned one, test CF with `jc`.",
+      "see": [
+        "jno",
+        "jc"
+      ]
     },
     "jpe": {
       "summary": "jump if parity even, an even count of 1 bits in the low byte: PF=1",
-      "example": "test al, al\njpe even\neven: nop"
+      "example": "test al, al\njpe even\neven: nop",
+      "use": "Parity of the low byte: an even count of 1 bits. Rare in bots.",
+      "idiom": "test al, al\njpe even\nxor al, 0x80        ; bit 7 as a parity bit: now even\neven: nop",
+      "pitfall": "PF counts the low 8 bits only, even for a word result.",
+      "see": [
+        "jpo",
+        "test"
+      ]
     },
     "jpo": {
       "summary": "jump if parity odd, an odd count of 1 bits in the low byte: PF=0",
-      "example": "test al, al\njpo odd\nodd: nop"
+      "example": "test al, al\njpo odd\nodd: nop",
+      "use": "Parity of the low byte: an odd count of 1 bits.",
+      "idiom": "and al, 3\njpo mixed           ; al is 1 or 2: one bit of the two\nmov al, 0\nmixed: nop",
+      "pitfall": "`jnp` and `jpo` are one instruction. PF counts the low 8 bits only.",
+      "see": [
+        "jpe",
+        "and"
+      ]
     },
     "js": {
       "summary": "jump if sign, negative: SF=1",
-      "example": "top: shl ax, 1\njs top"
+      "example": "top: shl ax, 1\njs top",
+      "use": "Negative: bit 15 of the result is 1.",
+      "idiom": "sub ax, bx\njs under            ; ax < bx, as signed values that did not overflow\njmp done\nunder: neg ax\ndone: nop",
+      "pitfall": "After a signed overflow, SF is wrong; `jl` reads SF and OF together and is right.",
+      "see": [
+        "jns",
+        "jl"
+      ]
     },
     "jz": {
       "summary": "jump if zero, or equal: ZF=1",
-      "example": "scan: add si, 8\ncmp word [si], 0\njz scan"
+      "example": "scan: add si, 8\ncmp word [si], 0\njz scan",
+      "use": "Equal, or zero: after `cmp`, after `test`, or after a count reaches 0.",
+      "idiom": "mov si, di\nscan: add si, 16\ncmp word [si], 0\nje scan             ; skip empty core",
+      "pitfall": "`je` and `jz` are one instruction. rel8 only: the target must be within -128..+127 bytes.",
+      "see": [
+        "jnz",
+        "cmp",
+        "test"
+      ]
     },
     "lahf": {
       "summary": "copy SF ZF AF PF CF into ah",
-      "example": "lahf"
+      "example": "lahf",
+      "use": "Copies SF ZF AF PF CF into ah, so a flag becomes a value to test, store, or add.",
+      "idiom": "cmp ax, bx\nlahf\nand ah, 0x40        ; ah = 0x40 if ax = bx, else 0",
+      "pitfall": "Bits 5, 3, and 1 of ah are 0, 0, and 1, not flags. OF is not in ah: use `pushf` for it.",
+      "see": [
+        "sahf",
+        "pushf"
+      ]
     },
     "lea": {
       "summary": "load the address of a memory operand, not the value there",
-      "example": "lea si, [bx+di-2]"
+      "example": "lea si, [bx+di-2]",
+      "use": "Computes an address from a base register, with no memory access: `lea di, [bx+end]` points di just past the bot.",
+      "idiom": "start: call .here\n.here: pop bx\nsub bx, .here\nlea di, [bx+start-2]  ; di = the word just under the bot",
+      "pitfall": "`lea` takes a memory operand only: `lea ax, bx` is an error, and the bytes `8D` with mod = 11 kill. It changes no flags, so it cannot stand in for `add` before a `jz`.",
+      "see": [
+        "mov",
+        "add"
+      ]
     },
     "lodsb": {
       "summary": "load the byte at si into al; step si",
-      "example": "lodsb"
+      "example": "lodsb",
+      "use": "Reads the next byte at si and steps si.",
+      "idiom": "mov cx, 8\nxor dx, dx\nsum: lodsb\nadd dl, al          ; dl = the sum of 8 bytes: a cheap checksum\nloop sum",
+      "pitfall": "`rep lodsb` is legal and useless: each load overwrites al. To find a byte, use `repne scasb`.",
+      "see": [
+        "lodsw",
+        "scasb",
+        "stosb"
+      ]
     },
     "lodsw": {
       "summary": "load the word at si into ax; step si",
-      "example": "lodsw"
+      "example": "lodsw",
+      "use": "Reads the next word at si and steps si: a sampler.",
+      "idiom": "top: lodsw\nadd si, 14          ; a word every 16 bytes\ntest ax, ax\njz top              ; skip empty core",
+      "pitfall": "si steps by 2 whatever the data; add to si for a larger stride.",
+      "see": [
+        "lodsb",
+        "scasw",
+        "loope"
+      ]
     },
     "loop": {
       "summary": "cx -= 1, then jump if cx is not 0",
-      "example": "copy: movsw\nloop copy"
+      "example": "copy: movsw\nloop copy",
+      "use": "Counts a loop in one instruction: cx -= 1, and jump while cx is not 0. The dwarf counts its lap with it.",
+      "idiom": "mov cx, 100\nbomb: sub di, 4\nmov word [di], 0\nloop bomb           ; 100 bombs",
+      "pitfall": "With cx = 0, `loop` wraps cx to 0xFFFF and runs 65,536 times: guard it with `jcxz`. The target is rel8: at most 128 bytes back from the end of the `loop`.",
+      "see": [
+        "jcxz",
+        "dec",
+        "rep"
+      ]
     },
     "loope": {
       "summary": "cx -= 1, then jump if cx is not 0 and ZF=1",
-      "example": "same: cmpsb\nloope same"
+      "example": "same: cmpsb\nloope same",
+      "use": "Goes on while a test says equal, up to cx times.",
+      "idiom": "mov cx, 64\nskip: lodsw\ntest ax, ax\nloope skip          ; pass empty words, up to 64",
+      "pitfall": "`loopz` and `loope` are one instruction. When cx reaches 0 it stops whatever ZF is.",
+      "see": [
+        "loopne",
+        "loop",
+        "repe"
+      ]
     },
     "loopne": {
       "summary": "cx -= 1, then jump if cx is not 0 and ZF=0",
-      "example": "find: scasb\nloopne find"
+      "example": "find: scasb\nloopne find",
+      "use": "Searches: counts and tests in one instruction, and stops on a match or at the end of the count.",
+      "idiom": "mov cx, 256\nfind: lodsb\ncmp al, 0xE9        ; a jmp rel16 opcode?\nloopne find         ; stop on it, or after 256 bytes",
+      "pitfall": "It does not change the flags, so ZF comes from the instruction before it. After the loop, test ZF to tell a match from the end of the count.",
+      "see": [
+        "loope",
+        "loop",
+        "repne"
+      ]
     },
     "mov": {
       "summary": "copy a byte or word: dst = src",
-      "example": "mov word [di], 0"
+      "example": "mov word [di], 0",
+      "use": "Writes bombs and reads data. `mov word [di], 0` is the dwarf's bomb: two zero bytes, one DAT.",
+      "idiom": "xor ax, ax          ; ax = 0, the bomb\nmov [di], ax        ; 2 bytes: mov word [di], 0 is 4",
+      "pitfall": "`mov ax, [label]` reads the fixed address `label` of the core, not your copy of it: the loader does not relocate. Read your own data as `[bx+label]` after the base idiom.",
+      "see": [
+        "lea",
+        "xchg",
+        "stosw"
+      ]
     },
     "movsb": {
       "summary": "copy the byte at si to di; step si and di",
-      "example": "movsb"
+      "example": "movsb",
+      "use": "Copies one byte and steps si and di. `rep movsb` copies an odd length exactly.",
+      "idiom": "mov cx, 33\nrep movsb           ; 33 bytes, 33 cycles",
+      "pitfall": "`movsw` copies twice the bytes per cycle; use `movsb` for an odd tail only.",
+      "see": [
+        "movsw",
+        "rep",
+        "stosb"
+      ]
     },
     "movsw": {
       "summary": "copy the word at si to di; step si and di",
-      "example": "mov cx, 16\nrep movsw"
+      "example": "mov cx, 16\nrep movsw",
+      "use": "The imp's instruction and paper's copy. With di one word after si, `movsw` copies the word it runs to the next word.",
+      "idiom": "mov si, bx          ; from our base\nmov di, dx\nmov cx, 32\nrep movsw           ; 64 bytes to dx, a word a cycle\nspl dx              ; start the copy",
+      "pitfall": "`rep movsw` takes one cycle per word, and an enemy can bomb the copy before it ends. After it, si and di point past the copy, not at its start.",
+      "see": [
+        "movsb",
+        "rep",
+        "spl",
+        "cld"
+      ]
     },
     "mul": {
       "summary": "unsigned multiply: ax = al * src (word: dx:ax = ax * src)",
-      "example": "mul cx"
+      "example": "mul cx",
+      "use": "Multiplies for a random walk: one step of a linear congruential generator (LCG).",
+      "idiom": "mov cx, 25173\nmul cx              ; dx:ax = ax * 25173\nadd ax, 13849       ; ax = the next LCG value",
+      "pitfall": "It writes dx (ah for a byte) even when the product is small. It takes no immediate: `mul 5` is an error.",
+      "see": [
+        "imul",
+        "div",
+        "shl"
+      ]
     },
     "neg": {
       "summary": "negate: dst = 0 - dst",
-      "example": "neg ax"
+      "example": "neg ax",
+      "use": "Turns a stride around, or a negative distance into a positive one.",
+      "idiom": "neg dx              ; walk the other way\nadd di, dx",
+      "pitfall": "CF is 1 for every value but 0. `neg` of 0x8000 is 0x8000, with OF set.",
+      "see": [
+        "not",
+        "sub"
+      ]
     },
     "nop": {
       "summary": "do nothing for a cycle",
-      "example": "nop"
+      "example": "nop",
+      "use": "Takes a cycle and does nothing. The imp's `movsw` is 1 byte; `nop` fills its word.",
+      "idiom": "imp: movsw\nnop                 ; A5 90: the word the imp copies ahead",
+      "pitfall": "`90` is `xchg ax, ax` on the 8086; x16c writes `xchg ax, ax` as `87 C0`. A run of `90` bytes is a slide: a process runs through it into whatever comes next.",
+      "see": [
+        "xchg",
+        "movsw"
+      ]
     },
     "not": {
       "summary": "flip every bit of dst",
-      "example": "not ax"
+      "example": "not ax",
+      "use": "Flips every bit: 0 becomes 0xFFFF, a non-zero fill.",
+      "idiom": "xor ax, ax\nnot ax              ; ax = 0xFFFF",
+      "pitfall": "It changes no flag: a `jz` after `not` reads the flags from before. `not` is one less than `neg`: not x = -x - 1.",
+      "see": [
+        "neg",
+        "xor"
+      ]
     },
     "or": {
       "summary": "bitwise or: dst |= src; clears CF and OF",
-      "example": "or ax, ax\njz empty\nempty: nop"
+      "example": "or ax, ax\njz empty\nempty: nop",
+      "use": "Merges values. A chain of `or` tests several words for non-zero in one jump, as the vampire samples the core.",
+      "idiom": "mov dx, [di]\nor dx, [di-16]\nor dx, [di-32]      ; ZF = 0 if any of the 3 words is not empty",
+      "pitfall": "`or ax, ax` sets the flags like `test ax, ax` but writes ax back. With a memory destination, that is a write to the core.",
+      "see": [
+        "and",
+        "xor",
+        "test"
+      ]
     },
     "pop": {
       "summary": "load the word at sp into dst, then sp += 2",
-      "example": "pop bx"
+      "example": "pop bx",
+      "use": "Reads the word at sp and moves sp up. After `call`, it gets the address of the next line: the base idiom.",
+      "idiom": "start: call .here\n.here: pop bx       ; bx = the address of .here\nsub bx, .here       ; bx = the base of the bot",
+      "pitfall": "The word at sp is whatever the core holds there, enemy bombs included. `pop sp` leaves sp equal to the popped word, not that word plus 2.",
+      "see": [
+        "push",
+        "call",
+        "ret"
+      ]
     },
     "popf": {
       "summary": "pop a word into FLAGS: OF DF SF ZF AF PF CF",
-      "example": "popf"
+      "example": "popf",
+      "use": "Puts back flags that `pushf` saved, or sets several flags from a word.",
+      "idiom": "pushf\nstd\nrep movsw           ; a copy that steps down\npopf                ; DF is what it was",
+      "pitfall": "Only OF DF SF ZF AF PF CF take bits from the word; the others are lost. A stray word on the stack can set DF, and then every string instruction runs backward.",
+      "see": [
+        "pushf",
+        "sahf",
+        "std"
+      ]
     },
     "push": {
       "summary": "sp -= 2, then store the word at sp",
-      "example": "push ax"
+      "example": "push ax",
+      "use": "Writes a word at sp - 2 and moves sp down: a store and a step in 1 byte. sp starts at the base, so the stack grows into the core under the bot.",
+      "idiom": "xor ax, ax\nmov sp, di          ; aim the stack at the target\npush ax             ; DAT at di-2\npush ax             ; DAT at di-4",
+      "pitfall": "`push sp` pushes sp after the decrement, as the 8086 does. `push 5` is an error: the 8086 has no `push imm`. Load a register first.",
+      "see": [
+        "pop",
+        "call",
+        "pushf"
+      ]
     },
     "pushf": {
       "summary": "push FLAGS",
-      "example": "pushf"
+      "example": "pushf",
+      "use": "Saves the flags across code that changes them.",
+      "idiom": "pushf\ncmp ax, bx\npopf                ; the flags from before the cmp are back",
+      "pitfall": "It writes 2 bytes at sp - 2 like any push: with sp at the base, the word just under the bot. Bit 1 of the word is 1, and I and T are 0.",
+      "see": [
+        "popf",
+        "lahf",
+        "push"
+      ]
     },
     "rcl": {
       "summary": "rotate left through CF",
-      "example": "shl ax, 1\nrcl dx, 1"
+      "example": "shl ax, 1\nrcl dx, 1",
+      "use": "Shifts CF into bit 0: carries a shift into a second word, or turns a flag into a bit.",
+      "idiom": "xor ax, ax\ncmp si, di\nrcl ax, 1           ; ax = 1 if si < di (unsigned), else 0",
+      "pitfall": "It reads CF: a stale carry goes into bit 0. Use `clc` first when it must be 0.",
+      "see": [
+        "rcr",
+        "rol",
+        "clc"
+      ]
     },
     "rcr": {
       "summary": "rotate right through CF",
-      "example": "shr dx, 1\nrcr ax, 1"
+      "example": "shr dx, 1\nrcr ax, 1",
+      "use": "Shifts CF into the top bit: the low word of a 32-bit right shift.",
+      "idiom": "stc\nrcr ax, 1           ; bit 15 of ax is now 1",
+      "pitfall": "It reads CF into bit 15. After `shr dx, 1`, CF is the bit that fell out of dx, which is what a 32-bit shift needs.",
+      "see": [
+        "rcl",
+        "shr",
+        "stc"
+      ]
     },
     "ret": {
       "summary": "pop an address and jump to it; ret n then drops n more bytes",
-      "example": "ret"
+      "example": "ret",
+      "use": "Returns from a `call`, or jumps to any address on the stack: `push dx` then `ret` is `jmp dx`.",
+      "idiom": "push dx\nret                 ; jump to the address in dx",
+      "pitfall": "It trusts the stack: the word at sp may be anything. `ret n` pops, then adds n to sp.",
+      "see": [
+        "call",
+        "jmp",
+        "pop"
+      ]
     },
     "rol": {
       "summary": "rotate left: the top bit goes to bit 0 and CF",
-      "example": "rol ax, cl"
+      "example": "rol ax, cl",
+      "use": "Rotates bits around with none lost: a stride that changes each pass and never becomes 0.",
+      "idiom": "rol dx, 1           ; a new stride from the old one\nadd di, dx",
+      "pitfall": "The count is `1` or `cl`, and a count in cl is not masked: a word rotate by 17 is a rotate by 1, 17 steps. A count of 0 changes no flag.",
+      "see": [
+        "ror",
+        "rcl",
+        "shl"
+      ]
     },
     "ror": {
       "summary": "rotate right: bit 0 goes to the top bit and CF",
-      "example": "ror bx, 1"
+      "example": "ror bx, 1",
+      "use": "Rotates right. A word rotate by 8 swaps its bytes.",
+      "idiom": "mov cl, 8\nror ax, cl          ; swap al and ah",
+      "pitfall": "Only `1` and `cl` are counts: `ror ax, 8` is an error on the 8086. `xchg al, ah` is shorter.",
+      "see": [
+        "rol",
+        "rcr",
+        "xchg"
+      ]
     },
     "sahf": {
       "summary": "copy ah into SF ZF AF PF CF",
-      "example": "sahf"
+      "example": "sahf",
+      "use": "Sets SF ZF AF PF CF from ah in one byte.",
+      "idiom": "mov ah, 0x41        ; bits 6 and 0: ZF and CF\nsahf                ; ZF = 1, CF = 1, SF AF PF = 0",
+      "pitfall": "It does not touch OF or DF. The bits of ah are SF ZF - AF - PF - CF from bit 7 down, so ZF is bit 6, not bit 0.",
+      "see": [
+        "lahf",
+        "popf"
+      ]
     },
     "sar": {
       "summary": "shift right, copies of the sign bit in: a signed halve",
-      "example": "sar ax, 1"
+      "example": "sar ax, 1",
+      "use": "Halves signed: the sign bit stays.",
+      "idiom": "mov ax, -7\nsar ax, 1           ; ax = -4: it rounds down",
+      "pitfall": "It rounds toward minus infinity, where `idiv` by 2 rounds toward 0. -1 stays -1 however far it shifts.",
+      "see": [
+        "shr",
+        "idiv"
+      ]
     },
     "sbb": {
       "summary": "subtract with borrow: dst -= src + CF, to chain subtracts past 16 bits",
-      "example": "sub ax, bx\nsbb dx, cx"
+      "example": "sub ax, bx\nsbb dx, cx",
+      "use": "Subtracts past 16 bits, and turns CF into a mask: `sbb ax, ax` is 0 or 0xFFFF.",
+      "idiom": "cmp si, di\nsbb ax, ax          ; ax = 0xFFFF if si < di (unsigned), else 0",
+      "pitfall": "It subtracts CF as well. After `cmp` or `sub`, CF is a borrow; clear it with `clc` when the chain starts fresh.",
+      "see": [
+        "sub",
+        "adc",
+        "cmc"
+      ]
     },
     "scasb": {
       "summary": "compare al with the byte at di; step di",
-      "example": "repne scasb"
+      "example": "repne scasb",
+      "use": "The scanner's search: `repe scasb` with al = 0 runs over empty core and stops after the first non-zero byte.",
+      "idiom": "xor al, al\nmov cx, 0xFFFF\nrepe scasb          ; stops one past the first non-zero byte\ndec di              ; di = the byte found",
+      "pitfall": "`repe` goes on while the byte equals al; `repne` goes on while it does not. Each byte is one cycle, so a scan across a long empty gap is slow.",
+      "see": [
+        "scasw",
+        "repe",
+        "repne"
+      ]
     },
     "scasw": {
       "summary": "compare ax with the word at di; step di",
-      "example": "repe scasw"
+      "example": "repe scasw",
+      "use": "Compares ax with a word at di and steps di: a faster scan, 2 bytes a cycle.",
+      "idiom": "xor ax, ax\nmov cx, 32\nrepe scasw          ; pass up to 32 empty words\njnz found           ; a word was not empty\njmp $\nfound: nop",
+      "pitfall": "It stops 2 past the word it found. One non-zero byte stops it, in either half.",
+      "see": [
+        "scasb",
+        "repe",
+        "lodsw"
+      ]
     },
     "shl": {
       "summary": "shift left, zeros in: an unsigned double",
-      "example": "shl ax, 1"
+      "example": "shl ax, 1",
+      "use": "Doubles: `shl ax, 1` is ax * 2 in one cycle, with no `mul`.",
+      "idiom": "mov ax, bx\nshl ax, 1\nshl ax, 1           ; ax = bx * 4",
+      "pitfall": "`sal` is the same instruction. Bits shifted past bit 15 are gone; CF holds the last one out.",
+      "see": [
+        "shr",
+        "sar",
+        "mul"
+      ]
     },
     "shr": {
       "summary": "shift right, zeros in: an unsigned halve",
-      "example": "shr ax, cl"
+      "example": "shr ax, cl",
+      "use": "Halves unsigned: bytes to words for a copy, or a step of a binary search.",
+      "idiom": "mov cx, 34\nshr cx, 1           ; 17 words in 34 bytes\nrep movsw",
+      "pitfall": "An odd value loses its low bit. To round a byte count up to words, add 1 first: `(SIZE + 1) / 2`.",
+      "see": [
+        "shl",
+        "sar",
+        "rcr"
+      ]
     },
     "spl": {
       "summary": "start a new process at the target; this one goes on to the next line",
-      "example": "spl bomber\nguard: jmp guard\nbomber: mov word [di], 0"
+      "example": "spl bomber\nguard: jmp guard\nbomber: mov word [di], 0",
+      "use": "Starts another process of the bot at the target. The bot still runs one instruction a cycle, shared by its processes: splitting buys survival, not speed.",
+      "idiom": "spl $+2             ; 2 processes on the next line\nspl $+2             ; 4\nspl $+2             ; 8, each running the code below",
+      "pitfall": "At the process cap (64 a bot by default) `spl` does nothing. `spl label` is relative; `spl dx` goes to the absolute address in dx. The child copies all registers, so it starts with the parent's di and bx.",
+      "see": [
+        "jmp",
+        "hlt",
+        "movsw"
+      ]
     },
     "stc": {
       "summary": "set the carry flag",
-      "example": "stc"
+      "example": "stc",
+      "use": "Sets CF: a \"yes\" answer from a subroutine, or a 1 to shift in with `rcr`.",
+      "idiom": "stc                 ; CF = 1: hit\nret",
+      "pitfall": "`inc` and `dec` keep CF, so it survives a counter step.",
+      "see": [
+        "clc",
+        "cmc",
+        "rcr"
+      ]
     },
     "std": {
       "summary": "set the direction flag: string instructions step down",
-      "example": "std\nrep movsw"
+      "example": "std\nrep movsw",
+      "use": "Makes string instructions step down: scan or bomb toward lower addresses.",
+      "idiom": "std\nxor ax, ax\nmov cx, 16\nrep stosw           ; 16 words of DAT, down from di",
+      "pitfall": "With DF = 1, a copy starts at the last word: point si and di at the ends of the blocks, not the starts.",
+      "see": [
+        "cld",
+        "scasb",
+        "stosw"
+      ]
     },
     "stosb": {
       "summary": "store al at di; step di",
-      "example": "rep stosb"
+      "example": "rep stosb",
+      "use": "Writes al at di and steps di: bytes of code one at a time, or a fill with `rep`.",
+      "idiom": "mov al, 0xEB        ; jmp short\nstosb\nmov al, 0xFE        ; -2\nstosb               ; EB FE: jmp $, a trap that spins",
+      "pitfall": "It steps di down when DF = 1. `stosw` fills twice as fast.",
+      "see": [
+        "stosw",
+        "rep",
+        "lodsb"
+      ]
     },
     "stosw": {
       "summary": "store ax at di; step di",
-      "example": "xor ax, ax\nstosw"
+      "example": "xor ax, ax\nstosw",
+      "use": "The carpet bomb: `rep stosw` with ax = 0 writes a run of DAT, a word a cycle.",
+      "idiom": "xor ax, ax\nmov cx, 16\nrep stosw           ; 32 bytes of DAT at di",
+      "pitfall": "Point di first: registers start at 0, so a bot that never sets di bombs from address 0 (the linter warns: `uninitialized-di`).",
+      "see": [
+        "stosb",
+        "rep",
+        "movsw"
+      ]
     },
     "sub": {
       "summary": "subtract: dst -= src",
-      "example": "sub di, 4"
+      "example": "sub di, 4",
+      "use": "Steps down, and turns an address into a distance: `sub bx, .here` in the base idiom, and `sub dx, bx` to find a hit relative to the base.",
+      "idiom": "sub dx, bx          ; dx = hit - base\ncmp dx, 64          ; our body is 64 bytes\njb skip             ; one unsigned compare: under 64 is us\nmov word [di], 0\nskip: add di, 2",
+      "pitfall": "`sub` changes CF and `dec` does not. A distance under the base wraps to a large number: that is why one unsigned `cmp` checks both ends of a range.",
+      "see": [
+        "sbb",
+        "cmp",
+        "neg",
+        "dec"
+      ]
     },
     "test": {
       "summary": "and without storing: set the flags from dst & src",
-      "example": "test al, 1"
+      "example": "test al, 1",
+      "use": "Checks bits and writes nothing: `test ax, ax` then `jz` asks if ax is 0.",
+      "idiom": "test al, 1\njz even             ; bit 0 is 0\ninc al              ; make al even\neven: nop",
+      "pitfall": "`test al, 1` then `jz` jumps when the bit is 0, not when it is 1. It sets CF and OF to 0.",
+      "see": [
+        "and",
+        "cmp",
+        "jz"
+      ]
     },
     "xchg": {
       "summary": "swap the two operands",
-      "example": "xchg ax, bx"
+      "example": "xchg ax, bx",
+      "use": "Swaps two values in one instruction, with no scratch register. Paper swaps the bytes of its base to start its path far away.",
+      "idiom": "mov dx, bx\nxchg dl, dh         ; our base, bytes swapped: a far-away address",
+      "pitfall": "`xchg` with a memory operand writes that memory: `xchg ax, [si]` to read a word also stores ax there. `xchg ax, ax` assembles to `87 C0`, because `90` is `nop`.",
+      "see": [
+        "mov",
+        "push",
+        "nop"
+      ]
     },
     "xor": {
       "summary": "bitwise xor: dst ^= src; clears CF and OF",
-      "example": "xor ax, ax"
+      "example": "xor ax, ax",
+      "use": "`xor ax, ax` zeros a register in 2 bytes: the usual bomb value.",
+      "idiom": "xor ax, ax          ; ax = 0\nmov [di], ax        ; a DAT bomb",
+      "pitfall": "`xor ax, ax` also sets ZF and clears CF; `mov ax, 0` keeps the flags. Between a `cmp` and its jump, use mov.",
+      "see": [
+        "and",
+        "or",
+        "not",
+        "mov"
+      ]
     }
   },
   "prefixes": {
     "rep": {
       "summary": "repeat a string instruction while cx is not 0, cx -= 1 each time, one a cycle",
-      "example": "mov cx, 16\nrep movsw"
+      "example": "mov cx, 16\nrep movsw",
+      "use": "Repeats `movs`, `stos`, or `lods` cx times, one iteration a cycle: the copy and the carpet.",
+      "idiom": "xor ax, ax\nmov cx, 64\nrep stosw           ; 128 bytes of DAT in 64 cycles",
+      "pitfall": "Between iterations, ip stays on the prefix: a bomb there ends the copy and the process. With cx = 0, it takes one cycle and does nothing. `rep` and `repe` are one byte, `F3`: on `cmps` and `scas`, `rep` repeats while equal.",
+      "see": [
+        "repe",
+        "repne",
+        "movsw",
+        "stosw",
+        "loop"
+      ]
     },
     "repe": {
       "summary": "repeat cmps or scas while cx is not 0 and ZF=1 (equal), one a cycle",
-      "example": "repe cmpsb"
+      "example": "repe cmpsb",
+      "use": "Repeats `cmps` or `scas` while the values are equal: with al = 0, `repe scasb` passes over empty core.",
+      "idiom": "xor al, al\nmov cx, 512\nrepe scasb          ; stops after a non-zero byte, or after 512",
+      "pitfall": "It also stops when cx reaches 0. Test ZF after it to tell a hit from the end of the count.",
+      "see": [
+        "rep",
+        "repne",
+        "scasb",
+        "cmpsb"
+      ]
     },
     "repne": {
       "summary": "repeat cmps or scas while cx is not 0 and ZF=0 (not equal), one a cycle",
-      "example": "repne scasb"
+      "example": "repne scasb",
+      "use": "Repeats `cmps` or `scas` while the values differ: finds a given byte or word.",
+      "idiom": "mov al, 0xE9        ; a jmp rel16 opcode\nmov cx, 512\nrepne scasb         ; stops one past it, or after 512",
+      "pitfall": "di stops one past the match (two for `scasw`). `repnz` and `repne` are one prefix.",
+      "see": [
+        "rep",
+        "repe",
+        "scasb",
+        "loopne"
+      ]
     }
   }
 }

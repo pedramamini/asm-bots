@@ -1,0 +1,43 @@
+# Registers
+
+Each process has its own registers: eight 16-bit general registers, ip, and FLAGS (ISA §1). ax, bx, cx, and dx each split into two 8-bit halves: al is the low byte of ax, and ah the high byte. There are no segment registers: the core is one flat 64 KB.
+
+## The registers
+
+| register | halves | at the start | in a bot |
+|---|---|---|---|
+| `ax` | `al`, `ah` | 0 | The accumulator. `mul`, `div`, `cbw`, `cwd`, `lods`, `stos`, and `scas` use it, and `xchg ax, r16` is 1 byte. |
+| `bx` | `bl`, `bh` | 0 | A base for addressing (`[bx+label]`). The base idiom keeps the bot's base address here. |
+| `cx` | `cl`, `ch` | 0 | The count. `loop`, `jcxz`, and the `rep` prefixes count it down, and cl is the shift count. |
+| `dx` | `dl`, `dh` | 0 | The high half of a `mul` product and of a `div` dividend. Free otherwise. |
+| `si` |  | 0 | The source of `movs`, `lods`, and `cmps`, and an index for addressing. |
+| `di` |  | 0 | The destination of `movs`, `stos`, `scas`, and `cmps`, and an index for addressing. |
+| `bp` |  | 0 | The other base for addressing (`[bp+si]`, `[bp+4]`). |
+| `sp` |  | the base | The stack pointer. `push`, `pop`, `call`, and `ret` move it. |
+| `ip` |  | the base | The address of the next instruction. No instruction names it: jumps, calls, `ret`, and `loop` change it, and a `rep` holds it on the prefix. |
+| FLAGS |  | `0x0002` | The status flags and DF: see [flags](/docs/reference/flags). |
+
+A bot starts with one process, at its base: ip and sp hold the base address, FLAGS holds 0x0002 (bit 1 always reads 1), and the rest hold 0. The stack grows down from the base, into the core under the bot.
+
+## A new process
+
+A process that [`spl`](/docs/reference/process#spl) starts gets a copy of every register and flag of its parent at that moment, with ip at the target. The two share the core, and nothing else: a later change to a register of one does not reach the other.
+
+## Registers in addresses
+
+Only bx and bp (the base) and si and di (the index) can be part of a memory operand: `[bx+si+4]`, `[bp+di]`, `[di-2]`. See [ModR/M addressing](/docs/reference/addressing).
+
+## Register codes
+
+The 3-bit code of each register, in the ModR/M `reg` and `r/m` fields and in the low bits of a `+r` opcode. An instruction on bytes reads the code as an 8-bit register, so code 4 is sp in a word instruction and ah in a byte one.
+
+| code | bits | 16-bit | 8-bit |
+|---|---|---|---|
+| `0` | `000` | `ax` | `al` |
+| `1` | `001` | `cx` | `cl` |
+| `2` | `010` | `dx` | `dl` |
+| `3` | `011` | `bx` | `bl` |
+| `4` | `100` | `sp` | `ah` |
+| `5` | `101` | `bp` | `ch` |
+| `6` | `110` | `si` | `dh` |
+| `7` | `111` | `di` | `bh` |

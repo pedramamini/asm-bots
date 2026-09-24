@@ -1,0 +1,935 @@
+# Control flow
+
+`jmp`, `call`, `loop`, and the conditional jumps take a target relative to the next instruction, so they work wherever the loader puts the bot. `jmp` and `call` with a register or memory operand go to the absolute address it holds.
+
+The conditional jumps, the `loop` forms, and `jcxz` are rel8 only: -128..+127 bytes from the next instruction. The assembler does not stretch them; a target out of reach is the error `jump-out-of-range`. For a far target, invert the condition and jump over a `jmp`:
+
+```asm fragment
+        cmp     ax, 0
+        jnz     skip                    ; jz target, out of reach
+        jmp     target
+
+skip:   times   200 nop
+target: nop
+```
+
+On this page: [`jmp`](/docs/reference/control#jmp) · [`call`](/docs/reference/control#call) · [`ret`](/docs/reference/control#ret) · [`jo`](/docs/reference/control#jo) · [`jno`](/docs/reference/control#jno) · [`jc`](/docs/reference/control#jc) · [`jnc`](/docs/reference/control#jnc) · [`jz`](/docs/reference/control#jz) · [`jnz`](/docs/reference/control#jnz) · [`jna`](/docs/reference/control#jna) · [`ja`](/docs/reference/control#ja) · [`js`](/docs/reference/control#js) · [`jns`](/docs/reference/control#jns) · [`jpe`](/docs/reference/control#jpe) · [`jpo`](/docs/reference/control#jpo) · [`jl`](/docs/reference/control#jl) · [`jnl`](/docs/reference/control#jnl) · [`jng`](/docs/reference/control#jng) · [`jg`](/docs/reference/control#jg) · [`loopne`](/docs/reference/control#loopne) · [`loope`](/docs/reference/control#loope) · [`loop`](/docs/reference/control#loop) · [`jcxz`](/docs/reference/control#jcxz).
+
+## Conditions
+
+What each jump tests, and what it means after `cmp a, b`:
+
+| jump | also written | jumps when | after `cmp a, b` |
+|---|---|---|---|
+| [`jo`](/docs/reference/control#jo) |  | OF = 1 | signed overflow |
+| [`jno`](/docs/reference/control#jno) |  | OF = 0 | no signed overflow |
+| [`jc`](/docs/reference/control#jc) | `jb`, `jnae` | CF = 1 | a &#60; b, unsigned |
+| [`jnc`](/docs/reference/control#jnc) | `jae`, `jnb` | CF = 0 | a &#62;= b, unsigned |
+| [`jz`](/docs/reference/control#jz) | `je` | ZF = 1 | a = b |
+| [`jnz`](/docs/reference/control#jnz) | `jne` | ZF = 0 | a ≠ b |
+| [`jna`](/docs/reference/control#jna) | `jbe` | CF = 1 or ZF = 1 | a &#60;= b, unsigned |
+| [`ja`](/docs/reference/control#ja) | `jnbe` | CF = 0 and ZF = 0 | a &#62; b, unsigned |
+| [`js`](/docs/reference/control#js) |  | SF = 1 | a - b is negative |
+| [`jns`](/docs/reference/control#jns) |  | SF = 0 | a - b is 0 or positive |
+| [`jpe`](/docs/reference/control#jpe) | `jp` | PF = 1 | the low byte of a - b has an even count of 1 bits |
+| [`jpo`](/docs/reference/control#jpo) | `jnp` | PF = 0 | the low byte of a - b has an odd count of 1 bits |
+| [`jl`](/docs/reference/control#jl) | `jnge` | SF ≠ OF | a &#60; b, signed |
+| [`jnl`](/docs/reference/control#jnl) | `jge` | SF = OF | a &#62;= b, signed |
+| [`jng`](/docs/reference/control#jng) | `jle` | ZF = 1 or SF ≠ OF | a &#60;= b, signed |
+| [`jg`](/docs/reference/control#jg) | `jnle` | ZF = 0 and SF = OF | a &#62; b, signed |
+| [`loopne`](/docs/reference/control#loopne) | `loopnz` | cx ≠ 0 and ZF = 0, after cx -= 1 | (a counted search) |
+| [`loope`](/docs/reference/control#loope) | `loopz` | cx ≠ 0 and ZF = 1, after cx -= 1 | (a counted skip) |
+| [`loop`](/docs/reference/control#loop) |  | cx ≠ 0, after cx -= 1 | (a counted loop) |
+| [`jcxz`](/docs/reference/control#jcxz) |  | cx = 0 | (a loop guard) |
+
+## jmp
+
+Jump to a label, or to the address in a register or memory.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `jmp rel8` | `EB cb` | `jmp $+0x10` | `EB 0E` |
+| `jmp rel16` | `E9 cw` | `jmp $+0x300` | `E9 FD 02` |
+| `jmp r/m16` | `FF /4` | `jmp dx` | `FF E2` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Loops and skips data. `jmp $` spins in place: a process that stays alive and does nothing.
+
+```asm fragment
+spin:   jmp     spin                    ; EB FE
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     word [di], 0
+        jmp     $                       ; spin: EB FE
+```
+
+<Warn>
+
+`jmp label` is relative and position independent; `jmp bx` and `jmp word [x]` go to an absolute address. There is no conditional rel16 jump: to reach far, jump over a `jmp` with the inverted condition.
+
+</Warn>
+
+**See also:** [`call`](/docs/reference/control#call) · [`jz`](/docs/reference/control#jz) · [`spl`](/docs/reference/process#spl)
+
+## call
+
+Push the address of the next instruction, then jump.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `call rel16` | `E8 cw` | `call $+0x300` | `E8 FD 02` |
+| `call r/m16` | `FF /2` | `call dx` | `FF D2` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Mostly the base idiom: `call .here` pushes the address of `.here`, and `pop bx` takes it.
+
+```asm fragment
+start:  call    .here                   ; E8 00 00
+.here:  pop     bx                      ; 5B
+```
+
+**Idiom:**
+
+```asm fragment
+start:  call    .here
+.here:  pop     bx
+        sub     bx, .here               ; bx = our base
+```
+
+<Warn>
+
+`call` writes the return address at sp - 2: with sp at the base, the 2 bytes just under the bot. A bomb there turns the `ret` into a jump to 0.
+
+</Warn>
+
+**See also:** [`ret`](/docs/reference/control#ret) · [`pop`](/docs/reference/data#pop) · [`push`](/docs/reference/data#push)
+
+## ret
+
+Pop an address and jump to it; ret n then drops n more bytes.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `ret` | `C3` | `ret` | `C3` |
+| `ret imm16` | `C2 iw` | `ret 2` | `C2 02 00` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Returns from a `call`, or jumps to any address on the stack: `push dx` then `ret` is `jmp dx`.
+
+```asm fragment
+        ret                             ; C3
+```
+
+**Idiom:**
+
+```asm fragment
+        push    dx
+        ret                             ; jump to the address in dx
+```
+
+<Warn>
+
+It trusts the stack: the word at sp may be anything. `ret n` pops, then adds n to sp.
+
+</Warn>
+
+**See also:** [`call`](/docs/reference/control#call) · [`jmp`](/docs/reference/control#jmp) · [`pop`](/docs/reference/data#pop)
+
+## jo
+
+Jump if overflow: OF=1.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `jo rel8` | `70 cb` | `jo $+0x10` | `70 0E` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Catches a signed overflow, to clamp a value. Rare in bots.
+
+```asm fragment
+        add     ax, bx                  ; 01 D8
+        jo      clip                    ; 70 00
+
+clip:   mov     ax, 0x7FFF              ; B8 FF 7F
+```
+
+**Idiom:**
+
+```asm fragment
+count:  inc     dx
+        add     ax, 0x0800
+        jo      done                    ; stop at the first signed wrap
+        jmp     count
+
+done:   nop
+```
+
+<Warn>
+
+OF is signed overflow; for an unsigned one, test CF with `jc`.
+
+</Warn>
+
+**See also:** [`jno`](/docs/reference/control#jno) · [`jc`](/docs/reference/control#jc)
+
+## jno
+
+Jump if no overflow: OF=0.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `jno rel8` | `71 cb` | `jno $+0x10` | `71 0E` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Goes on while a signed value has not wrapped.
+
+```asm fragment
+top:    add     ax, 0x1000              ; 05 00 10
+        jno     top                     ; 71 FB
+```
+
+**Idiom:**
+
+```asm fragment
+        add     ax, bx
+        jno     done
+        mov     ax, 0x7FFF              ; clamp, for ax and bx >= 0
+
+done:   nop
+```
+
+<Warn>
+
+`inc` and `dec` set OF too: 0x7FFF + 1 overflows.
+
+</Warn>
+
+**See also:** [`jo`](/docs/reference/control#jo) · [`jnc`](/docs/reference/control#jnc)
+
+## jc
+
+Jump if carry, or below unsigned: CF=1.
+
+Also written `jb`, `jnae`.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `jc rel8` | `72 cb` | `jc $+0x10` | `72 0E` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Unsigned below: after `cmp a, b`, jumps if a &#60; b. It also reads the bit a shift pushed out.
+
+```asm fragment
+top:    shr     ax, 1                   ; D1 E8
+        jc      top                     ; 72 FC
+```
+
+**Idiom:**
+
+```asm fragment
+        cmp     dx, 64
+        jc      skip                    ; dx < 64: inside our body
+        mov     word [di], 0
+
+skip:   add     di, 4
+```
+
+<Warn>
+
+`jb`, `jc`, and `jnae` are one instruction. `inc` and `dec` keep CF, so a `jc` after them reads an older carry.
+
+</Warn>
+
+**See also:** [`jnc`](/docs/reference/control#jnc) · [`cmp`](/docs/reference/arithmetic#cmp) · [`stc`](/docs/reference/flag-ops#stc)
+
+## jnc
+
+Jump if no carry, or above or equal unsigned: CF=0.
+
+Also written `jae`, `jnb`.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `jnc rel8` | `73 cb` | `jnc $+0x10` | `73 0E` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Unsigned above or equal: after `cmp a, b`, jumps if a &#62;= b.
+
+```asm fragment
+top:    shl     ax, 1                   ; D1 E0
+        jnc     top                     ; 73 FC
+```
+
+**Idiom:**
+
+```asm fragment
+top:    sub     cx, 2
+        jnc     top                     ; loop until cx borrows
+```
+
+<Warn>
+
+`jae`, `jnb`, and `jnc` are one instruction. It is unsigned: -1 (0xFFFF) is above everything.
+
+</Warn>
+
+**See also:** [`jc`](/docs/reference/control#jc) · [`ja`](/docs/reference/control#ja)
+
+## jz
+
+Jump if zero, or equal: ZF=1.
+
+Also written `je`.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `jz rel8` | `74 cb` | `jz $+0x10` | `74 0E` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Equal, or zero: after `cmp`, after `test`, or after a count reaches 0.
+
+```asm fragment
+scan:   add     si, 8                   ; 83 C6 08
+        cmp     word [si], 0            ; 83 3C 00
+        jz      scan                    ; 74 F8
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     si, di
+
+scan:   add     si, 16
+        cmp     word [si], 0
+        je      scan                    ; skip empty core
+```
+
+<Warn>
+
+`je` and `jz` are one instruction. rel8 only: the target must be within -128..+127 bytes.
+
+</Warn>
+
+**See also:** [`jnz`](/docs/reference/control#jnz) · [`cmp`](/docs/reference/arithmetic#cmp) · [`test`](/docs/reference/logic#test)
+
+## jnz
+
+Jump if not zero, or not equal: ZF=0.
+
+Also written `jne`.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `jnz rel8` | `75 cb` | `jnz $+0x10` | `75 0E` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Loops until a count reaches 0, or jumps on not equal.
+
+```asm fragment
+top:    dec     cx                      ; 49
+        jnz     top                     ; 75 FD
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     cx, 8
+
+top:    mov     word [di], 0
+        add     di, 16
+        dec     cx
+        jnz     top                     ; 8 bombs, 16 bytes apart
+```
+
+<Warn>
+
+`loop` does `dec cx` and the jump in one instruction; `dec` and `jnz` work with any register.
+
+</Warn>
+
+**See also:** [`jz`](/docs/reference/control#jz) · [`loop`](/docs/reference/control#loop) · [`dec`](/docs/reference/arithmetic#dec)
+
+## jna
+
+Jump if not above, unsigned: CF=1 or ZF=1.
+
+Also written `jbe`.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `jna rel8` | `76 cb` | `jna $+0x10` | `76 0E` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Unsigned below or equal: one compare checks that a value is in 0..n.
+
+```asm fragment
+top:    add     di, 2                   ; 83 C7 02
+        cmp     di, si                  ; 39 F7
+        jna     top                     ; 76 F9
+```
+
+**Idiom:**
+
+```asm fragment
+        cmp     dx, 63
+        jbe     skip                    ; dx in 0..63: our own 64 bytes
+        mov     word [di], 0
+
+skip:   add     di, 4
+```
+
+<Warn>
+
+It is unsigned: -1 (0xFFFF) is above 63. That is what makes one `cmp` a range check.
+
+</Warn>
+
+**See also:** [`ja`](/docs/reference/control#ja) · [`jc`](/docs/reference/control#jc) · [`cmp`](/docs/reference/arithmetic#cmp)
+
+## ja
+
+Jump if above, unsigned: CF=0 and ZF=0.
+
+Also written `jnbe`.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `ja rel8` | `77 cb` | `ja $+0x10` | `77 0E` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Unsigned above: after `cmp a, b`, jumps if a &#62; b.
+
+```asm fragment
+top:    sub     cx, 2                   ; 83 E9 02
+        cmp     cx, 8                   ; 83 F9 08
+        ja      top                     ; 77 F8
+```
+
+**Idiom:**
+
+```asm fragment
+        cmp     ax, bx
+        ja      keep
+        mov     ax, bx                  ; ax = the larger, unsigned
+
+keep:   nop
+```
+
+<Warn>
+
+`ja` is unsigned; `jg` is its signed twin. For addresses, use `ja`.
+
+</Warn>
+
+**See also:** [`jna`](/docs/reference/control#jna) · [`jg`](/docs/reference/control#jg) · [`cmp`](/docs/reference/arithmetic#cmp)
+
+## js
+
+Jump if sign, negative: SF=1.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `js rel8` | `78 cb` | `js $+0x10` | `78 0E` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Negative: bit 15 of the result is 1.
+
+```asm fragment
+top:    shl     ax, 1                   ; D1 E0
+        js      top                     ; 78 FC
+```
+
+**Idiom:**
+
+```asm fragment
+        sub     ax, bx
+        js      under                   ; ax < bx, as signed values that did not overflow
+        jmp     done
+
+under:  neg     ax
+done:   nop
+```
+
+<Warn>
+
+After a signed overflow, SF is wrong; `jl` reads SF and OF together and is right.
+
+</Warn>
+
+**See also:** [`jns`](/docs/reference/control#jns) · [`jl`](/docs/reference/control#jl)
+
+## jns
+
+Jump if not sign, 0 or positive: SF=0.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `jns rel8` | `79 cb` | `jns $+0x10` | `79 0E` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Zero or positive: bit 15 of the result is 0.
+
+```asm fragment
+top:    dec     ax                      ; 48
+        jns     top                     ; 79 FD
+```
+
+**Idiom:**
+
+```asm fragment
+        test    ax, ax
+        jns     done
+        neg     ax                      ; ax = |ax|
+
+done:   nop
+```
+
+<Warn>
+
+Addresses 0x8000 and up read as negative: do not use `jns` to compare addresses.
+
+</Warn>
+
+**See also:** [`js`](/docs/reference/control#js) · [`jnl`](/docs/reference/control#jnl)
+
+## jpe
+
+Jump if parity even, an even count of 1 bits in the low byte: PF=1.
+
+Also written `jp`.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `jpe rel8` | `7A cb` | `jpe $+0x10` | `7A 0E` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Parity of the low byte: an even count of 1 bits. Rare in bots.
+
+```asm fragment
+        test    al, al                  ; 84 C0
+        jpe     even                    ; 7A 00
+
+even:   nop                             ; 90
+```
+
+**Idiom:**
+
+```asm fragment
+        test    al, al
+        jpe     even
+        xor     al, 0x80                ; bit 7 as a parity bit: now even
+
+even:   nop
+```
+
+<Warn>
+
+PF counts the low 8 bits only, even for a word result.
+
+</Warn>
+
+**See also:** [`jpo`](/docs/reference/control#jpo) · [`test`](/docs/reference/logic#test)
+
+## jpo
+
+Jump if parity odd, an odd count of 1 bits in the low byte: PF=0.
+
+Also written `jnp`.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `jpo rel8` | `7B cb` | `jpo $+0x10` | `7B 0E` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Parity of the low byte: an odd count of 1 bits.
+
+```asm fragment
+        test    al, al                  ; 84 C0
+        jpo     odd                     ; 7B 00
+
+odd:    nop                             ; 90
+```
+
+**Idiom:**
+
+```asm fragment
+        and     al, 3
+        jpo     mixed                   ; al is 1 or 2: one bit of the two
+        mov     al, 0
+
+mixed:  nop
+```
+
+<Warn>
+
+`jnp` and `jpo` are one instruction. PF counts the low 8 bits only.
+
+</Warn>
+
+**See also:** [`jpe`](/docs/reference/control#jpe) · [`and`](/docs/reference/logic#and)
+
+## jl
+
+Jump if less, signed: SF≠OF.
+
+Also written `jnge`.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `jl rel8` | `7C cb` | `jl $+0x10` | `7C 0E` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Signed less: after `cmp a, b`, jumps if a &#60; b as signed values.
+
+```asm fragment
+top:    inc     ax                      ; 40
+        cmp     ax, bx                  ; 39 D8
+        jl      top                     ; 7C FB
+```
+
+**Idiom:**
+
+```asm fragment
+        cmp     ax, bx
+        jl      keep
+        mov     ax, bx                  ; ax = the smaller, signed
+
+keep:   nop
+```
+
+<Warn>
+
+It is signed: 0xFFFF is -1, less than 0. For addresses, use `jb`.
+
+</Warn>
+
+**See also:** [`jnl`](/docs/reference/control#jnl) · [`jc`](/docs/reference/control#jc) · [`cmp`](/docs/reference/arithmetic#cmp)
+
+## jnl
+
+Jump if not less, signed: SF=OF.
+
+Also written `jge`.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `jnl rel8` | `7D cb` | `jnl $+0x10` | `7D 0E` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Signed greater or equal. After `sub ax, n`, it tests the old ax against n.
+
+```asm fragment
+top:    dec     ax                      ; 48
+        cmp     ax, bx                  ; 39 D8
+        jnl     top                     ; 7D FB
+```
+
+**Idiom:**
+
+```asm fragment
+top:    sub     ax, 7
+        jnl     top                     ; again while ax was 7 or more
+        add     ax, 7                   ; ax = ax mod 7, for ax >= 0
+```
+
+<Warn>
+
+`jge` and `jnl` are one instruction. It reads SF and OF, not CF.
+
+</Warn>
+
+**See also:** [`jl`](/docs/reference/control#jl) · [`jng`](/docs/reference/control#jng) · [`jnc`](/docs/reference/control#jnc)
+
+## jng
+
+Jump if not greater, signed: ZF=1 or SF≠OF.
+
+Also written `jle`.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `jng rel8` | `7E cb` | `jng $+0x10` | `7E 0E` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Signed less or equal: guards a loop whose count may be 0 or negative.
+
+```asm fragment
+top:    inc     ax                      ; 40
+        cmp     ax, 10                  ; 83 F8 0A
+        jng     top                     ; 7E FA
+```
+
+**Idiom:**
+
+```asm fragment
+        cmp     cx, 0
+        jng     done                    ; a count of 0 or less: nothing to copy
+
+copy:   movsw
+        loop    copy
+
+done:   nop
+```
+
+<Warn>
+
+`jle` and `jng` are one instruction. A count of 0x8000 or more is negative here.
+
+</Warn>
+
+**See also:** [`jg`](/docs/reference/control#jg) · [`jcxz`](/docs/reference/control#jcxz) · [`jna`](/docs/reference/control#jna)
+
+## jg
+
+Jump if greater, signed: ZF=0 and SF=OF.
+
+Also written `jnle`.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `jg rel8` | `7F cb` | `jg $+0x10` | `7F 0E` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Signed greater: after `cmp a, b`, jumps if a &#62; b as signed values.
+
+```asm fragment
+top:    dec     ax                      ; 48
+        cmp     ax, 10                  ; 83 F8 0A
+        jg      top                     ; 7F FA
+```
+
+**Idiom:**
+
+```asm fragment
+        cmp     ax, bx
+        jg      keep
+        mov     ax, bx                  ; ax = the larger, signed
+
+keep:   nop
+```
+
+<Warn>
+
+`jg` is signed; `ja` is its unsigned twin.
+
+</Warn>
+
+**See also:** [`jng`](/docs/reference/control#jng) · [`ja`](/docs/reference/control#ja) · [`cmp`](/docs/reference/arithmetic#cmp)
+
+## loopne
+
+Cx -= 1, then jump if cx is not 0 and ZF=0.
+
+Also written `loopnz`.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `loopne rel8` | `E0 cb` | `loopne $+0x10` | `E0 0E` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Searches: counts and tests in one instruction, and stops on a match or at the end of the count.
+
+```asm fragment
+find:   scasb                           ; AE
+        loopne  find                    ; E0 FD
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     cx, 256
+
+find:   lodsb
+        cmp     al, 0xE9                ; a jmp rel16 opcode?
+        loopne  find                    ; stop on it, or after 256 bytes
+```
+
+<Warn>
+
+It does not change the flags, so ZF comes from the instruction before it. After the loop, test ZF to tell a match from the end of the count.
+
+</Warn>
+
+**See also:** [`loope`](/docs/reference/control#loope) · [`loop`](/docs/reference/control#loop) · [`repne`](/docs/reference/string#repne)
+
+## loope
+
+Cx -= 1, then jump if cx is not 0 and ZF=1.
+
+Also written `loopz`.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `loope rel8` | `E1 cb` | `loope $+0x10` | `E1 0E` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Goes on while a test says equal, up to cx times.
+
+```asm fragment
+same:   cmpsb                           ; A6
+        loope   same                    ; E1 FD
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     cx, 64
+
+skip:   lodsw
+        test    ax, ax
+        loope   skip                    ; pass empty words, up to 64
+```
+
+<Warn>
+
+`loopz` and `loope` are one instruction. When cx reaches 0 it stops whatever ZF is.
+
+</Warn>
+
+**See also:** [`loopne`](/docs/reference/control#loopne) · [`loop`](/docs/reference/control#loop) · [`repe`](/docs/reference/string#repe)
+
+## loop
+
+Cx -= 1, then jump if cx is not 0.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `loop rel8` | `E2 cb` | `loop $+0x10` | `E2 0E` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Counts a loop in one instruction: cx -= 1, and jump while cx is not 0. The dwarf counts its lap with it.
+
+```asm fragment
+copy:   movsw                           ; A5
+        loop    copy                    ; E2 FD
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     cx, 100
+
+bomb:   sub     di, 4
+        mov     word [di], 0
+        loop    bomb                    ; 100 bombs
+```
+
+<Warn>
+
+With cx = 0, `loop` wraps cx to 0xFFFF and runs 65,536 times: guard it with `jcxz`. The target is rel8: at most 128 bytes back from the end of the `loop`.
+
+</Warn>
+
+**See also:** [`jcxz`](/docs/reference/control#jcxz) · [`dec`](/docs/reference/arithmetic#dec) · [`rep`](/docs/reference/string#rep)
+
+## jcxz
+
+Jump if cx is 0: guards a loop that would run 65,536 times.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `jcxz rel8` | `E3 cb` | `jcxz $+0x10` | `E3 0E` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Skips a `loop` when the count is 0.
+
+```asm fragment
+        jcxz    done                    ; E3 03
+
+copy:   movsw                           ; A5
+        loop    copy                    ; E2 FD
+
+done:   ret                             ; C3
+```
+
+**Idiom:**
+
+```asm fragment
+        jcxz    done
+
+top:    mov     word [di], 0
+        add     di, 8
+        loop    top
+
+done:   nop
+```
+
+<Warn>
+
+It reads cx, not the flags. There is no `jcxnz`: use `test cx, cx` and `jnz`. A `rep` needs no guard: with cx = 0 it does nothing.
+
+</Warn>
+
+**See also:** [`loop`](/docs/reference/control#loop) · [`rep`](/docs/reference/string#rep)

@@ -1,0 +1,58 @@
+# ModR/M addressing
+
+A memory operand is a base register (bx or bp), an index register (si or di), and a constant displacement, each one optional, in any order: `[bx+si+4]`, `[4+si]`, `[di]`, `[bx+label]`, `[0x0100]` (ISA §2.2, §6.3). The byte after the opcode, ModR/M, says which of them an instruction uses.
+
+<Fig src="modrm" alt="the ModR/M byte: mod in bits 7 and 6, reg in bits 5 to 3, r/m in bits 2 to 0">mod picks memory or a register and the displacement size; reg is a register or an opcode extension; r/m picks the address.</Fig>
+
+## The fields
+
+| mod | means |
+|---|---|
+| `00` | memory, no displacement; with r/m 110, `[disp16]` |
+| `01` | memory, plus a signed disp8 (-128..127) |
+| `10` | memory, plus a disp16 |
+| `11` | a register: r/m is a register code |
+
+reg holds the other operand's [register code](/docs/reference/registers#register-codes), or, in a group opcode such as `80` or `F7`, an extension that picks the instruction: `/0` is `add` and `/5` is `sub` under `83`.
+
+## The 8 forms
+
+Each r/m code with each mod, as `mov dx, …` (reg = 010, dx) assembles them:
+
+| r/m | address | mod 00 | mod 01: + disp8 | mod 10: + disp16 |
+|---|---|---|---|---|
+| `000` | `[bx+si]` | `mov dx, [bx+si]` · `8B 10` | `mov dx, [bx+si+4]` · `8B 50 04` | `mov dx, [bx+si+0x1234]` · `8B 90 34 12` |
+| `001` | `[bx+di]` | `mov dx, [bx+di]` · `8B 11` | `mov dx, [bx+di+4]` · `8B 51 04` | `mov dx, [bx+di+0x1234]` · `8B 91 34 12` |
+| `010` | `[bp+si]` | `mov dx, [bp+si]` · `8B 12` | `mov dx, [bp+si+4]` · `8B 52 04` | `mov dx, [bp+si+0x1234]` · `8B 92 34 12` |
+| `011` | `[bp+di]` | `mov dx, [bp+di]` · `8B 13` | `mov dx, [bp+di+4]` · `8B 53 04` | `mov dx, [bp+di+0x1234]` · `8B 93 34 12` |
+| `100` | `[si]` | `mov dx, [si]` · `8B 14` | `mov dx, [si+4]` · `8B 54 04` | `mov dx, [si+0x1234]` · `8B 94 34 12` |
+| `101` | `[di]` | `mov dx, [di]` · `8B 15` | `mov dx, [di+4]` · `8B 55 04` | `mov dx, [di+0x1234]` · `8B 95 34 12` |
+| `110` | `[bp]` | `mov dx, [0x1234]` · `8B 16 34 12`: `[disp16]`, absolute | `mov dx, [bp+4]` · `8B 56 04` | `mov dx, [bp+0x1234]` · `8B 96 34 12` |
+| `111` | `[bx]` | `mov dx, [bx]` · `8B 17` | `mov dx, [bx+4]` · `8B 57 04` | `mov dx, [bx+0x1234]` · `8B 97 34 12` |
+
+`[bp]` alone has no mod 00 form: that slot is `[disp16]`. The assembler writes it as mod 01 with a disp8 of 0, one byte longer than `[bx]`.
+
+## One instruction, byte by byte
+
+<Encoding form="mov r/m16, imm16" />
+
+| byte | is | means |
+|---|---|---|
+| `C7` | opcode | `mov r/m16, imm16`, with ModR/M |
+| `40` | ModR/M `01 000 000` | mod 01: a disp8 follows; reg /0: `mov`; r/m 000: `[bx+si]` |
+| `04` | disp8 | +4 |
+| `41 00` | imm16 | 0x0041, low byte first |
+
+So `mov word [bx+si+4], 0x41` is `C7 40 04 41 00`: 5 bytes.
+
+## Rules
+
+- There is no `[bx+bp]` and no `[si+di]`: one base and one index at most. Such an operand is the error `invalid-address`.
+
+- A displacement of -128..127 takes a disp8, and any other a disp16. A label is a number like any other, so `[bx+label]` near the start of a bot is short.
+
+- `[label]` and `[0x0100]` are absolute: the linter warns with `absolute-address` (see [memory model](/docs/reference/memory#position-independence)).
+
+- When no operand is a register, the size must be said: `mov word [bx], 0`, not `mov [bx], 0` (`size-not-specified`).
+
+- `lea` computes the address and reads nothing: `lea di, [bx+end]` is `di = bx + end`.

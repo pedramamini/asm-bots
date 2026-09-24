@@ -1,0 +1,207 @@
+# Logic
+
+Bitwise operations on bytes and words. `and`, `or`, `xor`, and `test` set CF, OF, and AF to 0 and ZF, SF, and PF from the result. `not` changes no flag.
+
+On this page: [`and`](/docs/reference/logic#and) · [`or`](/docs/reference/logic#or) · [`xor`](/docs/reference/logic#xor) · [`not`](/docs/reference/logic#not) · [`test`](/docs/reference/logic#test).
+
+## and
+
+Bitwise and: dst &= src; clears CF and OF.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `and r/m8, r8` | `20 /r` | `and [bx+4], dl` | `20 57 04` |
+| `and r/m16, r16` | `21 /r` | `and [di], dx` | `21 15` |
+| `and r8, r/m8` | `22 /r` | `and dl, [bx+4]` | `22 57 04` |
+| `and r16, r/m16` | `23 /r` | `and dx, [di]` | `23 15` |
+| `and al, imm8` | `24 ib` | `and al, 0x41` | `24 41` |
+| `and ax, imm16` | `25 iw` | `and ax, 0x1234` | `25 34 12` |
+| `and r/m8, imm8` | `80 /4 ib` | `and byte [bx+4], 0x41` | `80 67 04 41` |
+| `and r/m16, imm16` | `81 /4 iw` | `and word [di], 0x1234` | `81 25 34 12` |
+| `and r/m16, imm8` | `83 /4 ib` | `and word [di], 4` | `83 25 04` |
+
+<Flags op="and" />
+
+**Cycles:** 1.
+
+**In a bot:** Masks: keeps a pointer inside a window, or picks bits out.
+
+```asm fragment
+        and     ax, 0x00FF              ; 25 FF 00
+```
+
+**Idiom:**
+
+```asm fragment
+        add     si, 2
+        and     si, 63                  ; si walks 0, 2, ..., 62, 0: a 64-byte window
+```
+
+<Warn>
+
+The mask wraps a counter only when it is a power of 2 minus 1. `and` sets CF and OF to 0.
+
+</Warn>
+
+**See also:** [`or`](/docs/reference/logic#or) · [`test`](/docs/reference/logic#test) · [`xor`](/docs/reference/logic#xor)
+
+## or
+
+Bitwise or: dst |= src; clears CF and OF.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `or r/m8, r8` | `08 /r` | `or [bx+4], dl` | `08 57 04` |
+| `or r/m16, r16` | `09 /r` | `or [di], dx` | `09 15` |
+| `or r8, r/m8` | `0A /r` | `or dl, [bx+4]` | `0A 57 04` |
+| `or r16, r/m16` | `0B /r` | `or dx, [di]` | `0B 15` |
+| `or al, imm8` | `0C ib` | `or al, 0x41` | `0C 41` |
+| `or ax, imm16` | `0D iw` | `or ax, 0x1234` | `0D 34 12` |
+| `or r/m8, imm8` | `80 /1 ib` | `or byte [bx+4], 0x41` | `80 4F 04 41` |
+| `or r/m16, imm16` | `81 /1 iw` | `or word [di], 0x1234` | `81 0D 34 12` |
+| `or r/m16, imm8` | `83 /1 ib` | `or word [di], 4` | `83 0D 04` |
+
+<Flags op="or" />
+
+**Cycles:** 1.
+
+**In a bot:** Merges values. A chain of `or` tests several words for non-zero in one jump, as the vampire samples the core.
+
+```asm fragment
+        or      ax, ax                  ; 09 C0
+        jz      empty                   ; 74 00
+
+empty:  nop                             ; 90
+```
+
+**Idiom:**
+
+```asm fragment
+        mov     dx, [di]
+        or      dx, [di-16]
+        or      dx, [di-32]             ; ZF = 0 if any of the 3 words is not empty
+```
+
+<Warn>
+
+`or ax, ax` sets the flags like `test ax, ax` but writes ax back. With a memory destination, that is a write to the core.
+
+</Warn>
+
+**See also:** [`and`](/docs/reference/logic#and) · [`xor`](/docs/reference/logic#xor) · [`test`](/docs/reference/logic#test)
+
+## xor
+
+Bitwise xor: dst ^= src; clears CF and OF.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `xor r/m8, r8` | `30 /r` | `xor [bx+4], dl` | `30 57 04` |
+| `xor r/m16, r16` | `31 /r` | `xor [di], dx` | `31 15` |
+| `xor r8, r/m8` | `32 /r` | `xor dl, [bx+4]` | `32 57 04` |
+| `xor r16, r/m16` | `33 /r` | `xor dx, [di]` | `33 15` |
+| `xor al, imm8` | `34 ib` | `xor al, 0x41` | `34 41` |
+| `xor ax, imm16` | `35 iw` | `xor ax, 0x1234` | `35 34 12` |
+| `xor r/m8, imm8` | `80 /6 ib` | `xor byte [bx+4], 0x41` | `80 77 04 41` |
+| `xor r/m16, imm16` | `81 /6 iw` | `xor word [di], 0x1234` | `81 35 34 12` |
+| `xor r/m16, imm8` | `83 /6 ib` | `xor word [di], 4` | `83 35 04` |
+
+<Flags op="xor" />
+
+**Cycles:** 1.
+
+**In a bot:** `xor ax, ax` zeros a register in 2 bytes: the usual bomb value.
+
+```asm fragment
+        xor     ax, ax                  ; 31 C0
+```
+
+**Idiom:**
+
+```asm fragment
+        xor     ax, ax                  ; ax = 0
+        mov     [di], ax                ; a DAT bomb
+```
+
+<Warn>
+
+`xor ax, ax` also sets ZF and clears CF; `mov ax, 0` keeps the flags. Between a `cmp` and its jump, use mov.
+
+</Warn>
+
+**See also:** [`and`](/docs/reference/logic#and) · [`or`](/docs/reference/logic#or) · [`not`](/docs/reference/logic#not) · [`mov`](/docs/reference/data#mov)
+
+## not
+
+Flip every bit of dst.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `not r/m8` | `F6 /2` | `not byte [bx+4]` | `F6 57 04` |
+| `not r/m16` | `F7 /2` | `not word [di]` | `F7 15` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Flips every bit: 0 becomes 0xFFFF, a non-zero fill.
+
+```asm fragment
+        not     ax                      ; F7 D0
+```
+
+**Idiom:**
+
+```asm fragment
+        xor     ax, ax
+        not     ax                      ; ax = 0xFFFF
+```
+
+<Warn>
+
+It changes no flag: a `jz` after `not` reads the flags from before. `not` is one less than `neg`: not x = -x - 1.
+
+</Warn>
+
+**See also:** [`neg`](/docs/reference/arithmetic#neg) · [`xor`](/docs/reference/logic#xor)
+
+## test
+
+And without storing: set the flags from dst & src.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `test r/m8, r8` | `84 /r` | `test [bx+4], dl` | `84 57 04` |
+| `test r/m16, r16` | `85 /r` | `test [di], dx` | `85 15` |
+| `test al, imm8` | `A8 ib` | `test al, 0x41` | `A8 41` |
+| `test ax, imm16` | `A9 iw` | `test ax, 0x1234` | `A9 34 12` |
+| `test r/m8, imm8` | `F6 /0 ib` | `test byte [bx+4], 0x41` | `F6 47 04 41` |
+| `test r/m16, imm16` | `F7 /0 iw` | `test word [di], 0x1234` | `F7 05 34 12` |
+
+<Flags op="test" />
+
+**Cycles:** 1.
+
+**In a bot:** Checks bits and writes nothing: `test ax, ax` then `jz` asks if ax is 0.
+
+```asm fragment
+        test    al, 1                   ; A8 01
+```
+
+**Idiom:**
+
+```asm fragment
+        test    al, 1
+        jz      even                    ; bit 0 is 0
+        inc     al                      ; make al even
+
+even:   nop
+```
+
+<Warn>
+
+`test al, 1` then `jz` jumps when the bit is 0, not when it is 1. It sets CF and OF to 0.
+
+</Warn>
+
+**See also:** [`and`](/docs/reference/logic#and) · [`cmp`](/docs/reference/arithmetic#cmp) · [`jz`](/docs/reference/control#jz)

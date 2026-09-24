@@ -9,21 +9,21 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createProcessor } from '@mdx-js/mdx'
-import { DOCS } from '../src/docs/nav'
+import { DOCS, type DocPage, docFile } from '../src/docs/nav'
 import { REMARK_PLUGINS } from '../src/docs/remark'
 import { buildSearchIndex, type SearchRecord } from '../src/docs/search'
 import { headingId } from '../src/docs/text'
 
-/** The docs' MDX files: a page at slug `a/b` is `a/b.mdx` here. */
+/** The docs' MDX files: a page at slug `a/b` is `a/b.mdx` here, unless it names its file. */
 export const DOCS_DIR = fileURLToPath(new URL('../src/docs/', import.meta.url))
 /** The file this writes. */
 export const OUT = fileURLToPath(
   new URL('../src/docs/generated/search-index.json', import.meta.url),
 )
 
-/** The MDX file of the page at `slug`. */
-export function pageFile(slug: string): string {
-  return `${DOCS_DIR}${slug}.mdx`
+/** The MDX file of `page`. */
+export function pageFile(page: DocPage): string {
+  return `${DOCS_DIR}${docFile(page)}.mdx`
 }
 
 interface MdNode {
@@ -88,10 +88,10 @@ export function pageRecords(slug: string, title: string, mdx: string): SearchRec
 
 /** The index of every page of `DOCS`, in reading order. */
 export function generate(
-  read: (slug: string) => string = (s) => readFileSync(pageFile(s), 'utf8'),
+  read: (page: DocPage) => string = (p) => readFileSync(pageFile(p), 'utf8'),
 ) {
   const pages = DOCS.flatMap((section) => section.pages.map((page) => ({ section, page })))
-  const records = pages.flatMap(({ page }) => pageRecords(page.slug, page.title, read(page.slug)))
+  const records = pages.flatMap(({ page }) => pageRecords(page.slug, page.title, read(page)))
   const tops = new Map(
     pages.map(({ section, page }) => [page.slug, `${section.title} ${page.blurb}`]),
   )

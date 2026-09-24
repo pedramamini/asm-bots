@@ -1,0 +1,137 @@
+# Flag instructions
+
+Set, clear, or flip CF, and do nothing. DF has its own pair, [`cld`](/docs/reference/string#cld) and [`std`](/docs/reference/string#std), with the string instructions. The [flags](/docs/reference/flags) page says which instruction changes which flag.
+
+On this page: [`clc`](/docs/reference/flag-ops#clc) · [`stc`](/docs/reference/flag-ops#stc) · [`cmc`](/docs/reference/flag-ops#cmc) · [`nop`](/docs/reference/flag-ops#nop).
+
+## clc
+
+Clear the carry flag.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `clc` | `F8` | `clc` | `F8` |
+
+<Flags op="clc" />
+
+**Cycles:** 1.
+
+**In a bot:** Clears CF: before an `adc` or `rcl` chain, or as a "no" answer from a subroutine.
+
+```asm fragment
+        clc                             ; F8
+```
+
+**Idiom:**
+
+```asm fragment
+        clc                             ; CF = 0: no hit
+        ret
+```
+
+<Warn>
+
+`and`, `or`, `xor`, and `test` clear CF too.
+
+</Warn>
+
+**See also:** [`stc`](/docs/reference/flag-ops#stc) · [`cmc`](/docs/reference/flag-ops#cmc) · [`adc`](/docs/reference/arithmetic#adc)
+
+## stc
+
+Set the carry flag.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `stc` | `F9` | `stc` | `F9` |
+
+<Flags op="stc" />
+
+**Cycles:** 1.
+
+**In a bot:** Sets CF: a "yes" answer from a subroutine, or a 1 to shift in with `rcr`.
+
+```asm fragment
+        stc                             ; F9
+```
+
+**Idiom:**
+
+```asm fragment
+        stc                             ; CF = 1: hit
+        ret
+```
+
+<Warn>
+
+`inc` and `dec` keep CF, so it survives a counter step.
+
+</Warn>
+
+**See also:** [`clc`](/docs/reference/flag-ops#clc) · [`cmc`](/docs/reference/flag-ops#cmc) · [`rcr`](/docs/reference/shifts#rcr)
+
+## cmc
+
+Flip the carry flag.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `cmc` | `F5` | `cmc` | `F5` |
+
+<Flags op="cmc" />
+
+**Cycles:** 1.
+
+**In a bot:** Flips CF: turns "below" into "above or equal".
+
+```asm fragment
+        cmc                             ; F5
+```
+
+**Idiom:**
+
+```asm fragment
+        cmp     ax, bx
+        cmc                             ; CF = 1 if ax >= bx (unsigned)
+```
+
+<Warn>
+
+It flips CF only: ZF still says what the `cmp` said.
+
+</Warn>
+
+**See also:** [`clc`](/docs/reference/flag-ops#clc) · [`stc`](/docs/reference/flag-ops#stc) · [`jc`](/docs/reference/control#jc)
+
+## nop
+
+Do nothing for a cycle.
+
+| form | encoding | example | bytes |
+|---|---|---|---|
+| `nop` | `90` | `nop` | `90` |
+
+**Flags:** none change.
+
+**Cycles:** 1.
+
+**In a bot:** Takes a cycle and does nothing. The imp's `movsw` is 1 byte; `nop` fills its word.
+
+```asm fragment
+        nop                             ; 90
+```
+
+**Idiom:**
+
+```asm fragment
+imp:    movsw
+        nop                             ; A5 90: the word the imp copies ahead
+```
+
+<Warn>
+
+`90` is `xchg ax, ax` on the 8086; x16c writes `xchg ax, ax` as `87 C0`. A run of `90` bytes is a slide: a process runs through it into whatever comes next.
+
+</Warn>
+
+**See also:** [`xchg`](/docs/reference/data#xchg) · [`movsw`](/docs/reference/string#movsw)

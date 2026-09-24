@@ -1,0 +1,49 @@
+# Memory model
+
+## The core
+
+The core is 65,536 bytes, addresses `0x0000` to `0xFFFF`: one flat address space, shared by every bot, with no segments. Every address wraps: one past `0xFFFF` is `0x0000`. A word is 2 bytes, low byte first, and a word at `0xFFFF` takes its high byte from `0x0000`.
+
+## Empty core is DAT
+
+The core starts as zeros, and `00` is [`dat`](/docs/reference/process#dat). A process that runs into empty core dies, and so does one that walks off the end of its code. A bomb is 2 zero bytes: `mov word [di], 0`.
+
+## Ownership
+
+Beside the core is an ownership map: one byte per address, which bot wrote it last. Loading a bot counts as its write. The arena colors the core by it. It has no effect on the battle: any process can read or write any address.
+
+## Placement
+
+A bot is at most 512 bytes. The loader puts each bot at a base address drawn from the battle's seed, at least 1,024 bytes from every other bot, wrapping included, and does not move or relocate it. The same seed and the same bots give the same places, so every battle can be run again.
+
+Each bot starts with one process at its base, and may have up to 64 (the process cap). A battle ends when one bot or none is alive, or at 100,000 cycles (80,000 on the hills).
+
+## The stack
+
+sp starts at the base, so a [`push`](/docs/reference/data#push) or [`call`](/docs/reference/control#call) writes the word just under the bot, and the stack grows down into the core. That core belongs to nobody: an enemy bomb there changes what [`pop`](/docs/reference/data#pop) and [`ret`](/docs/reference/control#ret) read.
+
+## Position independence
+
+A label is an offset from the start of the bot, the address it would have at `org 0`. So `[label]` is an absolute address, `[disp16]`: the place `label` in the core, not the bot's copy of it. To reach its own data, a bot finds its base and adds the label to it:
+
+```asm run="vs=imp"
+%name     "Base"
+%strategy "Find my base, bomb one lap, then spin"
+
+LAP     equ     (0x10000 - (end - start)) / 8 - 1 ; bombs in a lap that stops short of home
+
+start:  call    .here
+.here:  pop     bx
+        sub     bx, .here               ; bx = our base
+        lea     di, [bx+end]            ; di = just past our body
+        mov     cx, LAP
+
+bomb:   add     di, 8
+        mov     word [di], 0
+        loop    bomb
+        jmp     $
+
+end:
+```
+
+[`call`](/docs/reference/control#call) pushes the address of `.here`, [`pop`](/docs/reference/data#pop) takes it, and [`sub`](/docs/reference/arithmetic#sub) takes away the offset of `.here`, which leaves the base. From then on, `[bx+label]` is the bot's own `label`. The linter warns on a memory operand with no register, `absolute-address`. Jumps, calls, `loop`, and `spl label` are relative, and need no base.
