@@ -38,6 +38,16 @@ export const appCors: MiddlewareHandler<AppEnv> = (c, next) =>
     maxAge: 600,
   })(c, next)
 
+/** Security headers: HSTS, CSP. */
+export const securityHeaders: MiddlewareHandler<AppEnv> = async (c, next) => {
+  await next()
+  c.header('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload')
+  c.header(
+    'Content-Security-Policy',
+    "default-src 'self'; img-src 'self' data: https://avatars.githubusercontent.com; connect-src 'self' wss:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'",
+  )
+}
+
 /** The code for an HTTP status, when the protocol has one. */
 const CODE_OF = new Map<number, ErrorCode>(
   Object.entries(ERROR_STATUS).map(([code, status]) => [status, code as ErrorCode]),

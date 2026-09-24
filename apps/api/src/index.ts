@@ -8,7 +8,7 @@ import { auth } from './auth/github'
 import { loadSession, sameOrigin } from './auth/session'
 import { scheduled } from './cron'
 import type { AppEnv, Env } from './env'
-import { appCors, errorResponse, onError, requestLog } from './middleware'
+import { appCors, errorResponse, onError, requestLog, securityHeaders } from './middleware'
 import {
   ASSEMBLE_LIMIT,
   AUTH_LIMIT,
@@ -36,6 +36,7 @@ import { version } from './routes/version'
 
 const app = new Hono<AppEnv>()
 
+app.use(securityHeaders)
 app.use(requestId())
 app.use(requestLog)
 app.use('/api/*', appCors)
