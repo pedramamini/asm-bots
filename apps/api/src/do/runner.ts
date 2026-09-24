@@ -1,6 +1,7 @@
 import { DurableObject } from 'cloudflare:workers'
 import { type LiveEvent, parse, RunnerJob, runnerJobId, type Standing } from '@asmbots/protocol'
 import type { MatchResult } from '@asmbots/tourney'
+import { recordMatch } from '../analytics'
 import type { Env } from '../env'
 import { log } from '../middleware'
 import { endSubmission, finalizeHill, setupHill } from '../runner/hill'
@@ -69,6 +70,7 @@ export class Runner extends DurableObject<Env> {
           queue: [...setup.queue],
           played: [],
           partial: null,
+          partialMs: 0,
           budget: ALARM_BUDGET,
           alarms: 0,
           failures: 0,
@@ -157,21 +159,29 @@ export class Runner extends DurableObject<Env> {
     }
     const started = Date.now()
     const step = await playHead(this.env, state, bots, spec)
+    const ms = (state.partialMs ?? 0) + Date.now() - started
     if (step.kind === 'partial') {
       state.partial = step.partial
+      state.partialMs = ms
       if (await this.commit(state)) await this.arm()
       return
     }
-    log('info', 'runner.match', {
+    const point = {
+      kind: state.format,
       job: state.id,
       match: step.match.id,
-      bots: spec.entrants.length,
       reused: step.reused,
-      ms: Date.now() - started,
-    })
+      bots: spec.entrants.length,
+      rounds: step.result.rounds.length,
+      cycles: step.result.rounds.reduce((sum, round) => sum + round.durationCycles, 0),
+      ms,
+    }
+    log('info', 'runner.match', point)
+    recordMatch(this.env, point)
     state.queue.shift()
     state.played.push({ ...spec, points: [...step.result.points] })
     state.partial = null
+    state.partialMs = 0
     state.failures = 0
     state.error = null
     // Only a bracket (to draw) and a melee (its standings) need the results before the end.

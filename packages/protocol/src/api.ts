@@ -4,6 +4,8 @@
  * row; and the write routes' requests and responses.
  */
 import * as z from 'zod/mini'
+import { JobStatus } from './jobs'
+import { LiveMatch } from './live'
 import {
   Bot,
   BotVersion,
@@ -13,9 +15,11 @@ import {
   HillEvent,
   HillSubmission,
   Match,
+  SubmissionStatus,
   Tournament,
   TournamentConfig,
   TournamentKind,
+  TournamentStatus,
   User,
   Visibility,
 } from './models'
@@ -65,6 +69,16 @@ export type HillDetail = z.output<typeof HillDetail>
 /** A match and its entrants' labels, in entrant order; null for a version since deleted. */
 export const MatchSummary = z.object({ match: Match, bots: z.array(z.nullable(BotLabel)) })
 export type MatchSummary = z.output<typeof MatchSummary>
+
+/**
+ * `GET /api/matches/:id/verify` (ARCHITECTURE §7, verification model): a published match and what
+ * it takes to run it again. `inputs` are its replay's (each bot's name, bytes, and SHA-256, the
+ * config, the seed, the rounds), keyed by the `matchHash` its row stores; `match` is the row, the
+ * result standings came from. A client runs the inputs itself, then checks the key and each
+ * round's result hash (the match's one hash, for a row the launch seed stored without rounds).
+ */
+export const MatchVerification = z.object({ match: Match, inputs: LiveMatch })
+export type MatchVerification = z.output<typeof MatchVerification>
 
 /** `GET /api/hills/:slug/matches`: finished matches, newest first. */
 export const MatchList = z.object({ matches: z.array(MatchSummary) })
@@ -203,6 +217,45 @@ export type TournamentList = z.output<typeof TournamentList>
  */
 export const ChampionshipList = z.object({ championships: z.array(TournamentSummary) })
 export type ChampionshipList = z.output<typeof ChampionshipList>
+
+/** A challenge as the ticker names it: its challenger's event, its bot, and its hill. */
+export const TickerHillEvent = z.object({
+  hill: z.object({ slug: Slug, name: z.string() }),
+  event: HillEvent,
+  bot: z.nullable(BotLabel),
+})
+export type TickerHillEvent = z.output<typeof TickerHillEvent>
+
+/** A championship as the ticker names it: when it starts or finished, its entrants, its champion. */
+export const TickerChampionship = z.object({
+  id: Id,
+  name: z.string(),
+  status: TournamentStatus,
+  startsAt: z.nullable(Timestamp),
+  finishedAt: z.nullable(Timestamp),
+  entrants: whole('entrants', 0, Number.MAX_SAFE_INTEGER),
+  /** Its champion's label, once it has finished; null for a version since deleted. */
+  champion: z.nullable(BotLabel),
+})
+export type TickerChampionship = z.output<typeof TickerChampionship>
+
+/**
+ * `GET /api/ticker`: the ticker's feed (PRODUCT_SPEC §1). The latest challenge on any hill (its
+ * challenger's event: `entered` or `rejected`), the last championship to finish, the next one
+ * (running, else the first scheduled), and the spectators in the live rooms now. The server reads
+ * it again at most every `TICKER_TTL_MS`; `at` is when it last did.
+ */
+export const Ticker = z.object({
+  at: Timestamp,
+  hill: z.nullable(TickerHillEvent),
+  lastChampionship: z.nullable(TickerChampionship),
+  nextChampionship: z.nullable(TickerChampionship),
+  spectators: whole('spectators', 0, Number.MAX_SAFE_INTEGER),
+})
+export type Ticker = z.output<typeof Ticker>
+
+/** How long the server answers the ticker from its cache before it reads the feed again, ms. */
+export const TICKER_TTL_MS = 30_000
 
 /**
  * `GET /api/tournaments/:id`: the tournament, its entrants, and its matches. The entrants are in
@@ -428,3 +481,58 @@ export type AuditEntry = z.output<typeof AuditEntry>
 /** `GET /api/me/audit?limit=`: the signed-in user's changes, newest first. */
 export const AuditList = z.object({ entries: z.array(AuditEntry) })
 export type AuditList = z.output<typeof AuditList>
+
+const COUNT = whole('a count', 0, Number.MAX_SAFE_INTEGER)
+
+/** What a `Runner` says of its job: where it is, the matches played of those it knows, its alarms. */
+export const RunnerReport = z.object({
+  status: JobStatus,
+  done: COUNT,
+  of: COUNT,
+  alarms: COUNT,
+  /** The last error, when the job failed or is trying again. */
+  error: z.nullable(z.string()),
+})
+export type RunnerReport = z.output<typeof RunnerReport>
+
+/** A job queued or running: its `Runner`, its row, and what the Runner says of it. */
+export const AdminJob = z.object({
+  /** Its `Runner`'s name (`runnerJobId`). */
+  job: z.string(),
+  kind: z.enum(['hill', 'tournament']),
+  /** Its row's status: a submission's `queued` or `running`, a tournament's `running`. */
+  status: z.enum(['queued', 'running']),
+  /** A submission's `createdAt`, a tournament's `startsAt`. */
+  since: z.nullable(Timestamp),
+  /** Its Runner's report; null when the Runner has no job, or did not answer. */
+  runner: z.nullable(RunnerReport),
+})
+export type AdminJob = z.output<typeof AdminJob>
+
+/** A live room (`liveRoomName`) and its open sockets. */
+export const AdminRoom = z.object({ room: z.string(), spectators: COUNT })
+export type AdminRoom = z.output<typeof AdminRoom>
+
+/**
+ * `GET /api/admin/stats`, for the handles in `ADMIN_HANDLES` only: hill submissions and
+ * tournaments by status; the job queue, oldest first (at most 50), each job with its `Runner`'s
+ * report; and the Durable Objects. A `Runner` is one job: each hill submission, and each
+ * tournament that started (`runners`), of which `activeRunners` are queued or running. A
+ * `LiveRoom` is one hill or one tournament past its draft (`liveRooms`); `askedRooms` were asked
+ * for their spectators (the ones a page may have open), and `rooms` lists those with any.
+ */
+export const AdminStats = z.object({
+  at: Timestamp,
+  submissions: z.record(SubmissionStatus, COUNT),
+  tournaments: z.record(TournamentStatus, COUNT),
+  queue: z.array(AdminJob),
+  durableObjects: z.object({
+    runners: COUNT,
+    activeRunners: COUNT,
+    liveRooms: COUNT,
+    askedRooms: COUNT,
+  }),
+  rooms: z.array(AdminRoom),
+  spectators: COUNT,
+})
+export type AdminStats = z.output<typeof AdminStats>

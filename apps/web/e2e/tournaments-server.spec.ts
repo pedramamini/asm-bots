@@ -109,6 +109,13 @@ test('a bracket of five made on the server runs to its champion while its page w
   await expect(watching.getByRole('application', { name: /^arena: / })).toBeVisible()
   await expect(watching.getByText('verified')).toBeVisible({ timeout: 60_000 })
   await page.keyboard.press('Escape')
+  await expect(watching).toBeHidden()
+
+  // The whole final, run here from the server's inputs, round by round against its row.
+  await match.getByRole('button', { name: /^verify final · match 7/ }).click()
+  await expect(match.locator('[data-check]')).toHaveAttribute('data-check', 'verified', {
+    timeout: 60_000,
+  })
   expect(errors).toEqual([])
 })
 

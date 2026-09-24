@@ -420,6 +420,7 @@ describe('a hill job', () => {
   })
 
   it('plays a match too long for one alarm a few rounds an alarm, to the same result', async () => {
+    const points = vi.spyOn(env.MATCH_ANALYTICS as AnalyticsEngineDataset, 'writeDataPoint')
     const job = await submit('s-eps', 'eps', 'pad2-v1')
     const runner = runnerOf(env, job)
     await runner.start(job)
@@ -439,7 +440,8 @@ describe('a hill job', () => {
 
     const expected = challenge(seededHill(), 'pad2-v1')
     expect(await board('eps')).toEqual(expectedBoard(expected))
-    for (const row of await jobMatches('s-eps')) {
+    const rows = await jobMatches('s-eps')
+    for (const row of rows) {
       const [a, b] = JSON.parse(row.participants_json) as [string, string]
       const whole = runMatch(
         [BOTS.get(a) as LoadedBot, BOTS.get(b) as LoadedBot],
@@ -448,6 +450,24 @@ describe('a hill job', () => {
       )
       expect((JSON.parse(row.result_json) as MatchOutcome).rounds).toEqual(whole.rounds)
     }
+
+    // Analytics Engine: one data point a match, however many alarms it took, with all its rounds.
+    expect(points.mock.calls.map(([point]) => point)).toEqual(
+      rows.map((row) => ({
+        indexes: ['hill'],
+        blobs: ['hill', 'played', 'hill:eps:s-eps', row.id],
+        doubles: [
+          1,
+          expect.any(Number),
+          2,
+          ROUNDS,
+          ((JSON.parse(row.result_json) as MatchOutcome).rounds ?? []).reduce(
+            (sum, round) => sum + round.durationCycles,
+            0,
+          ),
+        ],
+      })),
+    )
   })
 
   it('reads back a match another job played, and a copy of an entry replaces it', async () => {
@@ -455,6 +475,7 @@ describe('a hill job', () => {
     await runnerOf(env, first).start(first)
     await drain(runnerOf(env, first))
     const logs = vi.spyOn(console, 'log')
+    const points = vi.spyOn(env.MATCH_ANALYTICS as AnalyticsEngineDataset, 'writeDataPoint')
     // Same name, same bytes, another version: every match is one the first job played.
     const second = await submit('s-zeta-2', 'zeta', 'imp2-v1')
     const runner = runnerOf(env, second)
@@ -464,6 +485,10 @@ describe('a hill job', () => {
     const played = matchLogs(logs)
     expect(played.length).toBeGreaterThan(0)
     expect(played.every((line) => line.reused)).toBe(true)
+    // Its data points say so: nothing played.
+    expect(points.mock.calls.map(([point]) => point?.blobs?.[1])).toEqual(
+      played.map(() => 'reused'),
+    )
     const keys = async (prefix: string) =>
       (await jobMatches(prefix)).map((r) => r.replay_key).sort()
     const firstKeys = await keys('s-zeta-1')

@@ -22,7 +22,9 @@ import { submissionQuery, useSubmission } from '../../api/queries'
 import { LoadFailure } from '../../app/LoadFailure'
 import { useMotionReduced } from '../../store/settings'
 import type { LiveRoomState } from '../live/room'
+import { VerifyMatch } from '../verify/VerifyMatch'
 import { BotLink, CELL_LINK, count } from './links'
+import { matchTitle, verifiable } from './MatchesTable'
 
 /** A match from the challenger's side (entrant 0): won, lost, or tied, and the points. */
 export interface Fight {
@@ -101,6 +103,17 @@ const COLUMNS: TableColumn<Row>[] = [
       const fight = fightOf(row.summary)
       return fight && <span className={OUTCOME_CLASS[fight.outcome]}>{fightText(fight)}</span>
     },
+    className: 'w-24',
+  },
+  {
+    id: 'verify',
+    header: '',
+    cell: (row) =>
+      row.kind === 'played' &&
+      verifiable(row.summary) && (
+        <VerifyMatch id={row.summary.match.id} label={matchTitle(row.summary)} />
+      ),
+    align: 'right',
     className: 'w-24',
   },
   {

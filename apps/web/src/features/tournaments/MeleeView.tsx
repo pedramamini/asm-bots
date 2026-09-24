@@ -12,6 +12,7 @@ import { downloadResults, downloadStandings } from './export'
 import { MatchPanel } from './MatchPanel'
 import { StandingsTable } from './Standings'
 import type { Tournament } from './store'
+import { matchVerify } from './verify'
 import { useRoundWatch, WatchModal } from './WatchModal'
 
 export interface MeleeViewProps {
@@ -103,6 +104,7 @@ export function MeleeView({ tournament: t, createClient }: MeleeViewProps) {
         onWatch={(round) => {
           if (match !== null) watching.watch(t, all, match, round)
         }}
+        actions={matchVerify(t, match, `the melee of ${t.entrants.length} bots`)}
       />
       <WatchModal target={watching.target} onClose={watching.close} createClient={createClient} />
     </div>

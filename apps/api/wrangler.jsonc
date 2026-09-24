@@ -30,6 +30,8 @@
     ]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Runner", "LiveRoom"] }],
+  // A data point per match a Runner plays: count, duration, bots, kind (src/analytics.ts).
+  "analytics_engine_datasets": [{ "binding": "MATCH_ANALYTICS", "dataset": "asmbots_matches" }],
   "triggers": {
     // Saturdays 18:00 UTC: the weekly championship.
     "crons": ["0 18 * * 6"]
@@ -39,7 +41,9 @@
     // The build stamps the real one: `wrangler deploy --var APP_VERSION:<bun run version>`.
     "APP_VERSION": "dev",
     // The one cross-origin caller: the Vite dev server. The deployed app is same-origin.
-    "APP_ORIGIN": "http://localhost:5173"
+    "APP_ORIGIN": "http://localhost:5173",
+    // Who may read GET /api/admin/stats: handles, comma-separated. Empty: nobody.
+    "ADMIN_HANDLES": ""
   },
   "observability": { "enabled": true },
   // The web app's Vite dev server proxies `/api` here.

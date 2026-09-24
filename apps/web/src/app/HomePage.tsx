@@ -78,7 +78,7 @@ function RecentMatches() {
       {error !== null && data === undefined ? (
         <LoadFailure error={error} />
       ) : (
-        <MatchesTable aria-label="recent matches" rows={ROWS} matches={data?.matches} />
+        <MatchesTable aria-label="recent matches" compact rows={ROWS} matches={data?.matches} />
       )}
     </Panel>
   )

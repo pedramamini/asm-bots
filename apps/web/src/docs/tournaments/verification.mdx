@@ -43,6 +43,26 @@ A hill's page joins the hill's live room, and a server tournament's page the tou
 
 When the match ends on the server, the room sends the result the server stored, with each round's result hash. The chip under the arena then works as a replay's does: `verifying` until your run and the server's result are both in, `verified` when the bots match their SHA-256, the match key matches, and each round's hash matches, and `mismatch` when one check fails. A board only changes from matches the server ran itself, and anyone who watches checks them.
 
+## Verify any match
+
+A match you did not watch can be checked too. Every match the server played has `verify` beside it: in the recent matches of the home page and of each hill (the [main hill](/hills/main), say), in a submission's matches, and in a server tournament's match panel.
+
+`verify` asks the server for the match with `GET /api/matches/<match id>/verify`. The answer has two parts:
+
+- **The inputs**: each bot's name, bytes, and SHA-256, the config, the seed, and the round count, as the match's replay stored them, with the match key the server recorded.
+- **The result**: the match's row, the one the standings came from, with its result hash and each round's.
+
+Your browser then plays the rounds in an arena Worker, one after another, with nothing drawn, and the chip takes the button's place:
+
+| chip | means |
+|---|---|
+| `verifying` | no round has ended yet |
+| `verified 2/10` | two rounds of ten matched; the rest are still running |
+| `verified` | the bots matched their SHA-256, the match key matched, and every round's result hash matched the server's |
+| `mismatch` | one check failed; the chip's title says which, and no round after it runs |
+
+The hills' first matches, the ones the launch seed played, recorded one hash for the whole match, not one a round: their chip says `verifying` until the last round ends, then checks that one hash. The server takes no part in the check. It hands over what it ran, and your machine decides.
+
 ## What verification does not cover
 
 - **That a bot is the one a person wrote.** A replay proves what these bytes do. Names and sources are labels; the SHA-256 is of the bytes.

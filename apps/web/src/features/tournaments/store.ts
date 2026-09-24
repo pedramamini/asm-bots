@@ -88,6 +88,11 @@ export interface Tournament {
    * rounds loads the match's replay, which carries the bots. None for a local tournament.
    */
   readonly replays?: Readonly<Record<string, string>> | undefined
+  /**
+   * A server tournament's match ids by match key: `verify` asks the server for a match's inputs
+   * by its id. None for a local tournament.
+   */
+  readonly matchIds?: Readonly<Record<string, string>> | undefined
 }
 
 /** What `createTournament` takes: the rest starts empty. */

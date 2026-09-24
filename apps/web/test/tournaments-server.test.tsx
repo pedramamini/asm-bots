@@ -47,7 +47,7 @@ import {
 } from '../src/features/tournaments/store'
 import { TournamentPage } from '../src/features/tournaments/TournamentPage'
 import { TournamentsPage } from '../src/features/tournaments/TournamentsPage'
-import { answer, answerPost, renderAt, useApiServer } from './api-server'
+import { answer, answerPost, renderAt, useApiServer, WithQueries } from './api-server'
 import { stubCanvas } from './fake-canvas'
 import { FakeSockets, LIVE_CONFIG } from './live-fakes'
 import { manualSchedule, type SessionWorker, sessionClient } from './session-worker'
@@ -267,13 +267,17 @@ describe('watching a server match', () => {
       return next.client
     }
     render(
-      <ToastProvider>
-        <BracketView tournament={fromServer(FINISHED)} createClient={createClient} />
-      </ToastProvider>,
+      <WithQueries>
+        <ToastProvider>
+          <BracketView tournament={fromServer(FINISHED)} createClient={createClient} />
+        </ToastProvider>
+      </WithQueries>,
     )
     expect(nodes()).toHaveLength(8)
     fireEvent.click(node(PLAYED.final))
     const panel = screen.getByRole('region', { name: 'match' })
+    // The server played it and stored it: it can be verified here.
+    expect(within(panel).getByRole('button', { name: /^verify final · match \d+$/ })).toBeTruthy()
     fireEvent.click(within(panel).getByRole('button', { name: 'watch round 2' }))
     const dialog = await screen.findByRole('dialog')
     const round = result.rounds[1]
@@ -296,12 +300,16 @@ describe('watching a server match', () => {
       matches: FINISHED.matches.map((m) => ({ ...m, replayKey: null })),
     })
     render(
-      <ToastProvider>
-        <BracketView tournament={t} />
-      </ToastProvider>,
+      <WithQueries>
+        <ToastProvider>
+          <BracketView tournament={t} />
+        </ToastProvider>
+      </WithQueries>,
     )
     fireEvent.click(node(PLAYED.final))
     const panel = screen.getByRole('region', { name: 'match' })
+    // No replay, no inputs: nothing to verify either.
+    expect(within(panel).queryByRole('button', { name: /^verify/ })).toBeNull()
     fireEvent.click(within(panel).getByRole('button', { name: 'watch round 1' }))
     expect(
       await screen.findByText('cannot watch: the server has not stored this match.'),

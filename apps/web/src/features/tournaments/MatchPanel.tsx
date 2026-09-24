@@ -29,6 +29,8 @@ export interface MatchPanelProps {
   /** What shows when there are no rounds: `a walkover: Dwarf goes through`. */
   note?: ReactNode
   onWatch: (round: MatchRound) => void
+  /** Beside the status: a server match's `verify` (`matchVerify`). */
+  actions?: ReactNode
   className?: string | undefined
 }
 
@@ -54,6 +56,7 @@ export function MatchPanel({
   winner = null,
   note,
   onWatch,
+  actions,
   className,
 }: MatchPanelProps) {
   const name = (e: number) => entrants[e]?.name ?? `bot ${e + 1}`
@@ -110,6 +113,7 @@ export function MatchPanel({
       className={className}
       title={title}
       status={<Chip variant={STATUS_VARIANT[status] ?? 'neutral'}>{status}</Chip>}
+      actions={actions}
       aria-label="match"
     >
       <div className="flex flex-col gap-3">

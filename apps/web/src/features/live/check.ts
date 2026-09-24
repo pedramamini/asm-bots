@@ -32,12 +32,16 @@ export function liveReplay(match: LiveMatch, result: Match): Replay | null {
   }
 }
 
-/** How `match` stands: the page's `run` of it, its `bytes` check, and the server's `result`. */
+/**
+ * How `match` stands: the page's `run` of it, its `bytes` check, and the server's `result`. `from`
+ * says who sent the inputs, in a mismatch's reason: the room, or the server (`verify`).
+ */
 export function liveCheck(
   match: LiveMatch,
   result: Match | null,
   run: ReplayRun,
   bytes: BytesCheck,
+  from = 'the room',
 ): ReplayCheck {
   const replay = result === null ? null : liveReplay(match, result)
   if (replay !== null) return checkReplay(replay, run, bytes)
@@ -48,7 +52,7 @@ export function liveCheck(
   if (run.key !== null && run.key !== match.key) {
     return {
       state: 'mismatch',
-      reason: 'the match the room sent is of other bots or another config',
+      reason: `the match ${from} sent is of other bots or another config`,
     }
   }
   const recorded = result?.result?.resultHash

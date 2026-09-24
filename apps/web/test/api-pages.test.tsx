@@ -191,7 +191,7 @@ describe('/hills/$slug', () => {
 
     const matches = await screen.findByRole('table', { name: 'recent matches' })
     await waitFor(() => expect(cells(matches)).toHaveLength(2))
-    expect(cells(matches)[0]).toEqual(['Dwarf vs Imp', 'Dwarf', '21–9', 'watch'])
+    expect(cells(matches)[0]).toEqual(['Dwarf vs Imp', 'Dwarf', '21–9', 'verify', 'watch'])
     fireEvent.click(within(matches).getByText('Dwarf vs Imp'))
     await waitFor(() => expect(router.state.location.pathname).toBe(`/arena/${KEY}`))
   })

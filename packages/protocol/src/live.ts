@@ -61,9 +61,10 @@ export const Hello = z.object({
 })
 
 /**
- * The inputs of a match a `Runner` has begun: what a spectator loads to run it alongside. `bots`
- * are the entrants in order (`participants` names their bot versions), each with its name in the
- * match, its bytes, and their SHA-256; `key` is the match's `matchHash` (`@asmbots/tourney`).
+ * The inputs of a match a `Runner` has begun: what a spectator loads to run it alongside, and what
+ * `GET /api/matches/:id/verify` answers for a published one. `bots` are the entrants in order
+ * (`participants` names their bot versions), each with its name in the match, its bytes, and
+ * their SHA-256; `key` is the match's `matchHash` (`@asmbots/tourney`).
  */
 export const LiveMatch = z
   .object({

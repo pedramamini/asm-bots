@@ -89,7 +89,7 @@ test('submits a dwarf to tiny, watches it fight the hill, and finds it on the bo
   await page.goto('/hills/tiny')
   const standings = page.getByRole('table', { name: 'standings' })
   await expect(standings.getByRole('row')).toHaveCount(15)
-  await signIn(page, 'tiny', `e2e-${run}-h`)
+  await signIn(page, 'tiny', `e2e-${run}-tiny`)
   const name = `dwarf-${run}`
   await keepDwarf(page, name)
   await submitTo(page, 'tiny', 14)

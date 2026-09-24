@@ -12,6 +12,7 @@ import { MatchPanel } from './MatchPanel'
 import { ResultsMatrix } from './ResultsMatrix'
 import { StandingsTable } from './Standings'
 import type { Tournament } from './store'
+import { matchVerify } from './verify'
 import { useRoundWatch, WatchModal } from './WatchModal'
 
 export interface RoundRobinViewProps {
@@ -68,6 +69,11 @@ export function RoundRobinView({ tournament: t, createClient }: RoundRobinViewPr
           result={result}
           winner={winnerOf(result.points)}
           onWatch={(round) => watching.watch(t, spec.entrants, result, round)}
+          actions={matchVerify(
+            t,
+            result,
+            `${result.names.join(' v ')} · match ${(selected as number) + 1}`,
+          )}
         />
       )}
       <WatchModal target={watching.target} onClose={watching.close} createClient={createClient} />

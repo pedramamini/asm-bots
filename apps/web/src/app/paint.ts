@@ -35,28 +35,53 @@ function afterFirstPaint(then: () => void): () => void {
 }
 
 /**
+ * Calls `then` once the page has painted and the browser has since been idle. Returns what
+ * cancels the call. Lighthouse's simulation bills any script or request that starts before the
+ * first contentful paint to FCP and LCP, the load event included: it comes before this app's
+ * first render.
+ */
+export function whenPaintedAndIdle(then: () => void): () => void {
+  let cancel = () => {}
+  const whenIdle = () => {
+    if (typeof requestIdleCallback === 'function') {
+      const id = requestIdleCallback(() => then(), { timeout: IDLE_TIMEOUT })
+      cancel = () => cancelIdleCallback(id)
+    } else {
+      // Safari has no idle callback: the next task.
+      const id = setTimeout(then, 0)
+      cancel = () => clearTimeout(id)
+    }
+  }
+  cancel = afterFirstPaint(whenIdle)
+  return () => cancel()
+}
+
+/**
+ * Resolves once the page has painted and gone idle (`whenPaintedAndIdle`), or at once when
+ * `signal` aborts. A read that waits for it starts no request before the first paint.
+ */
+export function paintedAndIdle(signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal?.aborted) return resolve()
+    const cancel = whenPaintedAndIdle(resolve)
+    signal?.addEventListener(
+      'abort',
+      () => {
+        cancel()
+        resolve()
+      },
+      { once: true },
+    )
+  })
+}
+
+/**
  * Whether the page has painted and the browser has since been idle. The home demo and the docs'
  * code blocks wait for it, so their chunks (the arena, CodeMirror) take no bandwidth or
- * main-thread time from the page's first paint. Lighthouse's simulation bills any script that
- * starts before the first contentful paint to FCP and LCP, the load event included: it comes
- * before this app's first render.
+ * main-thread time from the page's first paint.
  */
 export function usePaintedAndIdle(): boolean {
   const [idle, setIdle] = useState(false)
-  useEffect(() => {
-    let cancel = () => {}
-    const whenIdle = () => {
-      if (typeof requestIdleCallback === 'function') {
-        const id = requestIdleCallback(() => setIdle(true), { timeout: IDLE_TIMEOUT })
-        cancel = () => cancelIdleCallback(id)
-      } else {
-        // Safari has no idle callback: the next task.
-        const id = setTimeout(() => setIdle(true), 0)
-        cancel = () => clearTimeout(id)
-      }
-    }
-    cancel = afterFirstPaint(whenIdle)
-    return () => cancel()
-  }, [])
+  useEffect(() => whenPaintedAndIdle(() => setIdle(true)), [])
   return idle
 }

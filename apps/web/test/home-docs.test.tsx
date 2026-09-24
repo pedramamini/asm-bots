@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+import type { TickerChampionship, TickerHillEvent } from '@asmbots/protocol'
 import {
   createMemoryHistory,
   createRootRoute,
@@ -8,13 +9,20 @@ import {
   RouterProvider,
 } from '@tanstack/react-router'
 import { act, render, screen, waitFor, within } from '@testing-library/react'
-import { lazy, type ReactNode, useEffect } from 'react'
+import { lazy, type ReactElement, type ReactNode, useEffect } from 'react'
 import { useDom, window } from '../../../packages/ui/test/dom'
 import { HomePage } from '../src/app/HomePage'
 import { NotFound } from '../src/app/NotFound'
-import { useTicker } from '../src/app/ticker'
+import {
+  challengeText,
+  countdown,
+  QUIET_FEED,
+  type TickerFeed,
+  tickerFeed,
+} from '../src/app/ticker'
 import type { HomeDemoProps } from '../src/features/arena/demo/HomeDemo'
 import { hang, useApiServer, WithQueries } from './api-server'
+import { TICKER } from './fixtures/api'
 
 useDom()
 // The server never answers: the home page's panels hold their skeletons (test/api-pages.test.tsx
@@ -70,7 +78,7 @@ describe('HomePage', () => {
     ).toEqual(['rank', 'bot', 'author', 'score', 'rating', 'age'])
     expect(within(hill).getByText('loading')).toBeTruthy()
     const matches = screen.getByRole('region', { name: 'recent matches' })
-    expect(within(matches).getAllByRole('columnheader')).toHaveLength(4)
+    expect(within(matches).getAllByRole('columnheader')).toHaveLength(5)
     const cup = screen.getByRole('region', { name: 'championship' })
     expect(within(cup).getByRole('button', { name: 'enter' })).toHaveProperty('disabled', true)
   })
@@ -101,14 +109,64 @@ describe('NotFound', () => {
   })
 })
 
-describe('useTicker', () => {
-  it('reads the static feed: a bold lead, then the hill, the cup, and the countdown', () => {
-    const { items, link } = useTicker()
-    expect(items).toHaveLength(5)
-    expect(items.slice(1)).toContain('dwarf-v3 took #1')
-    expect(
-      items.some((item) => typeof item === 'string' && item.startsWith('NEXT CHAMPIONSHIP')),
-    ).toBe(true)
-    expect(link.to).toBe('/hills/main')
+describe('the ticker', () => {
+  // 2 days and 4 hours before the next weekly (TICKER: 2026-09-26 18:00 UTC).
+  const NOW = Date.parse('2026-09-24T14:00:00.000Z')
+  const texts = (feed: TickerFeed) => feed.items.slice(1)
+
+  it('says what is always so until the feed comes', () => {
+    expect(tickerFeed(undefined, NOW)).toBe(QUIET_FEED)
+    expect(QUIET_FEED.link).toEqual({ to: '/hills/main', label: 'open the main hill' })
+  })
+
+  it('names the latest challenge, the last champion, the next cup, and who is watching', () => {
+    const feed = tickerFeed(TICKER, NOW)
+    const lead = feed.items[0] as ReactElement<{ children: string }>
+    expect([lead.type, lead.props.children]).toEqual(['b', '▍LIVE'])
+    expect(texts(feed)).toEqual([
+      'HILL "MAIN"',
+      'Dwarf v1 took #1 (+3)',
+      'CUP "WEEKLY 2026-09-19" won by Paper v1',
+      'NEXT CHAMPIONSHIP IN 2D 04H',
+      '3 ENTERED',
+      '4 WATCHING',
+    ])
+    expect(feed.link).toEqual({ to: '/hills/main', label: 'open the main hill' })
+  })
+
+  it('counts down to the minute, then says the cup is starting, or live', () => {
+    const next = TICKER.nextChampionship as TickerChampionship
+    const at = (iso: string) => texts(tickerFeed(TICKER, Date.parse(iso)))[3]
+    expect(at('2026-09-26T13:48:00.000Z')).toBe('NEXT CHAMPIONSHIP IN 4H 12M')
+    expect(at('2026-09-26T17:59:30.000Z')).toBe('NEXT CHAMPIONSHIP IN 1M')
+    expect(at('2026-09-26T18:00:00.000Z')).toBe('NEXT CHAMPIONSHIP STARTING')
+    const live = tickerFeed(
+      { ...TICKER, nextChampionship: { ...next, status: 'running' }, spectators: 0 },
+      NOW,
+    )
+    expect(texts(live).slice(3)).toEqual(['CUP "WEEKLY 2026-09-26" LIVE NOW', '3 ENTERED'])
+    expect(live.link).toEqual({
+      to: '/tournaments/weekly-2026-09-26',
+      label: 'watch weekly 2026-09-26',
+    })
+    expect(countdown(0)).toBe('0M')
+    expect(countdown(26 * 3_600_000)).toBe('1D 02H')
+  })
+
+  it('tells each challenge, and a quiet day', () => {
+    const hill = TICKER.hill as TickerHillEvent
+    const event = (e: Partial<TickerHillEvent['event']>, bot = hill.bot) =>
+      challengeText({ ...hill, bot, event: { ...hill.event, ...e } })
+    expect(event({ delta: -2, rank: 5 })).toBe('Dwarf v1 took #5 (-2)')
+    expect(event({ delta: null, rank: 9 })).toBe('Dwarf v1 took #9')
+    expect(event({ kind: 'rejected', rank: null, delta: null }, null)).toBe(
+      '[deleted] missed the hill',
+    )
+    const quiet = tickerFeed(
+      { at: TICKER.at, hill: null, lastChampionship: null, nextChampionship: null, spectators: 0 },
+      NOW,
+    )
+    expect(texts(quiet)).toEqual(['QUIET ON THE HILLS'])
+    expect(quiet.link.to).toBe('/hills/main')
   })
 })

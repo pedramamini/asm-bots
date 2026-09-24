@@ -10,11 +10,14 @@ import {
   HillHistory,
   HillList,
   MatchList,
+  MatchVerification,
   Me,
   MyBotList,
   parse,
   parseReplay,
   SubmissionDetail,
+  TICKER_TTL_MS,
+  Ticker,
   TournamentDetail,
   TournamentList,
   UserDetail,
@@ -115,6 +118,35 @@ export const botVersionQuery = (id: string, version: number) =>
       ),
     // A version never changes.
     staleTime: Number.POSITIVE_INFINITY,
+  })
+
+/**
+ * A published match's inputs and its row (`GET /api/matches/:id/verify`), to run it again here.
+ * Neither ever changes.
+ */
+export const matchVerificationQuery = (id: string) =>
+  queryOptions({
+    queryKey: ['matches', id, 'verify'],
+    queryFn: ({ signal }) =>
+      apiGet(
+        `/matches/${segment(id)}/verify`,
+        (v) => parse(MatchVerification, v, 'the match'),
+        signal,
+      ),
+    staleTime: Number.POSITIVE_INFINITY,
+  })
+
+/** `GET /api/ticker`: the ticker's feed. */
+export const fetchTicker = (signal?: AbortSignal) =>
+  apiGet('/ticker', (v) => parse(Ticker, v, 'the ticker'), signal)
+
+/** The ticker's feed, read again as often as the server does (`TICKER_TTL_MS`). */
+export const tickerQuery = () =>
+  queryOptions({
+    queryKey: ['ticker'],
+    queryFn: ({ signal }) => fetchTicker(signal),
+    staleTime: TICKER_TTL_MS,
+    refetchInterval: TICKER_TTL_MS,
   })
 
 export const replayQuery = (key: string) =>

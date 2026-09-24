@@ -435,7 +435,7 @@ describe('the submission panel', () => {
       .getAllByRole('row')
       .slice(1)
       .map((row) => row.textContent)
-    expect(rows).toEqual(['Paperwon 9–0watch', 'Dwarffighting…'])
+    expect(rows).toEqual(['Paperwon 9–0verifywatch', 'Dwarffighting…'])
 
     // The next poll finds it finished: the result card, and the hill read again. (Under the test
     // preload TanStack Query thinks it runs on a server and sets no interval: the test polls.)

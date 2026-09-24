@@ -1,28 +1,15 @@
-import {
-  parse,
-  parseReplay,
-  type Replay,
-  ReplayUpload,
-  replayKey,
-  type StoredReplay,
-} from '@asmbots/protocol'
+import { parse, parseReplay, ReplayUpload, replayKey, type StoredReplay } from '@asmbots/protocol'
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 import { jsonBody, limitBody } from '../body'
-import type { AppEnv, Env } from '../env'
+import type { AppEnv } from '../env'
 import { finalOwners, ogSvg } from '../og'
 import { keyParam } from '../params'
-import { IMMUTABLE, ogCacheKey, replayObjectKey } from '../storage'
+import { getReplay, IMMUTABLE, ogCacheKey, replayObjectKey } from '../storage'
 import { checkResult, checkWork, verifyReplay } from '../verify'
 
 /** How long an OG image stays cached, in KV and in the response, seconds: a day. */
 export const OG_TTL = 24 * 60 * 60
-
-/** The replay stored under `key`, or null. */
-async function storedReplay(env: Env, key: string): Promise<Replay | null> {
-  const object = await env.REPLAYS.get(replayObjectKey(key))
-  return object === null ? null : parseReplay(await object.json())
-}
 
 /**
  * `GET /api/replays/:key`: the protocol `Replay` stored under its `replayKey`, as stored (the
@@ -52,7 +39,7 @@ export const replays = new Hono<AppEnv>()
     const key = await replayKey(replay)
     const answer = { key, url: new URL(`/arena/${key}`, c.req.url).href } satisfies StoredReplay
     // Content-addressed: what is stored under the key was checked, so a match with it is enough.
-    const kept = await storedReplay(c.env, key)
+    const kept = await getReplay(c.env.REPLAYS, key)
     if (kept !== null) {
       checkResult(kept.result, replay.result)
       return c.json(answer, 200)
@@ -67,7 +54,7 @@ export const replays = new Hono<AppEnv>()
     const key = keyParam(c.req.param('key'), 'the replay key')
     let svg = await c.env.KV.get(ogCacheKey(key))
     if (svg === null) {
-      const replay = await storedReplay(c.env, key)
+      const replay = await getReplay(c.env.REPLAYS, key)
       if (replay === null) throw new HTTPException(404, { message: `no replay ${key}` })
       svg = ogSvg(replay, finalOwners(replay))
       await c.env.KV.put(ogCacheKey(key), svg, { expirationTtl: OG_TTL })

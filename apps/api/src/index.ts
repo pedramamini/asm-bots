@@ -19,14 +19,17 @@ import {
   TOURNAMENT_LIMIT,
   WRITE_LIMIT,
 } from './rate-limit'
+import { admin } from './routes/admin'
 import { assembler } from './routes/assemble'
 import { bots } from './routes/bots'
 import { championships } from './routes/championships'
 import { health } from './routes/health'
 import { hills } from './routes/hills'
 import { live } from './routes/live'
+import { matches } from './routes/matches'
 import { me } from './routes/me'
 import { replays } from './routes/replays'
+import { ticker } from './routes/ticker'
 import { tournaments } from './routes/tournaments'
 import { users } from './routes/users'
 import { version } from './routes/version'
@@ -52,12 +55,15 @@ app.route('/api/health', health)
 app.route('/api/version', version)
 app.route('/api/auth', auth)
 app.route('/api/me', me)
+app.route('/api/admin', admin)
 app.route('/api/assemble', assembler)
 app.route('/api/bots', bots)
 app.route('/api/championships', championships)
 app.route('/api/hills', hills)
 app.route('/api/live', live)
+app.route('/api/matches', matches)
 app.route('/api/replays', replays)
+app.route('/api/ticker', ticker)
 app.route('/api/tournaments', tournaments)
 app.route('/api/users', users)
 

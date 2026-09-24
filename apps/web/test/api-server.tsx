@@ -26,13 +26,14 @@ import type { ReactNode } from 'react'
 export const liveRooms = ws.link('*/api/live/*')
 
 /**
- * An msw server for the file's tests: `handlers` by default, and silent live rooms; a test's own
- * through `server.use`.
+ * An msw server for the file's tests: `handlers` by default, silent live rooms, and a ticker feed
+ * that never comes (the frame's ticker keeps its quiet line); a test's own through `server.use`.
  */
 export function useApiServer(...handlers: (RequestHandler | WebSocketHandler)[]) {
   const server = setupServer(
     liveRooms.addEventListener('connection', () => {}),
     ...handlers,
+    hang('/ticker'),
   )
   beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
   afterEach(() => server.resetHandlers())

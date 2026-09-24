@@ -6,6 +6,7 @@ import type {
   HillList,
   MatchList,
   ReplayConfig,
+  Ticker,
   Tournament,
   TournamentList,
   UserDetail,
@@ -189,4 +190,46 @@ export const WEEKLY_9: Tournament = {
 
 export const TOURNAMENTS: TournamentList = {
   tournaments: [{ tournament: WEEKLY_9, entrants: 1, done: 0, of: 0, champion: null }],
+}
+
+/**
+ * `GET /api/ticker`: Dwarf took the main hill's top (3 places up), Paper won the last weekly, the
+ * next weekly takes entries, and 4 are watching.
+ */
+export const TICKER: Ticker = {
+  at: T,
+  hill: {
+    hill: { slug: 'main', name: 'main' },
+    event: {
+      id: 'e1',
+      hillId: 'hill-main',
+      submissionId: 's1',
+      kind: 'entered',
+      botVersionId: DWARF.versionId,
+      rank: 1,
+      score: 30,
+      delta: 3,
+      at: T,
+    },
+    bot: DWARF,
+  },
+  lastChampionship: {
+    id: 'weekly-2026-09-19',
+    name: 'weekly 2026-09-19',
+    status: 'finished',
+    startsAt: '2026-09-19T18:00:00.000Z',
+    finishedAt: '2026-09-19T19:00:00.000Z',
+    entrants: 5,
+    champion: PAPER,
+  },
+  nextChampionship: {
+    id: 'weekly-2026-09-26',
+    name: 'weekly 2026-09-26',
+    status: 'scheduled',
+    startsAt: '2026-09-26T18:00:00.000Z',
+    finishedAt: null,
+    entrants: 3,
+    champion: null,
+  },
+  spectators: 4,
 }

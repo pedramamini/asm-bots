@@ -25,6 +25,8 @@ import {
   type MatchOutcome,
   type MyBot,
   type ReplayConfig,
+  type TickerChampionship,
+  type TickerHillEvent,
   type Tournament,
   type TournamentConfig,
   type TournamentSummary,
@@ -692,6 +694,10 @@ export async function listUserChampionships(
   })
 }
 
+export async function getMatchRow(db: D1Database, id: string): Promise<MatchRow | null> {
+  return db.prepare('SELECT * FROM matches WHERE id = ?').bind(id).first<MatchRow>()
+}
+
 /** A hill's finished matches, newest first; with `botVersionId`, only the ones it played. */
 export async function listHillMatches(
   db: D1Database,
@@ -847,6 +853,82 @@ export async function listHillHistory(
     .bind(hillId, clampLimit(limit))
     .all<HillHistoryRow>()
   return eventSummaries(db, results)
+}
+
+/**
+ * The latest challenge on any hill, as the ticker names it: its challenger's event (`entered` or
+ * `rejected`), each hill's newest found through `hill_history_hill_at`, and the latest of those.
+ * Null before any submission.
+ */
+export async function latestHillChallenge(db: D1Database): Promise<TickerHillEvent | null> {
+  const row = await db
+    .prepare(
+      `SELECT e.*, h.slug AS hill_slug, h.name AS hill_name FROM hills h
+       JOIN hill_history e ON e.rowid = (
+         SELECT x.rowid FROM hill_history x
+         WHERE x.hill_id = h.id AND x.event IN ('entered', 'rejected')
+         ORDER BY x.at DESC, x.rowid DESC LIMIT 1)
+       ORDER BY e.at DESC, e.rowid DESC LIMIT 1`,
+    )
+    .first<HillHistoryRow & { hill_slug: string; hill_name: string }>()
+  if (row === null) return null
+  const labels = await listBotLabels(db, [row.bot_version_id])
+  return {
+    hill: { slug: row.hill_slug, name: row.hill_name },
+    event: toHillEvent(row),
+    bot: labels.get(row.bot_version_id) ?? null,
+  }
+}
+
+/** A championship row as the ticker reads it. */
+interface TickerChampionshipRow {
+  id: string
+  name: string
+  status: Tournament['status']
+  starts_at: string | null
+  finished_at: string | null
+  champion_id: string | null
+  entrants: number
+}
+
+/**
+ * The championships the ticker names: the last to finish, and the next, the one running, else the
+ * first scheduled (a championship due that the cron has not started yet included). Null for none.
+ */
+export async function tickerChampionships(
+  db: D1Database,
+): Promise<{ last: TickerChampionship | null; next: TickerChampionship | null }> {
+  const columns = `t.id, t.name, t.status, t.starts_at, t.finished_at, t.champion_id,
+    (SELECT COUNT(*) FROM tournament_entries e WHERE e.tournament_id = t.id) AS entrants`
+  const [last, next] = await db.batch<TickerChampionshipRow>([
+    db.prepare(
+      `SELECT ${columns} FROM tournaments t WHERE t.owner_id IS NULL AND t.status = 'finished'
+       ORDER BY t.finished_at DESC, t.starts_at DESC LIMIT 1`,
+    ),
+    db.prepare(
+      `SELECT ${columns} FROM tournaments t
+       WHERE t.owner_id IS NULL AND t.status IN ('running', 'scheduled')
+       ORDER BY t.status = 'running' DESC, t.starts_at IS NULL, t.starts_at LIMIT 1`,
+    ),
+  ])
+  const rows = [last?.results[0] ?? null, next?.results[0] ?? null]
+  const labels = await listBotLabels(
+    db,
+    rows.flatMap((row) => (row?.champion_id ? [row.champion_id] : [])),
+  )
+  const [lastChampionship = null, nextChampionship = null] = rows.map(
+    (row): TickerChampionship | null =>
+      row && {
+        id: row.id,
+        name: row.name,
+        status: row.status,
+        startsAt: row.starts_at,
+        finishedAt: row.finished_at,
+        entrants: row.entrants,
+        champion: row.champion_id === null ? null : (labels.get(row.champion_id) ?? null),
+      },
+  )
+  return { last: lastChampionship, next: nextChampionship }
 }
 
 /** Submission `submissionId`'s events, the challenger's first. */

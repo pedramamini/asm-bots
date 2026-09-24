@@ -40,15 +40,17 @@ Copy `.dev.vars.example` to `.dev.vars` (git-ignored) for `wrangler dev`. Produc
 | `ASSETS` | Static assets | `../web/dist` | The SPA; unknown paths get `index.html`, except `/api/*` (`run_worker_first`) |
 | `DB` | D1 | `asmbots` | Users, bots, versions, hills, tournaments, matches (`src/db/migrations`) |
 | `REPLAYS` | R2 | `asmbots-replays` | Replays at `replays/<key>.json`, bot binaries; content-addressed |
-| `KV` | KV | `asmbots-kv` | Sessions (`sess:<id>`, 30 days, and `usess:<user>:<id>` beside each so a user's sessions list by prefix), rate-limit counters (`rl:<scope>:<client>:<window>`), OG image cache (`og:<key>`, 1 day) |
-| `RUNNER` | Durable Object | `Runner` | One per job (`hill:<slug>:<submissionId>`, `tournament:<id>`): plays one match an alarm into D1 and R2, then writes the hill board, its ratings (a Glicko-2 period per submission, `src/runner/rating.ts`), and its `hill_history` in one batch, or the tournament's end: its champion and `finished_at`, which puts a championship in the championships feed (`src/do/runner.ts`, `src/runner/`). A tournament job writes its entrants' order as their seeds when it starts (a bracket seeded `rating` orders them by their best hill rating) |
-| `LIVE_ROOM` | Durable Object | `LiveRoom` | One per hill or tournament (`hill:<id>`, `tournament:<id>`): fans its Runners' events (`matchStarted` with the match's inputs, `matchFinished`, `standings`, `progress`) out to spectators' WebSockets (hibernation API) and keeps the last 20 for late joiners (`src/do/live-room.ts`). A socket opens with `hello`, the `spectators` count, then the backlog; the count goes to all a second after joins and leaves. `{"type":"ping"}` gets `{"type":"pong"}` without waking the room; any other message closes the socket (1008). 500 sockets a room, 20 from one address (1013) |
+| `KV` | KV | `asmbots-kv` | Sessions (`sess:<id>`, 30 days, and `usess:<user>:<id>` beside each so a user's sessions list by prefix), rate-limit counters (`rl:<scope>:<client>:<window>`), OG image cache (`og:<key>`, 1 day), the ticker's feed (`ticker`, read again after 30 s) |
+| `RUNNER` | Durable Object | `Runner` | One per job (`hill:<slug>:<submissionId>`, `tournament:<id>`): plays its matches, one an alarm, into D1 and R2, then settles the hill board or the tournament ([Runner](#runner)) |
+| `LIVE_ROOM` | Durable Object | `LiveRoom` | One per hill or tournament (`hill:<id>`, `tournament:<id>`): fans its Runners' events out to spectators' WebSockets and keeps the last 20 ([LiveRoom](#liveroom)) |
+| `MATCH_ANALYTICS` | Analytics Engine | `asmbots_matches` | A data point per match a Runner settles: count, duration, bots, kind ([Observability](#observability)) |
 | `ISA_VERSION` | var | `x16c-v1` | The ISA the hills run |
 | `APP_VERSION` | var | `dev` | Build stamp; deploy passes `--var APP_VERSION:<bun run version>` |
 | `APP_ORIGIN` | var | `http://localhost:5173` | The one origin CORS lets in (the Vite dev server) |
+| `ADMIN_HANDLES` | var | empty | Who may read `GET /api/admin/stats`: handles, split on commas or spaces, any case. Empty: nobody. A handle is its user's pick, so name only handles their owners hold: a free one could be taken by anyone who signs up |
 | `RUNNER_ALARM_DELAY_MS` | var, unset | 0 | Ms between a Runner's alarms. The API tests set an hour and step the alarms by hand (`runDurableObjectAlarm`) |
 
-Cron: `0 18 * * 6` (Saturdays 18:00 UTC), the weekly championship (`src/cron.ts`, `src/championship.ts`). Each run starts every championship due (one with fewer than 2 bots is cancelled; a failed start is tried 3 times) and makes next week's, `weekly-<day>`, unless it is there: an open bracket of up to 32, seeded by rating, with a third-place match, under the main hill's rules (10 rounds, 80,000 cycles, 512 B), its matches placed from a seed of its day (`20261003`). It takes entries for six days, until the Friday 18:00 UTC before it. A championship has no owner; nobody may start one but the cron. Run it on `wrangler dev` with a request to `/cdn-cgi/handler/scheduled?cron=0+18+*+*+6` (`/__scheduled` is the SPA's: static assets answer it first). The D1 and KV ids are placeholders that work locally; the deploy playbook fills in the real ones.
+The cron, `0 18 * * 6`, starts and makes the weekly championship ([Cron](#cron)). The D1 and KV ids are placeholders that work locally; the deploy playbook fills in the real ones.
 
 ## Migrations and seed
 
@@ -123,6 +125,9 @@ Test sign-in: with the var `DEV_FAKE_AUTH=1` (`wrangler dev --var DEV_FAKE_AUTH:
 | `POST /api/tournaments` | `{ name, kind, entrants, config }`, signed in: `entrants` is `{ entry: 'invite', botVersionIds }` (2..32, a melee 16; your own versions or anyone's public ones, seeded in the list's order) or `{ entry: 'open', closesAt }` (a deadline within 30 days). 422 for more than 10 rounds a match, more than 200,000 cycles a round, a core other than 65,536, or a version over the config's `maxBotBytes`; 404/403 for a version you may not enter; 400 for one named twice. The tournament (`scheduled`), its invited entries, and its `tournament.create` audit row go in one batch → 201 `{ tournament }` |
 | `POST /api/tournaments/:id/enter` | `{ botVersionId }`, signed in: a version of one of your bots enters an open tournament until its deadline (409 after it, once it has started, and for an invite or a full one; 422 over its cap). One entry a user: the first is 201, another replaces it → 200 `{ tournamentId, botVersionId, replaced }`. With a `tournament.enter` audit row |
 | `POST /api/tournaments/:id/start` | Its owner starts a scheduled tournament once its entries have closed, with 2 bots or more (403 to others and for a championship, 409 otherwise); its `Runner` plays it, and its live room is `tournament:<id>` → 200 `{ tournamentId, liveRoom }`. A job the Runner refuses cancels the tournament: 409 with the reason |
+| `GET /api/matches/:id/verify` | A published match to run again (`MatchVerification`): `{ match, inputs }`, the row its standings came from and the inputs its replay stored (each bot's name, bytes, and SHA-256, the config, the seed, the rounds), keyed by the `matchHash` the row stores. Anyone may ask. 404 for no such match, one not finished, or one whose replay is not stored ([Verification model](#verification-model)) |
+| `GET /api/ticker` | The ticker's feed: the latest challenge on any hill (its challenger's `entered` or `rejected`), the last championship to finish and the next (running, else the first scheduled; each with its entrants and champion), and the spectators in the live rooms a page may have open. From KV while it is younger than 30 s, then read again |
+| `GET /api/admin/stats` | For `ADMIN_HANDLES` only (401 signed out, 403 otherwise): hill submissions and tournaments by status; the job queue, oldest first (50 at most), each job with its Runner's `{ status, done, of, alarms, error }`; and the Durable Objects: Runners (one a submission and a started tournament), the active ones, live rooms (one a hill and a tournament past its draft), those asked for their count, and the rooms with spectators ([Observability](#observability)) |
 | `GET /api/championships?limit=` | The championships feed: `{ championships }`, finished championships as `GET /api/tournaments` has them, the latest to finish first; `limit` 1..100, 20 by default |
 | `GET /api/users/:handle` | 404 for `deleted`. The user (any case) and their public bots (all of them for the user themself), their best place on each hill, and their results in finished championships (W/T/L, and `champion`: the champion the Runner wrote, else the winner of the last match) |
 | `POST /api/replays` | `{ replay }`: re-simulated (≤ 16 bots, ≤ 10 rounds, ≤ 200k cycles, else 413), result hash checked (422 on a mismatch), stored in R2 → `{ key, url }` |
@@ -130,3 +135,87 @@ Test sign-in: with the var `DEV_FAKE_AUTH=1` (`wrangler dev --var DEV_FAKE_AUTH:
 | `GET /api/replays/:key/og.svg` | The replay's Open Graph image (SVG), cached a day in KV |
 | any other `/api/*` | 404 `not_found` |
 | anything else | The SPA from `ASSETS` |
+
+## Runner
+
+`src/do/runner.ts`, with the job logic in `src/runner/`. One Durable Object per job, named by its id: `hill:<slug>:<submissionId>` for a hill submission, `tournament:<id>` for a tournament. `runnerOf(env, job)` gets its stub. RPC: `start(spec)` (reads what the job needs from D1 and R2, keeps it, sets the first alarm; a Runner that has the job answers its status), `status()`, and `cancel()` (stops before the next match; a hill's board stays as it was).
+
+Storage: `job` (the `JobState`: spec, queue of match specs, matches played, status, alarms, failures), `bots` (each bot version's name and bytes as the job took them), and `result:<spec id>` per match.
+
+Each alarm plays the head of the queue:
+
+1. It tells the job's live room `matchStarted`, with the match's inputs.
+2. It plays the match with `@asmbots/tourney` `runMatch`, or reads its result back: from the job's own D1 row (the job was cut off after storing it), or from any row with the same `match_key` (another job played the same inputs). A match longer than `ALARM_BUDGET` (50 M instructions: bots × cycles × rounds, about 5 s of CPU) plays a few rounds an alarm.
+3. It stores the replay in R2, then the D1 row (`<submission or tournament id>-<spec id>`), then the state and the result in one Durable Object write, and only then sets the next alarm (`RUNNER_ALARM_DELAY_MS` later; 0 in production).
+4. It tells the room `matchFinished` (and a tournament's `standings`) and `progress`.
+
+A tournament job writes its entrants' order as their seeds when it starts (a bracket seeded `rating` orders them by their best hill rating). When the queue is empty the job settles. A hill job writes the new board, its ratings (a Glicko-2 period per submission, `src/runner/rating.ts`), its `hill_history`, and its submission's score and rank in one batch, guarded by `hills.revision` (a board changed meanwhile is read again, and an entry that came onto the hill is fought first). A tournament job writes its champion and `finished_at`, which puts a championship in the championships feed. A `JobError` (bad inputs, a bot the engine refuses) fails the job at once; any other error tries again after 2, 4, 8 … up to 60 s, and fails the job after 5 in a row. A failed hill job marks its submission `failed`; a failed tournament is `cancelled`.
+
+## LiveRoom
+
+`src/do/live-room.ts`. One Durable Object per hill (`hill:<hill id>`) or tournament (`tournament:<id>`), the name `liveRoomName` gives. `GET /api/live/:room` opens a spectator's WebSocket to it. The room uses the hibernation API: it sleeps between events with its sockets open.
+
+- Its Runners call `publish(events)`: `matchStarted` (the match's inputs), `matchFinished` (the stored row), `standings`, `progress`. Each goes to every socket, and the last 20 stay in storage (`recent`) for late joiners.
+- A socket opens with `hello` (the room and the protocol version), the `spectators` count, then the backlog. The count goes to all a second after joins and leaves (one alarm, not one message per join).
+- `{"type":"ping"}` gets `{"type":"pong"}` from the runtime's auto-response, without waking the room. Any other message closes the socket (1008): spectators only listen.
+- 500 sockets a room, 20 from one address (`CF-Connecting-IP`); past either, the socket is accepted and closed at once (1013).
+- `spectators()` answers the open sockets: the ticker and the admin stats ask it.
+
+## Cron
+
+`0 18 * * 6` (Saturdays 18:00 UTC), the weekly championship (`src/cron.ts`, `src/championship.ts`). Each run starts every championship due (one with fewer than 2 bots is cancelled; a failed start is tried 3 times) and makes next week's, `weekly-<day>`, unless it is there: an open bracket of up to 32, seeded by rating, with a third-place match, under the main hill's rules (10 rounds, 80,000 cycles, 512 B), its matches placed from a seed of its day (`20261003`). It takes entries for six days, until the Friday 18:00 UTC before it. A championship has no owner; nobody may start one but the cron. Run it on `wrangler dev` with a request to `/cdn-cgi/handler/scheduled?cron=0+18+*+*+6` (`/__scheduled` is the SPA's: static assets answer it first).
+
+## Verification model
+
+ARCHITECTURE §7. A client may run anything locally, but standings change only from matches a Runner played itself, from bytes the server assembled when each bot version was saved (in R2 by their SHA-256). No result a client sends counts: `POST /api/replays` runs an uploaded replay again before it stores it, and a stored replay changes no standings.
+
+Every match the server publishes has three records: its D1 row (the result the standings came from: points, survivors, the match's result hash, and each round's), its `match_key` (`matchHash` of the bots' names and bytes, the config, the seed, and the rounds), and its replay in R2 (the inputs, content-addressed by `replayKey`). The engine is deterministic (ISA §5.6), so anyone with the inputs gets the same result, and the web app checks the server in three places:
+
+| Where | Inputs from | Checked against |
+| --- | --- | --- |
+| A replay page, `/arena/<key>` | `GET /api/replays/:key` | The replay's recorded round hashes |
+| A live room (auto-watch) | `matchStarted` | The row `matchFinished` carries |
+| `verify` on any published match | `GET /api/matches/:id/verify` | The match's D1 row |
+
+Each check is the same: every bot's bytes against its SHA-256, the key the client computes against the one recorded (another bot, name, setting, or seed is a mismatch even if the result agrees), and each round's result hash; a row the launch seed stored has no rounds, so its one match hash is checked once the last round ends. The chip says `verified` or `mismatch` and why. The server takes no part in the check: it hands over what it ran.
+
+What this does not cover: that a bot is the one a person wrote (names and sources are labels; the hash is of the bytes), and a match of another ISA version (a replay records `x16c-v1`, and the arena refuses others).
+
+## Observability
+
+**Logs.** Every line is one JSON object (`log` in `src/middleware.ts`): `level`, `msg`, and fields. `request` (method, path, status, ms, `requestId`, also the `X-Request-Id` header) for each request; `runner.start`, `runner.match` (kind, job, match, reused, bots, rounds, cycles, ms), `runner.finish`, `runner.cancel`, `runner.step` (a failure: warn while it tries again, error when it gives up), `runner.publish`; `cron`, `championship.start`, `championship.cancel`; `live.socket`, `rooms.count`, `admin.runner`, `analytics.match`; `unhandled` (a 500, with its stack). `observability.enabled` in `wrangler.jsonc` keeps them in Workers Logs.
+
+Follow them live with `wrangler tail`, from `apps/api`:
+
+```sh
+./node_modules/.bin/wrangler tail                          # the deployed Worker, every line
+./node_modules/.bin/wrangler tail --format pretty          # readable
+./node_modules/.bin/wrangler tail --search runner.         # the Runners only
+./node_modules/.bin/wrangler tail --status error           # failed requests
+```
+
+`wrangler dev` prints the same lines to its terminal. Durable Object logs (`runner.*`, `live.*`) come with the Worker's.
+
+**Analytics Engine.** A Runner writes one data point per match it settles to the dataset `asmbots_matches` (binding `MATCH_ANALYTICS`, `src/analytics.ts`); a write that fails is logged, never the job's failure. Local dev keeps none.
+
+| Column | Holds |
+| --- | --- |
+| `index1` | The kind: `hill`, `roundrobin`, `bracket`, `melee` (the sampling key) |
+| `blob1` | The kind again |
+| `blob2` | `played`, or `reused` (its result was stored already) |
+| `blob3`, `blob4` | The job id and the match id |
+| `double1` | 1: sum it (with `_sample_interval`) for the match count |
+| `double2` | Wall time, ms, over all its alarms, storage included |
+| `double3`, `double4`, `double5` | Bots, rounds, engine cycles in all |
+
+Query it with the SQL API (`POST https://api.cloudflare.com/client/v4/accounts/<account id>/analytics_engine/sql`, an API token with Account Analytics read):
+
+```sql
+SELECT blob1 AS kind, SUM(_sample_interval * double1) AS matches, AVG(double2) AS ms,
+  AVG(double3) AS bots
+FROM asmbots_matches
+WHERE timestamp > NOW() - INTERVAL '1' DAY AND blob2 = 'played'
+GROUP BY kind
+```
+
+**Admin stats.** `GET /api/admin/stats`, signed in as a handle in `ADMIN_HANDLES`: the jobs by status, the queue with each Runner's report, and the Durable Object counts (see the routes).

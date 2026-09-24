@@ -9,16 +9,18 @@ import {
   Outlet,
   RouterProvider,
 } from '@tanstack/react-router'
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useDom, window } from '../../../packages/ui/test/dom'
 import { Frame, FrameToolbar } from '../src/app/Frame'
 import { CHORD_WINDOW, createKeymap, type KeyCommand, ROUTE_SEARCH } from '../src/app/keys'
 import { useHeaderStat, useRouteStat } from '../src/app/slots'
 import { titleHead } from '../src/app/title'
 import { useSettings } from '../src/store/settings'
-import { WithQueries } from './api-server'
+import { answer, useApiServer, WithQueries } from './api-server'
+import { TICKER } from './fixtures/api'
 
 useDom()
+const server = useApiServer()
 // The router restores the scroll on each navigation; jsdom has no scrolling.
 window.scrollTo = () => {}
 
@@ -243,6 +245,20 @@ describe('Frame', () => {
     // Typed into the field, t is a letter, not a theme.
     act(() => void fireEvent.keyDown(document.activeElement as Element, { key: 't' }))
     expect(document.documentElement.dataset.theme).toBe('sentinel')
+  })
+
+  it('shows the quiet line, then the live feed once the page has painted', async () => {
+    server.use(answer('/ticker', TICKER))
+    await renderAndWait()
+    const ticker = screen.getByRole('marquee')
+    // The first paint: what is always so, while the feed waits for the page to paint.
+    expect(ticker.textContent).toContain('▍ASM BOTS')
+    await waitFor(() => expect(ticker.textContent).toContain('▍LIVE'))
+    expect(ticker.textContent).toContain('HILL "MAIN" · Dwarf v1 took #1 (+3)')
+    expect(ticker.textContent).toContain('CUP "WEEKLY 2026-09-19" won by Paper v1')
+    expect(ticker.textContent).toContain('3 ENTERED · 4 WATCHING')
+    const arrow = within(ticker).getByRole('link', { name: 'open the main hill' })
+    expect(arrow.getAttribute('href')).toBe('/hills/main')
   })
 
   async function renderAndWait() {

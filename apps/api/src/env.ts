@@ -13,10 +13,17 @@ export interface Env {
   KV: KVNamespace
   RUNNER: DurableObjectNamespace<Runner>
   LIVE_ROOM: DurableObjectNamespace<LiveRoom>
+  /** Workers Analytics Engine: a data point per match a `Runner` plays (`analytics.ts`). */
+  MATCH_ANALYTICS?: AnalyticsEngineDataset
   ISA_VERSION: string
   APP_VERSION: string
   /** The one origin CORS lets in. */
   APP_ORIGIN: string
+  /**
+   * The handles that may read `GET /api/admin/stats`, split on commas or spaces, any case. Empty
+   * or unset: nobody.
+   */
+  ADMIN_HANDLES?: string
   /** Secrets (`.dev.vars`, `wrangler secret put`). Without all three, sign-in is off. */
   GITHUB_CLIENT_ID?: string
   GITHUB_CLIENT_SECRET?: string

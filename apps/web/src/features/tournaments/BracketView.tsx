@@ -11,6 +11,7 @@ import { BracketSvg } from './BracketSvg'
 import { downloadBracket, downloadResults } from './export'
 import { MatchPanel } from './MatchPanel'
 import type { Tournament } from './store'
+import { matchVerify } from './verify'
 import { useRoundWatch, WatchModal } from './WatchModal'
 
 export interface BracketViewProps {
@@ -127,6 +128,7 @@ function BracketMatchPanel({
       winner={winner}
       note={note}
       onWatch={onWatch}
+      actions={matchVerify(t, m.result, matchTitle(t, m))}
     />
   )
 }

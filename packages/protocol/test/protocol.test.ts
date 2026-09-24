@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test'
 import type { LoadedBot } from '@asmbots/engine'
 import { runMatch } from '@asmbots/tourney'
 import {
+  AdminStats,
   ApiError,
   AUDIT_ACTIONS,
   apiError,
@@ -34,6 +35,7 @@ import {
   liveRoomName,
   MAX_TOURNAMENT_ENTRANTS,
   Match,
+  MatchVerification,
   matchResultHash,
   ProtocolError,
   parse,
@@ -51,6 +53,8 @@ import {
   type ShareLink,
   SubmissionDetail,
   sha256Hex,
+  TICKER_TTL_MS,
+  Ticker,
   Tournament,
   TournamentEntered,
   TournamentList,
@@ -517,6 +521,115 @@ describe('records', () => {
     })
     expect(() => parse(HillSubmitRequest, {}, 'the request')).toThrow('botVersionId is missing')
     expect(() => parse(HillSubmitRequest, { botVersionId: '' }, 'the request')).toThrow(
+      ProtocolError,
+    )
+  })
+
+  it('read a match to verify, the ticker, and the admin stats', async () => {
+    const { config, seed, rounds, bots, result } = withoutSources(await duel())
+    const match = {
+      id: 's1-0',
+      tournamentId: null,
+      hillId: 'h1',
+      participants: ['v1', 'v2'],
+      rounds,
+      seed,
+      key: result.key,
+      result: { points: result.points, survivors: result.survivors, resultHash: result.resultHash },
+      replayKey: 'b'.repeat(64),
+      finishedAt: at,
+    }
+    const inputs = {
+      id: 's1-0',
+      key: result.key,
+      participants: ['v1', 'v2'],
+      rounds,
+      seed,
+      config,
+      bots,
+    }
+    const verification = { match, inputs }
+    expect(parse(MatchVerification, JSON.parse(JSON.stringify(verification)), 'it')).toEqual(
+      verification,
+    )
+    // The inputs are a live match's: as many bots as participants.
+    expect(() =>
+      parse(MatchVerification, { match, inputs: { ...inputs, bots: bots.slice(1) } }, 'it'),
+    ).toThrow('a live match names as many bots as participants')
+
+    const label = {
+      botId: 'b1',
+      versionId: 'v1',
+      slug: 'dwarf',
+      name: 'Dwarf',
+      version: 3,
+      owner: 'pedram',
+      author: null,
+    }
+    const cup = {
+      id: 'weekly-2026-09-19',
+      name: 'weekly 2026-09-19',
+      status: 'finished',
+      startsAt: '2026-09-19T18:00:00.000Z',
+      finishedAt: at,
+      entrants: 5,
+      champion: label,
+    }
+    const ticker = {
+      at,
+      hill: {
+        hill: { slug: 'main', name: 'Main' },
+        event: {
+          id: 'e1',
+          hillId: 'h1',
+          submissionId: 's1',
+          kind: 'entered',
+          botVersionId: 'v1',
+          rank: 1,
+          score: 30,
+          delta: 3,
+          at,
+        },
+        bot: label,
+      },
+      lastChampionship: cup,
+      nextChampionship: {
+        ...cup,
+        id: 'weekly-2026-09-26',
+        status: 'scheduled',
+        finishedAt: null,
+        champion: null,
+      },
+      spectators: 12,
+    }
+    expect(parse(Ticker, JSON.parse(JSON.stringify(ticker)), 'it')).toEqual(ticker as never)
+    const quiet = { at, hill: null, lastChampionship: null, nextChampionship: null, spectators: 0 }
+    expect(parse(Ticker, quiet, 'it')).toEqual(quiet)
+    expect(() => parse(Ticker, { ...quiet, spectators: -1 }, 'the ticker')).toThrow(ProtocolError)
+    expect(TICKER_TTL_MS).toBe(30_000)
+
+    const stats = {
+      at,
+      submissions: { queued: 1, running: 1, finished: 7, cancelled: 0, failed: 1 },
+      tournaments: { draft: 0, scheduled: 2, running: 1, finished: 3, cancelled: 1 },
+      queue: [
+        {
+          job: 'hill:main:s1',
+          kind: 'hill',
+          status: 'running',
+          since: at,
+          runner: { status: 'running', done: 3, of: 14, alarms: 3, error: null },
+        },
+        { job: 'hill:tiny:s2', kind: 'hill', status: 'queued', since: at, runner: null },
+      ],
+      durableObjects: { runners: 13, activeRunners: 3, liveRooms: 9, askedRooms: 6 },
+      rooms: [{ room: 'hill:hill-main', spectators: 2 }],
+      spectators: 2,
+    }
+    expect(parse(AdminStats, JSON.parse(JSON.stringify(stats)), 'it')).toEqual(stats as never)
+    // Every status is counted, none left out.
+    const { failed: _, ...some } = stats.submissions
+    expect(() => parse(AdminStats, { ...stats, submissions: some }, 'the stats')).toThrow(
       ProtocolError,
     )
   })

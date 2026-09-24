@@ -2,11 +2,17 @@
  * Where R2 keeps what the API stores: content-addressed, so an object never changes. And the KV
  * keys of what the API caches.
  */
-import { type Replay, replayKey } from '@asmbots/protocol'
+import { parseReplay, type Replay, replayKey } from '@asmbots/protocol'
 
 /** A replay, by its `replayKey`. */
 export function replayObjectKey(key: string): string {
   return `replays/${key}.json`
+}
+
+/** The replay stored under `key`, or null. */
+export async function getReplay(bucket: R2Bucket, key: string): Promise<Replay | null> {
+  const object = await bucket.get(replayObjectKey(key))
+  return object === null ? null : parseReplay(await object.json())
 }
 
 /**

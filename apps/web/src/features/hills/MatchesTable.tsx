@@ -1,11 +1,13 @@
 /**
  * Finished matches (PRODUCT_SPEC §1, §5): who fought, who won, and the points. A row with a stored
- * replay opens it in the arena: a click on the row, or its `watch` link.
+ * replay opens it in the arena: a click on the row, or its `watch` link. Its `verify` runs it here
+ * and checks it against the server's result (`VerifyMatch`).
  */
 import type { BotLabel, MatchSummary } from '@asmbots/protocol'
 import { Skeleton, Table, type TableColumn } from '@asmbots/ui'
 import { Link, useNavigate } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
+import { VerifyMatch } from '../verify/VerifyMatch'
 import { CELL_LINK } from './links'
 
 const nameOf = (bot: BotLabel | null) => bot?.name ?? '[deleted]'
@@ -26,6 +28,11 @@ export function matchWinner({ match, bots }: MatchSummary): string | null {
   return at.length === 1 ? nameOf(bots[at[0] as number] ?? null) : 'draw'
 }
 
+/** Whether `verify` can run a match: it has finished, and its inputs are stored (its replay). */
+export function verifiable({ match }: MatchSummary): boolean {
+  return match.result !== null && match.replayKey !== null
+}
+
 /** `7–3`; a melee shows the winner's points only. */
 export function matchScore({ match }: MatchSummary): string {
   const points = match.result?.points ?? []
@@ -36,7 +43,8 @@ export function matchScore({ match }: MatchSummary): string {
       : ''
 }
 
-const COLUMNS: TableColumn<MatchSummary>[] = [
+/** The columns; `compact`, a narrow panel's: `verify` as an icon. */
+const columns = (compact: boolean): TableColumn<MatchSummary>[] => [
   {
     id: 'match',
     header: 'match',
@@ -48,6 +56,16 @@ const COLUMNS: TableColumn<MatchSummary>[] = [
   },
   { id: 'winner', header: 'winner', cell: (m) => matchWinner(m) ?? '' },
   { id: 'points', header: 'points', cell: matchScore, align: 'right', className: 'w-16' },
+  {
+    id: 'verify',
+    header: '',
+    cell: (m) =>
+      verifiable(m) ? (
+        <VerifyMatch id={m.match.id} label={matchTitle(m)} compact={compact} />
+      ) : null,
+    align: 'right',
+    className: compact ? 'w-8' : 'w-24',
+  },
   {
     id: 'watch',
     header: '',
@@ -62,9 +80,14 @@ const COLUMNS: TableColumn<MatchSummary>[] = [
   },
 ]
 
+const WIDE = columns(false)
+const COMPACT = columns(true)
+
 export interface MatchesTableProps {
   /** Undefined while they load. */
   matches: readonly MatchSummary[] | undefined
+  /** A narrow panel's table: `verify` as an icon. */
+  compact?: boolean | undefined
   rows?: number | undefined
   empty?: ReactNode
   'aria-label': string
@@ -73,6 +96,7 @@ export interface MatchesTableProps {
 
 export function MatchesTable({
   matches,
+  compact = false,
   rows = 10,
   empty = <p className="text-data text-muted">no match played yet.</p>,
   'aria-label': label,
@@ -82,7 +106,7 @@ export function MatchesTable({
   return (
     <Table
       aria-label={label}
-      columns={COLUMNS}
+      columns={compact ? COMPACT : WIDE}
       rows={matches ?? []}
       rowKey={(m) => m.match.id}
       className={className}

@@ -76,7 +76,7 @@ function specOf(tournamentId: string, match: Match): number | null {
  * `detail` as a local record: its kind and status, its entrants in the order its matches index,
  * a round robin's matches in schedule order (up to the first not played), a bracket's in the order
  * played, a melee's one match; the standings, the progress, and the champion they make, and the
- * replays of its matches by key.
+ * replays and server ids of its matches by key.
  */
 export function fromServer({ tournament: t, entrants, matches }: TournamentDetail): Tournament {
   const kind = SERVER_KIND[t.kind]
@@ -125,8 +125,12 @@ export function fromServer({ tournament: t, entrants, matches }: TournamentDetai
         : bracketChampion(bracket)
       : (byVersion.get(t.championId) ?? null)
   const replays: Record<string, string> = {}
+  const matchIds: Record<string, string> = {}
+  // A match without a stored replay has no inputs to watch or verify.
   for (const { match, result } of played) {
-    if (match.replayKey !== null) replays[result.key] = match.replayKey
+    if (match.replayKey === null) continue
+    replays[result.key] = match.replayKey
+    matchIds[result.key] = match.id
   }
   return {
     id: t.id,
@@ -152,7 +156,17 @@ export function fromServer({ tournament: t, entrants, matches }: TournamentDetai
     createdAt: Date.parse(t.createdAt),
     updatedAt: Date.parse(t.finishedAt ?? t.startsAt ?? t.createdAt),
     replays,
+    matchIds,
   }
+}
+
+/**
+ * The server's id of a server tournament's match, which `verify` asks the server for, once the
+ * match has all its rounds; null for a local tournament's, or one still playing.
+ */
+export function serverMatchId(t: Tournament, result: MatchResult | null): string | null {
+  if (result === null || result.rounds.length < result.of) return null
+  return t.matchIds?.[result.key] ?? null
 }
 
 /** A server tournament's card: what the list shows of a `TournamentSummary`. */

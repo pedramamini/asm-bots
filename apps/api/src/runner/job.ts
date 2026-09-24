@@ -83,6 +83,8 @@ export interface JobState extends Omit<JobSetup, 'bots' | 'queue' | 'of'> {
   of: number
   /** The head of the queue, part played, when it is longer than one alarm's budget. */
   partial: MatchResult | null
+  /** The wall time the alarms of `partial` took so far, ms. */
+  partialMs: number
   /** `ALARM_BUDGET`, kept per job. */
   budget: number
   alarms: number

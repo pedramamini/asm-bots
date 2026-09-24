@@ -48,9 +48,12 @@ import {
   saveLocalBot,
 } from '../src/store/local-bots'
 import { useSettings } from '../src/store/settings'
+import { useApiServer } from './api-server'
 import { stubCanvas } from './fake-canvas'
 
 useDom()
+// The frame's ticker asks the API for its feed; it never answers here.
+useApiServer()
 // The router restores the scroll on each navigation; jsdom has no scrolling.
 window.scrollTo = () => {}
 // CodeMirror's selection layer measures ranges; jsdom lays nothing out.
