@@ -1,0 +1,53 @@
+name: Backup D1 to R2
+
+on:
+  schedule:
+    # Daily at 02:00 UTC
+    - cron: '0 2 * * *'
+  # Allow manual trigger from GitHub Actions
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - run: bun install --frozen-lockfile
+        env:
+          SKIP_WASM_BUILD: '1'
+
+      - name: Export D1 database
+        id: export
+        run: |
+          cd apps/api
+          # Export the production database to a SQL dump
+          BACKUP_FILE="backup-$(date +%Y-%m-%d-%H%M%S).sql"
+          npx wrangler d1 export asmbots --remote --output "$BACKUP_FILE"
+          # Output the filename for reference in later steps
+          echo "BACKUP_FILE=$BACKUP_FILE" >> $GITHUB_OUTPUT
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Upload backup to R2
+        run: |
+          cd apps/api
+          # Upload the dump to the asmbots-backups bucket
+          npx wrangler r2 object put asmbots-backups/${{ steps.export.outputs.BACKUP_FILE }} --file ${{ steps.export.outputs.BACKUP_FILE }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Verify backup uploaded
+        run: |
+          cd apps/api
+          # List the backups to confirm the latest one is there
+          npx wrangler r2 bucket list
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
