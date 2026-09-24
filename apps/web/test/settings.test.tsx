@@ -224,14 +224,14 @@ describe('SettingsPage', () => {
     expect(state.sound).toEqual({ on: true, volume: 0.3 })
   })
 
-  it('shows the account signed out', () => {
+  it('shows the account signed out, with the sign-in button', () => {
     renderPage()
     const account = screen.getByRole('region', { name: 'account' })
     expect(account.textContent).toContain('signed out')
     expect(
       (within(account).getByRole('button', { name: 'sign in with github' }) as HTMLButtonElement)
         .disabled,
-    ).toBe(true)
+    ).toBe(false)
   })
 
   it('clears local data only after the confirm', async () => {

@@ -4,8 +4,18 @@
  * row; and the write routes' requests and responses.
  */
 import * as z from 'zod/mini'
-import { Bot, BotVersion, Handle, Hill, HillEntry, Match, Tournament, User } from './models'
-import { BASE64, Id, matching, SHA256, Slug, whole } from './schema'
+import {
+  Bot,
+  BotVersion,
+  Handle,
+  Hill,
+  HillEntry,
+  Match,
+  Tournament,
+  User,
+  Visibility,
+} from './models'
+import { BASE64, Id, matching, NAME, SHA256, Slug, Timestamp, whole } from './schema'
 
 /** A bot version as a table names it: its bot, its version number, and whose it is. */
 export const BotLabel = z.object({
@@ -70,13 +80,48 @@ export type BotDetail = z.output<typeof BotDetail>
 export const BotVersionDetail = z.object({ version: BotVersion })
 export type BotVersionDetail = z.output<typeof BotVersionDetail>
 
-/** `GET /api/users/:handle`: the user and the bots the reader may list. */
-export const UserDetail = z.object({ user: User, bots: z.array(Bot) })
+/** A user's best place on a hill: their highest-ranked bot version there. */
+export const HillBest = z.object({
+  hill: z.object({ slug: Slug, name: z.string() }),
+  entry: HillEntry,
+  bot: BotLabel,
+})
+export type HillBest = z.output<typeof HillBest>
+
+/** How a user's bot did in a finished championship, over the matches it played there. */
+export const ChampionshipResult = z.object({
+  tournament: z.object({ id: Id, slug: Slug, name: z.string(), startsAt: z.nullable(Timestamp) }),
+  bot: BotLabel,
+  wins: whole('wins', 0, Number.MAX_SAFE_INTEGER),
+  ties: whole('ties', 0, Number.MAX_SAFE_INTEGER),
+  losses: whole('losses', 0, Number.MAX_SAFE_INTEGER),
+  /** Whether it won the championship's last match: the final of a bracket. */
+  champion: z.boolean(),
+})
+export type ChampionshipResult = z.output<typeof ChampionshipResult>
+
+/**
+ * `GET /api/users/:handle`: the user, the bots the reader may list, their best place on each hill
+ * (in hill order), and their championship results (latest first).
+ */
+export const UserDetail = z.object({
+  user: User,
+  bots: z.array(Bot),
+  hills: z.array(HillBest),
+  championships: z.array(ChampionshipResult),
+})
 export type UserDetail = z.output<typeof UserDetail>
 
-/** `GET /api/me`: the signed-in user; a 401 when nobody is. */
-export const Me = z.object({ user: User })
+/**
+ * `GET /api/me` and `PATCH /api/me`: the signed-in user; a 401 when nobody is. `onboarded` is
+ * false until they pick a handle, which the first-sign-in dialog asks for (PRODUCT_SPEC §9).
+ */
+export const Me = z.object({ user: User, onboarded: z.boolean() })
 export type Me = z.output<typeof Me>
+
+/** `PATCH /api/me`: a new handle (`handleProblem` says which are allowed). */
+export const UpdateMe = z.object({ handle: z.string().check(z.maxLength(64)) })
+export type UpdateMe = z.output<typeof UpdateMe>
 
 /** `GET /api/tournaments` */
 export const TournamentList = z.object({ tournaments: z.array(Tournament) })
@@ -150,3 +195,35 @@ export const StoredReplay = z.object({
   url: z.string(),
 })
 export type StoredReplay = z.output<typeof StoredReplay>
+
+/** The most bots a user may have. */
+export const MAX_BOTS_PER_USER = 200
+/** The most bots one `POST /api/bots/import` takes. */
+export const MAX_IMPORT = 50
+
+/** A bot to make from its source; private unless it says otherwise. */
+export const NewBot = z.object({
+  name: matching(NAME),
+  source: z
+    .string()
+    .check(z.refine((text) => text.length <= MAX_SOURCE_TEXT, 'the source is over 64 KB')),
+  visibility: z.optional(Visibility),
+})
+export type NewBot = z.output<typeof NewBot>
+
+/** `POST /api/bots/import`: local bots to keep in the account, each made at version 1. */
+export const ImportBotsRequest = z.object({
+  bots: z.array(NewBot).check(z.minLength(1), z.maxLength(MAX_IMPORT)),
+})
+export type ImportBotsRequest = z.output<typeof ImportBotsRequest>
+
+/** One bot of an import: made, or refused with the reason (and the assembler's findings). */
+export const ImportedBot = z.discriminatedUnion('ok', [
+  z.object({ ok: z.literal(true), bot: Bot, version: BotVersion }),
+  z.object({ ok: z.literal(false), message: z.string(), diagnostics: z.array(Diagnostic) }),
+])
+export type ImportedBot = z.output<typeof ImportedBot>
+
+/** `POST /api/bots/import`: one result per bot, in the request's order. */
+export const ImportBotsResult = z.object({ results: z.array(ImportedBot) })
+export type ImportBotsResult = z.output<typeof ImportBotsResult>

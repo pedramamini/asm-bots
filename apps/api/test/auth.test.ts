@@ -3,8 +3,10 @@
  * runs in this isolate, so a spy on `fetch` sees its outbound calls.
  */
 import { env, exports } from 'cloudflare:workers'
+import { isAllowedHandle } from '@asmbots/protocol'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { handleCandidates, isAllowedHandle } from '../src/auth/handle'
+import { handleCandidates } from '../src/auth/handle'
+import { Jar } from './jar'
 
 const worker = exports.default
 const SITE = 'https://asmbots.test'
@@ -63,26 +65,6 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks()
 })
-
-/** A cookie jar: the `name=value` pairs a response set, minus those it cleared. */
-class Jar {
-  readonly cookies = new Map<string, string>()
-
-  take(res: Response): void {
-    for (const line of res.headers.getSetCookie()) {
-      const [pair = '', ...attrs] = line.split(';')
-      const at = pair.indexOf('=')
-      const name = pair.slice(0, at).trim()
-      const cleared = attrs.some((a) => /^\s*max-age=0$/i.test(a))
-      if (cleared) this.cookies.delete(name)
-      else this.cookies.set(name, pair.slice(at + 1).trim())
-    }
-  }
-
-  header(): string {
-    return [...this.cookies].map(([k, v]) => `${k}=${v}`).join('; ')
-  }
-}
 
 async function send(
   jar: Jar,
@@ -170,6 +152,9 @@ describe('GET /api/auth/github/callback', () => {
     expect(cookie).toMatch(/HttpOnly/)
     expect(cookie).toMatch(/Secure/)
     expect(cookie).toMatch(/SameSite=Lax/)
+    const hint = res.headers.getSetCookie().find((l) => l.startsWith('signed_in=')) ?? ''
+    expect(hint).toMatch(/^signed_in=1;/)
+    expect(hint).not.toMatch(/HttpOnly/)
     // The sign-in cookies are spent.
     expect(jar.cookies.has('oauth_state')).toBe(false)
     expect(jar.cookies.has('oauth_return_to')).toBe(false)
@@ -311,6 +296,7 @@ describe('POST /api/auth/logout', () => {
     const res = await send(jar, '/api/auth/logout', { method: 'POST', origin: SITE })
     expect(res.status).toBe(204)
     expect(jar.cookies.has('__Host-session')).toBe(false)
+    expect(jar.cookies.has('signed_in')).toBe(false)
     expect((await me(jar)).status).toBe(401)
     // The session is gone from KV, not just from this browser.
     expect((await me(stolen)).status).toBe(401)

@@ -3,8 +3,9 @@
  * (IndexedDB) go out as a zip and come back in.
  */
 import { readFile } from 'node:fs/promises'
-import { expect, type Page, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import { strFromU8, unzipSync, zipSync } from 'fflate'
+import { seedBots } from './local-bots'
 
 test('settings survive a reload', async ({ page }) => {
   await page.goto('/settings')
@@ -69,28 +70,3 @@ test('imports a zip, then clears local data after the confirm', async ({ page })
   await page.reload()
   await expect(data).toContainText('0 local bots')
 })
-
-/** Writes bots straight into the app's IndexedDB store (idb-keyval: key = id, value = bot). */
-async function seedBots(
-  page: Page,
-  bots: { id: string; name: string; source: string; updatedAt: number }[],
-): Promise<void> {
-  await page.evaluate(
-    (list) =>
-      new Promise<void>((resolve, reject) => {
-        const open = indexedDB.open('asmbots')
-        open.onupgradeneeded = () => open.result.createObjectStore('local-bots')
-        open.onerror = () => reject(open.error)
-        open.onsuccess = () => {
-          const tx = open.result.transaction('local-bots', 'readwrite')
-          for (const bot of list) tx.objectStore('local-bots').put(bot, bot.id)
-          tx.oncomplete = () => {
-            open.result.close()
-            resolve()
-          }
-          tx.onerror = () => reject(tx.error)
-        }
-      }),
-    bots,
-  )
-}

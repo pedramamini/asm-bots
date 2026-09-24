@@ -13,7 +13,7 @@
  * A double-submit token would add nothing to either.
  */
 import type { Context, MiddlewareHandler } from 'hono'
-import { deleteCookie, getSignedCookie, setSignedCookie } from 'hono/cookie'
+import { deleteCookie, getSignedCookie, setCookie, setSignedCookie } from 'hono/cookie'
 import type { CookieOptions } from 'hono/utils/cookie'
 import type { AppEnv } from '../env'
 import { errorResponse } from '../middleware'
@@ -22,6 +22,12 @@ import { errorResponse } from '../middleware'
 const SESSION_COOKIE = 'session'
 const SESSION_PREFIX = 'host'
 export const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60
+/**
+ * Beside the session, a cookie the page can read (not HttpOnly) that says only "signed in": the
+ * web app asks `GET /api/me` when it is there, so a signed-out visit makes no request and logs no
+ * 401. It proves nothing; the session cookie does.
+ */
+export const SIGNED_IN_COOKIE = 'signed_in'
 
 /** The session as KV holds it. */
 export interface Session {
@@ -42,9 +48,17 @@ export function sessionKey(id: string): string {
   return `sess:${id}`
 }
 
-/** Whether sign-in is set up: the GitHub app and the cookie secret. */
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
+
+/** Whether sign-in skips GitHub for a test user: `DEV_FAKE_AUTH=1`, on localhost only. */
+export function fakeAuth(c: Context<AppEnv>): boolean {
+  return c.env.DEV_FAKE_AUTH === '1' && LOCAL_HOSTS.has(new URL(c.req.url).hostname)
+}
+
+/** Whether sign-in is set up: the cookie secret, and the GitHub app unless `fakeAuth`. */
 export function authConfigured(c: Context<AppEnv>): boolean {
-  return Boolean(c.env.GITHUB_CLIENT_ID && c.env.GITHUB_CLIENT_SECRET && c.env.SESSION_SECRET)
+  const github = Boolean(c.env.GITHUB_CLIENT_ID && c.env.GITHUB_CLIENT_SECRET)
+  return Boolean(c.env.SESSION_SECRET) && (github || fakeAuth(c))
 }
 
 /** Hex of `n` random bytes. */
@@ -75,6 +89,7 @@ export async function startSession(c: Context<AppEnv>, userId: string): Promise<
     ...cookieOptions(SESSION_TTL_SECONDS),
     prefix: SESSION_PREFIX,
   })
+  setCookie(c, SIGNED_IN_COOKIE, '1', { ...cookieOptions(SESSION_TTL_SECONDS), httpOnly: false })
   return { id, ...session }
 }
 
@@ -84,6 +99,7 @@ export async function endSession(c: Context<AppEnv>): Promise<void> {
   if (session) await c.env.KV.delete(sessionKey(session.id))
   c.set('session', null)
   deleteCookie(c, SESSION_COOKIE, { path: '/', secure: true, prefix: SESSION_PREFIX })
+  deleteCookie(c, SIGNED_IN_COOKIE, { path: '/', secure: true })
 }
 
 /** Refuses a write sent from another origin (the header comment says why). */

@@ -13,6 +13,36 @@ export type Visibility = z.output<typeof Visibility>
 /** A GitHub handle: letters, digits, and single hyphens, 1..39 characters. */
 export const Handle = matching(/^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$/)
 
+/** Paths and names a user may not take as a handle. */
+export const RESERVED_HANDLES: ReadonlySet<string> = new Set([
+  'admin',
+  'api',
+  'system',
+  'roster',
+  'docs',
+  'hills',
+  'arena',
+])
+
+/** A handle a user picks: 3..24 of `[a-z0-9-]`, no hyphen first, last, or doubled. */
+const ACCOUNT_HANDLE = /^[a-z0-9](?:[a-z0-9]|-(?=[a-z0-9])){2,23}$/
+
+/**
+ * What is wrong with `handle` as a user's pick (`PATCH /api/me`), or null when nothing is. An
+ * allowed handle is always a `Handle`. Whether someone else has it, only the API can say.
+ */
+export function handleProblem(handle: string): string | null {
+  if (handle.length < 3 || handle.length > 24) return 'a handle is 3 to 24 characters'
+  if (!/^[a-z0-9-]+$/.test(handle)) return 'a handle takes a-z, 0-9, and -'
+  if (!ACCOUNT_HANDLE.test(handle)) return 'a hyphen goes between two letters or digits'
+  if (RESERVED_HANDLES.has(handle)) return `${handle} is reserved`
+  return null
+}
+
+export function isAllowedHandle(handle: string): boolean {
+  return handleProblem(handle) === null
+}
+
 export const User = z.object({
   id: Id,
   handle: Handle,

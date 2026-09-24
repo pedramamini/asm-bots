@@ -22,6 +22,11 @@ export interface Env {
   GITHUB_CLIENT_SECRET?: string
   /** Signs the session cookie. */
   SESSION_SECRET?: string
+  /**
+   * `1`: sign-in skips GitHub and signs in a test user (`wrangler dev --var DEV_FAKE_AUTH:1`, the
+   * e2e specs). Honored only for a request to localhost, so a production Worker never takes it.
+   */
+  DEV_FAKE_AUTH?: string
 }
 
 export interface AppEnv {

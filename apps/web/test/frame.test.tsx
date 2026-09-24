@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
+import { ToastProvider } from '@asmbots/ui'
 import { THEMES } from '@asmbots/ui/themes'
 import {
   createMemoryHistory,
@@ -15,6 +16,7 @@ import { CHORD_WINDOW, createKeymap, type KeyCommand, ROUTE_SEARCH } from '../sr
 import { useHeaderStat, useRouteStat } from '../src/app/slots'
 import { titleHead } from '../src/app/title'
 import { useSettings } from '../src/store/settings'
+import { WithQueries } from './api-server'
 
 useDom()
 // The router restores the scroll on each navigation; jsdom has no scrolling.
@@ -137,7 +139,13 @@ describe('Frame', () => {
       routeTree: root.addChildren([home, arena]),
       history: createMemoryHistory({ initialEntries: [path] }),
     })
-    render(<RouterProvider router={router as never} />)
+    render(
+      <WithQueries>
+        <ToastProvider>
+          <RouterProvider router={router as never} />
+        </ToastProvider>
+      </WithQueries>,
+    )
     return router
   }
 

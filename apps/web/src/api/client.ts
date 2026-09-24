@@ -1,7 +1,7 @@
 /**
- * The API's client: `GET` and `POST /api/...` on the page's own origin (in dev, Vite proxies it to
- * `wrangler dev`). A response is read through its protocol schema, so a page gets typed records or
- * an error that says what went wrong.
+ * The API's client: `GET`, `POST`, and `PATCH /api/...` on the page's own origin (in dev, Vite
+ * proxies it to `wrangler dev`). A response is read through its protocol schema, so a page gets
+ * typed records or an error that says what went wrong.
  */
 import { ApiError, ProtocolError } from '@asmbots/protocol'
 
@@ -40,8 +40,28 @@ export function apiPost<T>(
   read: (value: unknown) => T,
   signal?: AbortSignal,
 ): Promise<T> {
+  return apiSend('POST', path, body, read, signal)
+}
+
+/** `PATCH /api<path>` with `body` as JSON, its JSON answer as `read` takes it. */
+export function apiPatch<T>(
+  path: string,
+  body: unknown,
+  read: (value: unknown) => T,
+  signal?: AbortSignal,
+): Promise<T> {
+  return apiSend('PATCH', path, body, read, signal)
+}
+
+function apiSend<T>(
+  method: string,
+  path: string,
+  body: unknown,
+  read: (value: unknown) => T,
+  signal: AbortSignal | undefined,
+): Promise<T> {
   const init = {
-    method: 'POST',
+    method,
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   }

@@ -12,6 +12,7 @@ import {
   type ToolbarProps,
 } from '@asmbots/ui'
 import { THEMES } from '@asmbots/ui/themes'
+import { useQueryClient } from '@tanstack/react-query'
 import { createLink, useLocation, useRouter } from '@tanstack/react-router'
 import {
   BookOpen,
@@ -23,10 +24,20 @@ import {
   Mountain,
   Palette,
   Trophy,
-  UserRound,
 } from 'lucide-react'
-import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react'
+import {
+  createContext,
+  lazy,
+  type ReactNode,
+  Suspense,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from 'react'
 import { createPortal } from 'react-dom'
+import { useMe } from '../api/queries'
+import { AccountSlot } from '../features/account/AccountSlot'
 import { useSettings } from '../store/settings'
 import { GLOBAL_KEYS, goKey } from './keymaps'
 import {
@@ -57,6 +68,11 @@ const VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev'
 
 /** A nav button the router drives: it preloads on intent and navigates without a reload. */
 export const NavLink = createLink(NavButton)
+
+/** The first-sign-in dialog: its own chunk, since only a new user ever sees it. */
+const FirstSignIn = lazy(() =>
+  import('../features/account/FirstSignIn').then((m) => ({ default: m.FirstSignIn })),
+)
 
 /** Where a route's `FrameToolbar` renders: the row between the header and the content. */
 const ToolbarSlot = createContext<HTMLElement | null>(null)
@@ -90,7 +106,27 @@ export function Frame({ children }: { children: ReactNode }) {
       <Modal open={keysOpen} onClose={() => setKeysOpen(false)} title="keys" size="lg">
         <KeyHelp bindings={bindings} />
       </Modal>
+      <Onboarding />
     </div>
+  )
+}
+
+/** The first-sign-in dialog, while the signed-in user has not picked a handle (PRODUCT_SPEC §9). */
+function Onboarding() {
+  const { data: me } = useMe()
+  const client = useQueryClient()
+  const [dismissed, setDismissed] = useState(false)
+  if (!me || me.onboarded || dismissed) return null
+  return (
+    <Suspense fallback={null}>
+      <FirstSignIn
+        me={me}
+        onDone={(next) => {
+          setDismissed(true)
+          client.setQueryData(['me'], next)
+        }}
+      />
+    </Suspense>
   )
 }
 
@@ -144,7 +180,6 @@ function Nav() {
 }
 
 function HeaderActions({ onKeys }: { onKeys: () => void }) {
-  const router = useRouter()
   const theme = useSettings((state) => state.theme)
   const cycleTheme = useSettings((state) => state.cycleTheme)
   const setTheme = useSettings((state) => state.setTheme)
@@ -161,12 +196,7 @@ function HeaderActions({ onKeys }: { onKeys: () => void }) {
         }))}
       />
       <IconButton icon={Keyboard} label="keys" shortcut="?" onClick={onKeys} />
-      {/* The account slot: signed out until accounts land; settings holds the account section. */}
-      <IconButton
-        icon={UserRound}
-        label="account"
-        onClick={() => void router.navigate({ to: '/settings' })}
-      />
+      <AccountSlot />
     </>
   )
 }

@@ -9,6 +9,7 @@ import {
   HillDetail,
   HillList,
   MatchList,
+  Me,
   parse,
   parseReplay,
   TournamentDetail,
@@ -16,7 +17,7 @@ import {
   UserDetail,
 } from '@asmbots/protocol'
 import { queryOptions, useQuery } from '@tanstack/react-query'
-import { apiGet } from './client'
+import { ApiRequestError, apiGet } from './client'
 
 const segment = encodeURIComponent
 
@@ -109,6 +110,30 @@ export const userQuery = (handle: string) =>
       apiGet(`/users/${segment(handle)}`, (v) => parse(UserDetail, v, 'the user'), signal),
   })
 
+/**
+ * The cookie the API sets beside the session, which the page may read: someone may be signed in.
+ * Without it `meQuery` asks nothing, so a signed-out visit makes no request and logs no 401.
+ */
+const SIGNED_IN = /(?:^|;\s*)signed_in=1(?:;|$)/
+
+/** The signed-in user, or null when nobody is. */
+export const meQuery = () =>
+  queryOptions({
+    queryKey: ['me'],
+    queryFn: async ({ signal }): Promise<Me | null> => {
+      if (!SIGNED_IN.test(globalThis.document?.cookie ?? '')) return null
+      try {
+        return await apiGet('/me', (v) => parse(Me, v, 'your account'), signal)
+      } catch (error) {
+        if (!(error instanceof ApiRequestError) || error.status !== 401) throw error
+        // The session is gone (expired, or ended elsewhere): so is the hint.
+        // biome-ignore lint/suspicious/noDocumentCookie: the one cookie the page owns
+        document.cookie = 'signed_in=; Max-Age=0; Path=/'
+        return null
+      }
+    },
+  })
+
 export const useHills = () => useQuery(hillsQuery())
 export const useHill = (slug: string) => useQuery(hillQuery(slug))
 export const useHillMatches = (slug: string, filter?: HillMatchesFilter) =>
@@ -125,3 +150,4 @@ export const useTournaments = () => useQuery(tournamentsQuery())
 export const useTournament = (id: string | null) =>
   useQuery({ ...tournamentQuery(id ?? ''), enabled: id !== null })
 export const useUser = (handle: string) => useQuery(userQuery(handle))
+export const useMe = () => useQuery(meQuery())

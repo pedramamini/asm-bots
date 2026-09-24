@@ -270,6 +270,16 @@ describe('/u/$handle', () => {
     expect(within(bots).getByRole('link', { name: 'Dwarf' }).getAttribute('href')).toBe(
       '/bots/roster-dwarf',
     )
+    const hills = screen.getByRole('table', { name: 'best hill ranks' })
+    expect(cells(hills)).toEqual([['main', '2', 'Dwarf', '1,500']])
+    expect(within(hills).getByRole('link', { name: 'main' }).getAttribute('href')).toBe(
+      '/hills/main',
+    )
+    const cups = screen.getByRole('table', { name: 'championship results' })
+    expect(cells(cups)).toEqual([['Weekly 8', 'Dwarf', '4/0/1', 'champion']])
+    expect(within(cups).getByRole('link', { name: 'Weekly 8' }).getAttribute('href')).toBe(
+      '/tournaments/t8',
+    )
   })
 
   it('says so when there is no such user', async () => {

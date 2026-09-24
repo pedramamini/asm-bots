@@ -4,6 +4,19 @@ import { defineConfig, devices } from '@playwright/test'
 const PREVIEW = 'http://localhost:4173'
 /** The dev server: the gallery spec's, since `/_gallery` is a development route. */
 const DEV = 'http://localhost:5173'
+/**
+ * The Worker (`wrangler dev`, apps/api) serving that same build and the API on one origin, as
+ * production does, with `DEV_FAKE_AUTH` on: sign-in skips GitHub. Its own port and its own local
+ * storage, emptied and migrated at each start, so `bun run dev` can run beside it.
+ */
+export const WORKER = 'http://localhost:8788'
+const WORKER_STATE = '.wrangler/e2e'
+const WORKER_COMMAND = [
+  'cd ../api',
+  `rm -rf ${WORKER_STATE}`,
+  `bunx wrangler d1 migrations apply asmbots --local --persist-to ${WORKER_STATE}`,
+  `bunx wrangler dev --port 8788 --inspector-port 9239 --persist-to ${WORKER_STATE} --var DEV_FAKE_AUTH:1 --var SESSION_SECRET:e2e-session-secret`,
+].join(' && ')
 /** The frame-rate spec: it runs alone, since specs beside it on the same CPU slow the frames. */
 const PERF = /arena-perf\.spec\.ts$/
 
@@ -39,6 +52,13 @@ export default defineConfig({
     {
       command: 'bun run dev',
       url: `${DEV}/_gallery`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    // After the preview, whose command builds the `dist` this serves.
+    {
+      command: WORKER_COMMAND,
+      url: `${WORKER}/api/health`,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },

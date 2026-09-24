@@ -8,7 +8,9 @@ import type {
   BotLabel,
   BotPlacement,
   BotVersion,
+  ChampionshipResult,
   Hill,
+  HillBest,
   HillEntry,
   HillStanding,
   HillSummary,
@@ -28,6 +30,8 @@ export interface UserRow {
   created_at: string
   /** The GitHub account's primary verified email; never in a `User`. */
   email: string | null
+  /** When the user picked their handle; null until the first-sign-in dialog is done. */
+  onboarded_at: string | null
 }
 
 export interface BotRow {
@@ -288,6 +292,36 @@ export async function updateGithubUser(
     .first<UserRow>()
 }
 
+export async function getUserRow(db: D1Database, id: string): Promise<UserRow | null> {
+  return db.prepare('SELECT * FROM users WHERE id = ?').bind(id).first<UserRow>()
+}
+
+/**
+ * Gives user `id` the handle `handle` and marks them onboarded. Null when the user is gone;
+ * `taken` when someone else has the handle in any case.
+ */
+export async function setUserHandle(
+  db: D1Database,
+  id: string,
+  handle: string,
+): Promise<UserRow | 'taken' | null> {
+  try {
+    return await db
+      .prepare(
+        `UPDATE users SET handle = ?,
+           onboarded_at = COALESCE(onboarded_at, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+         WHERE id = ? RETURNING *`,
+      )
+      .bind(handle, id)
+      .first<UserRow>()
+  } catch (err) {
+    if (err instanceof Error && /UNIQUE constraint failed: users\.handle/.test(err.message)) {
+      return 'taken'
+    }
+    throw err
+  }
+}
+
 export async function getBot(db: D1Database, id: string): Promise<Bot | null> {
   const row = await db.prepare('SELECT * FROM bots WHERE id = ?').bind(id).first<BotRow>()
   return row && toBot(row)
@@ -304,6 +338,15 @@ export async function listBotsByOwner(
     : 'SELECT * FROM bots WHERE owner_id = ? ORDER BY updated_at DESC'
   const { results } = await db.prepare(sql).bind(ownerId).all<BotRow>()
   return results.map(toBot)
+}
+
+/** The slugs of `ownerId`'s bots: as many as they have. */
+export async function listBotSlugs(db: D1Database, ownerId: string): Promise<Set<string>> {
+  const { results } = await db
+    .prepare('SELECT slug FROM bots WHERE owner_id = ?')
+    .bind(ownerId)
+    .all<{ slug: string }>()
+  return new Set(results.map((row) => row.slug))
 }
 
 /** The row, not the record: the caller decides whether its source shows (`toBotVersion`). */
@@ -420,6 +463,97 @@ export async function listBotPlacements(db: D1Database, botId: string): Promise<
     version: row.version,
     entry: toHillEntry(row),
   }))
+}
+
+/** A user's best place on each hill they are on, in hill order. */
+export async function listUserHillBests(db: D1Database, userId: string): Promise<HillBest[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT e.*, ${LABEL_COLUMNS}, h.slug AS hill_slug, h.name AS hill_name
+       FROM hill_entries e JOIN bot_versions v ON v.id = e.bot_version_id ${LABEL_JOINS}
+       JOIN hills h ON h.id = e.hill_id
+       WHERE b.owner_id = ? ORDER BY h.created_at, h.slug, e.rank`,
+    )
+    .bind(userId)
+    .all<HillEntryRow & BotLabelRow & { hill_slug: string; hill_name: string }>()
+  const best = new Map<string, HillBest>()
+  for (const row of results) {
+    if (best.has(row.hill_id)) continue
+    best.set(row.hill_id, {
+      hill: { slug: row.hill_slug, name: row.hill_name },
+      entry: toHillEntry(row),
+      bot: toBotLabel(row),
+    })
+  }
+  return [...best.values()]
+}
+
+/**
+ * How a user's bots did in finished championships (tournaments with no owner), latest first. W/T/L
+ * count as the tourney scores them: most points wins, a shared top ties.
+ */
+export async function listUserChampionships(
+  db: D1Database,
+  userId: string,
+): Promise<ChampionshipResult[]> {
+  const { results: entries } = await db
+    .prepare(
+      `SELECT ${LABEL_COLUMNS}, t.id AS tournament_id, t.slug AS tournament_slug,
+         t.name AS tournament_name, t.starts_at
+       FROM tournaments t JOIN tournament_entries te ON te.tournament_id = t.id
+       JOIN bot_versions v ON v.id = te.bot_version_id ${LABEL_JOINS}
+       WHERE t.owner_id IS NULL AND t.status = 'finished' AND b.owner_id = ?
+       ORDER BY t.starts_at DESC, t.created_at DESC LIMIT ?`,
+    )
+    .bind(userId, MAX_LIMIT)
+    .all<
+      BotLabelRow & {
+        tournament_id: string
+        tournament_slug: string
+        tournament_name: string
+        starts_at: string | null
+      }
+    >()
+  if (entries.length === 0) return []
+  const { results: matches } = await db
+    .prepare(
+      `SELECT tournament_id, participants_json, result_json FROM matches
+       WHERE tournament_id IN (SELECT value FROM json_each(?)) AND result_json IS NOT NULL
+       ORDER BY finished_at`,
+    )
+    .bind(JSON.stringify([...new Set(entries.map((e) => e.tournament_id))]))
+    .all<{ tournament_id: string; participants_json: string; result_json: string }>()
+  return entries.map((row) => {
+    const out = { wins: 0, ties: 0, losses: 0 }
+    let wonLast = false
+    for (const m of matches) {
+      if (m.tournament_id !== row.tournament_id) continue
+      const at = (JSON.parse(m.participants_json) as string[]).indexOf(row.version_id)
+      if (at < 0) {
+        wonLast = false
+        continue
+      }
+      const { points } = JSON.parse(m.result_json) as MatchOutcome
+      const top = Math.max(...points)
+      const mine = points[at] ?? 0
+      const won = mine === top && points.filter((p) => p === top).length === 1
+      if (won) out.wins++
+      else if (mine === top) out.ties++
+      else out.losses++
+      wonLast = won
+    }
+    return {
+      tournament: {
+        id: row.tournament_id,
+        slug: row.tournament_slug,
+        name: row.tournament_name,
+        startsAt: row.starts_at,
+      },
+      bot: toBotLabel(row),
+      ...out,
+      champion: wonLast,
+    }
+  })
 }
 
 /** A hill's finished matches, newest first; with `botVersionId`, only the ones it played. */

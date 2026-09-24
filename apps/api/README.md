@@ -70,7 +70,11 @@ GitHub OAuth through `arctic`. The redirect URI is the OAuth app's registered ca
 
 CSRF: no token. SameSite=Lax keeps the cookie off every cross-site request but a top-level GET, and no GET changes state. A write whose `Origin` is neither the site nor `APP_ORIGIN` is 403. A write with no `Origin` (the CLI, scripts) is allowed, but its cookie counts for nothing, since every browser sends `Origin` on a write. The reasoning is in `src/auth/session.ts`.
 
+Beside the session the API sets `signed_in=1`, a cookie the page can read that proves nothing: the web app asks `GET /api/me` only when it is there, so a signed-out visit makes no request and logs no 401.
+
 In dev, sign in from a browser that keeps a Secure cookie on `http://localhost` (Chrome, Firefox).
+
+Test sign-in: with the var `DEV_FAKE_AUTH=1` (`wrangler dev --var DEV_FAKE_AUTH:1`), a request to localhost never goes to GitHub. `/api/auth/github` returns straight to the callback, which signs in `e2e-tester`, or the login `?as=` names. Any other host ignores the var. The web e2e (`apps/web/e2e/account.spec.ts`) runs on it: Playwright starts `wrangler dev` on :8788 with its own storage in `.wrangler/e2e`, emptied and migrated each start.
 
 | Method and path | Answers |
 | --- | --- |
@@ -78,9 +82,11 @@ In dev, sign in from a browser that keeps a Secure cookie on `http://localhost` 
 | `GET /api/auth/github?returnTo=/path` | 302 to GitHub, with the state (and `returnTo`, a local path) in 10-minute cookies |
 | `GET /api/auth/github/callback` | Checks the state, trades the code, makes or refreshes the user by `github_id` (first handle: the login, else login plus a suffix), starts a session, 302 to `returnTo` or `/?signed-in=1`; 400 on a bad state or code |
 | `POST /api/auth/logout` | Ends the session (KV and cookie); 204 |
-| `GET /api/me` | `{ user }` for the signed-in user; 401 otherwise |
+| `GET /api/me` | `{ user, onboarded }` for the signed-in user; 401 otherwise. `onboarded` is false until the user picks a handle |
+| `PATCH /api/me` | `{ handle }`: 3..24 of `[a-z0-9-]`, lowercased, no hyphen first, last, or doubled, not reserved (`admin api system roster docs hills arena`), 400 otherwise; 409 when someone has it in any case. Marks the user onboarded → `{ user, onboarded }` |
 | `GET /api/version` | `{ version, isa, live }` (`live`: the `LiveRoom` protocol version) |
 | `POST /api/assemble` | `{ source }` → `{ bytes, size, diagnostics, sha256 }`; `bytes: null` when the source has errors |
+| `POST /api/bots/import` | `{ bots: [{ name, source, visibility? }] }` (1..50), signed in: each source assembled here and made a bot at version 1 (private by default, bytes in R2) → 201 `{ results }`, one per bot in order: `{ ok: true, bot, version }`, or `{ ok: false, message, diagnostics }` for one that does not assemble. 409 past 200 bots an account |
 | `GET /api/bots/:id` | The bot, its owner, its versions (no sources), and its hill places; a private bot is 404 to others |
 | `GET /api/bots/:id/versions/:v` | One version, with its source when the bot is public or the reader's |
 | `GET /api/hills` | Every hill, its entrant count, and its king |
@@ -88,7 +94,7 @@ In dev, sign in from a browser that keeps a Secure cookie on `http://localhost` 
 | `GET /api/hills/:slug/matches?bot=&limit=` | Its finished matches, newest first |
 | `GET /api/tournaments` | Running first, then by start time |
 | `GET /api/tournaments/:id` | The tournament, its entrants, and its matches; a draft is 404 to all but its owner |
-| `GET /api/users/:handle` | The user (any case) and their public bots; all of them for the user themself |
+| `GET /api/users/:handle` | The user (any case) and their public bots (all of them for the user themself), their best place on each hill, and their results in finished championships (W/T/L, and `champion` when they won the last match) |
 | `POST /api/replays` | `{ replay }`: re-simulated (≤ 16 bots, ≤ 10 rounds, ≤ 200k cycles, else 413), result hash checked (422 on a mismatch), stored in R2 → `{ key, url }` |
 | `GET /api/replays/:key` | The stored protocol `Replay` |
 | `GET /api/replays/:key/og.svg` | The replay's Open Graph image (SVG), cached a day in KV |

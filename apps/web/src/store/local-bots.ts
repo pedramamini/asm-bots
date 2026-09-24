@@ -11,6 +11,8 @@ export interface LocalBot {
   source: string
   /** Last save, ms since the epoch. */
   updatedAt: number
+  /** The account bot it was imported to (PRODUCT_SPEC §9): synced. Unset for a local-only bot. */
+  cloudId?: string | undefined
 }
 
 /** The IndexedDB database and object store of the local bots. */
@@ -40,20 +42,30 @@ export function getLocalBot(id: string): Promise<LocalBot | undefined> {
   return get<LocalBot>(id, botStore())
 }
 
-/** Creates a bot (no `id`) or overwrites one, stamped now. */
+/** Creates a bot (no `id`) or overwrites one, stamped now. An overwrite keeps its `cloudId`. */
 export async function saveLocalBot(bot: {
   id?: string | undefined
   name: string
   source: string
 }): Promise<LocalBot> {
+  const cloudId = bot.id === undefined ? undefined : (await getLocalBot(bot.id))?.cloudId
   const saved: LocalBot = {
     id: bot.id ?? crypto.randomUUID(),
     name: bot.name,
     source: bot.source,
     updatedAt: Date.now(),
+    ...(cloudId !== undefined && { cloudId }),
   }
   await set(saved.id, saved, botStore())
   return saved
+}
+
+/** Marks local bots synced: each local id to the account bot it was imported to. */
+export async function markLocalBotsSynced(cloudIds: ReadonlyMap<string, string>): Promise<void> {
+  for (const [id, cloudId] of cloudIds) {
+    const bot = await getLocalBot(id)
+    if (bot !== undefined) await set(id, { ...bot, cloudId }, botStore())
+  }
 }
 
 /** Deletes a bot and its saved versions. */

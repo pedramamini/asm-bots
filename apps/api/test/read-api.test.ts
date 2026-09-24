@@ -281,6 +281,23 @@ describe('GET /api/users/:handle', () => {
     expect(system.bots).toHaveLength(3)
     expect(await errorOf('/api/users/nobody')).toEqual({ status: 404, code: 'not_found' })
   })
+
+  it('gives their best place on each hill and their championship results', async () => {
+    const pedram = await read<UserDetail>('/api/users/pedram', UserDetail)
+    expect(pedram.hills).toEqual([])
+    expect(pedram.championships).toEqual([])
+    const system = await read<UserDetail>('/api/users/system', UserDetail)
+    expect(system.hills.map((h) => [h.hill.slug, h.entry.rank])).toEqual([
+      ['main', 1],
+      ['melee', 1],
+      ['tiny', 1],
+    ])
+    const results = system.championships.map((r) => [r.tournament.slug, r.bot.name, r.wins])
+    expect(results.sort()).toEqual([
+      ['weekly-1', 'Dwarf', 0],
+      ['weekly-1', 'Spin', 0],
+    ])
+  })
 })
 
 describe('GET /api/tournaments', () => {

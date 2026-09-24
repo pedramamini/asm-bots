@@ -149,6 +149,17 @@ export const DWARF_DETAIL: BotDetail = {
 export const SYSTEM: UserDetail = {
   user: { id: 'system', handle: 'system', avatarUrl: null, createdAt: T },
   bots: [DWARF_DETAIL.bot],
+  hills: [{ hill: { slug: 'main', name: 'main' }, entry: entry(DWARF, 2, 145), bot: DWARF }],
+  championships: [
+    {
+      tournament: { id: 't8', slug: 'weekly-8', name: 'Weekly 8', startsAt: T },
+      bot: DWARF,
+      wins: 4,
+      ties: 0,
+      losses: 1,
+      champion: true,
+    },
+  ],
 }
 
 export const TOURNAMENTS: TournamentList = {

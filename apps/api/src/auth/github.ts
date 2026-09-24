@@ -7,6 +7,9 @@
  * - `POST /logout`: ends the session; 204 either way.
  * The OAuth app's registered callback URL is the redirect URI, so dev and production differ only
  * in which app's id and secret they hold.
+ *
+ * With `fakeAuth` (`DEV_FAKE_AUTH=1` on localhost) GitHub is never called: `/github` comes straight
+ * back to the callback, which signs in the test user `e2e-tester`, or the login `?as=` names.
  */
 import { GitHub, generateState, OAuth2RequestError } from 'arctic'
 import { type Context, Hono } from 'hono'
@@ -20,7 +23,14 @@ import {
 import type { AppEnv } from '../env'
 import { errorResponse, log } from '../middleware'
 import { handleCandidates } from './handle'
-import { authConfigured, cookieOptions, endSession, sessionKey, startSession } from './session'
+import {
+  authConfigured,
+  cookieOptions,
+  endSession,
+  fakeAuth,
+  sessionKey,
+  startSession,
+} from './session'
 
 const STATE_COOKIE = 'oauth_state'
 const RETURN_COOKIE = 'oauth_return_to'
@@ -29,6 +39,10 @@ const AUTH_PATH = '/api/auth'
 const STATE_TTL_SECONDS = 10 * 60
 const SCOPES = ['read:user', 'user:email']
 const SIGNED_IN = '/?signed-in=1'
+
+/** The test user of `fakeAuth`, and the logins `?as=` may name instead. */
+const FAKE_LOGIN = 'e2e-tester'
+const FAKE_AS = /^[a-z0-9-]{1,39}$/
 
 /** A path on this site: one leading slash, not `//host` or `/\host`, no whitespace. */
 const LOCAL_PATH = /^\/(?![/\\])\S{0,511}$/
@@ -74,6 +88,13 @@ async function fetchPrimaryEmail(token: string): Promise<string | null> {
   return typeof primary?.email === 'string' ? primary.email : null
 }
 
+/** The account `fakeAuth` signs in for `login`: an id of its own, above any real GitHub id. */
+function fakeAccount(login: string): GithubProfile & { login: string } {
+  let hash = 0x811c9dc5
+  for (const ch of login) hash = Math.imul(hash ^ (ch.codePointAt(0) ?? 0), 0x01000193) >>> 0
+  return { githubId: 2 ** 40 + hash, login, avatarUrl: null, email: null }
+}
+
 /** The user for a GitHub account, made on its first sign-in. */
 async function signInUser(db: D1Database, account: GithubProfile & { login: string }) {
   const known = await updateGithubUser(db, account)
@@ -83,6 +104,19 @@ async function signInUser(db: D1Database, account: GithubProfile & { login: stri
     return upsertGithubUser(db, { ...account, id: crypto.randomUUID(), handle })
   }
   throw new Error(`no free handle for GitHub login ${account.login}`)
+}
+
+/** Signs `account` in: its user, a new session in place of any the browser had, then `back`. */
+async function finishSignIn(
+  c: Context<AppEnv>,
+  account: GithubProfile & { login: string },
+  back: string,
+): Promise<Response> {
+  const user = await signInUser(c.env.DB, account)
+  const old = c.get('session')
+  if (old) await c.env.KV.delete(sessionKey(old.id))
+  await startSession(c, user.id)
+  return c.redirect(back, 302)
 }
 
 export const auth = new Hono<AppEnv>()
@@ -95,6 +129,12 @@ export const auth = new Hono<AppEnv>()
       setCookie(c, RETURN_COOKIE, returnTo, cookieOptions(STATE_TTL_SECONDS, AUTH_PATH))
     } else {
       deleteCookie(c, RETURN_COOKIE, { path: AUTH_PATH, secure: true })
+    }
+    if (fakeAuth(c)) {
+      const as = c.req.query('as')
+      const code = as !== undefined && FAKE_AS.test(as) ? as : FAKE_LOGIN
+      const query = new URLSearchParams({ code, state })
+      return c.redirect(`${AUTH_PATH}/github/callback?${query}`, 302)
     }
     return c.redirect(github(c).createAuthorizationURL(state, SCOPES).toString(), 302)
   })
@@ -111,6 +151,9 @@ export const auth = new Hono<AppEnv>()
     if (!code || !state || !expected || state !== expected) {
       return errorResponse(c, 'bad_request', 'the sign-in expired or did not match: try again')
     }
+    if (fakeAuth(c)) {
+      return finishSignIn(c, fakeAccount(FAKE_AS.test(code) ? code : FAKE_LOGIN), back)
+    }
     let token: string
     try {
       token = (await github(c).validateAuthorizationCode(code)).accessToken()
@@ -119,12 +162,7 @@ export const auth = new Hono<AppEnv>()
       log('warn', 'github refused the code', { requestId: c.get('requestId'), code: err.code })
       return errorResponse(c, 'bad_request', `github refused the sign-in (${err.code}): try again`)
     }
-    const user = await signInUser(c.env.DB, await fetchGithubAccount(token))
-    // A sign-in replaces whatever session the browser had.
-    const old = c.get('session')
-    if (old) await c.env.KV.delete(sessionKey(old.id))
-    await startSession(c, user.id)
-    return c.redirect(back, 302)
+    return finishSignIn(c, await fetchGithubAccount(token), back)
   })
   .post('/logout', async (c) => {
     await endSession(c)

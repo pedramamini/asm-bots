@@ -11,8 +11,11 @@ import {
   vars,
 } from '@asmbots/ui'
 import { applyTheme, THEMES, type Theme } from '@asmbots/ui/themes'
-import { Download, LogIn, Trash2, Upload } from 'lucide-react'
+import { Download, LogOut, Trash2, Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useMe } from '../api/queries'
+import { SignInButton, useSignOut } from '../features/account/AccountSlot'
+import { UserLink } from '../features/hills/links'
 import { botsToZip, type LocalBot, useLocalBotActions, useLocalBots } from '../store/local-bots'
 import {
   type ArenaEffects,
@@ -182,15 +185,33 @@ function SoundPanel() {
 }
 
 function AccountPanel() {
+  const { data: me } = useMe()
+  const signOut = useSignOut()
   return (
-    <Panel className="col-span-12 lg:col-span-6" title="account" status="signed out">
+    <Panel
+      className="col-span-12 lg:col-span-6"
+      title="account"
+      status={me ? `signed in: ${me.user.handle}` : 'signed out'}
+    >
       <div className="flex flex-col items-start gap-3">
-        <p className="text-muted">
-          signed out. local bots stay in this browser; sign in to keep them in the cloud.
-        </p>
-        <Button icon={LogIn} disabled title="accounts arrive with the api">
-          sign in with github
-        </Button>
+        {me ? (
+          <>
+            <p className="text-muted">
+              signed in with github as <UserLink handle={me.user.handle} />. local bots stay in this
+              browser too.
+            </p>
+            <Button icon={LogOut} onClick={() => void signOut()}>
+              sign out
+            </Button>
+          </>
+        ) : (
+          <>
+            <p className="text-muted">
+              signed out. local bots stay in this browser; sign in to keep them in the cloud.
+            </p>
+            <SignInButton />
+          </>
+        )}
       </div>
     </Panel>
   )

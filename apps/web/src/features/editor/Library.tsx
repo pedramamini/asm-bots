@@ -78,6 +78,7 @@ export function Library({ current, local, recent, onOpen, onFork, className }: L
                   onOpen={() => onOpen(target)}
                 >
                   {bot.name}
+                  {bot.cloudId !== undefined && <span className="text-muted"> · synced</span>}
                 </Row>
               )
             })
