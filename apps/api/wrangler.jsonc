@@ -6,6 +6,8 @@
   "name": "asmbots",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-15",
+  // Production domain: a Workers Custom Domain on the asmbots.io zone (same Cloudflare account).
+  "routes": [{ "pattern": "asmbots.io", "custom_domain": true }],
   "assets": {
     "directory": "../web/dist",
     "binding": "ASSETS",
@@ -17,12 +19,13 @@
     {
       "binding": "DB",
       "database_name": "asmbots",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "5c8bd9ee-3bb7-4eea-8bfe-dee862bee2e3",
+      "remote": true,
       "migrations_dir": "src/db/migrations"
     }
   ],
   "r2_buckets": [{ "binding": "REPLAYS", "bucket_name": "asmbots-replays" }],
-  "kv_namespaces": [{ "binding": "KV", "id": "00000000000000000000000000000000" }],
+  "kv_namespaces": [{ "binding": "KV", "id": "24af2453a5994d24ace5f8f0900f04ca" }],
   "durable_objects": {
     "bindings": [
       { "name": "RUNNER", "class_name": "Runner" },
