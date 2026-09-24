@@ -3,6 +3,7 @@
  * hills list, a hill, a bot, a profile, and the home page's panels, loading, loaded, and refused.
  */
 import { describe, expect, it } from 'bun:test'
+import { ToastProvider } from '@asmbots/ui'
 import {
   createMemoryHistory,
   createRootRoute,
@@ -72,7 +73,9 @@ async function renderAt(path: string, content: () => ReactNode) {
   })
   render(
     <WithQueries>
-      <RouterProvider router={router as never} />
+      <ToastProvider>
+        <RouterProvider router={router as never} />
+      </ToastProvider>
     </WithQueries>,
   )
   await act(() => router.load())

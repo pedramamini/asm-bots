@@ -1,3 +1,4 @@
+import type { MyBot } from '@asmbots/protocol'
 import { cx, IconButton, Panel } from '@asmbots/ui'
 import { GitFork, Plus } from 'lucide-react'
 import type { ReactNode } from 'react'
@@ -10,18 +11,41 @@ export interface LibraryProps {
   current: string
   /** This browser's bots, or undefined while they are read. */
   local: readonly LocalBot[] | undefined
+  /**
+   * The signed-in user's bots in the account, or undefined while they are read or nobody is
+   * signed in (`cloudError` says it failed).
+   */
+  cloud?: readonly MyBot[] | undefined
+  cloudError?: boolean | undefined
   /** The keys of the documents opened lately, the latest first. */
   recent: readonly string[]
   onOpen: (target: DocTarget) => void
   onFork: (bot: CatalogBot) => void
+  /** Opens an account bot: in the local bot linked to it, made from its latest version if none. */
+  onOpenCloud?: ((bot: MyBot) => void) | undefined
   className?: string | undefined
 }
 
 /**
- * The bot library (PRODUCT_SPEC §3, `b`): my bots, which open to edit; the roster, which opens
- * read-only and forks into my bots; and the documents opened lately.
+ * The bot library (PRODUCT_SPEC §3, `b`): my bots, which open to edit; when signed in, my bots in
+ * the account (`mine (cloud)`), which open in their local copy; the roster, which opens read-only
+ * and forks into my bots; and the documents opened lately.
  */
-export function Library({ current, local, recent, onOpen, onFork, className }: LibraryProps) {
+export function Library({
+  current,
+  local,
+  cloud,
+  cloudError = false,
+  recent,
+  onOpen,
+  onFork,
+  onOpenCloud,
+  className,
+}: LibraryProps) {
+  // The account bot a local bot is linked to shows as current while that bot is open.
+  const currentCloud = (local ?? []).find(
+    (bot) => docKey({ kind: 'local', id: bot.id }) === current,
+  )?.cloudId
   const roster = rosterCatalog()
   const names = new Map<string, string>([
     [docKey(SCRATCH), 'new bot'],
@@ -84,6 +108,29 @@ export function Library({ current, local, recent, onOpen, onFork, className }: L
             })
           )}
         </Section>
+        {(cloud !== undefined || cloudError) && onOpenCloud !== undefined && (
+          <Section title="mine (cloud)">
+            {cloud === undefined ? (
+              <p className="px-1 text-data text-muted">could not read your account's bots.</p>
+            ) : cloud.length === 0 ? (
+              <p className="px-1 text-data text-muted">none yet: save while signed in.</p>
+            ) : (
+              cloud.map((mine) => (
+                <Row
+                  key={mine.bot.id}
+                  current={mine.bot.id === currentCloud}
+                  onOpen={() => onOpenCloud(mine)}
+                >
+                  {mine.bot.name}
+                  <span className="text-muted">
+                    {mine.latest === null ? '' : ` · v${mine.latest.version}`}
+                    {mine.bot.visibility === 'private' ? '' : ` · ${mine.bot.visibility}`}
+                  </span>
+                </Row>
+              ))
+            )}
+          </Section>
+        )}
         <Section title="roster">
           {roster.map((bot) => (
             <Row

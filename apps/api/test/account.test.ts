@@ -7,67 +7,9 @@
 import { env } from 'cloudflare:workers'
 import { ImportBotsResult, MAX_BOTS_PER_USER, Me, parse, UserDetail } from '@asmbots/protocol'
 import { describe, expect, it } from 'vitest'
-import type { Env } from '../src/env'
-import worker from '../src/index'
 import { botBytesKey } from '../src/storage'
+import { errorOf, HALT, me, SPIN, send, signIn } from './fake-auth'
 import { Jar } from './jar'
-
-const LOCAL = 'http://localhost:8787'
-const FAKE: Env = { ...env, DEV_FAKE_AUTH: '1' }
-
-const CTX = {
-  waitUntil: () => {},
-  passThroughOnException: () => {},
-  props: {},
-} as unknown as ExecutionContext
-
-interface Send {
-  method?: string
-  body?: unknown
-  site?: string
-  vars?: Env
-}
-
-async function send(
-  jar: Jar,
-  path: string,
-  { method = 'GET', body, site = LOCAL, vars = FAKE }: Send = {},
-): Promise<Response> {
-  const headers = new Headers({ Cookie: jar.header() })
-  if (method !== 'GET') headers.set('Origin', site)
-  if (body !== undefined) headers.set('Content-Type', 'application/json')
-  const init = { method, headers, redirect: 'manual' as const }
-  const request = new Request(`${site}${path}`, {
-    ...init,
-    ...(body !== undefined && { body: JSON.stringify(body) }),
-  })
-  const res = await worker.fetch(request, vars, CTX)
-  jar.take(res)
-  return res
-}
-
-/** Signs in the test user `as` through the fake sign-in; returns the callback's redirect. */
-async function signIn(jar: Jar, as: string, returnTo = '/editor'): Promise<Response> {
-  const start = await send(jar, `/api/auth/github?as=${as}&returnTo=${returnTo}`)
-  expect(start.status).toBe(302)
-  const to = start.headers.get('Location') ?? ''
-  expect(to).toMatch(/^\/api\/auth\/github\/callback\?/)
-  return send(jar, to)
-}
-
-async function me(jar: Jar): Promise<Me> {
-  const res = await send(jar, '/api/me')
-  expect(res.status).toBe(200)
-  return parse(Me, await res.json(), 'me')
-}
-
-async function errorOf(res: Response): Promise<{ status: number; code: string; message: string }> {
-  const { error } = (await res.json()) as { error: { code: string; message: string } }
-  return { status: res.status, code: error.code, message: error.message }
-}
-
-const SPIN = '%name "Spin"\n%author "Tester"\n%strategy "Jump to itself"\nstart: jmp $\n'
-const HALT = '%name "Halt"\nstart: hlt ; lint: allow hlt-in-code\n'
 
 describe('DEV_FAKE_AUTH', () => {
   it('signs in the test user without GitHub, on localhost', async () => {

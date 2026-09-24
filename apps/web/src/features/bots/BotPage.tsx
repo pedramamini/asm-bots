@@ -15,6 +15,7 @@ import { useBot, useBotVersion } from '../../api/queries'
 import { LoadFailure, readStatus } from '../../app/LoadFailure'
 import { Placeholder } from '../../app/Placeholder'
 import { CELL_LINK, count, day, UserLink } from '../hills/links'
+import { BotActions } from './BotActions'
 
 const PLACEMENT_COLUMNS: TableColumn<BotPlacement>[] = [
   {
@@ -68,8 +69,8 @@ const VERSION_COLUMNS: TableColumn<BotVersion>[] = [
 ]
 
 /**
- * `/bots/$id` (PRODUCT_SPEC §6): the bot's card, where it stands on each hill, its versions, and
- * the latest version's source when the bot is public.
+ * `/bots/$id` (PRODUCT_SPEC §6): the bot's card with `fork` and `challenge`, where it stands on
+ * each hill, its versions, and the latest version's source when the bot is public (or mine).
  */
 export function BotPage({ id }: { id: string }) {
   const bot = useBot(id)
@@ -99,7 +100,12 @@ export function BotPage({ id }: { id: string }) {
   const text = source.data?.version.source
   return (
     <PanelGrid className="p-3">
-      <Panel className="col-span-12 xl:col-span-4" title="bot" status={record.visibility}>
+      <Panel
+        className="col-span-12 xl:col-span-4"
+        title="bot"
+        status={record.visibility}
+        actions={<BotActions bot={record} source={text} />}
+      >
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-3">
             <Identicon value={latest?.bytesSha256 ?? record.id} size={40} />

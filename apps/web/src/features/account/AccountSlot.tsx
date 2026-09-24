@@ -32,6 +32,7 @@ export function useSignOut(): () => Promise<void> {
       return
     }
     client.setQueryData(['me'], null)
+    client.removeQueries({ queryKey: ['me', 'bots'] })
     await client.invalidateQueries({ queryKey: ['users'] })
     toast('signed out.')
   }

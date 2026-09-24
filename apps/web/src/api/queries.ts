@@ -10,6 +10,7 @@ import {
   HillList,
   MatchList,
   Me,
+  MyBotList,
   parse,
   parseReplay,
   TournamentDetail,
@@ -134,6 +135,13 @@ export const meQuery = () =>
     },
   })
 
+/** The signed-in user's cloud bots, under `me` so signing out drops them with the account. */
+export const myBotsQuery = () =>
+  queryOptions({
+    queryKey: ['me', 'bots'],
+    queryFn: ({ signal }) => apiGet('/me/bots', (v) => parse(MyBotList, v, 'your bots'), signal),
+  })
+
 export const useHills = () => useQuery(hillsQuery())
 export const useHill = (slug: string) => useQuery(hillQuery(slug))
 export const useHillMatches = (slug: string, filter?: HillMatchesFilter) =>
@@ -151,3 +159,8 @@ export const useTournament = (id: string | null) =>
   useQuery({ ...tournamentQuery(id ?? ''), enabled: id !== null })
 export const useUser = (handle: string) => useQuery(userQuery(handle))
 export const useMe = () => useQuery(meQuery())
+/** The signed-in user's cloud bots; asks nothing while nobody is signed in. */
+export function useMyBots() {
+  const signedIn = Boolean(useMe().data)
+  return useQuery({ ...myBotsQuery(), enabled: signedIn })
+}

@@ -138,12 +138,13 @@ export type TournamentDetail = z.output<typeof TournamentDetail>
 /** The most source text `POST /api/assemble` takes, in UTF-16 code units. */
 export const MAX_SOURCE_TEXT = 64 * 1024
 
+/** Assembly source text, at most `MAX_SOURCE_TEXT`. */
+const SourceText = z
+  .string()
+  .check(z.refine((text) => text.length <= MAX_SOURCE_TEXT, 'the source is over 64 KB'))
+
 /** `POST /api/assemble` */
-export const AssembleRequest = z.object({
-  source: z
-    .string()
-    .check(z.refine((text) => text.length <= MAX_SOURCE_TEXT, 'the source is over 64 KB')),
-})
+export const AssembleRequest = z.object({ source: SourceText })
 export type AssembleRequest = z.output<typeof AssembleRequest>
 
 /** An assembler finding, located in the source (ISA §6.5; `@asmbots/asm`'s `Diag`). */
@@ -201,15 +202,57 @@ export const MAX_BOTS_PER_USER = 200
 /** The most bots one `POST /api/bots/import` takes. */
 export const MAX_IMPORT = 50
 
-/** A bot to make from its source; private unless it says otherwise. */
+/** The most versions a bot may have. */
+export const MAX_VERSIONS_PER_BOT = 100
+
+/**
+ * `POST /api/bots`, and each bot of an import: a bot to make from its source, private unless it
+ * says otherwise.
+ */
 export const NewBot = z.object({
   name: matching(NAME),
-  source: z
-    .string()
-    .check(z.refine((text) => text.length <= MAX_SOURCE_TEXT, 'the source is over 64 KB')),
+  source: SourceText,
   visibility: z.optional(Visibility),
 })
 export type NewBot = z.output<typeof NewBot>
+
+/** `POST /api/bots`: the bot the server made, and its version 1 (with its source). */
+export const SavedBot = z.object({ bot: Bot, version: BotVersion })
+export type SavedBot = z.output<typeof SavedBot>
+
+/** `PATCH /api/bots/:id`: a new name, a new visibility, or both. */
+export const UpdateBot = z
+  .object({ name: z.optional(matching(NAME)), visibility: z.optional(Visibility) })
+  .check(
+    z.refine(
+      (update) => update.name !== undefined || update.visibility !== undefined,
+      'the update changes nothing: send a name or a visibility',
+    ),
+  )
+export type UpdateBot = z.output<typeof UpdateBot>
+
+/** `PATCH /api/bots/:id` */
+export const UpdatedBot = z.object({ bot: Bot })
+export type UpdatedBot = z.output<typeof UpdatedBot>
+
+/** `POST /api/bots/:id/versions`: a new source for the bot. */
+export const NewBotVersion = z.object({ source: SourceText })
+export type NewBotVersion = z.output<typeof NewBotVersion>
+
+/**
+ * `POST /api/bots/:id/versions`: the version the source made (`created`), or the latest version
+ * when the source assembles to the same bytes (not `created`), each with its source.
+ */
+export const SavedBotVersion = z.object({ bot: Bot, version: BotVersion, created: z.boolean() })
+export type SavedBotVersion = z.output<typeof SavedBotVersion>
+
+/** One of the signed-in user's bots: the bot and its latest version, without its source. */
+export const MyBot = z.object({ bot: Bot, latest: z.nullable(BotVersion) })
+export type MyBot = z.output<typeof MyBot>
+
+/** `GET /api/me/bots`: the signed-in user's bots, every visibility, the latest change first. */
+export const MyBotList = z.object({ bots: z.array(MyBot) })
+export type MyBotList = z.output<typeof MyBotList>
 
 /** `POST /api/bots/import`: local bots to keep in the account, each made at version 1. */
 export const ImportBotsRequest = z.object({

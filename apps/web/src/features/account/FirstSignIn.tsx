@@ -175,6 +175,7 @@ function ImportStep({ bots, onDone }: { bots: readonly LocalBot[]; onDone: () =>
     }
     await client.invalidateQueries({ queryKey: LOCAL_BOTS_KEY })
     await client.invalidateQueries({ queryKey: ['users'] })
+    await client.invalidateQueries({ queryKey: ['me', 'bots'] })
     onDone()
   }
 

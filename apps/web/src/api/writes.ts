@@ -5,10 +5,16 @@ import {
   type NewBot,
   parse,
   type Replay,
+  SavedBot,
+  SavedBotVersion,
   StoredReplay,
+  type UpdateBot,
+  UpdatedBot,
   type UpdateMe,
 } from '@asmbots/protocol'
-import { apiPatch, apiPost } from './client'
+import { apiDelete, apiPatch, apiPost } from './client'
+
+const segment = encodeURIComponent
 
 /** `POST /api/replays`: the server runs `replay`'s match again, then keeps it under its key. */
 export function storeReplay(replay: Replay, signal?: AbortSignal): Promise<StoredReplay> {
@@ -23,6 +29,28 @@ export function updateMe(update: UpdateMe): Promise<Me> {
 /** `POST /api/bots/import`: local bots kept in the account, one result each, in order. */
 export function importBots(bots: readonly NewBot[]): Promise<ImportBotsResult> {
   return apiPost('/bots/import', { bots }, (v) => parse(ImportBotsResult, v, 'the import'))
+}
+
+/** `POST /api/bots`: a new bot in the account, at version 1. */
+export function createBot(bot: NewBot): Promise<SavedBot> {
+  return apiPost('/bots', bot, (v) => parse(SavedBot, v, 'the bot'))
+}
+
+/** `PATCH /api/bots/:id`: a new name or visibility. */
+export function updateBot(id: string, update: UpdateBot): Promise<UpdatedBot> {
+  return apiPatch(`/bots/${segment(id)}`, update, (v) => parse(UpdatedBot, v, 'the bot'))
+}
+
+/** `POST /api/bots/:id/versions`: the next version, or the latest when its bytes are the same. */
+export function addBotVersion(id: string, source: string): Promise<SavedBotVersion> {
+  return apiPost(`/bots/${segment(id)}/versions`, { source }, (v) =>
+    parse(SavedBotVersion, v, 'the version'),
+  )
+}
+
+/** `DELETE /api/bots/:id` */
+export function deleteBot(id: string): Promise<void> {
+  return apiDelete(`/bots/${segment(id)}`)
 }
 
 /** `POST /api/auth/logout`: ends the session here and on the server. */

@@ -84,10 +84,15 @@ Test sign-in: with the var `DEV_FAKE_AUTH=1` (`wrangler dev --var DEV_FAKE_AUTH:
 | `POST /api/auth/logout` | Ends the session (KV and cookie); 204 |
 | `GET /api/me` | `{ user, onboarded }` for the signed-in user; 401 otherwise. `onboarded` is false until the user picks a handle |
 | `PATCH /api/me` | `{ handle }`: 3..24 of `[a-z0-9-]`, lowercased, no hyphen first, last, or doubled, not reserved (`admin api system roster docs hills arena`), 400 otherwise; 409 when someone has it in any case. Marks the user onboarded → `{ user, onboarded }` |
+| `GET /api/me/bots` | `{ bots: [{ bot, latest }] }`: the signed-in user's bots, every visibility, the latest change first; `latest` is the newest version without its source |
 | `GET /api/version` | `{ version, isa, live }` (`live`: the `LiveRoom` protocol version) |
 | `POST /api/assemble` | `{ source }` → `{ bytes, size, diagnostics, sha256 }`; `bytes: null` when the source has errors |
+| `POST /api/bots` | `{ name, source, visibility? }`, signed in: assembled here (422 with the first error when it does not), made a bot at version 1 (private by default, bytes in R2) → 201 `{ bot, version }`. 409 past 200 bots an account (deleted ones do not count) |
+| `PATCH /api/bots/:id` | `{ name?, visibility? }` (at least one), the owner only: 403 to another who can see it, 404 to one who cannot. The slug stays → `{ bot }` |
+| `POST /api/bots/:id/versions` | `{ source }`, the owner only: assembled here (422), the next version → 201 `{ bot, version, created: true }`. Bytes the same as the latest version's make none → 200 `{ bot, version: latest, created: false }`. 409 past 100 versions a bot |
+| `DELETE /api/bots/:id` | The owner only: soft (`bots.deleted_at`), so hill entries and matches keep their history; the bot is 404 to everyone from then on, its owner too, and frees its place under the 200. 204 |
 | `POST /api/bots/import` | `{ bots: [{ name, source, visibility? }] }` (1..50), signed in: each source assembled here and made a bot at version 1 (private by default, bytes in R2) → 201 `{ results }`, one per bot in order: `{ ok: true, bot, version }`, or `{ ok: false, message, diagnostics }` for one that does not assemble. 409 past 200 bots an account |
-| `GET /api/bots/:id` | The bot, its owner, its versions (no sources), and its hill places; a private bot is 404 to others |
+| `GET /api/bots/:id` | The bot, its owner, its versions (no sources), and its hill places; a private bot is 404 to others, a deleted one to all |
 | `GET /api/bots/:id/versions/:v` | One version, with its source when the bot is public or the reader's |
 | `GET /api/hills` | Every hill, its entrant count, and its king |
 | `GET /api/hills/:slug` | The hill and its standings |

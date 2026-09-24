@@ -1,5 +1,5 @@
 /**
- * The API's client: `GET`, `POST`, and `PATCH /api/...` on the page's own origin (in dev, Vite
+ * The API's client: `GET`, `POST`, `PATCH`, and `DELETE /api/...` on the page's own origin (in dev, Vite
  * proxies it to `wrangler dev`). A response is read through its protocol schema, so a page gets
  * typed records or an error that says what went wrong.
  */
@@ -51,6 +51,16 @@ export function apiPatch<T>(
   signal?: AbortSignal,
 ): Promise<T> {
   return apiSend('PATCH', path, body, read, signal)
+}
+
+/** `DELETE /api<path>`; its answer has no body. */
+export async function apiDelete(path: string, signal?: AbortSignal): Promise<void> {
+  await request(
+    path,
+    { method: 'DELETE', headers: { Accept: 'application/json' } },
+    () => undefined,
+    signal,
+  )
 }
 
 function apiSend<T>(

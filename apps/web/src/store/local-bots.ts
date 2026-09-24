@@ -42,13 +42,18 @@ export function getLocalBot(id: string): Promise<LocalBot | undefined> {
   return get<LocalBot>(id, botStore())
 }
 
-/** Creates a bot (no `id`) or overwrites one, stamped now. An overwrite keeps its `cloudId`. */
+/**
+ * Creates a bot (no `id`) or overwrites one, stamped now. An overwrite keeps its `cloudId` unless
+ * the bot names another.
+ */
 export async function saveLocalBot(bot: {
   id?: string | undefined
   name: string
   source: string
+  cloudId?: string | undefined
 }): Promise<LocalBot> {
-  const cloudId = bot.id === undefined ? undefined : (await getLocalBot(bot.id))?.cloudId
+  const cloudId =
+    bot.cloudId ?? (bot.id === undefined ? undefined : (await getLocalBot(bot.id))?.cloudId)
   const saved: LocalBot = {
     id: bot.id ?? crypto.randomUUID(),
     name: bot.name,

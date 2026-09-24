@@ -16,6 +16,7 @@ import type {
   HillSummary,
   Match,
   MatchOutcome,
+  MyBot,
   ReplayConfig,
   Tournament,
   TournamentConfig,
@@ -42,6 +43,8 @@ export interface BotRow {
   visibility: Bot['visibility']
   created_at: string
   updated_at: string
+  /** When its owner deleted it; null while it lives. A deleted bot is no one's to read. */
+  deleted_at: string | null
 }
 
 export interface BotVersionRow {
@@ -322,8 +325,12 @@ export async function setUserHandle(
   }
 }
 
+/** The bot `id`; null when there is none, or its owner deleted it. */
 export async function getBot(db: D1Database, id: string): Promise<Bot | null> {
-  const row = await db.prepare('SELECT * FROM bots WHERE id = ?').bind(id).first<BotRow>()
+  const row = await db
+    .prepare('SELECT * FROM bots WHERE id = ? AND deleted_at IS NULL')
+    .bind(id)
+    .first<BotRow>()
   return row && toBot(row)
 }
 
@@ -333,14 +340,39 @@ export async function listBotsByOwner(
   ownerId: string,
   publicOnly: boolean,
 ): Promise<Bot[]> {
-  const sql = publicOnly
-    ? "SELECT * FROM bots WHERE owner_id = ? AND visibility = 'public' ORDER BY updated_at DESC"
-    : 'SELECT * FROM bots WHERE owner_id = ? ORDER BY updated_at DESC'
+  const sql = `SELECT * FROM bots WHERE owner_id = ? AND deleted_at IS NULL
+    ${publicOnly ? "AND visibility = 'public'" : ''} ORDER BY updated_at DESC`
   const { results } = await db.prepare(sql).bind(ownerId).all<BotRow>()
   return results.map(toBot)
 }
 
-/** The slugs of `ownerId`'s bots: as many as they have. */
+/** How many bots `ownerId` has, not counting deleted ones: what `MAX_BOTS_PER_USER` holds. */
+export async function countBots(db: D1Database, ownerId: string): Promise<number> {
+  const row = await db
+    .prepare('SELECT COUNT(*) AS n FROM bots WHERE owner_id = ? AND deleted_at IS NULL')
+    .bind(ownerId)
+    .first<{ n: number }>()
+  return row?.n ?? 0
+}
+
+/** An owner's bots, each with its latest version (no source), the latest change first. */
+export async function listMyBots(db: D1Database, ownerId: string): Promise<MyBot[]> {
+  const [bots, { results }] = await Promise.all([
+    listBotsByOwner(db, ownerId, false),
+    db
+      .prepare(
+        `SELECT v.* FROM bot_versions v JOIN bots b ON b.id = v.bot_id
+         WHERE b.owner_id = ? AND b.deleted_at IS NULL
+         AND v.version = (SELECT MAX(version) FROM bot_versions WHERE bot_id = v.bot_id)`,
+      )
+      .bind(ownerId)
+      .all<BotVersionRow>(),
+  ])
+  const latest = new Map(results.map((row) => [row.bot_id, toBotVersion(row, false)]))
+  return bots.map((bot) => ({ bot, latest: latest.get(bot.id) ?? null }))
+}
+
+/** The slugs of `ownerId`'s bots, deleted ones too (a slug stays taken): as many as they have. */
 export async function listBotSlugs(db: D1Database, ownerId: string): Promise<Set<string>> {
   const { results } = await db
     .prepare('SELECT slug FROM bots WHERE owner_id = ?')
@@ -358,6 +390,17 @@ export async function getBotVersionRow(
   return db
     .prepare('SELECT * FROM bot_versions WHERE bot_id = ? AND version = ?')
     .bind(botId, version)
+    .first<BotVersionRow>()
+}
+
+/** A bot's latest version, as a row; null when it has none. */
+export async function getLatestBotVersionRow(
+  db: D1Database,
+  botId: string,
+): Promise<BotVersionRow | null> {
+  return db
+    .prepare('SELECT * FROM bot_versions WHERE bot_id = ? ORDER BY version DESC LIMIT 1')
+    .bind(botId)
     .first<BotVersionRow>()
 }
 

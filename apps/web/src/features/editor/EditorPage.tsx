@@ -9,6 +9,7 @@
  * debugger's run button until it is dismissed or the debugger runs.
  */
 import { formatSource } from '@asmbots/asm'
+import type { MyBot } from '@asmbots/protocol'
 import {
   Chip,
   CoachMark,
@@ -24,12 +25,19 @@ import type { EditorView } from '@codemirror/view'
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ApiRequestError } from '../../api/client'
+import { botVersionQuery, useMe, useMyBots } from '../../api/queries'
 import { FrameToolbar } from '../../app/Frame'
 import { EDITOR_KEYS } from '../../app/keymaps'
 import { type KeyCommand, useKeys } from '../../app/keys'
 import { useRouteStat } from '../../app/slots'
-import { addVersion, type BotVersion, useBotVersions, versionsKey } from '../../store/bot-versions'
-import { type LocalBot, useLocalBotActions, useLocalBots } from '../../store/local-bots'
+import { addVersion, useBotVersions, versionsKey } from '../../store/bot-versions'
+import {
+  LOCAL_BOTS_KEY,
+  type LocalBot,
+  useLocalBotActions,
+  useLocalBots,
+} from '../../store/local-bots'
 import { useCoachMark } from '../../store/settings'
 import type { ArenaCanvasHandle } from '../arena/ArenaCanvas'
 import { type CatalogBot, fightSeed, rosterCatalog } from '../arena/setup/bots'
@@ -37,6 +45,7 @@ import { battleConfig, randomSeed } from '../arena/setup/config'
 import { searchFromSetup, sharedFragment, shareUrl } from '../arena/setup/url'
 import { copyLink } from '../arena/share'
 import { ArenaClient, createArenaStore } from '../arena/worker/client'
+import { type CloudSave, localCopyOf, saveToCloud } from '../bots/cloud'
 import { AsmClient } from './asm/client'
 import { resultErrors } from './asm/protocol'
 import { useAssembler } from './asm/useAssembler'
@@ -58,7 +67,7 @@ import { Problems } from './Problems'
 import { useEditorPrefs } from './store'
 import { isBlankBot, TEMPLATES, type TemplateId, templateSource } from './templates'
 import { TEST_CONFIG, TEST_ROUNDS, tally, testBots, testedId, watchSetup } from './test-vs'
-import { VersionsModal } from './VersionsModal'
+import { type RestoredText, VersionsModal } from './VersionsModal'
 
 export interface EditorPageProps {
   target: DocTarget
@@ -259,6 +268,8 @@ function Workbench({
   const { toast } = useToast()
   const localBots = useLocalBots()
   const { save: saveBot } = useLocalBotActions()
+  const signedIn = Boolean(useMe().data)
+  const myBots = useMyBots()
   const listingOn = useEditorPrefs((state) => state.listing)
   const libraryOn = useEditorPrefs((state) => state.library)
   const lintOn = useEditorPrefs((state) => state.lint)
@@ -303,6 +314,8 @@ function Workbench({
   )
   const localId = doc.local?.id ?? (doc.target.kind === 'local' ? doc.target.id : null)
   const versions = useBotVersions(doc.local === null ? null : doc.local.id)
+  // Read from the list, not `doc`: the first cloud save links the bot after the document opened.
+  const cloudId = localBots.data?.find((b) => b.id === localId)?.cloudId ?? null
   const [selection] = useState(() => {
     const carry = carried.get(doc.key)
     carried.delete(doc.key)
@@ -473,7 +486,34 @@ function Workbench({
       clearTimeout(draftTimer.current)
       writeDraft.current = null
       setDraft(doc.key, null)
-      toast(`saved ${botName}.`, { variant: 'accent' })
+      if (signedIn) {
+        let cloud: CloudSave | string
+        try {
+          cloud = await saveToCloud(bot)
+        } catch (error) {
+          cloud = error instanceof ApiRequestError ? error.message : String(error)
+        }
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: LOCAL_BOTS_KEY }),
+          queryClient.invalidateQueries({ queryKey: ['me', 'bots'] }),
+          typeof cloud !== 'string' &&
+            queryClient.invalidateQueries({ queryKey: ['bots', cloud.bot.id] }),
+        ])
+        if (typeof cloud === 'string') {
+          toast(`saved ${botName} in this browser; your account did not take it: ${cloud}`, {
+            variant: 'warn',
+          })
+        } else {
+          toast(
+            cloud.created
+              ? `saved ${botName}: v${cloud.version.version} in your account.`
+              : `saved ${botName}: your account has these bytes as v${cloud.version.version}.`,
+            { variant: 'accent' },
+          )
+        }
+      } else {
+        toast(`saved ${botName}.`, { variant: 'accent' })
+      }
       if (doc.local === null) {
         // A new bot, or someone else's: it lives at its own address from now on.
         const main = view?.state.selection.main
@@ -488,7 +528,41 @@ function Workbench({
     } finally {
       setSaving(false)
     }
-  }, [doc, saving, view, source, name, result, localId, saveBot, queryClient, setDraft, toast, go])
+  }, [
+    doc,
+    saving,
+    view,
+    source,
+    name,
+    result,
+    localId,
+    saveBot,
+    signedIn,
+    queryClient,
+    setDraft,
+    toast,
+    go,
+  ])
+
+  const openCloud = useCallback(
+    async (bot: MyBot) => {
+      const latest = bot.latest
+      if (latest === null) return
+      try {
+        const copy = await localCopyOf(bot.bot, localBots.data ?? [], async () => {
+          const { version } = await queryClient.fetchQuery(
+            botVersionQuery(bot.bot.id, latest.version),
+          )
+          return version.source ?? ''
+        })
+        await queryClient.invalidateQueries({ queryKey: LOCAL_BOTS_KEY })
+        go({ kind: 'local', id: copy.id })
+      } catch {
+        toast(`could not open ${bot.bot.name}: try again.`, { variant: 'danger' })
+      }
+    },
+    [localBots.data, queryClient, go, toast],
+  )
 
   const fork = useCallback(
     async (bot: CatalogBot) => {
@@ -572,11 +646,11 @@ function Workbench({
   }, [test])
 
   const restore = useCallback(
-    (version: BotVersion) => {
+    (version: RestoredText) => {
       if (view === null) return
       replaceText(view, version.source)
       setName(version.name)
-      toast(`restored the save of ${new Date(version.at).toLocaleString()}.`, {
+      toast(`restored ${version.label}.`, {
         action: { label: 'undo', onClick: () => undo(view) },
       })
     },
@@ -674,7 +748,7 @@ function Workbench({
           onSave={() => void save()}
           onFork={() => doc.roster !== null && void fork(doc.roster)}
           onVersions={() => setVersionsOpen(true)}
-          canVersions={(versions.data?.length ?? 0) > 0}
+          canVersions={(versions.data?.length ?? 0) > 0 || cloudId !== null}
           onShare={share}
           test={test}
           testStale={test.status === 'done' && test.tested.source !== source}
@@ -708,8 +782,11 @@ function Workbench({
               className="w-56 shrink-0"
               current={doc.key}
               local={localBots.data}
+              cloud={signedIn ? myBots.data?.bots : undefined}
+              cloudError={myBots.isError}
               recent={recent}
               onOpen={go}
+              onOpenCloud={(bot) => void openCloud(bot)}
               onFork={(bot) => void fork(bot)}
             />
           )}
@@ -773,6 +850,7 @@ function Workbench({
       <VersionsModal
         open={versionsOpen}
         botId={doc.local?.id ?? null}
+        cloudId={cloudId}
         current={source}
         onClose={() => setVersionsOpen(false)}
         onRestore={restore}
