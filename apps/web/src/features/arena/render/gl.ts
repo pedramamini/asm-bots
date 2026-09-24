@@ -99,11 +99,12 @@ interface Uploaded {
   ips: number
   effects: number
   fade: number
+  dim: number
   palette: number
 }
 
 function stale(): Uploaded {
-  return { core: -1, age: -1, ips: -1, effects: -1, fade: -1, palette: -1 }
+  return { core: -1, age: -1, ips: -1, effects: -1, fade: -1, dim: -1, palette: -1 }
 }
 
 export interface GlRendererOptions {
@@ -257,6 +258,13 @@ export class GlRenderer implements ArenaRenderer {
       uploaded.fade = scene.fadeVersion
       gl.useProgram(res.arena.program)
       gl.uniform4fv(uniform(res.arena, 'uFade'), scene.fade)
+    }
+    if (scene.dimVersion !== uploaded.dim) {
+      uploaded.dim = scene.dimVersion
+      for (const p of [res.arena, res.markers, res.rings]) {
+        gl.useProgram(p.program)
+        gl.uniform4fv(uniform(p, 'uDim'), scene.dim)
+      }
     }
     if (this.paletteVersion !== uploaded.palette) {
       uploaded.palette = this.paletteVersion

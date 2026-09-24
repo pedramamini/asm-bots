@@ -133,7 +133,7 @@ test('fight runs the battle in the Worker, and setup comes back', async ({ page 
   await expect(arena.getByRole('application', { name: 'arena' })).toBeVisible()
   // The Worker plays: the cycle count climbs.
   await expect(arena).toContainText(/cycle [1-9][\d,]* \/ 100,000/)
-  await expect(page.getByRole('list', { name: 'bots in the battle' })).toContainText('Stone')
+  await expect(page.getByRole('table', { name: 'bots' })).toContainText('Stone')
   await arena.getByRole('button', { name: 'setup' }).click()
   await expect(picked(page)).toHaveCount(4)
   expect(errors).toEqual([])

@@ -7,6 +7,7 @@
 import { type Assembled, assemble, type Diag } from '@asmbots/asm'
 import { loadRoster, ROSTER, type RosterEntry } from '@asmbots/bots'
 import { type BattleConfigInput, Pcg32, PlacementError, place } from '@asmbots/engine'
+import { roundOrder, roundSeed } from '@asmbots/tourney'
 import type { LocalBot } from '../../../store/local-bots'
 import type { ArenaBot } from '../worker/protocol'
 import { MIN_ARENA_BOTS, randomSeed } from './config'
@@ -202,8 +203,8 @@ export function fightStatus(selection: readonly SetupBot[], spec: ArenaSetupSpec
   if (broken > 0) return not(`remove ${count(broken, 'broken bot')}`)
   if (selection.some((s) => s.state === 'loading'))
     return { label: fight, ready: false, busy: true }
-  const { seed, minSpacing } = spec.config
-  if (seed !== null && !fits(sizesOf(selection), minSpacing, seed)) {
+  const { seed, minSpacing, rounds } = spec.config
+  if (seed !== null && !fits(sizesOf(selection), minSpacing, seed, rounds)) {
     return not('bots do not fit · lower the spacing')
   }
   return { label: fight, ready: true, busy: false }
@@ -214,10 +215,21 @@ export function sizesOf(selection: readonly SetupBot[]): number[] {
   return selection.map((s) => s.bot?.assembled.bytes.length ?? 0)
 }
 
-/** Whether images of `sizes` place with `seed`, `minSpacing` apart (ISA §5.5). */
-export function fits(sizes: readonly number[], minSpacing: number, seed: number): boolean {
+/**
+ * Whether images of `sizes` place `minSpacing` apart in each of `rounds` rounds of a match from
+ * `seed` (ISA §5.5): round i places them in its rotated order with seed + i.
+ */
+export function fits(
+  sizes: readonly number[],
+  minSpacing: number,
+  seed: number,
+  rounds = 1,
+): boolean {
   try {
-    place(sizes, minSpacing, new Pcg32(seed))
+    for (let round = 0; round < rounds; round++) {
+      const order = roundOrder(sizes.length, round).map((k) => sizes[k] as number)
+      place(order, minSpacing, new Pcg32(roundSeed(seed, round)))
+    }
     return true
   } catch (error) {
     if (error instanceof PlacementError) return false
@@ -229,19 +241,21 @@ export function fits(sizes: readonly number[], minSpacing: number, seed: number)
 const SEED_TRIES = 32
 
 /**
- * The seed to fight with: `seed` when the bots place with it, else a random seed they place with.
- * Null when they do not place: the fixed seed fails, or `SEED_TRIES` random ones do.
+ * The seed to fight a match of `rounds` rounds with: `seed` when the bots place with it in every
+ * round, else a random seed they place with. Null when they do not place: the fixed seed fails,
+ * or `SEED_TRIES` random ones do.
  */
 export function fightSeed(
   sizes: readonly number[],
   minSpacing: number,
   seed: number | null,
   random: () => number = randomSeed,
+  rounds = 1,
 ): number | null {
-  if (seed !== null) return fits(sizes, minSpacing, seed) ? seed : null
+  if (seed !== null) return fits(sizes, minSpacing, seed, rounds) ? seed : null
   for (let i = 0; i < SEED_TRIES; i++) {
     const drawn = random()
-    if (fits(sizes, minSpacing, drawn)) return drawn
+    if (fits(sizes, minSpacing, drawn, rounds)) return drawn
   }
   return null
 }
@@ -255,6 +269,10 @@ export interface ArenaFight {
   readonly rounds: number
   /** The setup it came from. */
   readonly spec: ArenaSetupSpec
+  /** Each bot's source, in order: what a replay file carries. */
+  readonly sources: readonly string[]
+  /** The local bots among them, once each: what a share link carries. */
+  readonly shared: readonly SharedBot[]
 }
 
 /** The Worker's bots for a selection that is ready: battle names, machine code, and metadata. */

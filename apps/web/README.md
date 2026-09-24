@@ -27,6 +27,16 @@ imports nothing, since it rides the entry chunk. `setup/config.ts` has the limit
 and `setup/bots.ts` the roster, the local and shared bots, dropped files, and the fight button's
 words. `vite.config.ts` loads the roster's `.asm` imports as text (`asmText`).
 
+`ArenaBattle.tsx` is the battle, its parts in `battle/`: `Hud.tsx` (a band over the core that the
+camera keeps clear), `Transport.tsx` (the scrub bar marks keyframes and bot deaths), the rail's
+`BotsPanel.tsx`, `EventsPanel.tsx`, and `StandingsPanel.tsx`, `Victory.tsx`, the hover tooltip
+`HoverTip.tsx`, and the keys (`space . , [ ] 0 1-9 f s`) in `keys.ts`. `log.ts` turns the Worker's
+messages into the round's timeline, `view.ts` holds what the player picked (isolated bots, the
+minimap, autoplay), `screenshot.ts` and `replay.ts` write the PNG and the `.asmreplay.json`. A load
+is a match: the Worker plays round i with `@asmbots/tourney`'s `roundOrder` and `roundSeed` and
+scores it with `withRound`, so the arena's match equals `runMatch`'s. Frames name bots by their
+place in the load, whatever order a round fights them in.
+
 The renderer's Playwright specs drive `e2e/harness/arena.html`, a page only the dev server serves.
 `e2e/arena-perf.spec.ts` (16 roster bots at 2,000 cycles a frame, p95 frame gap at most 20 ms) is
 its own project and runs after the rest: `bunx playwright test --project perf --no-deps` runs it

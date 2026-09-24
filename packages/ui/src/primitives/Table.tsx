@@ -1,5 +1,5 @@
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { type ComponentProps, type ReactNode, useMemo, useRef } from 'react'
+import { type ComponentProps, type MouseEvent, type ReactNode, useMemo, useRef } from 'react'
 import { FOCUS_RING } from '../control'
 import { useControllable } from '../hooks/useControllable'
 import { hasContent } from '../node'
@@ -49,6 +49,15 @@ export interface TableProps<Row> extends Omit<ComponentProps<'table'>, 'children
   onSortChange?: ((sort: TableSort) => void) | undefined
   /** What shows in place of the rows when there are none: an EmptyState. */
   empty?: ReactNode
+  /**
+   * A click anywhere on a row: the pointer's shortcut to what a control in the row does (the
+   * arena isolates a bot). Give the row that control too, a button in a cell: the keyboard's way.
+   */
+  onRowClick?: ((row: Row, event: MouseEvent<HTMLTableRowElement>) => void) | undefined
+  /** Rows the caller has chosen: an accent tint, and `data-selected`. */
+  rowSelected?: ((row: Row) => boolean) | undefined
+  /** Classes on a row's `<tr>`: a row that is not yet, say, drawn dimmer. */
+  rowClassName?: ((row: Row) => string | undefined) | undefined
 }
 
 const ALIGN = { left: 'text-left', center: 'text-center', right: 'text-right' } as const
@@ -63,7 +72,8 @@ const COLLATOR = new Intl.Collator('en', { numeric: true })
  * A data table (DESIGN_SYSTEM §4): 12 px tabular data in 24 px rows, hairlines between the rows
  * and none around them, headers in muted UPPER 10 px that stay on top as the rows scroll. A column
  * with a `sortValue` sorts from its header; the sorted header reads `aria-sort`. The row under the
- * pointer takes `--panel-2`. Past 200 rows only the rows in view are drawn (the table then counts
+ * pointer takes `--panel-2`, a chosen row (`rowSelected`) the accent tint, and `onRowClick` makes
+ * each row a pointer target. Past 200 rows only the rows in view are drawn (the table then counts
  * all of them in `aria-rowcount`), so give the table a height (`h-80`, or `flex-1` in a column).
  * Columns lay out from the header row (`table-fixed`): give the narrow ones a width and the rest
  * share the remainder, so live numbers never shift a column. `className` goes on the scroll box;
@@ -77,6 +87,9 @@ export function Table<Row>({
   defaultSort,
   onSortChange,
   empty,
+  onRowClick,
+  rowSelected,
+  rowClassName,
   className,
   ...rest
 }: TableProps<Row>) {
@@ -161,7 +174,13 @@ export function Table<Row>({
             <tr
               key={rowKey(row)}
               aria-rowindex={virtual ? index + 2 : undefined}
-              className="group/row transition-colors duration-120 ease-out hover:bg-panel-2"
+              data-selected={rowSelected?.(row) || undefined}
+              onClick={onRowClick && ((event) => onRowClick(row, event))}
+              className={cx(
+                'group/row transition-colors duration-120 ease-out hover:bg-panel-2 data-selected:bg-accent-10',
+                onRowClick && 'cursor-pointer',
+                rowClassName?.(row),
+              )}
             >
               {columns.map((column) => (
                 <td

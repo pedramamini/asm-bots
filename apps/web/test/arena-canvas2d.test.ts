@@ -18,28 +18,11 @@ import {
   OWNED,
   OWNED_ZERO,
 } from '../src/features/arena/render/scene'
-import type { FrameMessage } from '../src/features/arena/worker/protocol'
+import { emptyFrame } from './arena-frame'
 
 const ALL_ON = { bloom: true, scanlines: true, vignette: true }
 
-function frame(parts: Partial<FrameMessage> = {}): FrameMessage {
-  return {
-    type: 'frame',
-    cycle: 0,
-    alive: 2,
-    over: false,
-    writes: new Uint16Array(0),
-    execs: new Uint16Array(0),
-    ips: new Uint16Array(0),
-    spawns: new Uint32Array(0),
-    deaths: new Uint32Array(0),
-    botDeaths: new Uint32Array(0),
-    stats: new Float32Array(0),
-    ownerDirty: null,
-    bytesDirty: null,
-    ...parts,
-  }
-}
+const frame = emptyFrame
 
 /** Bot 0 owns 0x0100 (non-zero) and 0x0101 (zero); bot 1 owns 0x0200 (zero). */
 function scene(): ArenaScene {
@@ -127,7 +110,7 @@ describe('CorePainter', () => {
     painter.paint(s)
     expect(painter.dirty).toEqual({ left: 0, top: 0, right: 256, bottom: 256 })
 
-    s.apply(frame({ botDeaths: Uint32Array.of(0, 0) }))
+    s.apply(frame({ botDeaths: Uint32Array.of(0, 0, 0, 0) }))
     s.advance(10)
     s.advance(10 + BOT_FADE_MS)
     painter.paint(s)

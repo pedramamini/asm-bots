@@ -297,6 +297,62 @@ describe('Table', () => {
   })
 })
 
+describe('Table rows the pointer picks', () => {
+  it('calls onRowClick with the row and the event, and marks the rows rowSelected picks', () => {
+    const clicks: [string, boolean][] = []
+    render(
+      <Table
+        columns={COLUMNS}
+        rows={BOTS}
+        rowKey={byName}
+        onRowClick={(bot, event) => clicks.push([bot.name, event.shiftKey])}
+        rowSelected={(bot) => bot.name === 'imp'}
+      />,
+    )
+    const rows = screen.getAllByRole('row').slice(1)
+    fireEvent.click(screen.getByText('stone'))
+    fireEvent.click(rows[0] as HTMLElement, { shiftKey: true })
+    expect(clicks).toEqual([
+      ['stone', false],
+      ['dwarf-v10', true],
+    ])
+    expect(rows.map((row) => row.dataset.selected)).toEqual([
+      undefined,
+      'true',
+      undefined,
+      undefined,
+    ])
+    expect((rows[1] as HTMLElement).className.split(' ')).toEqual(
+      expect.arrayContaining(['cursor-pointer', 'data-selected:bg-accent-10']),
+    )
+  })
+
+  it('puts rowClassName on each row it names', () => {
+    render(
+      <Table
+        columns={COLUMNS}
+        rows={BOTS}
+        rowKey={byName}
+        rowClassName={(bot) => (bot.procs > 10 ? 'opacity-45' : undefined)}
+      />,
+    )
+    const rows = screen.getAllByRole('row').slice(1)
+    expect(rows.map((row) => row.className.split(' ').includes('opacity-45'))).toEqual([
+      false,
+      true,
+      true,
+      true,
+    ])
+  })
+
+  it('leaves rows without a click as they were: no hand cursor', () => {
+    render(<Table columns={COLUMNS} rows={BOTS} rowKey={byName} />)
+    const row = screen.getAllByRole('row')[1] as HTMLElement
+    expect(row.className.split(' ')).not.toContain('cursor-pointer')
+    expect(row.dataset.selected).toBeUndefined()
+  })
+})
+
 describe('Table past 200 rows', () => {
   interface Line {
     n: number

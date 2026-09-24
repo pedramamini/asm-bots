@@ -18,31 +18,14 @@ import {
   PULSE,
   RIPPLE,
 } from '../src/features/arena/render/scene'
-import type { FrameMessage } from '../src/features/arena/worker/protocol'
 import { ArenaSession } from '../src/features/arena/worker/session'
+import { emptyFrame } from './arena-frame'
 
 /** Dwarf and Paper at seed 1: Paper spawns throughout, and both write. */
 const DUEL: readonly LoadedBot[] = [fighter('dwarf'), fighter('paper')]
 
 /** A frame with nothing in it but what `parts` gives. */
-function frame(parts: Partial<FrameMessage> = {}): FrameMessage {
-  return {
-    type: 'frame',
-    cycle: 0,
-    alive: 2,
-    over: false,
-    writes: new Uint16Array(0),
-    execs: new Uint16Array(0),
-    ips: new Uint16Array(0),
-    spawns: new Uint32Array(0),
-    deaths: new Uint32Array(0),
-    botDeaths: new Uint32Array(0),
-    stats: new Float32Array(0),
-    ownerDirty: null,
-    bytesDirty: null,
-    ...parts,
-  }
-}
+const frame = emptyFrame
 
 /** A full frame: `owner` and `bytes` as (address, value) pairs over an empty core. */
 function full(owner: [number, number][], bytes: [number, number][] = [], dead: number[] = []) {
@@ -50,14 +33,18 @@ function full(owner: [number, number][], bytes: [number, number][] = [], dead: n
   const bytesDirty = new Uint8Array(CORE_SIZE)
   for (const [a, tag] of owner) ownerDirty[a] = tag
   for (const [a, b] of bytes) bytesDirty[a] = b
-  return frame({ ownerDirty, bytesDirty, botDeaths: Uint32Array.from(dead.flatMap((b) => [0, b])) })
+  return frame({
+    ownerDirty,
+    bytesDirty,
+    botDeaths: Uint32Array.from(dead.flatMap((b) => [0, b, 0, 0])),
+  })
 }
 
-/** A spawn or a death record: (cycle, bot, proc, address), and a death's reason. */
+/** A spawn or a death record: (cycle, bot, proc, address), and a death's reason and killer. */
 const spawns = (list: [bot: number, address: number][]) =>
   Uint32Array.from(list.flatMap(([bot, a]) => [0, bot, 0, a]))
 const deaths = (list: [bot: number, address: number][]) =>
-  Uint32Array.from(list.flatMap(([bot, a]) => [0, bot, 0, a, 1]))
+  Uint32Array.from(list.flatMap(([bot, a]) => [0, bot, 0, a, 1, 0]))
 
 /** The scene's effects as (kind, bot, column, row) lists, oldest slot first. */
 function effects(scene: ArenaScene): number[][] {
@@ -284,7 +271,7 @@ describe('ArenaScene: ripples, pulses, and dead bots', () => {
   it('fades a dead bot over BOT_FADE_MS, and a full frame shows it faded at once', () => {
     const scene = new ArenaScene()
     scene.advance(0)
-    scene.apply(frame({ botDeaths: Uint32Array.of(9, 1) }))
+    scene.apply(frame({ botDeaths: Uint32Array.of(9, 1, 0, 0) }))
     scene.advance(100)
     expect(scene.fade[2]).toBe(0)
     scene.advance(100 + BOT_FADE_MS / 2)
@@ -303,13 +290,13 @@ describe('ArenaScene: ripples, pulses, and dead bots', () => {
   it('with reduced motion: no ripples or pulses, and a dead bot fades at once', () => {
     const scene = new ArenaScene()
     scene.advance(0)
-    scene.apply(frame({ spawns: spawns([[0, 1]]), botDeaths: Uint32Array.of(0, 0) }))
+    scene.apply(frame({ spawns: spawns([[0, 1]]), botDeaths: Uint32Array.of(0, 0, 0, 0) }))
     scene.advance(16)
     expect(scene.effectCount).toBe(1)
     scene.reducedMotion = true
     expect(scene.effectCount).toBe(0)
     expect(scene.fade[1]).toBeCloseTo(BOT_FADE, 5)
-    scene.apply(frame({ deaths: deaths([[1, 5]]), botDeaths: Uint32Array.of(0, 1) }))
+    scene.apply(frame({ deaths: deaths([[1, 5]]), botDeaths: Uint32Array.of(0, 1, 0, 0) }))
     scene.advance(32)
     expect(scene.effectCount).toBe(0)
     expect(scene.fade[2]).toBeCloseTo(BOT_FADE, 5)

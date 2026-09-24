@@ -51,11 +51,13 @@ import {
   battleConfig,
   MAX_ARENA_BOTS,
   type PresetName,
+  randomSeed,
   withConfig,
   withPreset,
 } from './setup/config'
 import { Diagnostics } from './setup/Diagnostics'
-import { type ArenaSetupSpec, type BotRef, formatRef, shareUrl } from './setup/url'
+import { type ArenaSetupSpec, type BotRef, formatRef } from './setup/url'
+import { copyShareLink } from './share'
 
 /** Where the picker's bots come from. */
 type Source = 'roster' | 'mine' | 'paste'
@@ -199,7 +201,8 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight }: ArenaSetupPr
     })
 
   const fight = () => {
-    const seed = fightSeed(sizesOf(selection), spec.config.minSpacing, spec.config.seed)
+    const { minSpacing, seed: fixed, rounds } = spec.config
+    const seed = fightSeed(sizesOf(selection), minSpacing, fixed, randomSeed, rounds)
     if (seed === null) {
       toast('the bots do not fit in the core: lower the spacing.', { variant: 'danger' })
       return
@@ -208,25 +211,14 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight }: ArenaSetupPr
     onFight({
       bots: arenaBots(selection),
       config: battleConfig(spec.config, seed),
-      rounds: spec.config.rounds,
+      rounds,
       spec,
+      sources: selection.map((s) => s.bot?.source ?? ''),
+      shared: sharedSources(selection),
     })
   }
 
-  const share = async () => {
-    const bots = sharedSources(selection)
-    const url = shareUrl(window.location.origin, spec, bots)
-    try {
-      await navigator.clipboard.writeText(url)
-      const inside =
-        bots.length === 0
-          ? ''
-          : ` with ${bots.length} local ${bots.length === 1 ? 'bot' : 'bots'} inside`
-      toast(`link copied${inside}.`, { variant: 'accent' })
-    } catch {
-      toast('could not copy the link.', { variant: 'danger' })
-    }
-  }
+  const share = () => copyShareLink(spec, sharedSources(selection), toast)
 
   const saveShared = async (index: number) => {
     const bot = selection[index]?.bot

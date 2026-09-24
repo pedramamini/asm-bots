@@ -37,7 +37,15 @@ export type {
 } from './hill'
 export { botHash, createHill, hill, submitToHill } from './hill'
 export type { IterateMatchOptions, MatchProgress, MatchResult, MatchRound } from './match'
-export { iterateMatch, matchHash, runMatch } from './match'
+export {
+  iterateMatch,
+  matchHash,
+  newMatch,
+  roundOrder,
+  roundSeed,
+  runMatch,
+  withRound,
+} from './match'
 export type {
   IterateMeleeOptions,
   MeleeOptions,
@@ -53,7 +61,7 @@ export {
   meleeStandings,
 } from './melee'
 export type { RoundResult } from './round'
-export { runRound } from './round'
+export { roundResult, runRound } from './round'
 export type {
   IterateRoundRobinOptions,
   MatchSpec,

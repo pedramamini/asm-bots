@@ -21,6 +21,8 @@ const COLUMN_GAP = 96
 const LABEL_PAD = 4
 /** The column ruler's band, as the arena's black at this opacity. */
 const BAND_ALPHA = 0.85
+/** The hover crosshair's lines: the ruler's color at this opacity. The cell's outline is whole. */
+const CROSSHAIR_ALPHA = 0.45
 
 export interface RulerLabel {
   readonly text: string
@@ -38,11 +40,13 @@ export function rowLabels(camera: Camera): RulerLabel[] {
   const step = ROW_STEPS.find((rows) => rows * cell >= ROW_GAP) ?? 16
   const right = Math.max(RULER_MARGIN, camera.originX) - LABEL_PAD
   const labels: RulerLabel[] = []
-  const first = Math.max(0, Math.floor(-camera.originY / cell / step) * step)
+  // From the view's top: a HUD's band over it keeps the rows under it unlabeled.
+  const top = camera.view.y
+  const first = Math.max(0, Math.floor((top - camera.originY) / cell / step) * step)
   for (let row = first; row < SIDE; row += step) {
     const y = camera.originY + row * cell
     if (y > camera.height) break
-    if (y + ROW_GAP < 0) continue
+    if (y + ROW_GAP < top) continue
     const address = row * SIDE
     labels.push({ text: hexAddress(address), x: right, y, bold: address % 0x1000 === 0 })
   }
@@ -59,12 +63,15 @@ export function columnLabels(camera: Camera): RulerLabel[] {
   for (let col = 0; col < SIDE; col += step) {
     const x = camera.originX + col * cell + LABEL_PAD / 2
     if (x < view.x || x > view.x + view.width - 16) continue
-    labels.push({ text: hexByte(col), x, y: 2, bold: step < 16 && col % 16 === 0 })
+    labels.push({ text: hexByte(col), x, y: view.y + 2, bold: step < 16 && col % 16 === 0 })
   }
   return labels
 }
 
-/** Draws the rulers on their own canvas when the camera, the size, or the theme changes. */
+/**
+ * Draws the rulers on their own canvas when the camera, the size, or the theme changes, and the
+ * hover crosshair (DESIGN_SYSTEM §5) through the byte under the pointer.
+ */
 export class RulerOverlay {
   private readonly canvas: HTMLCanvasElement
   private readonly context: CanvasRenderingContext2D | null
@@ -73,6 +80,7 @@ export class RulerOverlay {
   private ratio = 1
   private drawnCamera = -1
   private dirty = true
+  private hover: number | null = null
 
   constructor(canvas: HTMLCanvasElement, camera: Camera, theme: Theme) {
     this.canvas = canvas
@@ -102,6 +110,13 @@ export class RulerOverlay {
     this.dirty = true
   }
 
+  /** The byte the crosshair goes through, or null for none. */
+  setHover(address: number | null): void {
+    if (address === this.hover) return
+    this.hover = address
+    this.dirty = true
+  }
+
   /** Draws the rulers if anything they show changed. Returns whether it drew. */
   render(): boolean {
     const ctx = this.context
@@ -119,7 +134,7 @@ export class RulerOverlay {
       const view = this.camera.view
       ctx.globalAlpha = BAND_ALPHA
       ctx.fillStyle = colors.bg
-      ctx.fillRect(view.x, 0, view.width, COLUMN_RULER)
+      ctx.fillRect(view.x, view.y, view.width, COLUMN_RULER)
       ctx.globalAlpha = 1
     }
     ctx.fillStyle = colors.ruler
@@ -127,7 +142,32 @@ export class RulerOverlay {
     for (const label of columns) this.label(ctx, label)
     ctx.textAlign = 'right'
     for (const label of rowLabels(this.camera)) this.label(ctx, label)
+    if (this.hover !== null) this.crosshair(ctx, this.hover, colors.ruler)
     return true
+  }
+
+  /** A hairline across the view and one down it through byte `a`, and an outline round it. */
+  private crosshair(ctx: CanvasRenderingContext2D, a: number, color: string): void {
+    const { camera } = this
+    const view = camera.view
+    const cell = camera.cell
+    const x = camera.originX + (a & 0xff) * cell
+    const y = camera.originY + (a >> 8) * cell
+    const line = 1 / this.ratio
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(view.x, view.y, view.width, view.height)
+    ctx.clip()
+    ctx.fillStyle = color
+    ctx.globalAlpha = CROSSHAIR_ALPHA
+    ctx.fillRect(view.x, y + cell / 2 - line / 2, view.width, line)
+    ctx.fillRect(x + cell / 2 - line / 2, view.y, line, view.height)
+    ctx.globalAlpha = 1
+    ctx.strokeStyle = color
+    ctx.lineWidth = line
+    const pad = Math.max(1, cell / 4)
+    ctx.strokeRect(x - pad, y - pad, cell + 2 * pad, cell + 2 * pad)
+    ctx.restore()
   }
 
   private label(ctx: CanvasRenderingContext2D, { text, x, y, bold }: RulerLabel): void {

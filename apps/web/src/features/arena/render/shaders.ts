@@ -5,7 +5,8 @@
  * so the WebGL2 renderer and the 2D one agree.
  *
  * - `QUAD_VERT`: a triangle that covers the target, for the full-screen passes.
- * - `ARENA_FRAG`: the core, cell by cell: territory, exec trail, write flash, lattice.
+ * - `ARENA_FRAG`: the core, cell by cell: territory, exec trail, write flash, lattice. The bots
+ *   not isolated (`uDim`) keep a share of their light, their IPs and rings too.
  * - `MARKER_*`: an IP marker per live process, instanced.
  * - `RING_*`: death ripples and spawn pulses, instanced.
  * - `DOWNSAMPLE_FRAG`, `BLUR_FRAG`, `COMPOSITE_FRAG`: bloom, scanlines, and the vignette.
@@ -57,6 +58,18 @@ vec3 hue(int bot) {
 }
 `
 
+/**
+ * Per owner tag, 4 a row: the share of its light a bot keeps, 1, or `ISOLATE_DIM` while other
+ * bots are isolated (`ArenaScene.dim`).
+ */
+const DIM = `
+uniform vec4 uDim[64];
+
+float dimOf(uint tag) {
+  return uDim[int(tag >> 2u)][int(tag & 3u)];
+}
+`
+
 /** Device px (top-left origin) to clip space, for a target `uSize` px. */
 const CLIP = `
 vec4 clip(vec2 p) {
@@ -83,6 +96,7 @@ uniform usampler2D uWriteAge;
 uniform usampler2D uExecAge;
 // Per owner tag, 4 a row: the share of the hue's saturation lost (a dead bot's territory).
 uniform vec4 uFade[64];
+${DIM}
 // Cell (0, 0)'s top-left corner, and px per cell.
 uniform vec2 uOrigin;
 uniform float uCell;
@@ -129,6 +143,9 @@ void main() {
     color = mix(color, writeColor, write);
     outGlow = vec4(min(execColor * exec + writeColor * write, 1.0), 1.0);
   }
+  float keep = dimOf(tag);
+  color = mix(bg, color, keep);
+  outGlow.rgb *= keep;
   if (uLattice > 0.0) {
     vec2 into = (q - vec2(at)) * uCell;
     if ((into.x < uLattice && at.x > 0) || (into.y < uLattice && at.y > 0)) {
@@ -150,7 +167,9 @@ uniform float uRatio;
 // px from the cell's top-left corner.
 out vec2 vAt;
 flat out float vFront;
+flat out float vDim;
 ${CLIP}
+${DIM}
 void main() {
   // The outline (1 px) and the glow (2 px) around the cell.
   float pad = 3.0 * uRatio;
@@ -160,6 +179,7 @@ void main() {
   vec2 p = topLeft - pad + corner * (uCell + 2.0 * pad);
   vAt = p - topLeft;
   vFront = (aProc.y & ${IP_FRONT}u) != 0u ? 1.0 : 0.0;
+  vDim = dimOf((aProc.y & 255u) + 1u);
   gl_Position = clip(p);
 }
 `
@@ -170,6 +190,7 @@ uniform float uCell;
 uniform float uRatio;
 in vec2 vAt;
 flat in float vFront;
+flat in float vDim;
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec4 outGlow;
 
@@ -181,7 +202,7 @@ void main() {
   if (dist < 0.0) discard;
   float a = dist < uRatio ? 1.0 : 0.5 * exp(-(dist - uRatio) / (0.7 * uRatio));
   // The process that runs next is the brighter.
-  a *= vFront > 0.5 ? 1.0 : 0.55;
+  a *= (vFront > 0.5 ? 1.0 : 0.55) * vDim;
   if (a < 0.004) discard;
   vec3 ip = uPalette[IP].rgb;
   outColor = vec4(ip * a, a);
@@ -228,6 +249,7 @@ void main() {
 
 export const RING_FRAG = `${HEADER}
 ${PALETTE}
+${DIM}
 uniform float uCell;
 uniform float uRatio;
 in vec2 vAt;
@@ -245,6 +267,7 @@ void main() {
   float radius = mix(0.5 * uCell, vRadius, eased);
   float width = (pulse ? 1.0 : 1.5) * uRatio;
   float a = (1.0 - vT) * clamp(1.0 - abs(length(vAt) - radius) / width, 0.0, 1.0);
+  a *= dimOf(uint(vBot) + 1u);
   if (a < 0.004) discard;
   vec3 color = pulse ? mix(hue(vBot), vec3(1.0), 0.5) : hue(vBot);
   outColor = vec4(color * a, a);

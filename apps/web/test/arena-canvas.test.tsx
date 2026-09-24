@@ -16,44 +16,17 @@ import {
 import { type ArenaState, INITIAL_ARENA_STATE } from '../src/features/arena/worker/client'
 import type { FrameMessage } from '../src/features/arena/worker/protocol'
 import { DEFAULT_SETTINGS, useSettings } from '../src/store/settings'
+import { emptyFrame } from './arena-frame'
+import { stubCanvas } from './fake-canvas'
 
 useDom()
-
-/** A 2D context that draws nothing. */
-function fakeContext(): CanvasRenderingContext2D {
-  const state: Record<string | symbol, unknown> = {}
-  return new Proxy(state, {
-    get(target, key) {
-      if (key in target) return target[key]
-      if (key === 'createImageData') {
-        return (w: number, h: number) => ({
-          width: w,
-          height: h,
-          data: new Uint8ClampedArray(w * h * 4),
-        })
-      }
-      return () => {}
-    },
-    set(target, key, value) {
-      target[key] = value
-      return true
-    },
-  }) as unknown as CanvasRenderingContext2D
-}
 
 let restore: (() => void)[] = []
 
 beforeAll(() => {
-  const proto = window.HTMLCanvasElement.prototype
-  const getContext = proto.getContext
   // No WebGL2 here, and a 2D context that records nothing.
-  proto.getContext = function (this: HTMLCanvasElement, type: string) {
-    return type === '2d' ? fakeContext() : null
-  } as typeof proto.getContext
   restore = [
-    () => {
-      proto.getContext = getContext
-    },
+    stubCanvas(window),
     stubLayout('clientWidth', () => 600),
     stubLayout('clientHeight', () => 400),
   ]
@@ -88,21 +61,13 @@ function source(state: Partial<ArenaState> = {}) {
 function fullFrame(owner: [number, number][]): FrameMessage {
   const ownerDirty = new Uint8Array(0x10000)
   for (const [a, tag] of owner) ownerDirty[a] = tag
-  return {
-    type: 'frame',
+  return emptyFrame({
     cycle: 42,
     alive: 1,
-    over: false,
-    writes: new Uint16Array(0),
-    execs: new Uint16Array(0),
     ips: Uint16Array.of(0x10, 0x100),
-    spawns: new Uint32Array(0),
-    deaths: new Uint32Array(0),
-    botDeaths: new Uint32Array(0),
-    stats: new Float32Array(0),
     ownerDirty,
     bytesDirty: new Uint8Array(0x10000),
-  }
+  })
 }
 
 function mount(state: Partial<ArenaState> = {}, props: { minimap?: boolean } = {}) {

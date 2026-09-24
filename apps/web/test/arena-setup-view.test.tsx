@@ -65,7 +65,9 @@ function fakeClient() {
   const store = createArenaStore()
   return {
     store,
-    load: mock((_bots: unknown, _config: unknown) => store.setState({ status: 'loading' })),
+    load: mock((_bots: unknown, _config: unknown, _rounds?: number) =>
+      store.setState({ status: 'loading' }),
+    ),
     play: mock(() => {}),
     pause: mock(() => {}),
     seek: mock((_cycle: number) => {}),
@@ -394,15 +396,17 @@ describe('the fight', () => {
     const { router, client } = await renderArena('/arena?b=roster:dwarf,roster:paper&seed=42')
     fireEvent.click(fightButton())
     expect(client.load).toHaveBeenCalledTimes(1)
-    const [bots, config] = client.load.mock.calls[0] as unknown as [
+    const [bots, config, rounds] = client.load.mock.calls[0] as unknown as [
       { name: string; bytes: Uint8Array }[],
       unknown,
+      number,
     ]
     expect(bots.map((bot) => [bot.name, bot.bytes.length])).toEqual([
       ['Dwarf', 23],
       ['Paper', 34],
     ])
     expect(config).toEqual({ maxCycles: 100_000, maxProcesses: 64, minSpacing: 1024, seed: 42 })
+    expect(rounds).toBe(1)
     expect(client.play).toHaveBeenCalledTimes(1)
     expect(useSettings.getState().lastArenaConfig).toMatchObject({ seed: 42, rounds: 1 })
     // The URL holds the setup it fought, every field written.
@@ -413,7 +417,15 @@ describe('the fight', () => {
     )
     const battle = screen.getByRole('region', { name: 'arena' })
     expect(within(battle).getByRole('application', { name: 'arena' })).toBeTruthy()
-    expect(screen.getByRole('list', { name: 'bots in the battle' }).textContent).toContain('Paper')
+    // The Worker's answer names the bots: the rail lists them.
+    act(() =>
+      client.store.setState({
+        status: 'paused',
+        botMeta: bots.map((bot) => ({ name: bot.name, size: bot.bytes.length })),
+        order: [0, 1],
+      }),
+    )
+    expect(screen.getByRole('table', { name: 'bots' }).textContent).toContain('Paper')
     fireEvent.click(within(battle).getByRole('button', { name: 'setup' }))
     expect(client.pause).toHaveBeenCalled()
     expect(picked()).toEqual(['Dwarf', 'Paper'])
@@ -428,7 +440,7 @@ describe('the fight', () => {
     fireEvent.click(fightButton())
     const config = client.load.mock.calls[0]?.[1] as { seed: number }
     expect(Number.isInteger(config.seed)).toBe(true)
-    expect(screen.getByRole('region', { name: 'bots' }).textContent).toContain(
+    expect(screen.getByRole('region', { name: 'arena' }).textContent).toContain(
       `seed ${config.seed}`,
     )
     await settle()

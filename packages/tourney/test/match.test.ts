@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'bun:test'
-import { DEFAULT_CONFIG, type LoadedBot, resultHash, simulate } from '@asmbots/engine'
-import { iterateMatch, type MatchResult, matchHash, runMatch, runRound } from '../src/index'
+import { Battle, DEFAULT_CONFIG, type LoadedBot, resultHash, simulate } from '@asmbots/engine'
+import {
+  iterateMatch,
+  type MatchResult,
+  matchHash,
+  newMatch,
+  roundOrder,
+  roundResult,
+  roundSeed,
+  runMatch,
+  runRound,
+  withRound,
+} from '../src/index'
 
 const bot = (name: string, bytes: readonly number[]): LoadedBot => ({
   name,
@@ -188,5 +199,48 @@ describe('iterateMatch', () => {
     const other = runMatch(bots, { ...CONFIG, seed: 99 }, 5)
     const it = iterateMatch(bots, CONFIG, 5, { resume: other })
     await expect(it.next()).rejects.toThrow('cannot resume')
+  })
+})
+
+describe('rounds run elsewhere', () => {
+  const bots = [loop('a'), dat('b'), loop('c')]
+
+  it('plans each round as runMatch does: rotated order, seed + round mod 2^32', () => {
+    expect(roundOrder(3, 0)).toEqual([0, 1, 2])
+    expect(roundOrder(3, 4)).toEqual([1, 2, 0])
+    expect(roundSeed(7, 2)).toBe(9)
+    expect(roundSeed(0xffff_ffff, 2)).toBe(1)
+    const m = runMatch(bots, CONFIG, 4)
+    expect(m.rounds.map((r) => r.order)).toEqual([0, 1, 2, 3].map((i) => roundOrder(3, i)))
+    expect(m.rounds.map((r) => r.seed)).toEqual([0, 1, 2, 3].map((i) => roundSeed(7, i)))
+  })
+
+  it('folds battles run round by round into the match runMatch returns', () => {
+    let match = newMatch(bots, CONFIG, 4)
+    expect(match).toEqual({
+      key: matchHash(bots, CONFIG, 4),
+      names: ['a', 'b', 'c'],
+      of: 4,
+      rounds: [],
+      points: [0, 0, 0],
+    })
+    for (let i = 0; i < 4; i++) {
+      const seed = roundSeed(CONFIG.seed, i)
+      // A battle stepped by hand, as the arena Worker runs one.
+      const battle = new Battle(
+        roundOrder(3, i).map((k) => bots[k] as LoadedBot),
+        { ...CONFIG, seed },
+      )
+      while (!battle.over) battle.step()
+      const before = match
+      match = withRound(match, roundResult(seed, battle.result()))
+      expect(before.rounds).toHaveLength(i)
+    }
+    expect(match).toEqual(runMatch(bots, CONFIG, 4))
+    expect(() => withRound(match, runRound(bots, CONFIG))).toThrow('has all 4 rounds')
+  })
+
+  it('refuses a bad round count', () => {
+    expect(() => newMatch(bots, CONFIG, 0)).toThrow(RangeError)
   })
 })

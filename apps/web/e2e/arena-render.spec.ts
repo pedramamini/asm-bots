@@ -117,6 +117,44 @@ test.describe('the WebGL2 renderer', () => {
     expect(errors).toEqual([])
   })
 
+  test('dims all but the isolated bots: territory, a flash on their bytes, their processes', async ({
+    page,
+  }) => {
+    await open(page)
+    const [kept, dimmed, flash, ip] = await page.evaluate(() => {
+      const h = window.harness
+      const { camera, canvas } = h.arena()
+      h.apply({
+        owner: [
+          [0x1000, 1],
+          [0x1001, 2],
+        ],
+        bytes: [
+          [0x1000, 0x90],
+          [0x1001, 0x90],
+        ],
+        ips: [[0x8080, 1 | 0x100]],
+      })
+      h.isolate([0])
+      h.pixels([])
+      h.apply({ writes: [[0x4000, 0x0241]], ips: [[0x8080, 1 | 0x100]] })
+      const colors = h.pixels([0x1000, 0x1001, 0x4000].map(h.cellCenter))
+      camera.zoomBy(8)
+      camera.centerOn(0x80, 0x80)
+      const ratio = (canvas as HTMLCanvasElement).width / camera.width
+      const left = (camera.originX + 0x80 * camera.cell) * ratio
+      const outline: [number, number] = [
+        (Math.floor(left - 0.5) + 0.5) / ratio,
+        h.cellCenter(0x8080)[1],
+      ]
+      return [...colors, ...h.pixels([outline])]
+    })
+    expectNear(kept, scale(HUE0, 0.55), 1)
+    expectNear(dimmed, scale(HUE1, 0.55 * 0.2), 1)
+    expectNear(flash, scale([255, 255, 255], 0.2), 2)
+    expectNear(ip, scale([255, 255, 255], 0.2), 2)
+  })
+
   test("outlines each process's cell, the front of its queue brighter", async ({ page }) => {
     await open(page)
     const [front, behind, inside] = await page.evaluate(() => {
@@ -371,6 +409,13 @@ test.describe('the 2D fallback', () => {
       expectNear(empty, [0, 0, 0], 0)
       expectNear(write, [255, 255, 255], 1)
       expectNear(exec, EXEC, 1)
+      const [kept, dimmed] = await page.evaluate(() => {
+        const h = window.harness
+        h.isolate([0])
+        return h.pixels([0x1000, 0x1001].map(h.cellCenter))
+      })
+      expectNear(kept, scale(HUE0, 0.55), 1)
+      expectNear(dimmed, scale(HUE1, 0.22 * 0.2), 1)
       expect(errors).toEqual([])
     })
   }

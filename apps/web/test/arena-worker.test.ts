@@ -13,6 +13,7 @@ import {
   resultHash,
   simulate,
 } from '@asmbots/engine'
+import { runMatch } from '@asmbots/tourney'
 import {
   ArenaClient,
   type ArenaState,
@@ -216,5 +217,37 @@ describe('arena Worker', () => {
     expect(errors).toEqual(['load', 'play'])
     expect(state(arena).status).toBe('error')
     expect(state(arena).error).toContain('cannot place bot 1')
+  })
+
+  it('plays a match: the store holds the round, its order, the match, and the keyframes', async () => {
+    const arena = client()
+    const bots = [fighter('dwarf'), fighter('imp')]
+    const config = { seed: 2, maxCycles: 20_000 }
+    const loaded = arena.once('loaded')
+    arena.load(bots, config, 2)
+    await loaded
+    expect(state(arena)).toMatchObject({ round: 0, rounds: 2, order: [0, 1], reached: 0 })
+    expect(state(arena).match?.rounds).toEqual([])
+
+    const ended = arena.once('ended')
+    arena.seek(20_000)
+    const first = await ended
+    expect(first.round).toBe(0)
+    expect(state(arena)).toMatchObject({ status: 'ended', reached: first.result.cycles })
+    expect(state(arena).match).toEqual(first.match)
+    expect(first.match.rounds).toEqual(runMatch(bots, config, 2).rounds.slice(0, 1))
+    expect(Array.from(state(arena).keyframes)).toEqual([1000, 2000, 3000])
+
+    const next = arena.once('loaded')
+    const full = arena.once('frame')
+    arena.setRound(1)
+    expect(await next).toMatchObject({ round: 1, order: [1, 0] })
+    await full
+    expect(state(arena)).toMatchObject({ status: 'paused', round: 1, cycle: 0, reached: 0 })
+    expect(state(arena).result).toBeNull()
+    const last = arena.once('ended')
+    arena.seek(20_000)
+    expect((await last).match).toEqual(runMatch(bots, config, 2))
+    expect(state(arena).match).toEqual(runMatch(bots, config, 2))
   })
 })

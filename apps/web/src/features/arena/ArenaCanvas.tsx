@@ -1,16 +1,20 @@
 import { Chip, cx } from '@asmbots/ui'
 import {
   type ComponentProps,
+  createContext,
   type KeyboardEvent,
   type PointerEvent,
   type Ref,
+  useContext,
   useEffect,
   useImperativeHandle,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react'
 import { useMotionReduced, useSettings } from '../../store/settings'
+import { HoverTip } from './battle/HoverTip'
 import { Camera } from './render/camera'
 import { createCanvas2dRenderer } from './render/canvas2d'
 import { createGlRenderer } from './render/gl'
@@ -35,6 +39,32 @@ export interface ArenaCanvasHandle {
   readonly renderer: ArenaRenderer | null
   /** The canvas it draws on. */
   readonly canvas: HTMLCanvasElement | null
+  /** The canvas of the rulers and the hover crosshair, over it. */
+  readonly overlay: HTMLCanvasElement | null
+}
+
+/** What the arena's children (the HUD) read of it. */
+export interface ArenaCanvasParts {
+  readonly scene: ArenaScene
+  readonly camera: Camera
+  /** How it draws: WebGL2, or the 2D fallback. */
+  readonly kind: RendererKind
+}
+
+const PartsContext = createContext<ArenaCanvasParts | null>(null)
+
+/** The arena around the calling component: its scene, camera, and renderer kind. */
+export function useArenaCanvas(): ArenaCanvasParts {
+  const parts = useContext(PartsContext)
+  if (parts === null) throw new Error('useArenaCanvas needs an <ArenaCanvas> around it')
+  return parts
+}
+
+/** Where the pointer rests over the core: the byte, and the pointer, CSS px in the arena. */
+interface Hover {
+  readonly address: number
+  readonly x: number
+  readonly y: number
 }
 
 export interface ArenaCanvasProps extends Omit<ComponentProps<'div'>, 'ref'> {
@@ -44,6 +74,12 @@ export interface ArenaCanvasProps extends Omit<ComponentProps<'div'>, 'ref'> {
   renderer?: 'auto' | '2d' | undefined
   /** Whether the minimap shows when zoomed in (the HUD's toggle). */
   minimap?: boolean | undefined
+  /** The bots isolated: the rest dim (PRODUCT_SPEC §2). None: every bot as it is. */
+  isolated?: readonly number[] | undefined
+  /** Whether a pointer resting on a byte shows the crosshair and the byte's tooltip. */
+  hover?: boolean | undefined
+  /** A band this tall, CSS px, over the core for the HUD's row: the core fits under it. */
+  insetTop?: number | undefined
   /** The arena's accessible name. */
   label?: string | undefined
   ref?: Ref<ArenaCanvasHandle> | undefined
@@ -53,14 +89,18 @@ export interface ArenaCanvasProps extends Omit<ComponentProps<'div'>, 'ref'> {
  * The arena (DESIGN_SYSTEM §5): the renderer on a canvas that fills the box, and the rulers on a
  * canvas over it. It draws `client`'s frames each display frame, in the theme and effects of the
  * settings. The camera: the wheel zooms at the cursor, a drag pans, a press on the minimap moves
- * the view there, and with the arena focused the arrows pan, `+` and `-` zoom, and `0` resets.
- * Where WebGL2 is missing it draws in 2D, and a `2D` chip says so. `children` lie over the arena:
- * the HUD.
+ * the view there, and with the arena focused the arrows pan, `+` and `-` zoom, and `0` resets. A
+ * pointer resting on a byte draws a crosshair through it and a tooltip of what it holds. Where
+ * WebGL2 is missing it draws in 2D, and a `2D` chip says so. `children` lie over the arena: the
+ * HUD, which then shows the chip, and reads the arena through `useArenaCanvas`.
  */
 export function ArenaCanvas({
   client,
   renderer: want = 'auto',
   minimap = true,
+  isolated,
+  hover: hovers = true,
+  insetTop = 0,
   label = 'arena',
   ref,
   className,
@@ -76,15 +116,18 @@ export function ArenaCanvas({
   const [mode, setMode] = useState<RendererKind>(want === '2d' ? '2d' : 'webgl2')
   const [renderer, setRenderer] = useState<ArenaRenderer | null>(null)
   const [overlay, setOverlay] = useState<RulerOverlay | null>(null)
+  const [hover, setHover] = useState<Hover | null>(null)
   const theme = useSettings((state) => state.theme)
   const effects = useSettings((state) => state.effects)
   const reduced = useMotionReduced()
+  const isolation = isolated?.join(',') ?? ''
+  const parts = useMemo(() => ({ scene, camera, kind: mode }), [scene, camera, mode])
 
-  useImperativeHandle(ref, () => ({ scene, camera, renderer, canvas: canvasRef.current }), [
-    scene,
-    camera,
-    renderer,
-  ])
+  useImperativeHandle(
+    ref,
+    () => ({ scene, camera, renderer, canvas: canvasRef.current, overlay: overlayRef.current }),
+    [scene, camera, renderer],
+  )
 
   // The renderer, made again on the new canvas when WebGL2 fails and the arena falls back to 2D.
   useLayoutEffect(() => {
@@ -142,6 +185,19 @@ export function ArenaCanvas({
     scene.reducedMotion = reduced
     renderer?.invalidate()
   }, [scene, renderer, reduced])
+
+  useEffect(() => {
+    scene.isolate(isolation === '' ? null : isolation.split(',').map(Number))
+    renderer?.invalidate()
+  }, [scene, renderer, isolation])
+
+  useEffect(() => {
+    overlay?.setHover(hover?.address ?? null)
+  }, [overlay, hover])
+
+  useLayoutEffect(() => {
+    camera.setInsetTop(insetTop)
+  }, [camera, insetTop])
 
   useEffect(() => {
     const off = client.on('frame', (frame) => scene.apply(frame))
@@ -227,7 +283,10 @@ export function ArenaCanvas({
 
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     const d = drag.current
-    if (d === null || d.id !== event.pointerId) return
+    if (d === null || d.id !== event.pointerId) {
+      if (d === null) hoverAt(event)
+      return
+    }
     const { x, y } = at(event)
     if (d.minimap) {
       const cell = camera.minimapCell(x, y, true)
@@ -243,6 +302,24 @@ export function ArenaCanvas({
     if (drag.current?.id !== event.pointerId) return
     drag.current = null
     delete event.currentTarget.dataset.dragging
+  }
+
+  /** The byte under a mouse or a pen, off the minimap and the HUD: the crosshair's, the tip's. */
+  const hoverAt = (event: PointerEvent<HTMLDivElement>) => {
+    if (!hovers || event.pointerType === 'touch') return
+    if (!(event.target instanceof HTMLCanvasElement)) {
+      setHover(null)
+      return
+    }
+    const { x, y } = at(event)
+    const address = camera.minimapCell(x, y) === null ? camera.addressAt(x, y) : null
+    setHover((last) =>
+      address === null
+        ? null
+        : last?.address === address && last.x === x && last.y === y
+          ? last
+          : { address, x, y },
+    )
   }
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -294,23 +371,47 @@ export function ArenaCanvas({
         'relative touch-none overflow-hidden bg-arena-bg select-none focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-accent data-[dragging=true]:cursor-grabbing data-[zoomed=true]:cursor-grab',
         className,
       )}
-      onPointerDown={onPointerDown}
+      data-isolated={isolation === '' ? undefined : isolation}
+      onPointerDown={(event) => {
+        setHover(null)
+        onPointerDown(event)
+      }}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerEnd}
       onPointerCancel={onPointerEnd}
+      onPointerLeave={() => setHover(null)}
       onKeyDown={onKeyDown}
     >
       <canvas key={mode} ref={canvasRef} className="absolute inset-0 size-full" />
       <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 size-full" />
-      {mode === '2d' && (
-        <Chip
-          className="pointer-events-none absolute top-2 right-2"
-          title="no WebGL2 here: the arena draws in 2D, without bloom"
-        >
-          2D
-        </Chip>
-      )}
-      {children}
+      <PartsContext value={parts}>
+        {children ?? (mode === '2d' && <RendererChip className="absolute top-2 right-2" />)}
+        {hover !== null && (
+          <HoverTip
+            client={client}
+            scene={scene}
+            address={hover.address}
+            x={hover.x}
+            y={hover.y}
+            width={camera.width}
+            height={camera.height}
+          />
+        )}
+      </PartsContext>
     </div>
+  )
+}
+
+/** The `2D` chip: the arena draws without WebGL2, so without bloom. Nothing under WebGL2. */
+export function RendererChip({ className }: { className?: string | undefined }) {
+  const { kind } = useArenaCanvas()
+  if (kind !== '2d') return null
+  return (
+    <Chip
+      className={cx('pointer-events-none', className)}
+      title="no WebGL2 here: the arena draws in 2D, without bloom"
+    >
+      2D
+    </Chip>
   )
 }

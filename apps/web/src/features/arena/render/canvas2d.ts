@@ -13,6 +13,7 @@ import {
   EFFECT_FIELDS,
   EXEC_FADE_MS,
   GLOW_MS,
+  ISOLATE_DIM,
   isNonZero,
   OWNED,
   OWNED_ZERO,
@@ -59,7 +60,7 @@ export class CorePainter {
   private paletteVersion = 0
   /** Per owner tag, non-zero then zero: the color of the byte with no glow, 0..255 RGB. */
   private readonly tones = new Float32Array(256 * 2 * 3)
-  private tonesFor = { palette: -1, fade: -1 }
+  private tonesFor = { palette: -1, fade: -1, dim: -1 }
   private paintedFull = -1
   /** The bytes whose glow may still show: `active[0..activeCount)`, each once. */
   private readonly active = new Uint16Array(CELLS)
@@ -85,7 +86,9 @@ export class CorePainter {
    */
   paint(scene: ArenaScene): void {
     const toned =
-      this.tonesFor.palette !== this.paletteVersion || this.tonesFor.fade !== scene.fadeVersion
+      this.tonesFor.palette !== this.paletteVersion ||
+      this.tonesFor.fade !== scene.fadeVersion ||
+      this.tonesFor.dim !== scene.dimVersion
     if (toned) this.tone(scene)
     if (toned || this.paintedFull !== scene.fullVersion) {
       this.paintedFull = scene.fullVersion
@@ -164,6 +167,13 @@ export class CorePainter {
       g += ((p[o + 1] as number) * 255 - g) * w
       b += ((p[o + 2] as number) * 255 - b) * w
     }
+    const keep = scene.dim[tag] as number
+    if (keep !== 1) {
+      const o = PALETTE_INDEX.bg * 4
+      r = (p[o] as number) * 255 + (r - (p[o] as number) * 255) * keep
+      g = (p[o + 1] as number) * 255 + (g - (p[o + 1] as number) * 255) * keep
+      b = (p[o + 2] as number) * 255 + (b - (p[o + 2] as number) * 255) * keep
+    }
     const px = a * 4
     this.pixels[px] = r
     this.pixels[px + 1] = g
@@ -187,7 +197,7 @@ export class CorePainter {
 
   /** Each tag's color with no glow, for the palette and the fades as they are. */
   private tone(scene: ArenaScene): void {
-    this.tonesFor = { palette: this.paletteVersion, fade: scene.fadeVersion }
+    this.tonesFor = { palette: this.paletteVersion, fade: scene.fadeVersion, dim: scene.dimVersion }
     const p = this.palette
     const bg = PALETTE_INDEX.bg * 4
     for (let tag = 1; tag < 256; tag++) {
@@ -338,9 +348,10 @@ export class Canvas2dRenderer implements ArenaRenderer {
     const x0 = camera.originX * r
     const y0 = camera.originY * r
     const left = Math.round(view.x * r)
+    const top = Math.round(view.y * r)
     ctx.save()
     ctx.beginPath()
-    ctx.rect(left, 0, width - left, height)
+    ctx.rect(left, top, width - left, height - top)
     ctx.clip()
     ctx.imageSmoothingEnabled = false
     ctx.drawImage(this.core, 0, 0, SIDE, SIDE, x0, y0, SIDE * cell, SIDE * cell)
@@ -379,7 +390,7 @@ export class Canvas2dRenderer implements ArenaRenderer {
       const eased = 1 - (1 - life) * (1 - life)
       const radius = 0.5 * cell + (reach - 0.5 * cell) * eased
       const hue = this.colors.hues[(code & 0xff) % HUES] as string
-      ctx.globalAlpha = 1 - life
+      ctx.globalAlpha = (1 - life) * (scene.dim[(code & 0xff) + 1] as number)
       ctx.strokeStyle = pulse ? (this.colors.pulses[(code & 0xff) % HUES] as string) : hue
       ctx.lineWidth = (pulse ? 1 : 1.5) * r
       ctx.beginPath()
@@ -395,29 +406,36 @@ export class Canvas2dRenderer implements ArenaRenderer {
     ctx.globalAlpha = 1
   }
 
-  /** A 1 px outline and a soft 2 px glow per process; the front of each queue brighter. */
+  /**
+   * A 1 px outline and a soft 2 px glow per process; the front of each queue brighter, and the
+   * processes of bots not isolated dimmer.
+   */
   private drawMarkers(x0: number, y0: number, cell: number): void {
     const { context: ctx, scene, ratio: r } = this
     const ips = scene.ips
     if (ips.length === 0) return
     ctx.strokeStyle = this.colors.ip
-    for (const front of [false, true]) {
-      const alpha = front ? 1 : 0.55
-      for (const [pad, width, share] of [
-        [2, 2, 0.3],
-        [0.5, 1, 1],
-      ] as const) {
-        ctx.beginPath()
-        for (let i = 0; i < ips.length; i += 2) {
-          if ((((ips[i + 1] as number) & IP_FRONT) !== 0) !== front) continue
-          const a = ips[i] as number
-          const x = x0 + (a & 0xff) * cell
-          const y = y0 + (a >> 8) * cell
-          ctx.rect(x - pad * r, y - pad * r, cell + 2 * pad * r, cell + 2 * pad * r)
+    const keepOf = (i: number) => scene.dim[((ips[i + 1] as number) & 0xff) + 1] as number
+    for (const dimmed of [true, false]) {
+      for (const front of [false, true]) {
+        const alpha = (front ? 1 : 0.55) * (dimmed ? ISOLATE_DIM : 1)
+        for (const [pad, width, share] of [
+          [2, 2, 0.3],
+          [0.5, 1, 1],
+        ] as const) {
+          ctx.beginPath()
+          for (let i = 0; i < ips.length; i += 2) {
+            const isFront = ((ips[i + 1] as number) & IP_FRONT) !== 0
+            if (isFront !== front || (keepOf(i) !== 1) !== dimmed) continue
+            const a = ips[i] as number
+            const x = x0 + (a & 0xff) * cell
+            const y = y0 + (a >> 8) * cell
+            ctx.rect(x - pad * r, y - pad * r, cell + 2 * pad * r, cell + 2 * pad * r)
+          }
+          ctx.globalAlpha = alpha * share
+          ctx.lineWidth = width * r
+          ctx.stroke()
         }
-        ctx.globalAlpha = alpha * share
-        ctx.lineWidth = width * r
-        ctx.stroke()
       }
     }
     ctx.globalAlpha = 1

@@ -7,8 +7,23 @@
  * `setRound`, `step`, `seek`, and `requestFrame`. `play`, `pause`, and `speed` get no answer, only
  * an `error` when they fail. `loaded` comes before the frame of a `load` or a `setRound`, and
  * `ended` after the frame that ends the battle.
+ *
+ * A load is a match of one or more rounds (ISA §5.5): round i places the bots in a rotated order
+ * with the seed plus i, as `@asmbots/tourney` scores it. The messages name bots by their place in
+ * the load all the same, whatever order they fight in: a bot's index, its owner tag (index + 1),
+ * and so its hue stay the same from round to round. Only `EndedMessage.result`, the engine's
+ * own, lists the bots in fighting order.
  */
-import type { BattleConfig, BattleConfigInput, BotMeta, Result } from '@asmbots/engine'
+import type {
+  BattleConfig,
+  BattleConfigInput,
+  BotMeta,
+  BotResult,
+  DeathReason,
+  Result,
+} from '@asmbots/engine'
+import { DEATH_REASONS } from '@asmbots/engine'
+import type { MatchResult } from '@asmbots/tourney'
 
 /** A bot to load: its name, its machine code, and its `%author`, `%strategy`, and `%version`. */
 export interface ArenaBot {
@@ -61,21 +76,40 @@ export const STAT_FOOTPRINT = 1
 /** In `FrameMessage.stats`: the bot's writes so far, one per byte or word it stored. */
 export const STAT_WRITES = 2
 
+/**
+ * Fields per record of `FrameMessage.deaths`: the engine's `DEATH_RECORD` (cycle, bot, proc,
+ * address, reason), then the killer.
+ */
+export const DEATH_FIELDS = 6
+/**
+ * In a `FrameMessage.deaths` record: the owner tag of the byte the process died running, the
+ * first byte of its last instruction. 0: nobody's, as the core starts, so the process ran off
+ * into empty core. The bot's own tag: it ran its own bomb or code. Another bot's: a kill.
+ */
+export const DEATH_KILLER = 5
+/** Fields per record of `FrameMessage.botDeaths`: cycle, bot, reason, killer. */
+export const BOT_DEATH_FIELDS = 4
+
 /** The requests: main thread to Worker. */
 export type ArenaRequest =
   | {
       readonly type: 'load'
       readonly bots: readonly ArenaBot[]
-      /** Over the engine's defaults (ISA §5.5). */
+      /** Over the engine's defaults (ISA §5.5). Its seed is the match's: round i's is seed + i. */
       readonly config: BattleConfigInput
+      /** Rounds in the match: 1 when absent. Round 0 loads. */
+      readonly rounds?: number | undefined
     }
   | { readonly type: 'play' }
   | { readonly type: 'pause' }
   | { readonly type: 'step'; readonly cycles: number }
   | { readonly type: 'seek'; readonly cycle: number }
   | { readonly type: 'speed'; readonly cyclesPerFrame: Speed }
-  /** The same bots again from cycle 0, placed with another seed. */
-  | { readonly type: 'setRound'; readonly seed: number }
+  /**
+   * Round `round` of the match (from 0) from cycle 0: a round already run, or the one after
+   * them. A later one fails: the match scores its rounds in order.
+   */
+  | { readonly type: 'setRound'; readonly round: number }
   /** A frame's worth of cycles, when playing. The main thread asks once per display frame. */
   | { readonly type: 'requestFrame' }
 
@@ -108,8 +142,25 @@ export interface LoadedMessage {
   readonly placements: readonly Placement[]
   /** One per bot, in submission order. */
   readonly botMeta: readonly ArenaBotMeta[]
-  /** The config the battle runs with: the request's over the engine's defaults. */
+  /** The config the round runs with: the request's over the engine's defaults, the round's seed. */
   readonly config: BattleConfig
+  /** The round loaded, from 0. */
+  readonly round: number
+  /** The rounds in the match. */
+  readonly rounds: number
+  /** The round's fighting order (ISA §5.5): `order[j]` is the bot placed j-th. */
+  readonly order: readonly number[]
+  /** The match so far: the rounds played to their end, in order. */
+  readonly match: MatchResult
+}
+
+/** The round's first kill: the first process to die running a byte another bot owns. */
+export interface FirstBlood {
+  readonly cycle: number
+  /** The bot whose byte it ran. */
+  readonly killer: number
+  /** The bot whose process died. */
+  readonly victim: number
 }
 
 /**
@@ -131,6 +182,8 @@ export interface FrameMessage {
    * 8..15: 0 for nobody, else bot index + 1.
    */
   readonly writes: Uint16Array
+  /** The cycle of each written byte's last write in the frame: one per pair of `writes`. */
+  readonly writeCycles: Uint32Array
   /**
    * Each byte of each instruction run during the frame, once: pairs of (address, bot index), the
    * bot that ran it last.
@@ -144,30 +197,42 @@ export interface FrameMessage {
   /** The frame's spawns, oldest first: `SPAWN_RECORD` fields each (cycle, bot, proc, address). */
   readonly spawns: Uint32Array
   /**
-   * The frame's process deaths, oldest first: `DEATH_RECORD` fields each (cycle, bot, proc,
-   * address, reason as a `DEATH_REASONS` index).
+   * The frame's process deaths, oldest first: `DEATH_FIELDS` fields each (cycle, bot, proc,
+   * address, reason as a `DEATH_REASONS` index, killer tag: `DEATH_KILLER`).
    */
   readonly deaths: Uint32Array
   /**
-   * The frame's bot deaths: `BOT_DEAD_RECORD` fields each (cycle, bot). A full frame lists every
-   * bot dead by its cycle.
+   * The frame's bot deaths: `BOT_DEATH_FIELDS` fields each (cycle, bot, reason, killer tag), the
+   * reason and the killer of its last process. A full frame lists every bot dead by its cycle,
+   * the earliest first.
    */
   readonly botDeaths: Uint32Array
   /** `STAT_FIELDS` per bot, in submission order: procs, footprint, writes. */
   readonly stats: Float32Array
+  /** The round's first blood once it has happened, else null. */
+  readonly firstBlood: FirstBlood | null
+  /**
+   * The cycles of the keyframes the Worker holds, ascending, where a seek lands fast: on a full
+   * frame, and whenever they changed since the last frame; else null.
+   */
+  readonly keyframes: Uint32Array | null
   /** The whole owner map on a full frame, else null. */
   readonly ownerDirty: Uint8Array | null
   /** The whole core on a full frame, else null. */
   readonly bytesDirty: Uint8Array | null
 }
 
-/** The battle is over. Follows its frame, once per ending: a seek back and a replay end it again. */
+/** The round is over. Follows its frame, once per ending: a seek back and a replay end it again. */
 export interface EndedMessage {
   readonly type: 'ended'
-  /** The battle's result (ISA §5.5). */
+  /** The round's result (ISA §5.5), as the engine gives it: the bots in fighting order. */
   readonly result: Result
   /** `resultHash(result)`, which a replay checks (ISA §5.6). */
   readonly hash: string
+  /** The round, from 0. */
+  readonly round: number
+  /** The match so far, this round included. */
+  readonly match: MatchResult
 }
 
 /** A request failed. The battle is as it was before it. */
@@ -180,3 +245,17 @@ export interface ErrorMessage {
 
 /** The messages: Worker to main thread. */
 export type ArenaMessage = LoadedMessage | FrameMessage | EndedMessage | ErrorMessage
+
+/** The engine's `result` of a round fought in `order`, one bot per place in the load. */
+export function botResults(result: Result, order: readonly number[]): BotResult[] {
+  const bots: BotResult[] = new Array(result.bots.length)
+  result.bots.forEach((bot, j) => {
+    bots[order[j] ?? j] = bot
+  })
+  return bots
+}
+
+/** A death reason's code in `FrameMessage.deaths` and `botDeaths`, as the engine names it. */
+export function deathReason(code: number): DeathReason {
+  return DEATH_REASONS[code] ?? 'undefined'
+}

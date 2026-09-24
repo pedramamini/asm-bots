@@ -1,11 +1,14 @@
+import { useToast } from '@asmbots/ui'
 import { useLocation, useNavigate, useSearch } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalBots } from '../../store/local-bots'
 import { useSettings } from '../../store/settings'
 import { ArenaBattle } from './ArenaBattle'
 import { ArenaSetup } from './ArenaSetup'
-import type { ArenaFight } from './setup/bots'
-import { DEFAULT_ARENA_CONFIG } from './setup/config'
+import { BattleLog } from './battle/log'
+import { useArenaView } from './battle/view'
+import { type ArenaFight, fightSeed } from './setup/bots'
+import { DEFAULT_ARENA_CONFIG, randomSeed } from './setup/config'
 import { validateArenaSearch } from './setup/search'
 import {
   type ArenaSetupSpec,
@@ -32,12 +35,19 @@ function keyOf(spec: ArenaSetupSpec): string {
   return JSON.stringify(searchFromSetup(spec))
 }
 
+/** The Worker's client, and the log that reads it from the first message on. */
+interface Session {
+  readonly client: ArenaClient
+  readonly log: BattleLog
+}
+
 /**
  * `/arena` (PRODUCT_SPEC §2): the setup until the fight button, then the battle. The URL holds the
  * setup (`setup/url.ts`): the page reads it on load and when it changes (a link, the back button),
  * and writes each change back `URL_DELAY` ms after the last, replacing the entry. A fresh visit,
  * `/arena` with no query, starts from the config last fought with. The Worker starts with the
- * first fight and ends with the page.
+ * first fight and ends with the page. `rematch` fights the same fight again; `new seed` draws
+ * another seed, which a fixed seed in the setup, and so the URL, takes too.
  */
 export function ArenaPage({
   createClient = () => new ArenaClient(),
@@ -46,6 +56,7 @@ export function ArenaPage({
   const raw = useSearch({ strict: false })
   const hash = useLocation({ select: (location) => location.hash })
   const navigate = useNavigate()
+  const { toast } = useToast()
   const localBots = useLocalBots()
   // Read once: the config the last fight used, for a visit with no query.
   const [fallback] = useState(() => useSettings.getState().lastArenaConfig ?? DEFAULT_ARENA_CONFIG)
@@ -58,7 +69,7 @@ export function ArenaPage({
   const [fight, setFight] = useState<ArenaFight | null>(null)
   /** The key of the setup the URL holds, as last read or written. */
   const inUrl = useRef(keyOf(fromUrl))
-  const client = useRef<ArenaClient | null>(null)
+  const session = useRef<Session | null>(null)
 
   /** The fragment for `next`: the shared bots it still names that this browser has not saved. */
   const fragmentOf = (next: ArenaSetupSpec): string => {
@@ -88,7 +99,7 @@ export function ArenaPage({
     if (key === inUrl.current) return
     inUrl.current = key
     setSpec(fromUrl)
-    client.current?.pause()
+    session.current?.client.pause()
     setFight(null)
   }, [fromUrl])
 
@@ -104,32 +115,56 @@ export function ArenaPage({
   // The Worker goes with the page, and the arena store back to nothing loaded.
   useEffect(
     () => () => {
-      const current = client.current
-      client.current = null
+      const current = session.current
+      session.current = null
       if (current === null) return
-      current.dispose()
-      current.store.setState({ ...INITIAL_ARENA_STATE })
+      current.client.dispose()
+      current.client.store.setState({ ...INITIAL_ARENA_STATE })
     },
     [],
   )
 
   const startFight = (next: ArenaFight) => {
     writeUrl(next.spec)
-    client.current ??= createClient()
-    client.current.load(next.bots, next.config)
-    client.current.play()
+    if (session.current === null) {
+      const made = createClient()
+      const log = new BattleLog()
+      log.attach(made)
+      session.current = { client: made, log }
+    }
+    useArenaView.getState().clearIsolation()
+    session.current.client.load(next.bots, next.config, next.rounds)
+    session.current.client.play()
     setFight(next)
   }
 
-  if (fight !== null && client.current !== null) {
+  /** The same bots with a new random seed that places them in every round. */
+  const newSeed = (from: ArenaFight) => {
+    const sizes = from.bots.map((bot) => bot.bytes.length)
+    const { minSpacing, seed: fixed } = from.spec.config
+    const seed = fightSeed(sizes, minSpacing, null, randomSeed, from.rounds)
+    if (seed === null) {
+      toast('no seed places these bots: lower the spacing.', { variant: 'danger' })
+      return
+    }
+    const spec =
+      fixed === null ? from.spec : { ...from.spec, config: { ...from.spec.config, seed } }
+    if (spec !== from.spec) setSpec(spec)
+    startFight({ ...from, spec, config: { ...from.config, seed } })
+  }
+
+  if (fight !== null && session.current !== null) {
     return (
       <ArenaBattle
-        client={client.current}
+        client={session.current.client}
+        log={session.current.log}
         fight={fight}
         onExit={() => {
-          client.current?.pause()
+          session.current?.client.pause()
           setFight(null)
         }}
+        onRematch={() => startFight(fight)}
+        onNewSeed={() => newSeed(fight)}
       />
     )
   }

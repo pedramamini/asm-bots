@@ -16,7 +16,7 @@ import {
   fnv1a64,
   type LoadedBot,
 } from '@asmbots/engine'
-import { runRound } from './round'
+import { type RoundResult, runRound } from './round'
 
 /** One round of a match. Indices are entrant indices: positions in the `bots` of the match. */
 export interface MatchRound {
@@ -117,6 +117,68 @@ export function matchHash(
   return fnv1a64(new TextEncoder().encode(text))
 }
 
+/** Round `round`'s fighting order in a match of `n` bots: `order[j]` is the entrant placed j-th. */
+export function roundOrder(n: number, round: number): number[] {
+  return Array.from({ length: n }, (_, j) => (round + j) % n)
+}
+
+/** Round `round`'s placement seed in a match whose seed is `seed`: `seed + round`, mod 2^32. */
+export function roundSeed(seed: number, round: number): number {
+  return (seed + round) >>> 0
+}
+
+/**
+ * A match of `bots` with no round run yet: what `iterateMatch` starts from. Throws `RangeError`
+ * for a bad round count.
+ */
+export function newMatch(
+  bots: readonly LoadedBot[],
+  config: BattleConfigInput,
+  rounds: number,
+): MatchResult {
+  checkRounds(rounds)
+  return {
+    key: matchHash(bots, config, rounds),
+    names: bots.map((b) => b.name),
+    of: rounds,
+    rounds: [],
+    points: bots.map(() => 0),
+  }
+}
+
+/**
+ * `match` with its next round, `r`: the round's battle, run however the caller ran it, with the
+ * bots in `roundOrder` and placed with `roundSeed`. The round's points and survival go to the
+ * entrants. A fresh object: `match` stays as it was. Throws when the match is complete.
+ */
+export function withRound(match: MatchResult, r: RoundResult): MatchResult {
+  const i = match.rounds.length
+  if (i >= match.of) throw new Error(`match: match ${match.key} has all ${match.of} rounds`)
+  const n = match.names.length
+  const order = roundOrder(n, i)
+  const points: number[] = new Array(n).fill(0)
+  const survival: number[] = new Array(n).fill(0)
+  r.result.bots.forEach((b, j) => {
+    points[order[j] as number] = b.points
+    survival[order[j] as number] = b.deathCycle ?? r.durationCycles
+  })
+  const round: MatchRound = {
+    round: i,
+    seed: r.seed,
+    order,
+    resultHash: r.resultHash,
+    durationCycles: r.durationCycles,
+    points,
+    survivors: r.result.survivors.map((j) => order[j] as number).sort((a, b) => a - b),
+    survival,
+  }
+  return {
+    ...match,
+    rounds: [...match.rounds, round],
+    points: match.points.map((p, k) => p + (points[k] as number)),
+  }
+}
+
 /**
  * Runs the rounds of a match after the `from.rounds.length` already run, yielding the match
  * after each. `before` runs ahead of each round. The partials are fresh objects each time, so a
@@ -129,49 +191,20 @@ function* play(
   from: MatchResult | undefined,
   before: () => void,
 ): Generator<MatchResult, MatchResult> {
-  checkRounds(rounds)
-  const n = bots.length
   const c = resolve(config)
-  const key = matchHash(bots, c, rounds)
-  let match: MatchResult = from ?? {
-    key,
-    names: bots.map((b) => b.name),
-    of: rounds,
-    rounds: [],
-    points: bots.map(() => 0),
-  }
-  if (match.key !== key || match.of !== rounds || match.rounds.length > rounds) {
-    throw new Error(`match: cannot resume match ${match.key} as match ${key}`)
+  const start = newMatch(bots, c, rounds)
+  let match = from ?? start
+  if (match.key !== start.key || match.of !== rounds || match.rounds.length > rounds) {
+    throw new Error(`match: cannot resume match ${match.key} as match ${start.key}`)
   }
   for (let i = match.rounds.length; i < rounds; i++) {
     before()
-    const order = bots.map((_, j) => (i + j) % n)
-    const seed = (c.seed + i) >>> 0
+    const order = roundOrder(bots.length, i)
     const r = runRound(
       order.map((k) => bots[k] as LoadedBot),
-      { ...c, seed },
+      { ...c, seed: roundSeed(c.seed, i) },
     )
-    const points: number[] = bots.map(() => 0)
-    const survival: number[] = bots.map(() => 0)
-    r.result.bots.forEach((b, j) => {
-      points[order[j] as number] = b.points
-      survival[order[j] as number] = b.deathCycle ?? r.durationCycles
-    })
-    const round: MatchRound = {
-      round: i,
-      seed,
-      order,
-      resultHash: r.resultHash,
-      durationCycles: r.durationCycles,
-      points,
-      survivors: r.result.survivors.map((j) => order[j] as number).sort((a, b) => a - b),
-      survival,
-    }
-    match = {
-      ...match,
-      rounds: [...match.rounds, round],
-      points: match.points.map((p, k) => p + (points[k] as number)),
-    }
+    match = withRound(match, r)
     yield match
   }
   return match

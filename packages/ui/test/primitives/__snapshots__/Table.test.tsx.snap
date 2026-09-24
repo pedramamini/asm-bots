@@ -57,7 +57,7 @@ exports[`Table draws the header row over the rows 1`] = `
       </thead>
       <tbody>
         <tr
-          class="group/row transition-colors duration-120 ease-out hover:bg-panel-2"
+          class="group/row transition-colors duration-120 ease-out hover:bg-panel-2 data-selected:bg-accent-10"
         >
           <td
             class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-left"
@@ -76,7 +76,7 @@ exports[`Table draws the header row over the rows 1`] = `
           </td>
         </tr>
         <tr
-          class="group/row transition-colors duration-120 ease-out hover:bg-panel-2"
+          class="group/row transition-colors duration-120 ease-out hover:bg-panel-2 data-selected:bg-accent-10"
         >
           <td
             class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-left"
@@ -95,7 +95,7 @@ exports[`Table draws the header row over the rows 1`] = `
           </td>
         </tr>
         <tr
-          class="group/row transition-colors duration-120 ease-out hover:bg-panel-2"
+          class="group/row transition-colors duration-120 ease-out hover:bg-panel-2 data-selected:bg-accent-10"
         >
           <td
             class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-left"
@@ -114,7 +114,7 @@ exports[`Table draws the header row over the rows 1`] = `
           </td>
         </tr>
         <tr
-          class="group/row transition-colors duration-120 ease-out hover:bg-panel-2"
+          class="group/row transition-colors duration-120 ease-out hover:bg-panel-2 data-selected:bg-accent-10"
         >
           <td
             class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-left"

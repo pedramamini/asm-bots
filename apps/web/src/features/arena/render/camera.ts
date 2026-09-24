@@ -1,8 +1,8 @@
 /**
  * The arena's camera (DESIGN_SYSTEM §5): which part of the core shows, and how large. At zoom 1
  * the whole core fits the view, centered; zoom goes to 16x. The view is the canvas less the row
- * ruler's margin on the left. Sizes are CSS px: a renderer multiplies them by the device pixel
- * ratio.
+ * ruler's margin on the left, and less a band on top that a HUD may keep (`setInsetTop`). Sizes
+ * are CSS px: a renderer multiplies them by the device pixel ratio.
  */
 import { SIDE } from './scene'
 
@@ -50,6 +50,8 @@ export class Camera {
   private cy = SIDE / 2
   private w = 0
   private h = 0
+  /** The band over the view that the core never covers, CSS px: the HUD's row. */
+  private top = 0
   private readonly listeners = new Set<() => void>()
 
   get zoom(): number {
@@ -66,13 +68,13 @@ export class Camera {
     return this.h
   }
 
-  /** The grid's box: the canvas less the ruler margin. */
+  /** The grid's box: the canvas less the ruler margin, and less the top band. */
   get view(): Rect {
     return {
       x: RULER_MARGIN,
-      y: 0,
+      y: this.top,
       width: Math.max(0, this.w - RULER_MARGIN),
-      height: Math.max(0, this.h),
+      height: Math.max(0, this.h - this.top),
     }
   }
 
@@ -109,6 +111,14 @@ export class Camera {
     if (width === this.w && height === this.h) return
     this.w = width
     this.h = height
+    this.changed()
+  }
+
+  /** Keeps a band `px` tall over the view clear of the core: the HUD's row. 0 for none. */
+  setInsetTop(px: number): void {
+    const top = Math.max(0, px)
+    if (top === this.top) return
+    this.top = top
     this.changed()
   }
 

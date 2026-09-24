@@ -18,7 +18,10 @@ scope.addEventListener('message', (event: MessageEvent<ArenaRequest>) => {
 /** The buffers of a message's typed arrays. Each array has a buffer of its own. */
 function transferList(message: ArenaMessage): ArrayBuffer[] {
   if (message.type !== 'frame') return []
-  const { writes, execs, ips, spawns, deaths, botDeaths, stats, ownerDirty, bytesDirty } = message
-  const arrays = [writes, execs, ips, spawns, deaths, botDeaths, stats, ownerDirty, bytesDirty]
-  return arrays.flatMap((a) => (a === null ? [] : [a.buffer as ArrayBuffer]))
+  const { writes, writeCycles, execs, ips, spawns, deaths, botDeaths, stats } = message
+  const arrays = [writes, writeCycles, execs, ips, spawns, deaths, botDeaths, stats]
+  const { keyframes, ownerDirty, bytesDirty } = message
+  return [...arrays, keyframes, ownerDirty, bytesDirty].flatMap((a) =>
+    a === null ? [] : [a.buffer as ArrayBuffer],
+  )
 }

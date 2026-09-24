@@ -96,12 +96,17 @@ function frame(spec: FrameSpec): FrameMessage {
     alive: 2,
     over: false,
     writes: pairs(spec.writes),
+    writeCycles: Uint32Array.from(
+      (spec.writes ?? []).map(() => Math.max(0, (spec.cycle ?? 0) - 1)),
+    ),
     execs: pairs(spec.execs),
     ips: pairs(spec.ips),
     spawns: Uint32Array.from((spec.spawns ?? []).flatMap(([a, bot]) => [0, bot, 0, a])),
-    deaths: Uint32Array.from((spec.deaths ?? []).flatMap(([a, bot]) => [0, bot, 0, a, 1])),
-    botDeaths: Uint32Array.from((spec.botDeaths ?? []).flatMap((bot) => [0, bot])),
+    deaths: Uint32Array.from((spec.deaths ?? []).flatMap(([a, bot]) => [0, bot, 0, a, 1, 0])),
+    botDeaths: Uint32Array.from((spec.botDeaths ?? []).flatMap((bot) => [0, bot, 1, 0])),
     stats: new Float32Array(0),
+    firstBlood: null,
+    keyframes: null,
     ownerDirty,
     bytesDirty,
   }
@@ -151,6 +156,12 @@ const harness = {
   frame,
   /** Hands the scene a frame, as the client would. */
   apply: (spec: FrameSpec) => arena().scene.apply(frame(spec)),
+  /** Isolates `bots`, as the battle's rail does: the rest dims. */
+  isolate: (bots: number[]) => {
+    const { scene, renderer } = arena()
+    scene.isolate(bots)
+    renderer?.invalidate()
+  },
   cellCenter,
   pixels,
   load,

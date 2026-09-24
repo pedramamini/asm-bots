@@ -8,6 +8,7 @@
  * or hidden tab slows the battle down instead of piling frames up.
  */
 import type { BattleConfig, BattleConfigInput, Result } from '@asmbots/engine'
+import type { MatchResult } from '@asmbots/tourney'
 import { create, createStore, type StoreApi } from 'zustand'
 import {
   type ArenaBot,
@@ -42,13 +43,24 @@ export interface ArenaState {
   readonly placements: readonly Placement[]
   /** One per bot, in submission order. */
   readonly botMeta: readonly ArenaBotMeta[]
-  /** The config the battle runs with, once loaded. */
+  /** The config the round runs with, once loaded: its seed is the round's. */
   readonly config: BattleConfig | null
+  /** The round loaded, from 0, and the rounds in the match. */
+  readonly round: number
+  readonly rounds: number
+  /** The round's fighting order (ISA §5.5): `order[j]` is the bot placed j-th. */
+  readonly order: readonly number[]
+  /** The match so far: its rounds played to the end, and its points. */
+  readonly match: MatchResult | null
+  /** The furthest cycle of the round any frame has reached: a seek back to it is quick. */
+  readonly reached: number
+  /** The cycles of the Worker's keyframes, ascending. */
+  readonly keyframes: Uint32Array
   /** The speed last asked for. */
   readonly speed: Speed
-  /** The result, once the battle is over. */
+  /** The round's result, once it is over: the bots in fighting order (`botResults`). */
   readonly result: Result | null
-  /** `resultHash(result)`, once the battle is over. */
+  /** `resultHash(result)`, once the round is over. */
   readonly resultHash: string | null
   /** The last failure, until the next load. */
   readonly error: string | null
@@ -62,6 +74,12 @@ export const INITIAL_ARENA_STATE: ArenaState = Object.freeze({
   placements: [],
   botMeta: [],
   config: null,
+  round: 0,
+  rounds: 1,
+  order: [],
+  match: null,
+  reached: 0,
+  keyframes: new Uint32Array(0),
   speed: DEFAULT_SPEED,
   result: null,
   resultHash: null,
@@ -173,22 +191,25 @@ export class ArenaClient {
     })
   }
 
-  /** Loads a battle, paused at cycle 0: `loaded` and a full frame answer. */
-  load(bots: readonly ArenaBot[], config: BattleConfigInput = {}): void {
+  /**
+   * Loads a match of `rounds` rounds, its first round paused at cycle 0: `loaded` and a full frame
+   * answer.
+   */
+  load(bots: readonly ArenaBot[], config: BattleConfigInput = {}, rounds = 1): void {
     this.startLoading()
     this.store.setState({
       ...INITIAL_ARENA_STATE,
       status: 'loading',
       speed: this.store.getState().speed,
     })
-    this.send({ type: 'load', bots, config })
+    this.send({ type: 'load', bots, config, rounds })
   }
 
-  /** The same bots from cycle 0, placed with `seed`: the next round of a match, paused. */
-  setRound(seed: number): void {
+  /** Round `round` of the match (from 0), paused at cycle 0: the next, or one played before. */
+  setRound(round: number): void {
     this.startLoading()
     this.store.setState({ status: 'loading', result: null, resultHash: null, error: null })
-    this.send({ type: 'setRound', seed })
+    this.send({ type: 'setRound', round })
   }
 
   /** Plays on from where the battle stands. Not once it is over: seek back first. */
@@ -302,18 +323,30 @@ export class ArenaClient {
           placements: message.placements,
           botMeta: message.botMeta,
           config: message.config,
+          round: message.round,
+          rounds: message.rounds,
+          order: message.order,
+          match: message.match,
+          reached: 0,
+          keyframes: new Uint32Array(0),
         })
         if (this.playing) this.startTicking()
         return true
       case 'frame': {
         if (this.loading) return false
         const { cycle, alive, stats, over } = message
+        const state = store.getState()
+        const moved = {
+          cycle,
+          alive,
+          stats,
+          reached: Math.max(state.reached, cycle),
+          keyframes: message.keyframes ?? state.keyframes,
+        }
         // A frame short of the end, after the end: a seek went back.
-        const back = store.getState().status === 'ended' && !over
+        const back = state.status === 'ended' && !over
         store.setState(
-          back
-            ? { cycle, alive, stats, status: 'paused', result: null, resultHash: null }
-            : { cycle, alive, stats },
+          back ? { ...moved, status: 'paused', result: null, resultHash: null } : moved,
         )
         return true
       }
@@ -321,7 +354,12 @@ export class ArenaClient {
         if (this.loading) return false
         this.playing = false
         this.stopTicking()
-        store.setState({ status: 'ended', result: message.result, resultHash: message.hash })
+        store.setState({
+          status: 'ended',
+          result: message.result,
+          resultHash: message.hash,
+          match: message.match,
+        })
         return true
       case 'error':
         if (message.request === 'load' || message.request === 'setRound') {

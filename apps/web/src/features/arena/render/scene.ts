@@ -9,8 +9,8 @@
  * the frames after, so a byte a frame touched shows at full brightness in the first image that
  * has it.
  */
-import { BOT_DEAD_RECORD, CORE_SIZE, DEATH_RECORD, SPAWN_RECORD } from '@asmbots/engine'
-import type { FrameMessage } from '../worker/protocol'
+import { CORE_SIZE, SPAWN_RECORD } from '@asmbots/engine'
+import { BOT_DEATH_FIELDS, DEATH_FIELDS, type FrameMessage } from '../worker/protocol'
 
 /** Cells per row, and rows: the core is 256 rows of 256 bytes. */
 export const SIDE = 256
@@ -37,6 +37,12 @@ export const PULSE_MS = 200
 export const BOT_FADE = 0.4
 /** …over this long, ms. */
 export const BOT_FADE_MS = 800
+
+/** With bots isolated, the other bots' territory, glows, and processes keep this share of light. */
+export const ISOLATE_DIM = 0.2
+
+/** In `ArenaScene.writtenAt`: no write seen since the last full frame. */
+export const NOT_SEEN = 0xffff_ffff
 
 /** The most ripples and pulses alive at once. Past it, a new one takes the oldest one's place. */
 export const EFFECT_CAPACITY = 256
@@ -72,6 +78,15 @@ export class ArenaScene {
   ips: Uint16Array = new Uint16Array(0)
   /** Per owner tag: the share of its hue's saturation lost, 0 while alive, `BOT_FADE` when dead. */
   readonly fade = new Float32Array(TAGS)
+  /** Per owner tag: the share of light it keeps: 1, or `ISOLATE_DIM` when others are isolated. */
+  readonly dim = new Float32Array(TAGS).fill(1)
+  /**
+   * The cycle of each byte's last write since the last full frame, or `NOT_SEEN`: the hover
+   * tooltip's "written 412 cycles ago".
+   */
+  readonly writtenAt = new Uint32Array(CORE_SIZE).fill(NOT_SEEN)
+  /** The cycle of the last full frame: `writtenAt` knows no write before it. */
+  seenSince = 0
   /**
    * The ripples and pulses: `EFFECT_FIELDS` floats each (column, row, start, code). Slots at and
    * past `effectCount` are unused; a slot whose effect has ended stays until a new one takes it.
@@ -87,12 +102,16 @@ export class ArenaScene {
   ageVersion = 0
   /** A bot's fade changed. */
   fadeVersion = 0
+  /** The isolation changed. */
+  dimVersion = 0
   /** The processes changed. */
   ipsVersion = 0
   /** An effect was added or cleared. */
   effectVersion = 0
   /** A full frame (a load, a new round, a seek) replaced the whole core. */
   fullVersion = 0
+  /** Bumped with each frame applied: what the hover tooltip redraws on. */
+  frameVersion = 0
 
   /**
    * The bytes `advance` touched: those a frame wrote or ran. `changed[0..changedCount)`, each
@@ -120,6 +139,7 @@ export class ArenaScene {
   private nextEffect = 0
   private readonly changedStamp = new Uint32Array(CORE_SIZE)
   private stamp = 0
+  private readonly listeners = new Set<() => void>()
 
   constructor(epoch = 0) {
     this.epoch = epoch
@@ -133,6 +153,19 @@ export class ArenaScene {
       const now = Number.isFinite(this.advancedAt) ? this.advancedAt : this.epoch
       this.applyFrame(this.pending.shift() as FrameMessage, now)
     }
+  }
+
+  /**
+   * Isolates `bots` (PRODUCT_SPEC §2): every other bot, and the bytes nobody owns, keep
+   * `ISOLATE_DIM` of their light. None, or null, isolates nobody.
+   */
+  isolate(bots: readonly number[] | null): void {
+    const on = bots !== null && bots.length > 0
+    const next = new Float32Array(TAGS).fill(on ? ISOLATE_DIM : 1)
+    if (on) for (const bot of bots) if (bot >= 0 && bot < TAGS - 1) next[bot + 1] = 1
+    if (next.every((v, tag) => v === this.dim[tag])) return
+    this.dim.set(next)
+    this.dimVersion++
   }
 
   /** With reduced motion (DESIGN_SYSTEM §8): no ripples or pulses, and dead bots fade at once. */
@@ -165,11 +198,24 @@ export class ArenaScene {
       this.advancedAt < Math.max(this.glowUntil, this.effectsUntil, this.fadeUntil) ||
       this.pending.length > 0
     this.age(now)
+    const applied = this.pending.length > 0
     for (const frame of this.pending) this.applyFrame(frame, now)
     this.pending = []
     this.fadeAll(now)
     this.advancedAt = now
+    if (applied) for (const listener of this.listeners) listener()
     return moving
+  }
+
+  /**
+   * Calls `listener` after each `advance` that applies a frame: the scene then holds a new state of
+   * the core. Returns what stops it.
+   */
+  readonly subscribe = (listener: () => void): (() => void) => {
+    this.listeners.add(listener)
+    return () => {
+      this.listeners.delete(listener)
+    }
   }
 
   /** An effect's start as the renderers read it: ms after `epoch`. */
@@ -196,6 +242,7 @@ export class ArenaScene {
   }
 
   private applyFrame(frame: FrameMessage, now: number): void {
+    this.frameVersion++
     this.cycle = frame.cycle
     this.ips = frame.ips
     this.ipsVersion++
@@ -203,15 +250,15 @@ export class ArenaScene {
       this.applyFull(frame)
       return
     }
-    this.applyWrites(frame.writes, now)
+    this.applyWrites(frame, now)
     this.applyExecs(frame.execs, now)
     if (!this.reduced) {
       // Deaths last: when a frame brings more than the pool holds, its ripples survive.
       this.addEffects(frame.spawns, SPAWN_RECORD, PULSE, PULSE_MS, now)
-      this.addEffects(frame.deaths, DEATH_RECORD, RIPPLE, RIPPLE_MS, now)
+      this.addEffects(frame.deaths, DEATH_FIELDS, RIPPLE, RIPPLE_MS, now)
     }
     const dead = frame.botDeaths
-    for (let i = 0; i < dead.length; i += BOT_DEAD_RECORD) {
+    for (let i = 0; i < dead.length; i += BOT_DEATH_FIELDS) {
       this.deadAt[(dead[i + 1] as number) + 1] = this.reduced ? Number.NEGATIVE_INFINITY : now
       if (!this.reduced) this.fadeUntil = Math.max(this.fadeUntil, now + BOT_FADE_MS)
     }
@@ -228,12 +275,14 @@ export class ArenaScene {
     }
     this.writeAge.fill(AGE_MAX)
     this.execAge.fill(AGE_MAX)
+    this.writtenAt.fill(NOT_SEEN)
+    this.seenSince = frame.cycle
     this.glowUntil = Number.NEGATIVE_INFINITY
     this.clearEffects()
     // The renderer starts over from a full frame: a bot dead by now is faded already.
     this.deadAt.fill(Number.NaN)
     const dead = frame.botDeaths
-    for (let i = 0; i < dead.length; i += BOT_DEAD_RECORD) {
+    for (let i = 0; i < dead.length; i += BOT_DEATH_FIELDS) {
       this.deadAt[(dead[i + 1] as number) + 1] = Number.NEGATIVE_INFINITY
     }
     this.fadeUntil = Number.NEGATIVE_INFINITY
@@ -243,12 +292,14 @@ export class ArenaScene {
     this.fullVersion++
   }
 
-  private applyWrites(writes: Uint16Array, now: number): void {
+  private applyWrites({ writes, writeCycles, cycle }: FrameMessage, now: number): void {
     if (writes.length === 0) return
-    const { bytes, owner, nonZero, writeAge } = this
+    const { bytes, owner, nonZero, writeAge, writtenAt } = this
     for (let i = 0; i < writes.length; i += 2) {
       const a = writes[i] as number
       const cell = writes[i + 1] as number
+      // A frame without write cycles (a test's) wrote at its last cycle.
+      writtenAt[a] = writeCycles[i >> 1] ?? cycle - 1
       const byte = cell & 0xff
       bytes[a] = byte
       owner[a] = cell >> 8
@@ -292,7 +343,7 @@ export class ArenaScene {
     const count = records.length / width
     if (count === 0) return
     const start = this.time(now)
-    // A record's bot is its field 1 and its address its field 3 (SPAWN_RECORD, DEATH_RECORD).
+    // A record's bot is its field 1 and its address its field 3 (SPAWN_RECORD, DEATH_FIELDS).
     for (let n = Math.max(0, count - EFFECT_CAPACITY); n < count; n++) {
       const o = n * width
       const a = records[o + 3] as number

@@ -27,9 +27,16 @@ export interface RoundResult {
 
 /** Runs one battle of `bots` with `config` (ISA §5.5). Throws what `simulate` throws. */
 export function runRound(bots: readonly LoadedBot[], config: BattleConfigInput = {}): RoundResult {
-  const result = simulate(bots, config)
+  return roundResult(config.seed ?? DEFAULT_CONFIG.seed, simulate(bots, config))
+}
+
+/**
+ * The round of a battle placed with `seed` that ended in `result`, however it ran: `runRound`
+ * simulates one, and the arena Worker plays one frame by frame.
+ */
+export function roundResult(seed: number, result: Result): RoundResult {
   return {
-    seed: config.seed ?? DEFAULT_CONFIG.seed,
+    seed,
     result,
     resultHash: resultHash(result),
     durationCycles: result.cycles,
