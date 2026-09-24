@@ -5,6 +5,21 @@
   "type": "module",
   "scripts": {
     "build": "tsc -b",
-    "test": "bun test"
+    "dev": "wrangler dev",
+    "test": "vitest run",
+    "migrate:local": "wrangler d1 migrations apply asmbots --local",
+    "migrate:remote": "wrangler d1 migrations apply asmbots --remote"
+  },
+  "dependencies": {
+    "@asmbots/engine": "workspace:*",
+    "@asmbots/protocol": "workspace:*",
+    "@asmbots/tourney": "workspace:*",
+    "hono": "4.13.9"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.22.0",
+    "@cloudflare/workers-types": "5.20260924.1",
+    "vitest": "4.1.11",
+    "wrangler": "4.137.0"
   }
 }

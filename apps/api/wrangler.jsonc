@@ -1,0 +1,45 @@
+// The one Worker: the web app's static assets plus the API (ARCHITECTURE §7).
+// The D1 and KV ids are placeholders that work for `wrangler dev` (local storage); the deploy
+// playbook (3.4) creates the real resources and fills them in.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "asmbots",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-15",
+  "assets": {
+    "directory": "../web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Without this, a navigation to /api/... would get the SPA's index.html.
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "asmbots",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "src/db/migrations"
+    }
+  ],
+  "r2_buckets": [{ "binding": "REPLAYS", "bucket_name": "asmbots-replays" }],
+  "kv_namespaces": [{ "binding": "KV", "id": "00000000000000000000000000000000" }],
+  "durable_objects": {
+    "bindings": [
+      { "name": "RUNNER", "class_name": "Runner" },
+      { "name": "LIVE_ROOM", "class_name": "LiveRoom" }
+    ]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Runner", "LiveRoom"] }],
+  "triggers": {
+    // Saturdays 18:00 UTC: the weekly championship.
+    "crons": ["0 18 * * 6"]
+  },
+  "vars": {
+    "ISA_VERSION": "x16c-v1",
+    // The build stamps the real one: `wrangler deploy --var APP_VERSION:<bun run version>`.
+    "APP_VERSION": "dev",
+    // The one cross-origin caller: the Vite dev server. The deployed app is same-origin.
+    "APP_ORIGIN": "http://localhost:5173"
+  },
+  "observability": { "enabled": true }
+}
