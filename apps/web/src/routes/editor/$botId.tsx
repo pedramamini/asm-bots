@@ -1,17 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Placeholder } from '../../app/Placeholder'
 import { titleHead } from '../../app/title'
+import { EditorBotRoute } from '../../features/editor/EditorRoutes'
 
 export const Route = createFileRoute('/editor/$botId')({
+  // A bot of this browser by id, or a roster bot, read-only: `/editor/roster-dwarf`.
   head: ({ params }) => titleHead('editor', params.botId),
   component: EditorDetail,
 })
 
 function EditorDetail() {
-  const { botId } = Route.useParams()
-  return (
-    <Placeholder title="editor" status={botId}>
-      this bot opens here once the editor lands.
-    </Placeholder>
-  )
+  return <EditorBotRoute />
 }

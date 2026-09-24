@@ -78,7 +78,10 @@ only when asked, never on its own. Every typed array it sends is transferred, no
 | `seek { cycle }` | a full frame |
 | `requestFrame` | a frame of `speed` cycles, only while playing |
 | `play`, `pause`, `speed { cyclesPerFrame }` | nothing, or an `error` |
+| `match { bots, config, rounds }` | `match { match }`: the whole match headless, as `runMatch` gives it, or an `error` |
 
+- `match` (the editor's `test vs`) runs beside the battle and leaves it as it was: no frames,
+  and `ArenaClient.runMatch` settles its calls in the order it sent them.
 - Each request that moves the battle (`load`, `setRound`, `step`, `seek`, `requestFrame`) gets
   exactly one `frame`, or an `error` in its place. `ended { result, hash, round, match }` follows
   the frame that ends a round. A failed request leaves the battle as it was.
@@ -133,6 +136,7 @@ Measured on an M5 Max in headless Chromium 1243, 2026-09-23.
 | The battle page, same melee (HUD, rail, sparklines, log) | 1280 x 720 DPR 1, 1440 x 900 DPR 2 on Metal | p95 16.7 ms, no long tasks |
 | The home demo, 4 bots, 400 cycles a frame, bloom | 1280 x 720 DPR 1, 1440 x 900 DPR 2 on Metal | p95 16.7 ms, max 16.8 ms |
 | Cold JS | `/arena`, `/arena/$replayId`, `/` | 222.8, 214.7, and 145 KB gz, then 65 KB gz of demo on `/` |
+| Cold JS with the editor (EXEC 2.4), 2026-09-23 | `/arena`, `/editor` | 226.8 KB gz (the editor's icons, `Toolbar`, and the chunks it shares with the arena: +3.5); 356 KB gz, of which CodeMirror is 124 and the assembler Worker 17 |
 
 Headless Chromium's WebGL is SwiftShader (software) unless launched with `--use-angle=metal`. It
 holds 60 fps at DPR 1; at DPR 2 with bloom the melee's p95 is 33 ms. The renderer's first images
@@ -161,6 +165,25 @@ alone.
    do not.
 5. Tests: the state in `test/arena-scene.test.ts`, the 2D pixels in `test/arena-canvas2d.test.ts`,
    the WebGL pixels in `e2e/arena-render.spec.ts`, and then `e2e/arena-perf.spec.ts` alone.
+
+## Editor
+
+`/editor` is a new bot; `/editor/<id>` a bot of this browser; `/editor/roster-<slug>` a roster
+bot, read-only, with `fork`. `/editor?b=…` (the arena's `open in debugger`) opens the setup's first
+bot, `/editor#src=…` (the editor's `share`) opens a bot not saved yet, and `/editor?t=dwarf` starts a
+new bot from a template. The code is in `src/features/editor/`:
+
+| Part | Where |
+| --- | --- |
+| Assemble on idle | `asm/useAssembler.ts` sends the source to `asm/asm.worker.ts` 300 ms after the last change (the first at once); only the answer to the last request counts. `asm/run.ts` assembles at the 512-byte cap, lints, and measures a bot past the cap. `asm/client.ts` falls back to the main thread if the Worker fails. |
+| Results in the editor | `cm/diagnostics.ts`: `showResult` hands a result whose source the editor still holds to `@codemirror/lint` (`setDiagnostics`: squiggles, tooltips with the fix, `lintGutter` marks) and to `setAssembled`. `problemsOf` reads the mapped findings back for `Problems.tsx`. |
+| Listing gutter | `cm/listing.ts`: `0x000D  C7 05 00 00` per line from the last assemble without errors, mapped through edits until the next; `l` shows and hides it. |
+| Toolbar | `EditorToolbar.tsx`: name, `%name`, size (warn from 90%, danger past the cap), assemble (Mod-Enter), format (Shift-Alt-f; `diff.ts` turns the formatter's text into small changes so the cursor stays in its token), lint, save (Mod-s), versions, share, `test vs ▾`, templates, listing. |
+| Storage | Local bots in IndexedDB (`store/local-bots.ts`), the last 20 saves of each in their own database (`store/bot-versions.ts`); the switches, the recent list, and each unsaved text (a draft) in `localStorage` (`store.ts`). |
+| `test vs ▾` | `test-vs.ts`: ten rounds of the duel against a roster bot in the arena Worker (`match`), shown as `W 7 · T 2 · L 1 vs imp`; `watch` opens `/arena` with the same bots and seed. |
+
+The bot library (`Library.tsx`, `b`) lists recent documents, my bots, and the roster. In the editor,
+Esc leaves the text, so the page keys work.
 
 ## Lighthouse
 

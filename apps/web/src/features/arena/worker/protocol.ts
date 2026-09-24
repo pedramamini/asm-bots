@@ -6,7 +6,8 @@
  * Each request that moves the battle gets exactly one `frame`, or an `error` in its place: `load`,
  * `setRound`, `step`, `seek`, and `requestFrame`. `play`, `pause`, and `speed` get no answer, only
  * an `error` when they fail. `loaded` comes before the frame of a `load` or a `setRound`, and
- * `ended` after the frame that ends the battle.
+ * `ended` after the frame that ends the battle. `match` runs a whole match headless, beside the
+ * battle and without touching it (the editor's `test vs`), and gets one `match`, or an `error`.
  *
  * A load is a match of one or more rounds (ISA §5.5): round i places the bots in a rotated order
  * with the seed plus i, as `@asmbots/tourney` scores it. The messages name bots by their place in
@@ -112,6 +113,16 @@ export type ArenaRequest =
   | { readonly type: 'setRound'; readonly round: number }
   /** A frame's worth of cycles, when playing. The main thread asks once per display frame. */
   | { readonly type: 'requestFrame' }
+  /**
+   * A whole match of `rounds` rounds, headless: no frames, and the battle loaded stays as it was.
+   * Its answer is a `match` with the result `runMatch` gives.
+   */
+  | {
+      readonly type: 'match'
+      readonly bots: readonly ArenaBot[]
+      readonly config: BattleConfigInput
+      readonly rounds: number
+    }
 
 /** The requests that get a frame, or an error in its place. */
 export const FRAME_REQUESTS: ReadonlySet<ArenaRequest['type']> = new Set([
@@ -243,8 +254,14 @@ export interface ErrorMessage {
   readonly message: string
 }
 
+/** The answer to a `match` request: the whole match. */
+export interface MatchMessage {
+  readonly type: 'match'
+  readonly match: MatchResult
+}
+
 /** The messages: Worker to main thread. */
-export type ArenaMessage = LoadedMessage | FrameMessage | EndedMessage | ErrorMessage
+export type ArenaMessage = LoadedMessage | FrameMessage | EndedMessage | ErrorMessage | MatchMessage
 
 /** The engine's `result` of a round fought in `order`, one bot per place in the load. */
 export function botResults(result: Result, order: readonly number[]): BotResult[] {

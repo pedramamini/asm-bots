@@ -33,6 +33,7 @@ import {
   roundOrder,
   roundResult,
   roundSeed,
+  runMatch,
   withRound,
 } from '@asmbots/tourney'
 import {
@@ -332,6 +333,10 @@ export class ArenaSession {
         return this.seek(checkCount('seek: cycle', request.cycle, 0xffffffff))
       case 'requestFrame':
         return this.requestFrame()
+      case 'match': {
+        const bots = request.bots.map(({ name, bytes, meta }) => ({ name, bytes, meta }))
+        return [{ type: 'match', match: runMatch(bots, request.config, request.rounds) }]
+      }
     }
   }
 

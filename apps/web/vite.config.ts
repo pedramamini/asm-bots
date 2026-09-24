@@ -52,7 +52,14 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (/[\\/]packages[\\/](engine|codec)[\\/]/.test(id)) return 'engine'
-          if (/[\\/]node_modules[\\/](@codemirror|@lezer|codemirror)[\\/]/.test(id)) return 'editor'
+          // CodeMirror and the small packages only it uses: none of it loads before the editor.
+          if (
+            /[\\/]node_modules[\\/](@codemirror|@lezer|codemirror|@marijn|crelt|style-mod|w3c-keyname)[\\/]/.test(
+              id,
+            )
+          ) {
+            return 'editor'
+          }
           // The zip codec serves only the settings page's import and export: it rides that chunk.
           if (/[\\/]node_modules[\\/]fflate[\\/]/.test(id)) return undefined
           if (/[\\/]node_modules[\\/]/.test(id)) return 'vendor'

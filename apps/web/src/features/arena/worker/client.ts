@@ -23,6 +23,7 @@ import {
   isSpeed,
   type LoadedMessage,
   MAX_CYCLES_PER_FRAME,
+  type MatchMessage,
   type Placement,
   type Speed,
 } from './protocol'
@@ -104,6 +105,15 @@ export interface ArenaEvents {
 
 type Listeners = { [K in keyof ArenaEvents]: Set<(message: ArenaEvents[K]) => void> }
 
+/** The messages of the battle: all but the answers to `match`, which settle `runMatch`. */
+type BattleMessage = Exclude<ArenaMessage, MatchMessage>
+
+/** A `runMatch` waiting for its answer. */
+interface WaitingMatch {
+  readonly resolve: (match: MatchResult) => void
+  readonly reject: (error: Error) => void
+}
+
 /** Calls `callback` on the next display frame, and returns what cancels the call. */
 export type Schedule = (callback: () => void) => () => void
 
@@ -151,6 +161,8 @@ export class ArenaClient {
   private playing = false
   private cancelTick: (() => void) | null = null
   private disposed = false
+  /** The `match` requests in flight, oldest first: the Worker answers requests in order. */
+  private readonly matches: WaitingMatch[] = []
 
   constructor(options: ArenaClientOptions = {}) {
     this.worker =
@@ -258,12 +270,30 @@ export class ArenaClient {
     this.store.setState({ speed: cyclesPerFrame })
   }
 
-  /** Ends the Worker. The client does nothing after this. */
+  /**
+   * Runs a whole match headless (`match`), beside the battle and without touching it: the
+   * editor's `test vs`. Resolves with the result `runMatch` gives; rejects when the Worker refuses
+   * the match or fails.
+   */
+  runMatch(
+    bots: readonly ArenaBot[],
+    config: BattleConfigInput,
+    rounds: number,
+  ): Promise<MatchResult> {
+    if (this.disposed) return Promise.reject(new Error('arena worker: closed'))
+    return new Promise((resolve, reject) => {
+      this.matches.push({ resolve, reject })
+      this.send({ type: 'match', bots, config, rounds })
+    })
+  }
+
+  /** Ends the Worker. The client does nothing after this; a `runMatch` in flight rejects. */
   dispose(): void {
     this.disposed = true
     this.stopTicking()
     this.worker.terminate()
     for (const listeners of Object.values(this.listeners)) listeners.clear()
+    this.failMatches('arena worker: closed')
   }
 
   private startLoading(): void {
@@ -305,6 +335,10 @@ export class ArenaClient {
 
   private receive(message: ArenaMessage): void {
     if (this.disposed) return
+    if (message.type === 'match' || (message.type === 'error' && message.request === 'match')) {
+      this.settleMatch(message)
+      return
+    }
     // Never below 0: a frame the Worker sends after a crash owes nothing.
     if (answersFrameRequest(message)) this.owed = Math.max(0, this.owed - 1)
     if (!this.apply(message)) return
@@ -312,8 +346,19 @@ export class ArenaClient {
     this.emit(message)
   }
 
+  /** The answer to the oldest `runMatch` in flight. */
+  private settleMatch(message: MatchMessage | ErrorMessage): void {
+    const waiting = this.matches.shift()
+    if (message.type === 'match') waiting?.resolve(message.match)
+    else waiting?.reject(new Error(message.message))
+  }
+
+  private failMatches(message: string): void {
+    for (const waiting of this.matches.splice(0)) waiting.reject(new Error(message))
+  }
+
   /** Puts `message` in the store. Returns false for a message of an earlier battle. */
-  private apply(message: ArenaMessage): boolean {
+  private apply(message: BattleMessage): boolean {
     const store = this.store
     switch (message.type) {
       case 'loaded':
@@ -384,10 +429,11 @@ export class ArenaClient {
     this.playing = false
     this.stopTicking()
     this.store.setState({ status: 'error', error: message })
+    this.failMatches(message)
     this.emit({ type: 'error', request: null, message })
   }
 
-  private emit(message: ArenaMessage): void {
+  private emit(message: BattleMessage): void {
     const listeners = this.listeners[message.type] as Set<(message: ArenaMessage) => void>
     for (const listener of listeners) listener(message)
   }

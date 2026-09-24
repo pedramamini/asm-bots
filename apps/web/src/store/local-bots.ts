@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate'
 import { clear, createStore, del, get, set, type UseStore, values } from 'idb-keyval'
+import { clearVersions, deleteVersions } from './bot-versions'
 
 /** A bot that lives in this browser only: an anonymous user's, until they sign in (PRODUCT_SPEC §9). */
 export interface LocalBot {
@@ -55,12 +56,16 @@ export async function saveLocalBot(bot: {
   return saved
 }
 
-export function deleteLocalBot(id: string): Promise<void> {
-  return del(id, botStore())
+/** Deletes a bot and its saved versions. */
+export async function deleteLocalBot(id: string): Promise<void> {
+  await del(id, botStore())
+  await deleteVersions(id)
 }
 
-export function clearLocalBots(): Promise<void> {
-  return clear(botStore())
+/** Deletes every bot and every saved version. */
+export async function clearLocalBots(): Promise<void> {
+  await clear(botStore())
+  await clearVersions()
 }
 
 /** A zip of the bots: one `<name>.asm` each, names made file-safe and unique. */

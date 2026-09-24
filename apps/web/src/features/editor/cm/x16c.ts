@@ -382,6 +382,95 @@ export const EDITOR_THEME = {
   },
   '.cm-x16c-card-flag': { color: 'var(--text-dim)' },
   '.cm-x16c-card-flag[data-on]': { color: 'var(--accent)' },
+
+  // Diagnostics (diagnostics.ts): a wavy underline in the severity's color, a caret under a point,
+  // and a dot (error) or a triangle (warning) in the gutter, all from the theme.
+  '.cm-lintRange': { backgroundImage: 'none', paddingBottom: '0' },
+  '.cm-lintRange-error': {
+    textDecorationLine: 'underline',
+    textDecorationStyle: 'wavy',
+    textDecorationColor: 'var(--danger)',
+    textDecorationSkipInk: 'none',
+    textUnderlineOffset: '3px',
+  },
+  '.cm-lintRange-warning': {
+    textDecorationLine: 'underline',
+    textDecorationStyle: 'wavy',
+    textDecorationColor: 'var(--warn)',
+    textDecorationSkipInk: 'none',
+    textUnderlineOffset: '3px',
+  },
+  '.cm-lintRange-active': { backgroundColor: 'var(--accent-10)' },
+  '.cm-lintPoint:after': { borderBottomColor: 'var(--danger)' },
+  '.cm-lintPoint-warning:after': { borderBottomColor: 'var(--warn)' },
+  '.cm-gutter-lint': { width: '14px' },
+  '.cm-gutter-lint .cm-gutterElement': {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '0 0 0 4px',
+  },
+  '.cm-lint-marker': { content: 'normal', width: '6px', height: '6px' },
+  '.cm-lint-marker-error': { borderRadius: '50%', backgroundColor: 'var(--danger)' },
+  '.cm-lint-marker-warning': {
+    width: '8px',
+    height: '7px',
+    backgroundColor: 'var(--warn)',
+    clipPath: 'polygon(50% 0, 100% 100%, 0 100%)',
+  },
+  '.cm-tooltip.cm-tooltip-lint': { maxWidth: '480px' },
+  '.cm-diagnostic': {
+    padding: '6px 10px',
+    marginLeft: '0',
+    fontFamily: 'var(--font-mono)',
+    fontSize: '12px',
+    lineHeight: '18px',
+  },
+  '.cm-diagnostic-error': { borderLeft: '2px solid var(--danger)' },
+  '.cm-diagnostic-warning': { borderLeft: '2px solid var(--warn)' },
+  '.cm-diagnosticSource': {
+    marginTop: '2px',
+    color: 'var(--text-muted)',
+    fontSize: '10px',
+    letterSpacing: '0.10em',
+    textTransform: 'uppercase',
+    opacity: '1',
+  },
+  '.cm-x16c-diagnostic': { display: 'flex', flexDirection: 'column', gap: '2px' },
+  '.cm-x16c-fix': { color: 'var(--text-muted)' },
+
+  // The listing (listing.ts): each line's address and bytes, as dim as the line numbers.
+  '.cm-listing-gutter .cm-gutterElement': {
+    padding: '0 12px 0 4px',
+    whiteSpace: 'pre',
+    fontVariantNumeric: 'tabular-nums',
+  },
+
+  // The search panel (Mod-f): the kit's field and buttons.
+  '.cm-panel.cm-search': { padding: '6px 12px 8px', fontSize: '12px' },
+  '.cm-panel.cm-search label': { color: 'var(--text-muted)' },
+  '.cm-textfield': {
+    color: 'var(--text)',
+    backgroundColor: 'var(--panel-2)',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-sm)',
+    fontFamily: 'var(--font-mono)',
+    fontSize: '12px',
+    outline: 'none',
+  },
+  '.cm-textfield:focus': { borderColor: 'var(--accent)' },
+  '.cm-button': {
+    color: 'var(--text-muted)',
+    backgroundColor: 'var(--panel)',
+    backgroundImage: 'none',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-sm)',
+    fontFamily: 'var(--font-mono)',
+    fontSize: '11px',
+    textTransform: 'uppercase',
+  },
+  '.cm-button:hover': { color: 'var(--text)', borderColor: 'var(--border-strong)' },
+  '.cm-panel.cm-search [name=close]': { color: 'var(--text-muted)' },
 } as const
 
 export const x16cTheme = EditorView.theme(EDITOR_THEME)

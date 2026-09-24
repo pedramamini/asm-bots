@@ -100,7 +100,7 @@ function pageTheme(): Theme {
  * localStorage, looked up on each call: storage turned off (or no DOM yet, as when a test imports
  * this module) reads as empty and drops writes, where zustand would give up on persisting for good.
  */
-const localStore: StateStorage = {
+export const localStore: StateStorage = {
   getItem: (name) => attempt(() => localStorage.getItem(name), null),
   setItem: (name, value) => attempt(() => localStorage.setItem(name, value), undefined),
   removeItem: (name) => attempt(() => localStorage.removeItem(name), undefined),
@@ -216,7 +216,7 @@ function isArenaConfig(value: unknown): value is ArenaConfig {
   )
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
