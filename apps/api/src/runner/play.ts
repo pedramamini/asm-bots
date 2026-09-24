@@ -4,7 +4,14 @@
  * key, by this job before it was cut off or by any other job, is read back and not played again.
  * A result lands in R2 (the replay) before D1 (the row), and in D1 before the `Runner` moves on.
  */
-import { buildReplay, type Match, type MatchOutcome } from '@asmbots/protocol'
+import {
+  buildReplay,
+  type LiveMatch,
+  type Match,
+  type MatchOutcome,
+  sha256Hex,
+  toBase64,
+} from '@asmbots/protocol'
 import { type MatchResult, type MatchSpec, matchHash, runMatch } from '@asmbots/tourney'
 import { type MatchRow, toMatch } from '../db/queries'
 import type { Env } from '../env'
@@ -22,6 +29,34 @@ export type Step =
       /** Its result was stored already: nothing was played. */
       readonly reused: boolean
     }
+
+/**
+ * The inputs of `spec`, as its `matchStarted` carries them: what a spectator loads to run the
+ * match alongside, and to check it against its `matchFinished`.
+ */
+export async function liveMatch(
+  state: JobState,
+  bots: readonly JobBot[],
+  spec: MatchSpec,
+): Promise<LiveMatch> {
+  const fight = fighters(bots, spec)
+  const { seed, ...config } = state.battle
+  return {
+    id: matchId(state, spec),
+    key: matchHash(fight, state.battle, state.rounds),
+    participants: spec.entrants.map((i) => (bots[i] as JobBot).versionId),
+    rounds: state.rounds,
+    seed,
+    config,
+    bots: await Promise.all(
+      fight.map(async ({ name, bytes }) => ({
+        name,
+        bytes: toBase64(bytes),
+        sha256: await sha256Hex(bytes),
+      })),
+    ),
+  }
+}
 
 /** The rounds one alarm plays of a match of `bots` bots. */
 function roundsPerAlarm(state: JobState, bots: number): number {

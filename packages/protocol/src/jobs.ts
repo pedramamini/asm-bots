@@ -32,8 +32,13 @@ export type RunnerJob = z.output<typeof RunnerJob>
 /** A job's id, and so its `Runner`'s name: `hill:<slug>:<submissionId>` or `tournament:<id>`. */
 export function runnerJobId(job: RunnerJob): string {
   return job.kind === 'hill'
-    ? `hill:${job.hill}:${job.submissionId}`
+    ? hillJobId(job.hill, job.submissionId)
     : `tournament:${job.tournamentId}`
+}
+
+/** The id of the job of submission `submissionId` to hill `slug`. */
+export function hillJobId(slug: string, submissionId: string): string {
+  return `hill:${slug}:${submissionId}`
 }
 
 /** Where a job is: playing, done, stopped by its owner, or stopped by an error. */

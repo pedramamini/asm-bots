@@ -9,11 +9,13 @@ import { env } from 'cloudflare:workers'
 import { assembleOrThrow } from '@asmbots/asm'
 import type { LoadedBot } from '@asmbots/engine'
 import {
+  fromBase64,
   type HillJob,
   ISA,
   type LiveMessage,
   liveRoomName,
   type MatchOutcome,
+  matchResultHash,
   parseReplay,
   type RunnerJob,
   sha256Hex,
@@ -34,6 +36,7 @@ import { type Runner, runnerOf } from '../src/do/runner'
 import { writeBoard } from '../src/runner/hill'
 import type { JobState } from '../src/runner/job'
 import { botBytesKey, replayObjectKey } from '../src/storage'
+import { spectate } from './live-socket'
 
 const SPIN = '%name "Spin"\n%author "ASM Bots"\nstart: jmp $\n'
 const HALT = '%name "Halt"\n%author "ASM Bots"\nstart: hlt ; lint: allow hlt-in-code\n'
@@ -83,7 +86,7 @@ const ROUNDS = 3
 
 /** A duel hill of 3 for each test that changes one; `crowd` is a melee hill. */
 const HILLS: SeedHill[] = [
-  ...['alpha', 'beta', 'gamma', 'delta', 'eps', 'zeta', 'eta'].map((slug) => ({
+  ...['alpha', 'beta', 'gamma', 'delta', 'eps', 'zeta', 'eta', 'theta'].map((slug) => ({
     slug,
     name: slug,
     description: '',
@@ -312,6 +315,43 @@ describe('a hill job', () => {
     // Starting it again answers its status: nothing runs twice.
     expect(await runner.start(job)).toMatchObject({ status: 'finished', done: 3 })
     expect(await runDurableObjectAlarm(runner)).toBe(false)
+  })
+
+  it("tells a spectator each match as it runs, and each match's inputs play to its result", async () => {
+    const watcher = await spectate('hill:hill-theta')
+    await watcher.until(2)
+    const job = await submit('s-theta', 'theta', 'loop-v1')
+    const runner = runnerOf(env, job)
+    await runner.start(job)
+    await drain(runner)
+
+    // The socket heard what the room kept, as it happened.
+    const kept = await room({ kind: 'hill', id: 'hill-theta' }).recent()
+    const events = () => watcher.heard.filter((m) => m.type !== 'hello' && m.type !== 'spectators')
+    await vi.waitFor(() => expect(events()).toEqual(kept))
+    expect(kept.at(-1)).toMatchObject({ type: 'progress', status: 'finished', done: 3 })
+
+    // A spectator runs each match from its `matchStarted` and gets the `matchFinished` hashes.
+    const started = watcher.of('matchStarted')
+    const finished = watcher.of('matchFinished')
+    // Match ids end in the defender's bot index: the challenger is bot 0.
+    expect(started.map((m) => m.match.id)).toEqual(['s-theta-1', 's-theta-2', 's-theta-3'])
+    expect(finished.map((m) => m.match.id)).toEqual(started.map((m) => m.match.id))
+    for (const [i, { job: name, match }] of started.entries()) {
+      const done = finished[i]?.match
+      expect(name).toBe('hill:theta:s-theta')
+      expect(finished[i]?.job).toBe(name)
+      expect(match.participants).toEqual(done?.participants)
+      for (const bot of match.bots) expect(await sha256Hex(fromBase64(bot.bytes))).toBe(bot.sha256)
+      const fight = match.bots.map((b) => ({ name: b.name, bytes: fromBase64(b.bytes) }))
+      const again = runMatch(fight, { ...match.config, seed: match.seed }, match.rounds)
+      expect(again.key).toBe(match.key)
+      expect(done?.result?.rounds?.map((r) => r.resultHash)).toEqual(
+        again.rounds.map((r) => r.resultHash),
+      )
+      expect(done?.result?.resultHash).toBe(matchResultHash(again.rounds))
+    }
+    watcher.ws.close(1000)
   })
 
   it('resumes when cut off after storing a match, and plays no match twice', async () => {

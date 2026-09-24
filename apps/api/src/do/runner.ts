@@ -1,5 +1,5 @@
 import { DurableObject } from 'cloudflare:workers'
-import { type LiveMessage, parse, RunnerJob, runnerJobId, type Standing } from '@asmbots/protocol'
+import { type LiveEvent, parse, RunnerJob, runnerJobId, type Standing } from '@asmbots/protocol'
 import type { MatchResult } from '@asmbots/tourney'
 import type { Env } from '../env'
 import { log } from '../middleware'
@@ -11,12 +11,11 @@ import {
   type JobSetup,
   type JobState,
   MAX_FAILURES,
-  matchId,
   messageOf,
   type RunnerStatus,
   statusOf,
 } from '../runner/job'
-import { playHead } from '../runner/play'
+import { liveMatch, playHead } from '../runner/play'
 import {
   advanceBracket,
   cancelTournament,
@@ -147,18 +146,8 @@ export class Runner extends DurableObject<Env> {
     const spec = state.queue[0]
     if (spec === undefined) return this.settle(state, bots)
     if (state.partial === null) {
-      const participants = spec.entrants.map((i) => (bots[i] as JobBot).versionId)
-      await this.publish(state, [
-        {
-          type: 'matchStarted',
-          match: {
-            id: matchId(state, spec),
-            participants,
-            rounds: state.rounds,
-            seed: state.battle.seed,
-          },
-        },
-      ])
+      const match = await liveMatch(state, bots, spec)
+      await this.publish(state, [{ type: 'matchStarted', job: state.id, match }])
     }
     const started = Date.now()
     const step = await playHead(this.env, state, bots, spec)
@@ -187,7 +176,7 @@ export class Runner extends DurableObject<Env> {
     results.set(spec.id, step.result)
     if (state.format === 'bracket') await advanceBracket(this.env, state, bots, results)
     if (!(await this.commit(state, { [`result:${spec.id}`]: step.result }))) return
-    const messages: LiveMessage[] = [{ type: 'matchFinished', match: step.match }]
+    const messages: LiveEvent[] = [{ type: 'matchFinished', job: state.id, match: step.match }]
     if (state.format !== 'hill') {
       messages.push(this.standings(tournamentStandings(state, bots, results)))
     }
@@ -279,7 +268,7 @@ export class Runner extends DurableObject<Env> {
   }
 
   /** Sends `messages` to the job's room. Spectators are not the job: a failure is only logged. */
-  private async publish(state: JobState, messages: LiveMessage[]): Promise<void> {
+  private async publish(state: JobState, messages: LiveEvent[]): Promise<void> {
     try {
       const room = this.env.LIVE_ROOM.get(this.env.LIVE_ROOM.idFromName(state.room))
       await room.publish(messages)
@@ -288,12 +277,12 @@ export class Runner extends DurableObject<Env> {
     }
   }
 
-  private progress(state: JobState): LiveMessage {
+  private progress(state: JobState): LiveEvent {
     const { id: job, status, played, of } = state
     return { type: 'progress', job, status, done: played.length, of }
   }
 
-  private standings(entries: Standing[]): LiveMessage {
+  private standings(entries: Standing[]): LiveEvent {
     return { type: 'standings', entries }
   }
 

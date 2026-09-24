@@ -134,11 +134,15 @@ export async function endSession(c: Context<AppEnv>): Promise<void> {
   deleteCookie(c, SIGNED_IN_COOKIE, { path: '/', secure: true })
 }
 
+/** Whether a request from `origin` may go on: none (the CLI, a script), this site, or `APP_ORIGIN`. */
+export function originAllowed(c: Context<AppEnv>, origin: string | undefined): boolean {
+  return origin === undefined || origin === c.env.APP_ORIGIN || origin === new URL(c.req.url).origin
+}
+
 /** Refuses a write sent from another origin (the header comment says why). */
 export const sameOrigin: MiddlewareHandler<AppEnv> = async (c, next) => {
   const origin = c.req.header('Origin')
-  const allowed = origin === undefined || origin === c.env.APP_ORIGIN
-  if (!allowed && origin !== new URL(c.req.url).origin) {
+  if (!originAllowed(c, origin)) {
     return errorResponse(c, 'forbidden', `a write from ${origin} is not allowed`)
   }
   await next()

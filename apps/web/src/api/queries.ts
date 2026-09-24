@@ -81,10 +81,10 @@ export function submissionActive(detail: SubmissionDetail | undefined): boolean 
 }
 
 /**
- * A hill submission, asked again every `SUBMISSION_POLL_MS` while its job runs (the hill's
- * `LiveRoom` socket, which says the same as it happens, comes with spectating).
+ * A hill submission. With `poll`, asked again every `SUBMISSION_POLL_MS` while its job runs: the
+ * page's way when the hill's live room is not open, since the room says when the job moves.
  */
-export const submissionQuery = (slug: string, id: string) =>
+export const submissionQuery = (slug: string, id: string, poll = true) =>
   queryOptions({
     queryKey: ['hills', slug, 'submissions', id],
     queryFn: ({ signal }) =>
@@ -93,7 +93,8 @@ export const submissionQuery = (slug: string, id: string) =>
         (v) => parse(SubmissionDetail, v, 'the submission'),
         signal,
       ),
-    refetchInterval: (query) => (submissionActive(query.state.data) ? SUBMISSION_POLL_MS : false),
+    refetchInterval: (query) =>
+      poll && submissionActive(query.state.data) ? SUBMISSION_POLL_MS : false,
   })
 
 export const botQuery = (id: string) =>
@@ -186,9 +187,9 @@ export const useHillMatches = (slug: string, filter?: HillMatchesFilter) =>
   useQuery(hillMatchesQuery(slug, filter))
 export const useHillHistory = (slug: string, limit?: number) =>
   useQuery(hillHistoryQuery(slug, limit))
-/** A hill submission, polled while its job runs; waits while `id` is null. */
-export const useSubmission = (slug: string, id: string | null) =>
-  useQuery({ ...submissionQuery(slug, id ?? ''), enabled: id !== null })
+/** A hill submission, polled while its job runs unless `poll` is false; waits while `id` is null. */
+export const useSubmission = (slug: string, id: string | null, poll = true) =>
+  useQuery({ ...submissionQuery(slug, id ?? '', poll), enabled: id !== null })
 export const useBot = (id: string) => useQuery(botQuery(id))
 /** One version of a bot; waits while `version` is null. */
 export const useBotVersion = (id: string, version: number | null) =>

@@ -10,6 +10,7 @@ import type {
   BotLabel,
   BotVersion,
   HillEventSummary,
+  LiveMessage,
   MatchSummary,
   Me,
   MyBot,
@@ -33,6 +34,7 @@ import { validateHillSearch } from '../src/features/hills/search'
 import { clearLocalBots, saveLocalBot } from '../src/store/local-bots'
 import { answer, answerPost, refuse, renderAt, useApiServer } from './api-server'
 import { DWARF, HILLS, IMP, MAIN_DETAIL, MATCHES, PAPER } from './fixtures/api'
+import { FakeSockets } from './live-fakes'
 
 useDom()
 window.scrollTo = () => {}
@@ -205,14 +207,46 @@ beforeEach(async () => {
 })
 afterEach(() => signedIn(false))
 
+/** The hill's live room saying hello. */
+const HELLO: LiveMessage = {
+  type: 'hello',
+  protocol: 1,
+  room: { kind: 'hill', id: MAIN.id },
+  now: T,
+}
+
+function progressOf(job: string, done: number, status: 'running' | 'finished'): LiveMessage {
+  return { type: 'progress', job, status, done, of: 3 }
+}
+
 /** The query client of the page under test, which `Page` keeps. */
 let client: QueryClient | null = null
+
+/** The live rooms' sockets the pages open: they stay closed unless a test opens one. */
+let sockets = new FakeSockets()
+beforeEach(() => {
+  sockets = new FakeSockets()
+})
 
 /** The hill page as its route draws it: the submission from the query. */
 function Page() {
   client = useQueryClient()
   const search = useLocation().search as { submission?: string }
-  return <HillPage slug="main" submission={search.submission ?? null} />
+  return (
+    <HillPage
+      slug="main"
+      submission={search.submission ?? null}
+      live={{ createSocket: sockets.create }}
+    />
+  )
+}
+
+/** Opens the page's live room, and says hello. */
+function openRoom() {
+  act(() => {
+    sockets.last.open()
+    sockets.last.receive(HELLO)
+  })
 }
 
 describe('the words of a submission', () => {
@@ -258,7 +292,7 @@ describe('the words of a submission', () => {
     ])
   })
 
-  it('polls a submission while its job may change it', () => {
+  it('polls a submission while its job may change it, unless the live room says', () => {
     const interval = submissionQuery('main', 's1').refetchInterval as (query: unknown) => unknown
     const at = (data: SubmissionDetail | undefined) => interval({ state: { data } })
     expect(at(RUNNING)).toBe(SUBMISSION_POLL_MS)
@@ -268,6 +302,8 @@ describe('the words of a submission', () => {
       false,
       false,
     ])
+    const quiet = submissionQuery('main', 's1', false).refetchInterval as typeof interval
+    expect(quiet({ state: { data: RUNNING } })).toBe(false)
   })
 
   it('sets the arena to a hill’s rules and seed', () => {
@@ -409,6 +445,55 @@ describe('the submission panel', () => {
     expect(result.textContent).toContain('on the hill at #2: pushed off Imp (#3).')
     expect(panel.textContent).toContain('finished')
     await waitFor(() => expect(hillReads).toBeGreaterThan(1))
+  })
+
+  it('reads the submission again as its job moves in the live room, and does not poll it', async () => {
+    let asked = 0
+    server.use(
+      http.get('*/api/hills/main/submissions/s1', () => {
+        asked++
+        return HttpResponse.json(asked === 1 ? RUNNING : FINISHED)
+      }),
+    )
+    await renderAt('/hills/main?submission=s1', Page, '/hills/$slug')
+    const panel = await screen.findByRole('region', { name: 'submission' })
+    await waitFor(() => expect(panel.textContent).toContain('fighting 2 of 3'))
+    const interval = () => {
+      const key = ['hills', 'main', 'submissions', 's1']
+      const query = client?.getQueryCache().find({ queryKey: key })
+      const poll = query?.observers[0]?.options.refetchInterval as (q: unknown) => unknown
+      return poll({ state: { data: RUNNING } })
+    }
+    // Polled until the room is open; then the room says when to read it again.
+    expect(sockets.last.url).toBe(`ws://localhost/api/live/hill%3A${MAIN.id}`)
+    expect(interval()).toBe(SUBMISSION_POLL_MS)
+    openRoom()
+    const live = screen.getByRole('region', { name: 'live' })
+    expect(live.querySelector('[data-status]')?.getAttribute('data-status')).toBe('live')
+    expect(interval()).toBe(false)
+    expect(asked).toBe(1)
+
+    act(() => sockets.last.receive(progressOf('hill:main:s1', 2, 'finished')))
+    const result = await within(panel).findByRole('region', { name: 'result' })
+    expect(result.textContent).toContain('#2')
+  })
+
+  it('reads the hill again when a job in its live room ends, for any spectator', async () => {
+    let hillReads = 0
+    server.use(
+      http.get('*/api/hills/main', () => {
+        hillReads++
+        return HttpResponse.json(MAIN_DETAIL)
+      }),
+    )
+    await renderAt('/hills/main', Page, '/hills/$slug')
+    await waitFor(() => expect(sockets.all).toHaveLength(1))
+    openRoom()
+    expect(hillReads).toBe(1)
+    // A job this page saw running, then ended: the board changed.
+    act(() => sockets.last.receive(progressOf('hill:main:s9', 0, 'running')))
+    act(() => sockets.last.receive(progressOf('hill:main:s9', 3, 'finished')))
+    await waitFor(() => expect(hillReads).toBe(2))
   })
 
   it('says what a bot that did not stay needed, and its closest fight', async () => {

@@ -187,8 +187,8 @@ export function replayConfig(replay: Replay): BattleConfig {
   return { ...replay.config, seed: replay.seed }
 }
 
-/** The bots of `replay` as the engine loads them. */
-export function replayBots(replay: Replay): LoadedBot[] {
+/** The bots of `replay` (or of a live match) as the engine loads them. */
+export function replayBots(replay: Pick<Replay, 'bots'>): LoadedBot[] {
   return replay.bots.map(({ name, bytes, meta }) => ({
     name,
     bytes: fromBase64(bytes),
@@ -208,10 +208,10 @@ export function withoutSources(replay: Replay): Replay {
 }
 
 /**
- * Why `replay`'s bytes are not what it says they are: the first bot whose bytes do not hash to
- * its `sha256`. Null when every bot's do.
+ * Why `replay`'s bytes (or a live match's) are not what it says they are: the first bot whose
+ * bytes do not hash to its `sha256`. Null when every bot's do.
  */
-export async function bytesProblem(replay: Replay): Promise<string | null> {
+export async function bytesProblem(replay: Pick<Replay, 'bots'>): Promise<string | null> {
   for (const bot of replay.bots) {
     if ((await sha256Hex(fromBase64(bot.bytes))) !== bot.sha256) {
       return `${bot.name}'s bytes do not match their SHA-256`

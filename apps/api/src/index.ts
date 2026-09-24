@@ -22,6 +22,7 @@ import { assembler } from './routes/assemble'
 import { bots } from './routes/bots'
 import { health } from './routes/health'
 import { hills } from './routes/hills'
+import { live } from './routes/live'
 import { me } from './routes/me'
 import { replays } from './routes/replays'
 import { tournaments } from './routes/tournaments'
@@ -51,6 +52,7 @@ app.route('/api/me', me)
 app.route('/api/assemble', assembler)
 app.route('/api/bots', bots)
 app.route('/api/hills', hills)
+app.route('/api/live', live)
 app.route('/api/replays', replays)
 app.route('/api/tournaments', tournaments)
 app.route('/api/users', users)

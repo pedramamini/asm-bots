@@ -37,6 +37,12 @@ The chip checks the arena's own run. It is not a second simulation, and it prove
 
 `watch` on a round of a tournament rebuilds that round from its inputs (the bots in the round's order, and the round's seed), plays it in the arena, and shows the same chip: `verified` when the result hash matches the one the tournament recorded. A shared tournament carries every match's rounds with their hashes, so anyone who opens the link can watch and check any round.
 
+## Live matches
+
+A hill's page joins the hill's live room. When the server starts a match there, the room sends the match's inputs: each bot's name, bytes, and SHA-256, the config, the seed, and the round count. With `auto-watch` on, the page's arena plays that match at max speed, one round after another: you watch the battle the server is running, run on your machine.
+
+When the match ends on the server, the room sends the result the server stored, with each round's result hash. The chip under the arena then works as a replay's does: `verifying` until your run and the server's result are both in, `verified` when the bots match their SHA-256, the match key matches, and each round's hash matches, and `mismatch` when one check fails. A board only changes from matches the server ran itself, and anyone who watches checks them.
+
 ## What verification does not cover
 
 - **That a bot is the one a person wrote.** A replay proves what these bytes do. Names and sources are labels; the SHA-256 is of the bytes.

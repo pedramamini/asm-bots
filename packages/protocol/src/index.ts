@@ -58,6 +58,7 @@ export { canonicalJson } from './canonical'
 export { ApiError, apiError, ERROR_STATUS, type ErrorCode } from './errors'
 export {
   HillJob,
+  hillJobId,
   JOB_STATUSES,
   JobRef,
   JobStatus,
@@ -67,15 +68,22 @@ export {
 } from './jobs'
 export {
   Hello,
+  LIVE_PING,
+  LIVE_PONG,
   LIVE_PROTOCOL,
+  LiveEvent,
+  LiveMatch,
   LiveMessage,
   LiveRoomRef,
   liveRoomName,
   MatchFinished,
   MatchStarted,
   Ping,
+  Pong,
   Progress,
   parseLiveMessage,
+  parseLiveRoomName,
+  Spectators,
   Standing,
   Standings,
 } from './live'

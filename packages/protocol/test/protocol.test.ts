@@ -22,6 +22,10 @@ import {
   HillEvent,
   HillSubmission,
   HillSubmitRequest,
+  LIVE_PING,
+  LIVE_PONG,
+  LiveEvent,
+  type LiveMatch,
   type LiveMessage,
   liveRoomName,
   Match,
@@ -29,6 +33,7 @@ import {
   ProtocolError,
   parse,
   parseLiveMessage,
+  parseLiveRoomName,
   parseReplay,
   Replay,
   type Replay as ReplayType,
@@ -45,6 +50,7 @@ import {
   toBase64,
   toBase64Url,
   User,
+  withoutSources,
 } from '../src/index'
 
 /** `jmp short $`: lives until the cycle cap. */
@@ -428,12 +434,23 @@ describe('records', () => {
     )
   })
 
-  it('read LiveRoom messages and refuse others', () => {
+  it('read LiveRoom messages and refuse others', async () => {
+    const { config, seed, rounds, bots } = withoutSources(await duel())
+    const live: LiveMatch = {
+      id: 's1-0',
+      key: '0123456789abcdef',
+      participants: ['v1', 'v2'],
+      rounds,
+      seed,
+      config,
+      bots,
+    }
     const messages: LiveMessage[] = [
       { type: 'hello', protocol: 1, room: { kind: 'hill', id: 'h1' }, now: at },
-      { type: 'matchStarted', match: { id: 'm1', participants: ['v1', 'v2'], rounds: 3, seed: 9 } },
+      { type: 'matchStarted', job: 'hill:main:s1', match: live },
       {
         type: 'matchFinished',
+        job: 'hill:main:s1',
         match: {
           id: 'm1',
           tournamentId: null,
@@ -451,15 +468,46 @@ describe('records', () => {
         entries: [{ botVersionId: 'v1', rank: 1, score: 3, wins: 1, ties: 0, losses: 0 }],
       },
       { type: 'progress', job: 'hill:main:s1', status: 'running', done: 24, of: 32 },
-      { type: 'ping', t: 12 },
+      { type: 'spectators', count: 3 },
+      { type: 'ping' },
+      { type: 'pong' },
     ]
     for (const message of messages)
       expect(parseLiveMessage(JSON.stringify(message))).toEqual(message)
+    // The keepalives go as these exact strings: the room's auto-response matches them whole.
+    expect(parseLiveMessage(LIVE_PING)).toEqual({ type: 'ping' })
+    expect(parseLiveMessage(LIVE_PONG)).toEqual({ type: 'pong' })
+    // A room keeps and replays events; hello, the count, and keepalives are not events.
+    const events = messages.filter((m) => LiveEvent.safeParse(m).success).map((m) => m.type)
+    expect(events).toEqual(['matchStarted', 'matchFinished', 'standings', 'progress'])
+
     expect(() => parseLiveMessage('{"type":"shout"}')).toThrow(ProtocolError)
     expect(() => parseLiveMessage('not json')).toThrow('the message is missing')
     expect(() =>
       parseLiveMessage('{"type":"progress","job":"j","status":"paused","done":0,"of":1}'),
     ).toThrow(ProtocolError)
+    const started = (match: object) =>
+      parseLiveMessage(JSON.stringify({ type: 'matchStarted', job: 'j', match }))
+    expect(() => started({ ...live, participants: ['v1', 'v2', 'v3'] })).toThrow(
+      'a live match names as many bots as participants',
+    )
+    expect(() => started({ ...live, rounds: 11 })).toThrow('rounds must be a whole number in 1..10')
+    expect(() => started({ ...live, key: 'nope' })).toThrow('match.key is not well formed')
+    expect(() => started({ ...live, bots: [bots[0], { ...bots[1], bytes: '' }] })).toThrow(
+      ProtocolError,
+    )
+  })
+
+  it('name a room and read the name back', () => {
+    for (const ref of [
+      { kind: 'hill', id: 'hill-main' },
+      { kind: 'tournament', id: 't:1' },
+    ] as const) {
+      expect(parseLiveRoomName(liveRoomName(ref))).toEqual(ref)
+    }
+    for (const name of ['hill', 'hill:', 'melee:x', `hill:${'x'.repeat(65)}`, ':x', '']) {
+      expect(() => parseLiveRoomName(name)).toThrow(ProtocolError)
+    }
   })
 })
 

@@ -1,7 +1,7 @@
 /**
- * The API as a test sees it: `msw` answers the page's `fetch` to `/api/...`, and each render gets
- * its own query cache that does not retry, so an error shows at once. `renderAt` puts a page in a
- * memory router that knows the app's other pages as stubs.
+ * The API as a test sees it: `msw` answers the page's `fetch` to `/api/...` and its live rooms'
+ * sockets, and each render gets its own query cache that does not retry, so an error shows at
+ * once. `renderAt` puts a page in a memory router that knows the app's other pages as stubs.
  */
 import { afterAll, afterEach, beforeAll } from 'bun:test'
 import { ToastProvider } from '@asmbots/ui'
@@ -15,13 +15,25 @@ import {
   RouterProvider,
 } from '@tanstack/react-router'
 import { act, render } from '@testing-library/react'
-import { HttpResponse, http, type RequestHandler } from 'msw'
+import { HttpResponse, http, type RequestHandler, type WebSocketHandler, ws } from 'msw'
 import { setupServer } from 'msw/node'
 import type { ReactNode } from 'react'
 
-/** An msw server for the file's tests: `handlers` by default, a test's own through `server.use`. */
-export function useApiServer(...handlers: RequestHandler[]) {
-  const server = setupServer(...handlers)
+/**
+ * The live rooms' sockets (`/api/live/:room`): one a page opens hears nothing, unless a test adds
+ * a listener, `server.use(liveRooms.addEventListener('connection', ...))`.
+ */
+export const liveRooms = ws.link('*/api/live/*')
+
+/**
+ * An msw server for the file's tests: `handlers` by default, and silent live rooms; a test's own
+ * through `server.use`.
+ */
+export function useApiServer(...handlers: (RequestHandler | WebSocketHandler)[]) {
+  const server = setupServer(
+    liveRooms.addEventListener('connection', () => {}),
+    ...handlers,
+  )
   beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
   afterEach(() => server.resetHandlers())
   afterAll(() => server.close())

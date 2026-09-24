@@ -20,6 +20,7 @@ import {
   type HillStanding,
   type HillSubmission,
   type HillSummary,
+  type LiveRoomRef,
   type Match,
   type MatchOutcome,
   type MyBot,
@@ -854,6 +855,15 @@ export async function getTournament(db: D1Database, id: string): Promise<Tournam
     .bind(id)
     .first<TournamentRow>()
   return row && toTournament(row)
+}
+
+/** Whether `room` has something to watch: a hill, or a tournament past its draft. */
+export async function isWatchable(db: D1Database, room: LiveRoomRef): Promise<boolean> {
+  const sql =
+    room.kind === 'hill'
+      ? 'SELECT 1 AS found FROM hills WHERE id = ?'
+      : "SELECT 1 AS found FROM tournaments WHERE id = ? AND status != 'draft'"
+  return (await db.prepare(sql).bind(room.id).first()) !== null
 }
 
 /** A tournament's entrants: by bracket seed once drawn, then by name. */

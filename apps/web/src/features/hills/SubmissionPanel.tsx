@@ -1,18 +1,27 @@
 /**
  * A hill submission as it runs and after (PRODUCT_SPEC §5): the progress panel ("fighting 24 of
  * 32"), a row per match as it lands and one for the match being fought, then the result card: the
- * rank it took, or the score it had against the score it needed and its closest fight. The
- * submission is polled while its job runs; when it has finished, the hill's reads load again.
+ * rank it took, or the score it had against the score it needed and its closest fight. While
+ * its job runs, the hill's live room says each time the job moves, and the submission is read
+ * again; with the room not open it is polled instead. When it has finished, the hill's reads
+ * load again.
  */
-import type { BotLabel, Hill, MatchSummary, SubmissionDetail } from '@asmbots/protocol'
+import {
+  type BotLabel,
+  type Hill,
+  hillJobId,
+  type MatchSummary,
+  type SubmissionDetail,
+} from '@asmbots/protocol'
 import { Chip, cx, IconButton, Panel, Skeleton, Stat, Table, type TableColumn } from '@asmbots/ui'
 import { useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { X } from 'lucide-react'
 import { useEffect } from 'react'
-import { useSubmission } from '../../api/queries'
+import { submissionQuery, useSubmission } from '../../api/queries'
 import { LoadFailure } from '../../app/LoadFailure'
 import { useMotionReduced } from '../../store/settings'
+import type { LiveRoomState } from '../live/room'
 import { BotLink, CELL_LINK, count } from './links'
 
 /** A match from the challenger's side (entrant 0): won, lost, or tied, and the points. */
@@ -197,14 +206,22 @@ export interface SubmissionPanelProps {
   id: string
   /** Stops following it: the page drops it from the URL. */
   onClose: () => void
+  /** The hill's live room. Without it, or while it is not open, the submission is polled. */
+  live?: LiveRoomState | undefined
   className?: string | undefined
 }
 
-export function SubmissionPanel({ hill, id, onClose, className }: SubmissionPanelProps) {
-  const { data, error } = useSubmission(hill.slug, id)
+export function SubmissionPanel({ hill, id, onClose, live, className }: SubmissionPanelProps) {
+  const { data, error } = useSubmission(hill.slug, id, live?.status !== 'live')
   const client = useQueryClient()
   const reduced = useMotionReduced()
   const status = data?.submission.status
+  // Each progress of its job (a match played, the board written) is a new read of it.
+  const moved = live?.jobs.get(hillJobId(hill.slug, id))
+  useEffect(() => {
+    if (moved === undefined) return
+    void client.invalidateQueries({ queryKey: submissionQuery(hill.slug, id).queryKey })
+  }, [moved, client, hill.slug, id])
   useEffect(() => {
     // The board, its matches and history, the hills list, and profiles' best ranks all changed.
     if (status !== 'finished') return
