@@ -16,8 +16,9 @@ Docs pages are MDX in `src/docs/`, listed in `src/docs/index.ts`.
 ## Arena
 
 The arena lives in `src/features/arena/`: `worker/protocol.ts` has the Worker's messages,
-`worker/session.ts` the battle and its keyframes, and `worker/client.ts` the `ArenaClient` and the
-`useArena` store. `ArenaCanvas.tsx` draws a client's frames: `render/scene.ts` keeps the core
+`worker/session.ts` the battle and its keyframes, `worker/frames.ts` the frames of a battle (the
+sink that gathers its events, and the builder the debugger's arena strip shares), and
+`worker/client.ts` the `ArenaClient` and the `useArena` store. `ArenaCanvas.tsx` draws a client's frames: `render/scene.ts` keeps the core
 mirror and the glows, `render/gl.ts` and `render/shaders.ts` draw it with WebGL2 (bloom,
 scanlines, and vignette from `render/post.ts`), `render/canvas2d.ts` is the 2D fallback,
 `render/camera.ts` zooms and pans, and `render/overlay.ts` draws the rulers.
@@ -137,6 +138,7 @@ Measured on an M5 Max in headless Chromium 1243, 2026-09-23.
 | The home demo, 4 bots, 400 cycles a frame, bloom | 1280 x 720 DPR 1, 1440 x 900 DPR 2 on Metal | p95 16.7 ms, max 16.8 ms |
 | Cold JS | `/arena`, `/arena/$replayId`, `/` | 222.8, 214.7, and 145 KB gz, then 65 KB gz of demo on `/` |
 | Cold JS with the editor (EXEC 2.4), 2026-09-23 | `/arena`, `/editor` | 226.8 KB gz (the editor's icons, `Toolbar`, and the chunks it shares with the arena: +3.5); 356 KB gz, of which CodeMirror is 124 and the assembler Worker 17 |
+| Cold JS with the debugger (EXEC 2.4), 2026-09-24, every JS response of a cold load, gzipped | `/arena`, `/editor` | 229.9 KB gz (226.3 before, the same way: the engine's snapshots, which the `engine` chunk takes, and chunks shuffled between the routes); 401.1 KB gz (356.0 before) |
 
 Headless Chromium's WebGL is SwiftShader (software) unless launched with `--use-angle=metal`. It
 holds 60 fps at DPR 1; at DPR 2 with bloom the melee's p95 is 33 ms. The renderer's first images
@@ -151,7 +153,7 @@ alone.
 ### Adding an effect
 
 1. State: keep it in `render/scene.ts`. Take its data from the frames in `applyFrame` (or add a
-   field to the frame in `worker/protocol.ts` and `worker/session.ts`), move it along in `advance`,
+   field to the frame in `worker/protocol.ts` and `worker/frames.ts`), move it along in `advance`,
    bump a `*Version` counter when it changes, and push the matching `…Until` time out while it
    still moves, so `advance` reports the image as changed until it is done.
 2. Draw it in both renderers. WebGL2: a uniform or texture that `ARENA_FRAG` reads, or an
@@ -181,7 +183,10 @@ new bot from a template. The code is in `src/features/editor/`:
 | Toolbar | `EditorToolbar.tsx`: name, `%name`, size (warn from 90%, danger past the cap), assemble (Mod-Enter), format (Shift-Alt-f; `diff.ts` turns the formatter's text into small changes so the cursor stays in its token), lint, save (Mod-s), versions, share, `test vs ▾`, templates, listing. |
 | Storage | Local bots in IndexedDB (`store/local-bots.ts`), the last 20 saves of each in their own database (`store/bot-versions.ts`); the switches, the recent list, and each unsaved text (a draft) in `localStorage` (`store.ts`). |
 | `test vs ▾` | `test-vs.ts`: ten rounds of the duel against a roster bot in the arena Worker (`match`), shown as `W 7 · T 2 · L 1 vs imp`; `watch` opens `/arena` with the same bots and seed. |
-| Debugger core | `debug/session.ts`: `DebugSession` runs a `Battle` on the main thread, a cycle at a time: step (one instruction of the followed process), step over (`call`, REP), step out, run to cursor, run until death, run N, and step back through the last 256 snapshots (a cycle at a time through a run). Breakpoints are checks before each cycle, never bytes in the core; a condition such as `ax == 0x10 && cx < 3` is `@asmbots/asm`'s `parseCondition` over the registers and flags (`debug/condition.ts`). |
+| Debugger core | `debug/session.ts`: `DebugSession` runs a `Battle` on the main thread, a cycle at a time: step (one instruction of the followed process), step over (`call`, REP), step out, run to cursor, run until death, run N, and step back through the last 256 snapshots (a cycle at a time through a run). Breakpoints are checks before each cycle, never bytes in the core; a condition such as `ax == 0x10 && cx < 3` is `@asmbots/asm`'s `parseCondition` over the registers and flags (`debug/condition.ts`). Each process's last 200 instructions (`debug/trace.ts`), register edits, and runs in parts (a budget of cycles) are the session's too. |
+| Debugger page | `debug/useDebugger.ts` loads the editor's last assemble without errors with the opponents and seed (`?b=…&seed=…` start them), again by itself until the session moves, then on `reload`, carrying breakpoints by line (`debug/load.ts`). `debug/controller.ts` runs over display frames (8 ms of each, or the speed) and shows a run 10 times a second. `debug/keys.ts`: F5 F6 F9 F10 F11 Shift+F11 anywhere, and `space` `.` `,` `[` `]` `0`. |
+| Debugger panels | `debug/Debugger.tsx`: the load bar, the transport, and Registers, Processes, Memory (`debug/memory.ts`: 32 rows swept from the listings' known starts), Watch, Breakpoints, and Trace (the CLI's trace format). `cm/debug.ts` puts the IP line and the breakpoint gutter in the editor. |
+| Arena strip | `debug/ArenaStrip.tsx`: the arena's renderer on `debug/source.ts`, a `BattleSource` that taps the session's events with the arena Worker's frame builder (no Worker), locked on the followed IP; it folds with the kit's `SplitPane` (`collapsed`). |
 
 The bot library (`Library.tsx`, `b`) lists recent documents, my bots, and the roster. In the editor,
 Esc leaves the text, so the page keys work.

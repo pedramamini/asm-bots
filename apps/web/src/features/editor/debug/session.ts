@@ -47,7 +47,10 @@ import {
   DI,
   DX,
   EventRing,
+  type EventSink,
   FLAGS,
+  FLAGS_INIT,
+  FLAGS_WRITABLE,
   IP,
   type LoadedBot,
   NullSink,
@@ -61,6 +64,7 @@ import {
   WRITE_RECORD,
 } from '@asmbots/engine'
 import { type CompiledCondition, compileCondition, testCondition } from './condition'
+import { type TraceEntry, TraceLog } from './trace'
 
 /** Snapshots kept for step back (PRODUCT_SPEC §3: 256 deep). */
 export const HISTORY_DEPTH = 256
@@ -95,6 +99,23 @@ export interface Registers {
   readonly di: number
   readonly bp: number
   readonly sp: number
+}
+
+/** What `setRegisters` changes: any of the registers, IP, and FLAGS. */
+export type RegisterEdit = Partial<Registers & { readonly ip: number; readonly flags: number }>
+
+/** Each field of a `RegisterEdit`, and its place in a process row. */
+const EDIT_FIELDS: Readonly<Record<keyof RegisterEdit, number>> = {
+  ax: AX,
+  bx: BX,
+  cx: CX,
+  dx: DX,
+  si: SI,
+  di: DI,
+  bp: BP,
+  sp: SP,
+  ip: IP,
+  flags: FLAGS,
 }
 
 /** A store of one bot: `len` bytes (1 or 2) from `addr`, in cycle `cycle`. */
@@ -218,11 +239,15 @@ function rowOf(bot: Bot): number {
 }
 
 /**
- * The session's event sink: a move's writes, and what the followed process does. Events come
- * before the instruction runs (`exec`), so the sink still reads the registers it runs on.
+ * The session's event sink: a move's writes, each process's trace, and what the followed process
+ * does. Events come before the instruction runs (`exec`), so the sink still reads the registers
+ * it runs on. Each event also goes to the tap, when there is one.
  */
 class DebugSink extends NullSink {
   readonly writes = new EventRing(WRITE_RECORD, MAX_LAST_WRITES)
+  readonly trace = new TraceLog()
+  /** Hears every event of the moves: the arena strip's frames. */
+  tap: EventSink | null = null
   /** The followed process. */
   bot = -1
   row = -1
@@ -253,14 +278,17 @@ class DebugSink extends NullSink {
     this.writes.dropped = 0
   }
 
-  override exec(_cycle: number, bot: number, proc: number, addr: number): void {
+  override exec(cycle: number, bot: number, proc: number, addr: number, len: number): void {
+    const battle = this.battle as Battle
+    const row = (battle.bots[bot] as Bot).queue.rows[proc] as ProcRow
+    this.trace.exec(cycle, bot, proc, addr, len, battle.core.bytes, row)
+    this.tap?.exec(cycle, bot, proc, addr, len)
     if (bot !== this.bot || proc !== this.row) return
     this.ran = true
     if (this.outSp < 0) return
-    const battle = this.battle as Battle
     const op = battle.core.bytes[addr]
     if (op !== RET && op !== RET_IMM) return
-    const sp = ((battle.bots[bot] as Bot).queue.rows[proc] as ProcRow)[SP] as number
+    const sp = row[SP] as number
     // At or above within half the core: the stack wraps at 64 KB.
     if (((sp - this.outSp) & 0xffff) < 0x8000) this.returned = true
   }
@@ -272,17 +300,32 @@ class DebugSink extends NullSink {
     d[o + 1] = bot
     d[o + 2] = addr
     d[o + 3] = len
+    this.tap?.write(cycle, bot, addr, len)
+  }
+
+  override spawn(cycle: number, bot: number, proc: number, addr: number): void {
+    this.trace.spawn(cycle, bot, proc)
+    this.tap?.spawn(cycle, bot, proc, addr)
   }
 
   override death(
-    _cycle: number,
+    cycle: number,
     bot: number,
     proc: number,
     addr: number,
     reason: DeathReason,
   ): void {
+    this.tap?.death(cycle, bot, proc, addr, reason)
     if (bot !== this.bot || proc !== this.row) return
     this.fatal = { kind: 'died', bot, row: proc, addr, reason }
+  }
+
+  override botDead(cycle: number, bot: number): void {
+    this.tap?.botDead(cycle, bot)
+  }
+
+  override cycleEnd(cycle: number): void {
+    this.tap?.cycleEnd(cycle)
   }
 
   /** The move's writes, oldest first. Empties the ring. */
@@ -369,6 +412,54 @@ export class DebugSession {
     }
   }
 
+  /**
+   * A sink that hears every event of every move from now on: the arena strip's frames. A step
+   * back and a reset run the battle again without it, so a tap sees the battle start over there.
+   */
+  get tap(): EventSink | null {
+    return this.sink.tap
+  }
+
+  set tap(tap: EventSink | null) {
+    this.sink.tap = tap
+  }
+
+  /**
+   * The instructions a process ran, oldest first: the newest `TRACE_DEPTH` of its life. The
+   * followed process when `proc` is left out.
+   */
+  trace(proc: ProcRef = this.selected): TraceEntry[] {
+    return this.sink.trace.entries(proc.bot, proc.row)
+  }
+
+  /**
+   * Changes registers, IP, or FLAGS of the followed process: each value a word. FLAGS takes what
+   * POPF takes (ISA §3.1), the status flags and DF, and bit 1 stays set. Step back undoes the
+   * edit with the move before it. Throws `RangeError` for a value that is not a word, and when
+   * the followed process is dead.
+   */
+  setRegisters(edit: RegisterEdit): DebugState {
+    const { bot, row } = this.selected
+    if (queueIndex((this.current.bots[bot] as Bot).queue, row) < 0) {
+      throw new RangeError('setRegisters: the followed process is dead')
+    }
+    const fields = Object.entries(edit) as [keyof RegisterEdit, number | undefined][]
+    for (const [name, value] of fields) {
+      if (!(name in EDIT_FIELDS)) throw new RangeError(`setRegisters: no register ${name}`)
+      if (value !== undefined && (!Number.isInteger(value) || value < 0 || value > 0xffff)) {
+        throw new RangeError(`setRegisters: ${name} is a word, 0..0xFFFF, got ${value}`)
+      }
+    }
+    const r = this.followedRow()
+    for (const [name, value] of fields) {
+      if (value === undefined) continue
+      r[EDIT_FIELDS[name]] = name === 'flags' ? (value & FLAGS_WRITABLE) | FLAGS_INIT : value
+    }
+    // The battle is no longer where the last run left it: the next run keeps a snapshot first.
+    this.continuing = false
+    return this.publish()
+  }
+
   /** Follows process `row` of `bot`: its front process when `row` is left out. */
   select(bot: number, row?: number): DebugState {
     const b = this.botAt('select', bot)
@@ -407,15 +498,20 @@ export class DebugSession {
     return this.move({ kind: 'out' }, false, this.followedRow()[SP] as number)
   }
 
-  /** Runs until a process is about to run the instruction at `addr`. */
-  runToCursor(addr: number): DebugState {
-    return this.move({ kind: 'cursor', addr: checkAddress('runToCursor', addr) }, true)
+  /**
+   * Runs until a process is about to run the instruction at `addr`. With a `budget`, runs that
+   * many cycles at most, and stops with `cycles` when they run out: a run the page spreads over
+   * display frames. A run in parts stops where one whole run would, and steps back the same.
+   */
+  runToCursor(addr: number, budget = Number.POSITIVE_INFINITY): DebugState {
+    const goal = { kind: 'cursor', addr: checkAddress('runToCursor', addr) } as const
+    return this.move(goal, true, -1, this.limit('runToCursor', budget))
   }
 
-  /** Runs until `bot` has no process left. */
-  runUntilDeath(bot: number): DebugState {
+  /** Runs until `bot` has no process left; `budget` as for `runToCursor`. */
+  runUntilDeath(bot: number, budget = Number.POSITIVE_INFINITY): DebugState {
     this.botAt('runUntilDeath', bot)
-    return this.move({ kind: 'death', bot }, true)
+    return this.move({ kind: 'death', bot }, true, -1, this.limit('runUntilDeath', budget))
   }
 
   /** Runs `cycles` cycles: `Infinity` runs until something stops it. */
@@ -441,6 +537,7 @@ export class DebugSession {
     const from = mark.snap.cycle
     const target = mark.fine ? now - 1 : from
     if (target === from) this.marks.pop()
+    this.sink.trace.trim(target)
     const battle = restore(mark.snap, this.bots, this.config, SILENT)
     battle.run(target - from)
     battle.events = this.sink
@@ -457,6 +554,7 @@ export class DebugSession {
   /** Starts the battle again: the same bots and seed. Breakpoints stay, their hits back at 0. */
   reset(): DebugState {
     this.replace(new Battle(this.bots, this.config, this.sink))
+    this.sink.trace.clear()
     this.marks = []
     this.continuing = false
     for (const bp of this.bps.values()) bp.hits = 0
@@ -544,16 +642,29 @@ export class DebugSession {
     return { kind: 'cycles', until: this.current.cycle + 1, stop: STEP }
   }
 
+  /** The cycle a run of `budget` cycles from here stops at. */
+  private limit(what: string, budget: number): number {
+    if (!(budget >= 0) || !(Number.isInteger(budget) || budget === Number.POSITIVE_INFINITY)) {
+      throw new RangeError(`${what}: a budget is a whole number of cycles, got ${budget}`)
+    }
+    return this.current.cycle + budget
+  }
+
   private replace(battle: Battle): void {
     this.current = battle
     this.sink.attach(battle)
   }
 
   /**
-   * Runs cycles until `goal`, a stop, or the end of the battle. A `fine` move is a run: its
-   * cycles are stops for step back. `outSp` is `stepOut`'s SP.
+   * Runs cycles until `goal`, a stop, the end of the battle, or cycle `limit`. A `fine` move is a
+   * run: its cycles are stops for step back. `outSp` is `stepOut`'s SP.
    */
-  private move(goal: Goal, fine: boolean, outSp = -1): DebugState {
+  private move(
+    goal: Goal,
+    fine: boolean,
+    outSp = -1,
+    limit = Number.POSITIVE_INFINITY,
+  ): DebugState {
     const battle = this.current
     const sink = this.sink
     sink.follow(this.selected, outSp)
@@ -574,6 +685,11 @@ export class DebugSession {
       }
       if (battle.over) {
         stop = OVER
+        break
+      }
+      // After the checks: the next part of the run starts here, and never checks where it starts.
+      if (battle.cycle >= limit) {
+        stop = CYCLES
         break
       }
       if (!moved) {
@@ -685,9 +801,17 @@ export class DebugSession {
       flags: r[FLAGS] as number,
       ip: r[IP] as number,
       lastWrites: this.writes,
-      breakpoints: (this.bpList ??= [...this.bps.values()].sort((a, b) => a.addr - b.addr).map(view)),
+      breakpoints: this.breakpointList(),
       canStepBack: first !== undefined && first.snap.cycle < battle.cycle,
     })
+  }
+
+  /** The breakpoints by address, made again once one changed. */
+  private breakpointList(): readonly Breakpoint[] {
+    if (this.bpList === null) {
+      this.bpList = [...this.bps.values()].sort((a, b) => a.addr - b.addr).map(view)
+    }
+    return this.bpList
   }
 
   private publish(): DebugState {

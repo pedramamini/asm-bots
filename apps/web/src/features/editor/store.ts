@@ -1,7 +1,8 @@
 /**
  * What the editor keeps between visits, in `localStorage[EDITOR_STORAGE_KEY]`: its switches (the
- * listing gutter, the bot library, the lint warnings), the documents opened lately, and the text
- * of each document not saved yet (a draft), so a reload never loses a keystroke.
+ * listing gutter, the bot library, the lint warnings, the debugger's arena strip), the documents
+ * opened lately, and the text of each document not saved yet (a draft), so a reload never loses a
+ * keystroke.
  */
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
@@ -32,6 +33,8 @@ export interface EditorPrefs {
   library: boolean
   /** Lint warnings show beside the errors. */
   lint: boolean
+  /** The debugger's arena strip is open; folded, it shows only its title row. */
+  strip: boolean
   /** The keys of the documents opened lately (`docKey`), the latest first. */
   recent: string[]
   /** Unsaved text by document key. */
@@ -42,6 +45,7 @@ export interface EditorPrefsState extends EditorPrefs {
   toggleListing: () => void
   toggleLibrary: () => void
   setLint: (lint: boolean) => void
+  setStrip: (strip: boolean) => void
   /** Puts `key` first in `recent`. */
   visit: (key: string) => void
   /** Keeps `draft` for `key`, or drops the draft with null. */
@@ -52,6 +56,7 @@ export const DEFAULT_EDITOR_PREFS: Readonly<EditorPrefs> = Object.freeze({
   listing: true,
   library: true,
   lint: true,
+  strip: true,
   recent: [],
   drafts: {},
 })
@@ -63,6 +68,7 @@ export const useEditorPrefs = create<EditorPrefsState>()(
       toggleListing: () => set((state) => ({ listing: !state.listing })),
       toggleLibrary: () => set((state) => ({ library: !state.library })),
       setLint: (lint) => set({ lint }),
+      setStrip: (strip) => set({ strip }),
       visit: (key) =>
         set((state) =>
           state.recent[0] === key
@@ -85,10 +91,11 @@ export const useEditorPrefs = create<EditorPrefsState>()(
       name: EDITOR_STORAGE_KEY,
       version: 1,
       storage: createJSONStorage(() => localStore),
-      partialize: ({ listing, library, lint, recent, drafts }): EditorPrefs => ({
+      partialize: ({ listing, library, lint, strip, recent, drafts }): EditorPrefs => ({
         listing,
         library,
         lint,
+        strip,
         recent,
         drafts,
       }),
@@ -109,7 +116,7 @@ function newestDrafts(drafts: Record<string, Draft>): Record<string, Draft> {
 export function sanitizeEditorPrefs(stored: unknown): Partial<EditorPrefs> {
   if (!isRecord(stored)) return {}
   const out: Partial<EditorPrefs> = {}
-  for (const key of ['listing', 'library', 'lint'] as const) {
+  for (const key of ['listing', 'library', 'lint', 'strip'] as const) {
     if (typeof stored[key] === 'boolean') out[key] = stored[key]
   }
   if (Array.isArray(stored.recent)) {

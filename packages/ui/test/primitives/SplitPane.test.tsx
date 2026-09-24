@@ -238,6 +238,43 @@ describe('SplitPane', () => {
     expect(value()).toBe(50)
   })
 
+  it('folds the second pane when collapsed, keeps both panes mounted, and keeps the ratio', () => {
+    const { rerender } = render(
+      <SplitPane label="strip height" direction="column" defaultRatio={0.7}>
+        <p>editor</p>
+        <p>strip</p>
+      </SplitPane>,
+    )
+    const split = root()
+    const first = split.firstElementChild as HTMLElement
+    const second = split.lastElementChild as HTMLElement
+    press('ArrowUp')
+    expect(value()).toBe(68)
+    const fold = (collapsed: boolean) =>
+      rerender(
+        <SplitPane label="strip height" direction="column" defaultRatio={0.7} collapsed={collapsed}>
+          <p>editor</p>
+          <p>strip</p>
+        </SplitPane>,
+      )
+    fold(true)
+    const divider = screen.getByRole('separator', { hidden: true })
+    expect(divider.hidden).toBe(true)
+    expect(screen.queryByRole('separator')).toBeNull()
+    expect(first.className.split(' ')).toEqual(expect.arrayContaining(['flex-1', 'overflow-auto']))
+    expect(first.className).not.toContain('basis-')
+    expect(second.className.split(' ')).toEqual(expect.arrayContaining(['shrink-0']))
+    expect(second.className).not.toContain('flex-1')
+    // The same elements: nothing inside mounts anew.
+    expect(split.firstElementChild).toBe(first)
+    expect(split.lastElementChild).toBe(second)
+    fold(false)
+    expect(separator().hidden).toBe(false)
+    expect(value()).toBe(68)
+    expect(first.className).toContain('basis-[calc((100%-var(--space-3))*var(--split))]')
+    expect(second.className).toContain('flex-1')
+  })
+
   it('passes className, style, and attributes through to the container', () => {
     renderSplit({ className: 'h-full', style: { opacity: 0.5 }, id: 'editor-split' })
     expect(root().className.endsWith(' h-full')).toBe(true)

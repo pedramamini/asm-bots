@@ -5,7 +5,8 @@
  */
 import { useLocation, useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { useCallback, useMemo } from 'react'
-import { parseRefs, sharedBots } from '../arena/setup/url'
+import { parseRefs, setupFromSearch, sharedBots } from '../arena/setup/url'
+import { DEFAULT_DEBUG_SETUP, type DebugSetup } from './debug/useDebugger'
 import { type DocTarget, SCRATCH, targetOfParam } from './doc'
 import { EditorPage, type EditorPageProps } from './EditorPage'
 import { validateEditorSearch } from './search'
@@ -19,8 +20,9 @@ export type EditorServices = Pick<
 
 /**
  * `/editor`: the arena's `open in debugger` sends its setup (`?b=roster:dwarf,roster:imp&seed=1`)
- * and the editor opens its first bot; a share link carries a source in `#src=`, which opens as a
- * bot not saved yet; `?t=dwarf` starts the new bot from a template. Else, the new bot.
+ * and the editor opens its first bot, which the debugger loads with the others at the seed, on the
+ * arena's config; a share link carries a source in `#src=`, which opens as a bot not saved yet;
+ * `?t=dwarf` starts the new bot from a template. Else, the new bot.
  */
 export function EditorIndexRoute(services: EditorServices) {
   const raw = useSearch({ strict: false })
@@ -33,6 +35,15 @@ export function EditorIndexRoute(services: EditorServices) {
   const target: DocTarget =
     first ?? (sharedId === undefined ? SCRATCH : { kind: 'local', id: sharedId })
   const template = search.t !== undefined && isTemplateId(search.t) ? search.t : null
+  const debug = useMemo<DebugSetup>(() => {
+    if (search.b === undefined) return DEFAULT_DEBUG_SETUP
+    const setup = setupFromSearch(search)
+    return {
+      opponents: setup.bots.slice(1),
+      seed: setup.config.seed ?? DEFAULT_DEBUG_SETUP.seed,
+      config: setup.config,
+    }
+  }, [search])
   const dropTemplate = useCallback(() => {
     void navigate({ to: '/editor', search: ({ t: _t, ...rest }) => rest, hash, replace: true })
   }, [navigate, hash])
@@ -43,6 +54,7 @@ export function EditorIndexRoute(services: EditorServices) {
       shared={shared}
       template={template}
       onTemplateDone={dropTemplate}
+      debug={debug}
     />
   )
 }

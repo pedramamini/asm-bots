@@ -1,8 +1,8 @@
 /**
- * The editor's CodeMirror view (PRODUCT_SPEC §3): the x16c mode, the diagnostics gutter, the line
- * numbers, the listing gutter, search, and the page's keys inside the editor. The view is made
- * once per document, so the page keys this component by document, and drives the view it hands
- * out through `onView`.
+ * The editor's CodeMirror view (PRODUCT_SPEC §3): the x16c mode, the diagnostics gutter, the
+ * debugger's breakpoint gutter and IP line, the line numbers, the listing gutter, search, and the
+ * page's keys inside the editor. The view is made once per document, so the page keys this
+ * component by document, and drives the view it hands out through `onView`.
  */
 import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
 import { defaultKeymap, history, historyKeymap, indentLess, indentMore } from '@codemirror/commands'
@@ -23,6 +23,7 @@ import {
 } from '@codemirror/view'
 import { useEffect, useRef } from 'react'
 import { x16c } from './cm'
+import { debugLines } from './cm/debug'
 import { changesProblems, type Problem, problemsOf } from './cm/diagnostics'
 import { listing, setListingVisible } from './cm/listing'
 
@@ -35,6 +36,8 @@ export interface EditorCommands {
   format: () => void
   /** Mod-Enter. */
   assemble: () => void
+  /** A press on the breakpoint gutter beside line `lineNo`. */
+  toggleBreakpoint: (lineNo: number) => void
 }
 
 export interface EditorProps {
@@ -134,6 +137,7 @@ export function Editor({
         }),
         extensions: [
           lintGutter(),
+          debugLines((lineNo) => latest.current.commands.toggleBreakpoint(lineNo)),
           lineNumbers(),
           listing(showListing),
           highlightActiveLineGutter(),

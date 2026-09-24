@@ -1,19 +1,32 @@
 /**
- * The debugger's session (`src/features/editor/debug/session.ts`): each move, breakpoints, and step
- * back, checked against battles the engine runs straight through.
+ * The debugger's session (`src/features/editor/debug/session.ts`): each move, breakpoints, step
+ * back, the trace, register edits, runs in parts, and the tap, checked against battles the engine
+ * runs straight through.
  */
 import { describe, expect, it } from 'bun:test'
 import { assembleOrThrow } from '@asmbots/asm'
 import { fighter, loadRoster } from '@asmbots/bots'
 import {
+  AX,
   Battle,
   type BattleConfigInput,
   type Bot,
+  BP,
+  BX,
+  CX,
   DEATH_REASONS,
+  DI,
+  DX,
+  EXEC_RECORD,
+  FLAGS,
   fnv1a64,
   IP,
   type LoadedBot,
+  NullSink,
   type ProcRow,
+  RingSink,
+  SI,
+  SP,
   snapshot,
 } from '@asmbots/engine'
 import {
@@ -22,6 +35,7 @@ import {
   HISTORY_DEPTH,
   RUN_SNAPSHOT_INTERVAL,
 } from '../src/features/editor/debug/session'
+import { TRACE_DEPTH, type TraceEntry } from '../src/features/editor/debug/trace'
 
 /** A bot from source, and its labels. */
 function bot(source: string): { loaded: LoadedBot; at: (label: string) => number } {
@@ -644,5 +658,257 @@ describe('DebugSession: listeners', () => {
     stop()
     session.step()
     expect(seen).toHaveLength(5)
+  })
+})
+
+/** A trace entry as a plain line, to compare. */
+function traced(e: TraceEntry): string {
+  const r = e.regs
+  return [
+    e.cycle,
+    e.bot,
+    e.row,
+    e.addr,
+    ...e.bytes,
+    r.ax,
+    r.bx,
+    r.cx,
+    r.dx,
+    r.si,
+    r.di,
+    r.bp,
+    r.sp,
+    e.flags,
+  ].join(',')
+}
+
+/**
+ * The instructions each process of a straight battle runs in `cycles` cycles, as the trace has
+ * them: read from the process row before each instruction runs.
+ */
+function straightTrace(
+  bots: readonly LoadedBot[],
+  config: BattleConfigInput,
+  cycles: number,
+): Map<string, string[]> {
+  const out = new Map<string, string[]>()
+  const battle: Battle = new Battle(
+    bots,
+    config,
+    new (class extends NullSink {
+      override exec(cycle: number, bot: number, proc: number, addr: number, len: number): void {
+        const r = (battle.bots[bot] as Bot).queue.rows[proc] as ProcRow
+        const bytes = Array.from({ length: len }, (_, k) => battle.core.bytes[(addr + k) & 0xffff])
+        const regs = [AX, BX, CX, DX, SI, DI, BP, SP].map((f) => r[f])
+        const key = `${bot}:${proc}`
+        const list = out.get(key) ?? []
+        list.push([cycle, bot, proc, addr, ...bytes, ...regs, r[FLAGS]].join(','))
+        out.set(key, list)
+      }
+      override spawn(_cycle: number, bot: number, proc: number): void {
+        out.set(`${bot}:${proc}`, [])
+      }
+    })(),
+  )
+  battle.run(cycles)
+  return out
+}
+
+describe('DebugSession: the trace', () => {
+  it('records each instruction of each process, with the registers it ran on', () => {
+    const config = { seed: 1 }
+    const session = new DebugSession([DWARF, IMP], config)
+    session.run(40)
+    const want = straightTrace([DWARF, IMP], config, 40)
+    expect(session.trace().map(traced)).toEqual(want.get('0:0') ?? [])
+    expect(session.trace({ bot: 1, row: 0 }).map(traced)).toEqual(want.get('1:0') ?? [])
+    const first = session.trace()[0] as TraceEntry
+    expect(first.cycle).toBe(0)
+    expect(first.addr).toBe(baseOf(session))
+    expect([...first.bytes]).toEqual([0xe8, 0x00, 0x00])
+    expect(first.regs.sp).toBe(baseOf(session))
+    expect(first.flags).toBe(0x0002)
+  })
+
+  it('keeps the newest TRACE_DEPTH of each process', () => {
+    const session = new DebugSession([DWARF, IMP], { seed: 1 })
+    session.run(TRACE_DEPTH + 57)
+    const trace = session.trace()
+    expect(trace).toHaveLength(TRACE_DEPTH)
+    expect(trace[0]?.cycle).toBe(57)
+    expect(trace.at(-1)?.cycle).toBe(TRACE_DEPTH + 56)
+  })
+
+  it('starts the trace of a row again at each spawn into it', () => {
+    // Two processes at most: each child takes the row the child before it died in.
+    const config = { seed: 3, maxProcesses: 2 }
+    const session = new DebugSession([FORK.loaded], config)
+    session.run(30)
+    const want = straightTrace([FORK.loaded], config, 30)
+    for (let row = 0; row < 4; row++) {
+      expect(session.trace({ bot: 0, row }).map(traced)).toEqual(want.get(`0:${row}`) ?? [])
+    }
+    // A child runs its `dat` and dies: its row's trace is that one instruction, not the last
+    // child's too.
+    const child = session.trace({ bot: 0, row: 1 })
+    expect(child).toHaveLength(1)
+    expect(child[0]?.addr).toBe(baseOf(session) + FORK.at('child'))
+  })
+
+  it('drops what a step back goes back over, and a reset drops it all', () => {
+    const config = { seed: 1 }
+    const session = new DebugSession([DWARF, IMP], config)
+    session.run(50)
+    session.stepBack()
+    expect(session.trace().at(-1)?.cycle).toBe(48)
+    session.step()
+    session.step()
+    const stepped = session.trace().map(traced)
+    session.stepBack()
+    session.stepBack()
+    expect(session.trace().map(traced)).toEqual(stepped.slice(0, -2))
+    // Forward again: the same history.
+    session.run(30)
+    expect(session.trace().map(traced)).toEqual(straightTrace([DWARF, IMP], config, 79).get('0:0'))
+    session.reset()
+    expect(session.trace()).toEqual([])
+  })
+})
+
+describe('DebugSession: register edits', () => {
+  it('sets the followed process registers, IP, and FLAGS as POPF would', () => {
+    const session = new DebugSession([DWARF, IMP], { seed: 1 })
+    session.step()
+    const before = session.state
+    const s = session.setRegisters({ ax: 0x1234, di: 0xbeef, flags: 0xffff })
+    expect(s).not.toBe(before)
+    expect(s.cycle).toBe(before.cycle)
+    expect(s.regs.ax).toBe(0x1234)
+    expect(s.regs.di).toBe(0xbeef)
+    // Status flags and DF; bit 1 set; no TF, IF, or the reserved bits.
+    expect(s.flags).toBe(0x0cd7)
+    const row = (session.battle.bots[0] as Bot).queue.rows[0] as ProcRow
+    expect(row[AX]).toBe(0x1234)
+    session.setRegisters({ ip: baseOf(session) })
+    expect(session.state.ip).toBe(baseOf(session))
+  })
+
+  it('refuses a value that is not a word, a name that is no register, and a dead process', () => {
+    const session = new DebugSession([TRAP.loaded, IMP], { seed: 1 })
+    expect(() => session.setRegisters({ ax: 0x10000 })).toThrow(RangeError)
+    expect(() => session.setRegisters({ bx: -1 })).toThrow(RangeError)
+    expect(() => session.setRegisters({ cx: 1.5 })).toThrow(RangeError)
+    expect(() => session.setRegisters({ zz: 1 } as never)).toThrow(RangeError)
+    session.run(5)
+    expect(session.state.stop.kind).toBe('int3')
+    // The step runs the INT3, and the process dies of it.
+    session.step()
+    expect(session.state.selectedProc.index).toBe(-1)
+    expect(() => session.setRegisters({ ax: 1 })).toThrow('dead')
+  })
+
+  it('steps back through a run that follows an edit to the edit, and past it to before it', () => {
+    const config = { seed: 1 }
+    const session = new DebugSession([COUNTER.loaded], config)
+    session.run(100)
+    const ax = session.state.regs.ax
+    session.setRegisters({ ax: 0x4000 })
+    session.run(9)
+    for (let k = 0; k < 9; k++) session.stepBack()
+    expect(session.state.cycle).toBe(100)
+    expect(session.state.regs.ax).toBe(0x4000)
+    session.stepBack()
+    expect(session.state.cycle).toBe(99)
+    expect(hash(session.battle)).toBe(hash(straight([COUNTER.loaded], config, 99)))
+    session.run(1)
+    expect(session.state.regs.ax).toBe(ax)
+  })
+})
+
+describe('DebugSession: runs in parts', () => {
+  it('stops a run to the cursor in parts where one run stops, and steps back the same', () => {
+    const config = { seed: 1 }
+    const whole = new DebugSession([DWARF, PAPER], config)
+    const parts = new DebugSession([DWARF, PAPER], config)
+    const bomb = baseOf(whole) + DWARF_BOMB
+    whole.setBreakpoint(bomb, { condition: 'cx == 0x3FF0' })
+    parts.setBreakpoint(bomb, { condition: 'cx == 0x3FF0' })
+    const stop = whole.run(Number.POSITIVE_INFINITY)
+    let s = parts.state
+    let calls = 0
+    do {
+      s = parts.run(7)
+      calls++
+    } while (s.stop.kind === 'cycles')
+    expect(calls).toBeGreaterThan(1)
+    expect(s.cycle).toBe(stop.cycle)
+    expect(s.stop).toEqual(stop.stop)
+    expect(s.breakpoints).toEqual(stop.breakpoints)
+    for (let k = 0; k < 20; k++) {
+      whole.stepBack()
+      parts.stepBack()
+      expect(parts.state.cycle).toBe(whole.state.cycle)
+      expect(hash(parts.battle)).toBe(hash(whole.battle))
+    }
+  })
+
+  it('neither misses nor counts twice a breakpoint where a part ends', () => {
+    const config = { seed: 1 }
+    const session = new DebugSession([DWARF, IMP], config)
+    const bomb = baseOf(session) + DWARF_BOMB
+    // The first bomb is in cycle 6: the first part checks there, the next starts there.
+    session.setBreakpoint(bomb)
+    const s = session.runToCursor(0xffff, 6)
+    expect(s.stop).toMatchObject({ kind: 'breakpoint', addr: bomb })
+    expect(s.cycle).toBe(6)
+    expect(s.breakpoints[0]?.hits).toBe(1)
+    const on = session.runToCursor(0xffff, 1)
+    expect(on.stop.kind).toBe('cycles')
+    expect(on.cycle).toBe(7)
+    expect(on.breakpoints[0]?.hits).toBe(1)
+  })
+
+  it('runs until a death in parts', () => {
+    const config = { seed: 1 }
+    const whole = new DebugSession([DWARF, IMP], config).runUntilDeath(1)
+    const parts = new DebugSession([DWARF, IMP], config)
+    let s = parts.state
+    do s = parts.runUntilDeath(1, 1000)
+    while (s.stop.kind === 'cycles')
+    expect(s.cycle).toBe(whole.cycle)
+    expect(s.stop).toEqual(whole.stop)
+  })
+
+  it('takes a budget of whole cycles only', () => {
+    const session = new DebugSession([DWARF, IMP], { seed: 1 })
+    expect(() => session.runToCursor(0, -1)).toThrow(RangeError)
+    expect(() => session.runUntilDeath(0, 1.5)).toThrow(RangeError)
+    expect(session.runToCursor(0, 0).cycle).toBe(0)
+  })
+})
+
+describe('DebugSession: the tap', () => {
+  it("hears every event of the moves, and none of a step back's run forward", () => {
+    const config = { seed: 1 }
+    const session = new DebugSession([DWARF, PAPER], config)
+    const tap = new RingSink(1 << 16)
+    session.tap = tap
+    expect(session.tap).toBe(tap)
+    session.run(200)
+    const straightSink = new RingSink(1 << 16)
+    new Battle([DWARF, PAPER], config, straightSink).run(200)
+    expect([...tap.execs.drain()]).toEqual([...straightSink.execs.drain()])
+    expect([...tap.writes.drain()]).toEqual([...straightSink.writes.drain()])
+    expect([...tap.spawns.drain()]).toEqual([...straightSink.spawns.drain()])
+    session.stepBack()
+    session.stepBack()
+    expect(tap.execs.length).toBe(0)
+    session.step()
+    expect(tap.execs.length).toBeGreaterThan(0)
+    expect((tap.execs.drain()[0] as number) / 1).toBe(198)
+    session.tap = null
+    session.run(5)
+    expect(tap.execs.length).toBe(0)
+    expect(EXEC_RECORD).toBe(5)
   })
 })

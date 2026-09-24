@@ -1,3 +1,33 @@
 /* The app's one stylesheet: the kit's Tailwind, font, tokens, and utilities. Tailwind scans the
    app's own sources from the project root; the kit's stylesheet adds its own. */
 @import "@asmbots/ui/tailwind.css";
+
+/* The debugger (src/features/editor/debug): a written byte's highlight in the memory panel fades
+   over 2 s; a new process flashes in and a dead one fades out of the processes panel. */
+@keyframes debug-write {
+  from {
+    background-color: var(--accent-45);
+    color: var(--text-bright);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+@keyframes debug-spawn {
+  from {
+    background-color: var(--accent-25);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+@keyframes debug-death {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}

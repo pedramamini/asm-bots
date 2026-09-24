@@ -1,30 +1,17 @@
 /**
  * The arena Worker's state (ARCHITECTURE §6): one match, the battle of its current round, the
- * sink that gathers the battle's events a frame at a time, and the keyframes a seek restores.
- * `arena.worker.ts` hands it each request and posts what it returns, so all of this runs, and is
- * tested, without a Worker.
+ * frame builder whose sink gathers the battle's events a frame at a time (`frames.ts`), and the
+ * keyframes a seek restores. `arena.worker.ts` hands it each request and posts what it returns,
+ * so all of this runs, and is tested, without a Worker.
  */
 import {
-  ADDR_MASK,
   Battle,
   type BattleConfigInput,
-  BOT_DEAD_RECORD,
-  type Bot,
-  CORE_SIZE,
-  type Core,
-  DEATH_REASONS,
   DEFAULT_CONFIG,
-  type DeathReason,
-  EventRing,
-  type EventSink,
-  IP,
   type LoadedBot,
-  MAX_BOTS,
   NullSink,
-  type ProcRow,
   restore,
   type Snapshot,
-  SPAWN_RECORD,
   snapshot,
 } from '@asmbots/engine'
 import {
@@ -36,70 +23,23 @@ import {
   runMatch,
   withRound,
 } from '@asmbots/tourney'
+import { type DeathWatch, FrameBuilder } from './frames'
 import {
   type ArenaBot,
   type ArenaMessage,
   type ArenaRequest,
-  BOT_DEATH_FIELDS,
-  DEATH_FIELDS,
   DEFAULT_SPEED,
-  EVENT_CAPACITY,
-  type FirstBlood,
   FRAME_BUDGET_MS,
-  type FrameMessage,
-  IP_FRONT,
   isSpeed,
   KEYFRAME_INTERVAL,
   type LoadedMessage,
   MAX_CYCLES_PER_FRAME,
   MAX_KEYFRAMES,
   type Speed,
-  STAT_FIELDS,
-  STAT_FOOTPRINT,
-  STAT_PROCS,
-  STAT_WRITES,
 } from './protocol'
 
 /** Cycles run between two looks at the clock when a frame has a budget. */
 const CHUNK_CYCLES = 256
-
-/**
- * What a round's deaths tell, whichever sink the battle ran with: its first blood, and the killer
- * of each bot's last process. A seek's silent sink reports here too, so a battle that a seek ran
- * past a death still knows it. Bots are the battle's: in fighting order.
- */
-export class DeathWatch {
-  /** The owner map of the battle running: a death's killer owns the byte the process ran. */
-  owner: Uint8Array = new Uint8Array(CORE_SIZE)
-  /** The round's first blood, or null. A replay after a seek back finds it again, the same. */
-  firstBlood: FirstBlood | null = null
-  /** Per bot: the killer tag of its last process, once the bot is dead. */
-  readonly botKiller = new Uint8Array(MAX_BOTS)
-  /** The killer tag of the last death reported. */
-  private last = 0
-
-  /** A new round, on `owner`: no blood yet. */
-  reset(owner: Uint8Array): void {
-    this.owner = owner
-    this.firstBlood = null
-    this.botKiller.fill(0)
-  }
-
-  /** A process of `bot` died in `cycle` running the byte at `addr`. Returns the killer tag. */
-  death(cycle: number, bot: number, addr: number): number {
-    const killer = this.owner[addr] as number
-    if (this.firstBlood === null && killer !== 0 && killer !== bot + 1) {
-      this.firstBlood = { cycle, killer: killer - 1, victim: bot }
-    }
-    this.last = killer
-    return killer
-  }
-
-  /** The death just reported emptied `bot`'s queue. */
-  botDead(bot: number): void {
-    this.botKiller[bot] = this.last
-  }
-}
 
 /** The sink of a seek, which runs forward without a frame's events: deaths go to the watch. */
 class SeekSink extends NullSink {
@@ -116,109 +56,6 @@ class SeekSink extends NullSink {
 
   override botDead(_cycle: number, bot: number): void {
     this.watch.botDead(bot)
-  }
-}
-
-/**
- * The session's event sink. Spawns, deaths, and bot deaths go to rings of records, which the
- * session drains once a frame. Executes and writes come too fast for rings (16 bots at 2,000
- * cycles a frame make 32,000 of each), and the renderer needs only the bytes they touched, so the
- * sink marks bytes instead: each byte once a frame, however often it is touched.
- */
-export class FrameSink implements EventSink {
-  /** `SPAWN_RECORD` fields each: cycle, bot, proc, address. */
-  readonly spawns = new EventRing(SPAWN_RECORD, EVENT_CAPACITY)
-  /** `DEATH_FIELDS` fields each: cycle, bot, proc, address, reason, killer tag. */
-  readonly deaths = new EventRing(DEATH_FIELDS, EVENT_CAPACITY)
-  /** `BOT_DEAD_RECORD` fields each: cycle, bot. */
-  readonly botDeaths = new EventRing(BOT_DEAD_RECORD, EVENT_CAPACITY)
-  /** The bytes written this frame, in the order first written: `written[0..writeCount)`. */
-  readonly written = new Uint16Array(CORE_SIZE)
-  writeCount = 0
-  /** The cycle of each byte's last write this frame. */
-  readonly writeCycle = new Uint32Array(CORE_SIZE)
-  /** The bytes run this frame, in the order first run: `executed[0..execCount)`. */
-  readonly executed = new Uint16Array(CORE_SIZE)
-  execCount = 0
-  /** The bot that last ran each byte this frame. */
-  readonly execBot = new Uint8Array(CORE_SIZE)
-  readonly watch: DeathWatch
-  /** The frame number. A byte is marked this frame when its stamp holds it, so it is never 0. */
-  private frame = 1
-  private readonly writeStamp = new Uint32Array(CORE_SIZE)
-  private readonly execStamp = new Uint32Array(CORE_SIZE)
-
-  constructor(watch: DeathWatch = new DeathWatch()) {
-    this.watch = watch
-  }
-
-  exec(_cycle: number, bot: number, _proc: number, addr: number, len: number): void {
-    const stamp = this.execStamp
-    const frame = this.frame
-    for (let k = 0; k < len; k++) {
-      const a = (addr + k) & ADDR_MASK
-      if (stamp[a] !== frame) {
-        stamp[a] = frame
-        this.executed[this.execCount++] = a
-      }
-      this.execBot[a] = bot
-    }
-  }
-
-  write(cycle: number, _bot: number, addr: number, len: number): void {
-    const stamp = this.writeStamp
-    const frame = this.frame
-    for (let k = 0; k < len; k++) {
-      const a = (addr + k) & ADDR_MASK
-      if (stamp[a] !== frame) {
-        stamp[a] = frame
-        this.written[this.writeCount++] = a
-      }
-      this.writeCycle[a] = cycle
-    }
-  }
-
-  spawn(cycle: number, bot: number, proc: number, addr: number): void {
-    const d = this.spawns.data
-    const o = this.spawns.add()
-    d[o] = cycle
-    d[o + 1] = bot
-    d[o + 2] = proc
-    d[o + 3] = addr
-  }
-
-  death(cycle: number, bot: number, proc: number, addr: number, reason: DeathReason): void {
-    const killer = this.watch.death(cycle, bot, addr)
-    const d = this.deaths.data
-    const o = this.deaths.add()
-    d[o] = cycle
-    d[o + 1] = bot
-    d[o + 2] = proc
-    d[o + 3] = addr
-    d[o + 4] = DEATH_REASONS.indexOf(reason)
-    d[o + 5] = killer
-  }
-
-  botDead(cycle: number, bot: number): void {
-    this.watch.botDead(bot)
-    const d = this.botDeaths.data
-    const o = this.botDeaths.add()
-    d[o] = cycle
-    d[o + 1] = bot
-  }
-
-  cycleEnd(_cycle: number): void {}
-
-  /** Starts a frame: forgets the marked bytes and empties the rings. */
-  next(): void {
-    this.frame++
-    this.writeCount = 0
-    this.execCount = 0
-    for (const ring of [this.spawns, this.deaths, this.botDeaths]) {
-      ring.start = 0
-      ring.length = 0
-      ring.dropped = 0
-    }
   }
 }
 
@@ -265,23 +102,13 @@ export class ArenaSession {
   private config: BattleConfigInput = {}
   /** The round's fighting order: `order[j]` is the load's bot j-th in the battle. */
   private order: readonly number[] = []
-  /** Per battle bot: its place in the load. */
-  private readonly entrantOf = new Uint8Array(MAX_BOTS)
-  /** Per bot in the load: its index in the battle. */
-  private readonly battleOf = new Uint8Array(MAX_BOTS)
-  /** Per battle owner tag: the tag of the same bot in the load. */
-  private readonly tagOut = new Uint8Array(MAX_BOTS + 1)
   private battle: Battle | null = null
-  private readonly watch = new DeathWatch()
-  private readonly sink = new FrameSink(this.watch)
-  private readonly silent = new SeekSink(this.watch)
+  /** Its sink gathers the battle's events; it maps the battle's bots back to the load's. */
+  private readonly frames = new FrameBuilder()
+  private readonly silent = new SeekSink(this.frames.watch)
   private readonly keyframes = new Map<number, Snapshot>()
   /** Whether the keyframes changed since the last frame. */
   private keyframesMoved = true
-  /** The owner map as the last frame left it, so a frame counts footprints from its writes. */
-  private readonly shadow = new Uint8Array(CORE_SIZE)
-  /** Bytes owned per battle owner tag, as of `shadow`. */
-  private readonly owned = new Uint32Array(MAX_BOTS + 1)
   private playing = false
   private speed: Speed = DEFAULT_SPEED
   /** Whether `ended` went out for the battle's end. A frame before the end clears it. */
@@ -380,7 +207,7 @@ export class ArenaSession {
       ...matchConfig,
       seed: roundSeed(matchConfig.seed ?? DEFAULT_CONFIG.seed, round),
     }
-    const battle = new Battle(bots, config, this.sink)
+    const battle = new Battle(bots, config, this.frames.sink)
     this.entrants = entrants
     this.matchConfig = matchConfig
     this.match = match
@@ -388,14 +215,9 @@ export class ArenaSession {
     this.bots = bots
     this.config = config
     this.order = order
-    this.tagOut.fill(0)
-    order.forEach((k, j) => {
-      this.entrantOf[j] = k
-      this.battleOf[k] = j
-      this.tagOut[j + 1] = k + 1
-    })
+    this.frames.setOrder(order)
     this.battle = battle
-    this.watch.reset(battle.core.owner)
+    this.frames.watch.reset(battle.core.owner)
     this.keyframes.clear()
     this.keyframesMoved = true
     this.playing = false
@@ -408,7 +230,7 @@ export class ArenaSession {
     const placements = new Array(battle.bots.length)
     const botMeta = new Array(battle.bots.length)
     for (const b of battle.bots) {
-      const k = this.entrantOf[b.index] as number
+      const k = this.frames.entrant(b.index)
       placements[k] = { base: b.base, size: b.size }
       botMeta[k] = { ...b.meta, name: b.name, size: b.size }
     }
@@ -446,12 +268,12 @@ export class ArenaSession {
           ? new Battle(this.bots, this.config, this.silent)
           : restore(kept, this.bots, this.config, this.silent)
       this.battle = battle
-      this.watch.owner = battle.core.owner
+      this.frames.watch.owner = battle.core.owner
     } else {
       battle.events = this.silent
     }
     this.advance(battle, target, Number.POSITIVE_INFINITY)
-    battle.events = this.sink
+    battle.events = this.frames.sink
     return this.frame(true)
   }
 
@@ -500,8 +322,11 @@ export class ArenaSession {
    */
   private frame(full: boolean): ArenaMessage[] {
     const battle = this.current()
-    const frame = full ? this.fullFrame(battle) : this.activityFrame(battle)
-    this.sink.next()
+    const frames = this.frames
+    const frame = full
+      ? frames.full(battle, this.keyframeList(true))
+      : frames.activity(battle, this.keyframeList(false))
+    frames.sink.next()
     if (!battle.over) {
       this.endedSent = false
       return [frame]
@@ -519,169 +344,6 @@ export class ArenaSession {
       frame,
       { type: 'ended', result: round.result, hash: round.resultHash, round: this.round, match },
     ]
-  }
-
-  private fullFrame(battle: Battle): FrameMessage {
-    const { bytes, owner } = battle.core
-    const { tagOut, entrantOf } = this
-    this.shadow.set(owner)
-    this.owned.fill(0)
-    const ownerOut = new Uint8Array(CORE_SIZE)
-    for (let a = 0; a < CORE_SIZE; a++) {
-      const t = owner[a] as number
-      this.owned[t] = (this.owned[t] as number) + 1
-      ownerOut[a] = tagOut[t] as number
-    }
-    const dead = battle.bots
-      .filter((b) => b.stats.deathCycle !== null)
-      .sort((a, b) => (a.stats.deathCycle as number) - (b.stats.deathCycle as number))
-    const botDeaths = new Uint32Array(dead.length * BOT_DEATH_FIELDS)
-    dead.forEach((b, i) => {
-      const o = i * BOT_DEATH_FIELDS
-      botDeaths[o] = b.stats.deathCycle as number
-      botDeaths[o + 1] = entrantOf[b.index] as number
-      botDeaths[o + 2] = DEATH_REASONS.indexOf(b.stats.deathReason as DeathReason)
-      botDeaths[o + 3] = tagOut[this.watch.botKiller[b.index] as number] as number
-    })
-    return {
-      type: 'frame',
-      cycle: battle.cycle,
-      alive: battle.alive,
-      over: battle.over,
-      writes: new Uint16Array(0),
-      writeCycles: new Uint32Array(0),
-      execs: new Uint16Array(0),
-      ips: this.ips(battle),
-      spawns: new Uint32Array(0),
-      deaths: new Uint32Array(0),
-      botDeaths,
-      stats: this.stats(battle),
-      firstBlood: this.firstBlood(battle),
-      keyframes: this.keyframeList(true),
-      ownerDirty: ownerOut,
-      bytesDirty: bytes.slice(),
-    }
-  }
-
-  private activityFrame(battle: Battle): FrameMessage {
-    const { sink, entrantOf, tagOut } = this
-    // First: it moves the footprints that `stats` reads.
-    const [writes, writeCycles] = this.writes(battle.core)
-    const spawns = sink.spawns.drain()
-    for (let o = 0; o < spawns.length; o += SPAWN_RECORD) {
-      spawns[o + 1] = entrantOf[spawns[o + 1] as number] as number
-    }
-    const deaths = sink.deaths.drain()
-    for (let o = 0; o < deaths.length; o += DEATH_FIELDS) {
-      deaths[o + 1] = entrantOf[deaths[o + 1] as number] as number
-      deaths[o + 5] = tagOut[deaths[o + 5] as number] as number
-    }
-    const dead = sink.botDeaths.drain()
-    const botDeaths = new Uint32Array((dead.length / BOT_DEAD_RECORD) * BOT_DEATH_FIELDS)
-    for (let i = 0, o = 0; i < dead.length; i += BOT_DEAD_RECORD, o += BOT_DEATH_FIELDS) {
-      const bot = dead[i + 1] as number
-      botDeaths[o] = dead[i] as number
-      botDeaths[o + 1] = entrantOf[bot] as number
-      botDeaths[o + 2] = DEATH_REASONS.indexOf(
-        (battle.bots[bot]?.stats.deathReason ?? 'undefined') as DeathReason,
-      )
-      botDeaths[o + 3] = tagOut[this.watch.botKiller[bot] as number] as number
-    }
-    return {
-      type: 'frame',
-      cycle: battle.cycle,
-      alive: battle.alive,
-      over: battle.over,
-      writes,
-      writeCycles,
-      execs: this.execs(),
-      ips: this.ips(battle),
-      spawns,
-      deaths,
-      botDeaths,
-      stats: this.stats(battle),
-      firstBlood: this.firstBlood(battle),
-      keyframes: this.keyframeList(false),
-      ownerDirty: null,
-      bytesDirty: null,
-    }
-  }
-
-  /**
-   * The frame's written bytes as (address, cell) pairs, and the cycle of each one's last write.
-   * Moves the footprints to their owners.
-   */
-  private writes(core: Core): [Uint16Array, Uint32Array] {
-    const { written, writeCount, writeCycle } = this.sink
-    const { bytes, owner } = core
-    const { shadow, owned, tagOut } = this
-    const out = new Uint16Array(writeCount * 2)
-    const cycles = new Uint32Array(writeCount)
-    for (let i = 0; i < writeCount; i++) {
-      const a = written[i] as number
-      const t = owner[a] as number
-      out[2 * i] = a
-      out[2 * i + 1] = (bytes[a] as number) | ((tagOut[t] as number) << 8)
-      cycles[i] = writeCycle[a] as number
-      const was = shadow[a] as number
-      if (was !== t) {
-        owned[was] = (owned[was] as number) - 1
-        owned[t] = (owned[t] as number) + 1
-        shadow[a] = t
-      }
-    }
-    return [out, cycles]
-  }
-
-  /** The frame's run bytes as (address, bot) pairs. */
-  private execs(): Uint16Array {
-    const { executed, execCount, execBot } = this.sink
-    const { entrantOf } = this
-    const out = new Uint16Array(execCount * 2)
-    for (let i = 0; i < execCount; i++) {
-      const a = executed[i] as number
-      out[2 * i] = a
-      out[2 * i + 1] = entrantOf[execBot[a] as number] as number
-    }
-    return out
-  }
-
-  /** Each live process as (IP, bot) pairs, bot by bot in the load's order, fronts flagged. */
-  private ips(battle: Battle): Uint16Array {
-    let n = 0
-    for (const bot of battle.bots) n += bot.queue.size
-    const out = new Uint16Array(n * 2)
-    let o = 0
-    for (let k = 0; k < battle.bots.length; k++) {
-      const q = (battle.bots[this.battleOf[k] as number] as Bot).queue
-      for (let i = 0; i < q.size; i++) {
-        out[o++] = (q.rows[q.at(i)] as ProcRow)[IP] as number
-        out[o++] = i === 0 ? k | IP_FRONT : k
-      }
-    }
-    return out
-  }
-
-  private stats(battle: Battle): Float32Array {
-    const out = new Float32Array(battle.bots.length * STAT_FIELDS)
-    for (const bot of battle.bots) {
-      const o = (this.entrantOf[bot.index] as number) * STAT_FIELDS
-      out[o + STAT_PROCS] = bot.queue.size
-      out[o + STAT_FOOTPRINT] = this.owned[bot.tag] as number
-      out[o + STAT_WRITES] = bot.stats.writes
-    }
-    return out
-  }
-
-  /** The round's first blood, in the load's bots, once the battle has run past it. */
-  private firstBlood(battle: Battle): FirstBlood | null {
-    const blood = this.watch.firstBlood
-    if (blood === null || blood.cycle >= battle.cycle) return null
-    return {
-      cycle: blood.cycle,
-      killer: this.entrantOf[blood.killer] as number,
-      victim: this.entrantOf[blood.victim] as number,
-    }
   }
 
   /** The keyframes' cycles when `always`, or when they moved since the last frame; else null. */

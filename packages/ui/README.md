@@ -67,7 +67,7 @@ Tailwind's own palette, font stacks, radii, and type sizes are off: a color, a r
 | `Header` | `<Header brand="ASM BOTS" stat="8 bots · 41 procs" nav={navButtons} right={iconButtons} />`: 40 px. |
 | `Toolbar` | `<Toolbar aria-label="filters"><Input … /><Select … /></Toolbar>`: 36 px; the arrow keys move between its controls. |
 | `StatusBar` | `<StatusBar left={<Chip>live</Chip>} center={<Chip>made with maestro</Chip>} right={<Chip>60 fps</Chip>} />`: 22 px, over the page or the arena. |
-| `SplitPane` | `<SplitPane label="editor width" storageKey="editor"><Editor /><Debugger /></SplitPane>`; `direction="column"` stacks them. |
+| `SplitPane` | `<SplitPane label="editor width" storageKey="editor"><Editor /><Debugger /></SplitPane>`; `direction="column"` stacks them; `collapsed` folds the second pane to its own size and hides the divider, both panes staying mounted. |
 
 | Controls | Usage |
 |---|---|

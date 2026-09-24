@@ -18,7 +18,7 @@ const SPACE_CONTROLS =
   'button, a[href], summary, [role="button"], [role="radio"], [role="switch"], [role="checkbox"], [role="menuitem"], [role="tab"], [role="option"], input[type="checkbox"], input[type="radio"]'
 
 /** Whether the focused element takes `space` itself: a button presses, a radio picks. */
-function spaceTaken(): boolean {
+export function spaceTaken(): boolean {
   const focused = document.activeElement
   return focused instanceof Element && focused.matches(SPACE_CONTROLS)
 }

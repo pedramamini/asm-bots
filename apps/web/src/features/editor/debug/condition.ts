@@ -2,8 +2,17 @@
  * Breakpoint conditions (PRODUCT_SPEC §3): `ax == 0x10 && cx < 3`. `@asmbots/asm` reads them with
  * the parser of source (`parseCondition`); here each name becomes a place in a process: a register,
  * IP, FLAGS, or one flag, in any case. `$` is the process's IP.
+ *
+ * Values (`compileValue`): a watch's address and the memory panel's `goto` are one expression of
+ * the same kind, `di + 4`, `bomb`, whose other names are the bot's labels.
  */
-import { type Condition, type Expr, evaluateCondition, parseCondition } from '@asmbots/asm'
+import {
+  type Condition,
+  type Expr,
+  evaluate,
+  evaluateCondition,
+  parseCondition,
+} from '@asmbots/asm'
 import { AX, BP, BX, CX, DI, DX, FLAGS, getReg8, IP, type ProcRow, SI, SP } from '@asmbots/engine'
 
 type Read = (row: ProcRow) => number
@@ -139,4 +148,71 @@ export function testCondition(c: CompiledCondition, row: ProcRow): boolean | str
   for (const name of c.names) values.set(name, (NAMES.get(name) as Read)(row))
   const held = evaluateCondition(c.condition, values, row[IP] as number)
   return typeof held === 'boolean' ? held : held.message
+}
+
+/** A value that parsed: an address to read. */
+export interface CompiledValue {
+  /** As typed. */
+  readonly text: string
+  readonly expr: Expr
+  /** The names of a process it reads, lowercase, once each; its other names are labels. */
+  readonly names: readonly string[]
+}
+
+export type CompileValueResult =
+  | { readonly ok: true; readonly compiled: CompiledValue }
+  | { readonly ok: false; readonly error: ConditionError }
+
+/** `text` as one value (`di + 4`, `bomb`, `0x1A2F`), or the first thing wrong with it. */
+export function compileValue(text: string): CompileValueResult {
+  const parsed = parseCondition(text)
+  if (!parsed.ok) {
+    const { col, len, message } = parsed.diag
+    return { ok: false, error: { col, len, message } }
+  }
+  const { condition } = parsed
+  if (condition.kind !== 'value') {
+    const message = 'an address is one value: this compares or joins values'
+    return { ok: false, error: { col: condition.col, len: condition.len, message } }
+  }
+  const names = new Set<string>()
+  nameRegisters(condition.expr, names)
+  return { ok: true, compiled: { text, expr: condition.expr, names: [...names] } }
+}
+
+/** Puts each name of `e` that is a place in a process in lowercase and in `names`. */
+function nameRegisters(e: Expr, names: Set<string>): void {
+  switch (e.kind) {
+    case 'sym': {
+      const name = e.name.toLowerCase()
+      if (!NAMES.has(name)) return
+      e.name = name
+      names.add(name)
+      return
+    }
+    case 'unary':
+      nameRegisters(e.arg, names)
+      return
+    case 'binary':
+      nameRegisters(e.left, names)
+      nameRegisters(e.right, names)
+      return
+    default:
+      return
+  }
+}
+
+/**
+ * The value of `c` for the process in `row`, a word, with `labels` for the names that are not a
+ * register; or, when it has none (a name that is no label, a division by zero), why not.
+ */
+export function evaluateValue(
+  c: CompiledValue,
+  row: ProcRow,
+  labels: ReadonlyMap<string, number>,
+): number | string {
+  const values = new Map(labels)
+  for (const name of c.names) values.set(name, (NAMES.get(name) as Read)(row))
+  const v = evaluate(c.expr, values, row[IP] as number)
+  return typeof v === 'number' ? v : v.message
 }

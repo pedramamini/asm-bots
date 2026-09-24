@@ -1,11 +1,13 @@
 /**
  * `/editor` and `/editor/$botId` (PRODUCT_SPEC §3): the toolbar, the bot library, the CodeMirror
- * editor, and the problems panel. The source assembles in the assembler Worker 300 ms after the
- * last keystroke (`useAssembler`); each result shows in the editor (squiggles, gutter marks, the
- * listing gutter) and in the panel. Unsaved text is kept as a draft, so a reload loses nothing.
+ * editor and the problems panel beside the debugger, and the arena strip under both. The source
+ * assembles in the assembler Worker 300 ms after the last keystroke (`useAssembler`); each result
+ * shows in the editor (squiggles, gutter marks, the listing gutter), in the panel, and in the
+ * debugger, which loads it while its session has not moved (`debug/useDebugger.ts`). Unsaved text
+ * is kept as a draft, so a reload loses nothing.
  */
 import { formatSource } from '@asmbots/asm'
-import { EmptyState, Skeleton, useToast } from '@asmbots/ui'
+import { Chip, EmptyState, hexAddress, Skeleton, SplitPane, useToast } from '@asmbots/ui'
 import { isolateHistory, undo } from '@codemirror/commands'
 import type { EditorView } from '@codemirror/view'
 import { useQueryClient } from '@tanstack/react-query'
@@ -16,6 +18,7 @@ import { type KeyCommand, useKeys } from '../../app/keys'
 import { useRouteStat } from '../../app/slots'
 import { addVersion, type BotVersion, useBotVersions, versionsKey } from '../../store/bot-versions'
 import { type LocalBot, useLocalBotActions, useLocalBots } from '../../store/local-bots'
+import type { ArenaCanvasHandle } from '../arena/ArenaCanvas'
 import { type CatalogBot, fightSeed, rosterCatalog } from '../arena/setup/bots'
 import { battleConfig, randomSeed } from '../arena/setup/config'
 import { searchFromSetup, sharedFragment, shareUrl } from '../arena/setup/url'
@@ -25,7 +28,13 @@ import { AsmClient } from './asm/client'
 import { resultErrors } from './asm/protocol'
 import { useAssembler } from './asm/useAssembler'
 import { SNIPPETS } from './cm/complete'
+import { lineOfAddress } from './cm/debug'
 import { type Problem, showResult } from './cm/diagnostics'
+import { ArenaStrip } from './debug/ArenaStrip'
+import { Debugger } from './debug/Debugger'
+import { inImage } from './debug/image'
+import { debugCommands, useDebugKeys } from './debug/keys'
+import { DEFAULT_DEBUG_SETUP, type DebugSetup, useDebugger } from './debug/useDebugger'
 import { textChanges } from './diff'
 import { type DocTarget, docKey, paramOf, pathOf } from './doc'
 import { Editor, type EditorCommands } from './Editor'
@@ -51,6 +60,8 @@ export interface EditorPageProps {
   createArena?: (() => ArenaClient) | undefined
   /** How long the source rests before it assembles, ms. */
   assembleDelay?: number | undefined
+  /** What the debugger loads beside the bot: the arena's `open in debugger` hands its setup over. */
+  debug?: DebugSetup | undefined
 }
 
 /** A document, open: what the editor starts with, and what it was saved as. */
@@ -140,6 +151,7 @@ export function EditorPage({
   createAssembler = () => new AsmClient(),
   createArena = () => new ArenaClient({ store: createArenaStore() }),
   assembleDelay,
+  debug = DEFAULT_DEBUG_SETUP,
 }: EditorPageProps) {
   const navigate = useNavigate()
   const localBots = useLocalBots()
@@ -192,6 +204,8 @@ export function EditorPage({
       template={template}
       onTemplateDone={onTemplateDone}
       assembleDelay={assembleDelay}
+      shared={shared}
+      debug={debug}
     />
   )
 }
@@ -203,6 +217,8 @@ interface WorkbenchProps {
   template: TemplateId | null
   onTemplateDone: (() => void) | undefined
   assembleDelay: number | undefined
+  shared: ReadonlyMap<string, string>
+  debug: DebugSetup
 }
 
 /** How long the text rests before its draft is written, ms. */
@@ -215,6 +231,8 @@ function Workbench({
   template,
   onTemplateDone,
   assembleDelay,
+  shared,
+  debug: debugSetup,
 }: WorkbenchProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -225,7 +243,9 @@ function Workbench({
   const libraryOn = useEditorPrefs((state) => state.library)
   const lintOn = useEditorPrefs((state) => state.lint)
   const recent = useEditorPrefs((state) => state.recent)
-  const { toggleListing, toggleLibrary, setLint, visit, setDraft } = useEditorPrefs.getState()
+  const stripOn = useEditorPrefs((state) => state.strip)
+  const { toggleListing, toggleLibrary, setLint, setStrip, visit, setDraft } =
+    useEditorPrefs.getState()
 
   const [view, setView] = useState<EditorView | null>(null)
   const [source, setSource] = useState(doc.initial)
@@ -237,6 +257,30 @@ function Workbench({
   const [test, setTest] = useState<TestState>({ status: 'idle' })
   const arena = useRef<ArenaClient | null>(null)
   const { result, pending, assembleNow } = useAssembler(source, assembler, assembleDelay)
+  const debug = useDebugger({
+    view,
+    source,
+    result,
+    setup: debugSetup,
+    local: localBots.data,
+    shared,
+  })
+  const stripCanvas = useRef<ArenaCanvasHandle | null>(null)
+  const notify = useCallback((message: string) => toast(message), [toast])
+  useDebugKeys({
+    controller: debug.controller,
+    cursorAddress: debug.cursorAddress,
+    strip: stripCanvas,
+    notify,
+  })
+  const debugActions = useMemo(
+    () => debugCommands(debug.controller, debug.cursorAddress, notify),
+    [debug.controller, debug.cursorAddress, notify],
+  )
+  const lineOf = useCallback(
+    (addr: number) => (view === null ? null : (lineOfAddress(view.state, addr)?.lineNo ?? null)),
+    [view],
+  )
   const localId = doc.local?.id ?? (doc.target.kind === 'local' ? doc.target.id : null)
   const versions = useBotVersions(doc.local === null ? null : doc.local.id)
   const [selection] = useState(() => {
@@ -502,9 +546,17 @@ function Workbench({
     if (typeof idiom.apply === 'function') idiom.apply(view, idiom, at, at)
   }, [view, doc.readOnly])
 
+  const { toggleLine } = debug
   const commands = useMemo<EditorCommands>(
-    () => ({ format, assemble: () => void assemble() }),
-    [format, assemble],
+    () => ({
+      format,
+      assemble: () => void assemble(),
+      toggleBreakpoint: (lineNo) => {
+        const why = toggleLine(lineNo)
+        if (why !== null) notify(why)
+      },
+    }),
+    [format, assemble, toggleLine, notify],
   )
 
   const keys = useMemo<KeyCommand[]>(
@@ -590,34 +642,70 @@ function Workbench({
           onBaseIdiom={baseIdiom}
         />
       </FrameToolbar>
-      <div className="flex h-full min-h-0 gap-3 p-3">
-        {libraryOn && (
-          <Library
-            className="w-56 shrink-0"
-            current={doc.key}
-            local={localBots.data}
-            recent={recent}
-            onOpen={go}
-            onFork={(bot) => void fork(bot)}
-          />
-        )}
-        <div className="flex min-w-0 flex-1 flex-col gap-3">
-          <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-border">
-            <Editor
-              className="h-full"
-              initial={doc.initial}
-              readOnly={doc.readOnly}
-              listing={listingOn}
-              selection={selection}
-              onChange={setSource}
-              onProblems={setProblems}
-              onView={setView}
-              commands={commands}
+      <SplitPane
+        direction="column"
+        label="arena strip height"
+        defaultRatio={0.76}
+        min={0.3}
+        max={0.9}
+        storageKey="editor-strip"
+        collapsed={!stripOn}
+        className="h-full p-3"
+      >
+        <div className="flex h-full min-h-0 gap-3">
+          {libraryOn && (
+            <Library
+              className="w-56 shrink-0"
+              current={doc.key}
+              local={localBots.data}
+              recent={recent}
+              onOpen={go}
+              onFork={(bot) => void fork(bot)}
             />
-          </div>
-          <Problems problems={problems} result={result} pending={pending} onJump={jump} />
+          )}
+          <SplitPane
+            label="editor width"
+            defaultRatio={0.46}
+            min={0.25}
+            max={0.75}
+            storageKey="editor-debugger"
+            className="min-w-0 flex-1"
+          >
+            <div className="flex h-full min-w-0 flex-col gap-3">
+              <div className="relative min-h-0 flex-1 overflow-hidden rounded-md border border-border">
+                <Editor
+                  className="h-full"
+                  initial={doc.initial}
+                  readOnly={doc.readOnly}
+                  listing={listingOn}
+                  selection={selection}
+                  onChange={setSource}
+                  onProblems={setProblems}
+                  onView={setView}
+                  commands={commands}
+                />
+                <OutsideChip debug={debug} />
+              </div>
+              <Problems problems={problems} result={result} pending={pending} onJump={jump} />
+            </div>
+            <Debugger
+              model={debug}
+              commands={debugActions}
+              lineOf={lineOf}
+              cursorAddress={debug.cursorAddress}
+              notify={notify}
+              className="pr-1"
+            />
+          </SplitPane>
         </div>
-      </div>
+        <ArenaStrip
+          session={debug.snapshot.session}
+          state={debug.snapshot.state}
+          open={stripOn}
+          onOpen={setStrip}
+          canvas={stripCanvas}
+        />
+      </SplitPane>
       <VersionsModal
         open={versionsOpen}
         botId={doc.local?.id ?? null}
@@ -626,5 +714,27 @@ function Workbench({
         onRestore={restore}
       />
     </>
+  )
+}
+
+/**
+ * Over the editor, while the followed process runs code that is not the debugged bot's (PRODUCT_SPEC
+ * §3): whose bytes it runs, and where. The memory panel shows that code.
+ */
+function OutsideChip({ debug }: { debug: ReturnType<typeof useDebugger> }) {
+  const { image, snapshot, names } = debug
+  const { state, session } = snapshot
+  if (image === null || state === null || session === null || inImage(image, state.ip)) return null
+  const tag = session.battle.core.owner[state.ip] ?? 0
+  const whose = tag === 0 ? 'empty core' : `${names[tag - 1] ?? `bot ${tag}`}'s bytes`
+  return (
+    <Chip
+      variant="warn"
+      role="status"
+      className="absolute top-2 right-3 z-10"
+      title={`the followed process runs ${whose} at ${hexAddress(state.ip)}: the memory panel shows it`}
+    >
+      executing outside this bot
+    </Chip>
   )
 }

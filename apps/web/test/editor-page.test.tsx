@@ -2,12 +2,15 @@
  * `/editor` in jsdom (src/features/editor/EditorPage.tsx): the routes in a memory router under
  * the app frame, the local bots on fake-indexeddb, the assembler on the main thread, and a fake
  * arena client. The toolbar, the problems panel, format, save and versions, templates, the roster
- * read-only, the library and listing keys, `test vs`, share links, and drafts.
- * `e2e/editor.spec.ts` runs the main flows in Chromium.
+ * read-only, the library and listing keys, `test vs`, share links, and drafts; the debugger: what
+ * it loads, breakpoints from the gutter and F9, runs and steps and step back, the panels, and the
+ * arena strip. `e2e/editor.spec.ts` and `e2e/debugger.spec.ts` run the main flows in Chromium.
  */
 import 'fake-indexeddb/auto'
-import { afterEach, beforeAll, beforeEach, describe, expect, it, mock } from 'bun:test'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from 'bun:test'
 import { formatSource } from '@asmbots/asm'
+import { fighter } from '@asmbots/bots'
+import type { Bot } from '@asmbots/engine'
 import { type MatchResult, runMatch } from '@asmbots/tourney'
 import { ToastProvider } from '@asmbots/ui'
 import { EditorView } from '@codemirror/view'
@@ -24,10 +27,13 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { useDom, window } from '../../../packages/ui/test/dom'
 import { Frame } from '../src/app/Frame'
 import { rosterCatalog } from '../src/features/arena/setup/bots'
+import { battleConfig } from '../src/features/arena/setup/config'
 import { validateArenaSearch } from '../src/features/arena/setup/search'
-import { sharedBots, sharedFragment } from '../src/features/arena/setup/url'
+import { setupFromSearch, sharedBots, sharedFragment } from '../src/features/arena/setup/url'
 import type { ArenaClient } from '../src/features/arena/worker/client'
 import { AsmClient } from '../src/features/editor/asm/client'
+import { lineBytes } from '../src/features/editor/cm/debug'
+import { DebugSession } from '../src/features/editor/debug/session'
 import { EditorBotRoute, EditorIndexRoute } from '../src/features/editor/EditorRoutes'
 import { validateEditorSearch } from '../src/features/editor/search'
 import { DEFAULT_EDITOR_PREFS, useEditorPrefs } from '../src/features/editor/store'
@@ -40,16 +46,21 @@ import {
   listLocalBots,
   saveLocalBot,
 } from '../src/store/local-bots'
+import { stubCanvas } from './fake-canvas'
 
 useDom()
 // The router restores the scroll on each navigation; jsdom has no scrolling.
 window.scrollTo = () => {}
 // CodeMirror's selection layer measures ranges; jsdom lays nothing out.
+// The debugger's arena strip draws in 2D on a canvas that draws nothing.
+let restoreCanvas = () => {}
 beforeAll(() => {
   const range = window.Range.prototype as unknown as Record<string, unknown>
   range.getClientRects ??= () => []
   range.getBoundingClientRect ??= () => new window.DOMRect()
+  restoreCanvas = stubCanvas(window)
 })
+afterAll(() => restoreCanvas())
 
 const source = (slug: string) =>
   rosterCatalog().find((b) => b.ref.kind === 'roster' && b.ref.slug === slug)?.source ?? ''
@@ -426,4 +437,238 @@ describe('the editor page', () => {
 
 afterEach(() => {
   useEditorPrefs.setState(structuredClone(DEFAULT_EDITOR_PREFS as never))
+})
+
+describe('the debugger', () => {
+  /** The dwarf's base in `/editor?b=roster:dwarf,roster:imp&seed=1`: the arena's round 0. */
+  const DWARF_BASE = (() => {
+    const { config } = setupFromSearch({ b: 'roster:dwarf,roster:imp', seed: 1 })
+    const session = new DebugSession([fighter('dwarf'), fighter('imp')], battleConfig(config, 1))
+    return (session.battle.bots[0] as Bot).base
+  })()
+  const BOMB = DWARF_BASE + 0x0f
+  const hex = (v: number) => v.toString(16).toUpperCase().padStart(4, '0')
+  const reg = (name: string) => (screen.getByLabelText(name) as HTMLInputElement).value
+  const stopLine = () => screen.getByText(/^cycle$/).parentElement?.textContent ?? ''
+  const key = (k: string, init: KeyboardEventInit = {}) =>
+    act(() => {
+      fireEvent.keyDown(document.body, { key: k, ...init })
+    })
+
+  /** Opens dwarf vs imp at seed 1, and waits for the debugger to load it. */
+  async function dwarfVsImp() {
+    const rendered = await renderEditor('/editor?b=roster:dwarf,roster:imp&seed=1')
+    const view = await editorView()
+    await waitFor(() => expect(reg('ip')).toBe(hex(DWARF_BASE)))
+    return { ...rendered, view }
+  }
+
+  /** Puts the cursor on the line that holds `text`. */
+  function cursorOn(view: EditorView, text: string) {
+    const at = view.state.doc.toString().indexOf(text)
+    act(() => view.dispatch({ selection: { anchor: at } }))
+  }
+
+  it("loads the editor's bot with the arena's setup, and shows where it stands", async () => {
+    await dwarfVsImp()
+    expect(within(screen.getByRole('list', { name: 'opponents' })).getByText('Imp')).toBeTruthy()
+    expect((screen.getByLabelText('placement seed') as HTMLInputElement).value).toBe('1')
+    expect(stopLine()).toBe('cycle0·ready: nothing has run')
+    expect(reg('sp')).toBe(hex(DWARF_BASE))
+    expect(reg('ax')).toBe('0000')
+    const processes = screen.getByRole('region', { name: 'processes' })
+    expect(within(processes).getByText('Dwarf')).toBeTruthy()
+    expect(within(processes).getByText('Imp')).toBeTruthy()
+    const dwarf = within(screen.getByRole('list', { name: 'Dwarf queue' })).getByRole('button')
+    expect(dwarf.getAttribute('aria-current')).toBe('true')
+    expect(dwarf.textContent).toContain('call start.here')
+    const memory = within(screen.getByRole('list', { name: 'memory' }))
+    expect(memory.getByRole('button', { current: true }).textContent).toContain(
+      `0x${hex(DWARF_BASE)}`,
+    )
+  })
+
+  it('breaks on the line F9 marks, runs to it with F5, and steps back with ,', async () => {
+    const { view } = await dwarfVsImp()
+    cursorOn(view, 'mov     word [di], 0')
+    key('F9')
+    await waitFor(() =>
+      expect(view.dom.querySelector('.cm-debug-mark[data-breakpoint="on"]')).not.toBeNull(),
+    )
+    const breakpoints = screen.getByRole('list', { name: 'breakpoints' })
+    expect(breakpoints.textContent).toContain(`0x${hex(BOMB)}`)
+    expect(breakpoints.textContent).toContain(
+      `lap.bomb+3 · line ${
+        source('dwarf')
+          .split('\n')
+          .findIndex((l) => l.includes('word [di], 0')) + 1
+      }`,
+    )
+    key('F5')
+    await waitFor(() => expect(stopLine()).toContain(`breakpoint at 0x${hex(BOMB)}`))
+    expect(stopLine()).toMatch(/^cycle6·/)
+    expect(view.dom.querySelector('.cm-debug-ip')?.textContent).toContain('mov     word [di], 0')
+    const memory = within(screen.getByRole('list', { name: 'memory' }))
+    expect(memory.getByRole('button', { current: true }).textContent).toContain(`0x${hex(BOMB)}`)
+    expect(reg('ip')).toBe(hex(BOMB))
+    const di = reg('di')
+    expect(di).toBe(hex(DWARF_BASE - 4))
+    expect(screen.getByRole('list', { name: 'breakpoints' }).textContent).toContain('1 hit')
+    // Back two cycles, a cycle each after a run: before `sub di, 4`, and `mov cx, LAP` before it.
+    key(',')
+    key(',')
+    await waitFor(() => expect(stopLine()).toBe('cycle4·stepped back'))
+    expect(reg('di')).toBe(hex(DWARF_BASE))
+    expect(reg('ip')).toBe(hex(DWARF_BASE + 9))
+    expect(view.dom.querySelector('.cm-debug-ip')?.textContent).toContain('mov     cx, LAP')
+  })
+
+  it('steps with the transport and F11, F10, and Shift+F11', async () => {
+    await dwarfVsImp()
+    fireEvent.click(screen.getByRole('button', { name: 'step' }))
+    await waitFor(() => expect(stopLine()).toBe('cycle1·stepped'))
+    // The base idiom's `pop bx`: step over it is a step.
+    key('F10')
+    await waitFor(() => expect(stopLine()).toMatch(/^cycle2·/))
+    expect(reg('bx')).toBe(hex(DWARF_BASE + 3))
+    key('F11')
+    await waitFor(() => expect(stopLine()).toMatch(/^cycle3·/))
+    expect(reg('bx')).toBe(hex(DWARF_BASE))
+    fireEvent.click(screen.getByRole('button', { name: 'reset' }))
+    await waitFor(() => expect(stopLine()).toBe('cycle0·ready: nothing has run'))
+    fireEvent.change(screen.getByLabelText('cycles to run'), { target: { value: '40' } })
+    fireEvent.click(screen.getByRole('button', { name: 'run N cycles' }))
+    await waitFor(() => expect(stopLine()).toBe('cycle40·paused'))
+  })
+
+  it('edits a register in place, and toggles a flag', async () => {
+    await dwarfVsImp()
+    const ax = screen.getByLabelText('ax') as HTMLInputElement
+    fireEvent.focus(ax)
+    fireEvent.change(ax, { target: { value: '1A2B' } })
+    fireEvent.keyDown(ax, { key: 'Enter' })
+    await waitFor(() => expect(reg('ax')).toBe('1A2B'))
+    fireEvent.click(screen.getByRole('button', { name: 'carry flag' }))
+    await waitFor(() => expect(reg('flags')).toBe('0003'))
+    expect(screen.getByRole('button', { name: 'carry flag' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    )
+    expect(screen.getByRole('button', { name: 'trap flag' }).hasAttribute('disabled')).toBe(true)
+    // Esc puts a field back.
+    fireEvent.focus(ax)
+    fireEvent.change(ax, { target: { value: '0' } })
+    fireEvent.keyDown(ax, { key: 'Escape' })
+    fireEvent.blur(ax)
+    expect(reg('ax')).toBe('1A2B')
+  })
+
+  it('watches an address, and goes to one in the memory panel', async () => {
+    await dwarfVsImp()
+    const watch = screen.getByLabelText('watch an address')
+    fireEvent.change(watch, { target: { value: 'start - 2' } })
+    fireEvent.keyDown(watch, { key: 'Enter' })
+    const watches = await screen.findByRole('list', { name: 'watches' })
+    expect(watches.textContent).toContain('start - 2')
+    expect(watches.textContent).toContain(`0x${hex(DWARF_BASE - 2)}`)
+    expect(watches.textContent).toContain('0000')
+    // The call pushes its return address there: the next state reads it.
+    fireEvent.click(screen.getByRole('button', { name: 'step' }))
+    await waitFor(() => expect(watches.textContent).toContain(hex(DWARF_BASE + 3)))
+    const go = screen.getByLabelText('go to address')
+    fireEvent.change(go, { target: { value: 'lap' } })
+    fireEvent.keyDown(go, { key: 'Enter' })
+    const memory = screen.getByRole('region', { name: 'memory' })
+    await waitFor(() =>
+      expect(within(memory).getByText(`at 0x${hex(DWARF_BASE + 7)}`)).toBeTruthy(),
+    )
+    fireEvent.change(go, { target: { value: 'ax ==' } })
+    fireEvent.keyDown(go, { key: 'Enter' })
+    expect(within(memory).getByRole('alert').textContent).toBeTruthy()
+  })
+
+  it('follows another process, and says when it runs outside the bot', async () => {
+    await dwarfVsImp()
+    expect(screen.queryByText('executing outside this bot')).toBeNull()
+    fireEvent.click(within(screen.getByRole('list', { name: 'Imp queue' })).getByRole('button'))
+    await waitFor(() =>
+      expect(screen.getByRole('region', { name: 'registers' }).textContent).toContain('Imp'),
+    )
+    expect(await screen.findByText('executing outside this bot')).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'trace' }).textContent).toContain(
+      'has run nothing yet',
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'step' }))
+    await waitFor(() =>
+      expect(screen.getByRole('log', { name: 'trace' }).textContent).toContain('call'),
+    )
+  })
+
+  it('loads a new assemble by itself until the session moves, then waits for reload', async () => {
+    await renderEditor('/editor?t=dwarf')
+    const view = await editorView()
+    await waitFor(() => expect(view.state.doc.toString()).toContain('%name     "Dwarf"'))
+    await waitFor(() => expect(stopLine()).toBe('cycle0·ready: nothing has run'))
+    const bombLine =
+      view.state.doc
+        .toString()
+        .split('\n')
+        .findIndex((l) => l.includes('word [di], 0')) + 1
+    await waitFor(() => expect(lineBytes(view.state, bombLine)).not.toBeNull())
+    // A breakpoint by a press on the gutter's line: the page's handler takes line numbers.
+    cursorOn(view, 'mov     word [di], 0')
+    key('F9')
+    const set = lineBytes(view.state, bombLine)?.addr
+    // An edit before anything ran: the session loads again, the breakpoint on its line.
+    type(view, '        nop\n', view.state.doc.line(bombLine).from)
+    await waitFor(() => expect(lineBytes(view.state, bombLine + 1)?.addr).toBe((set ?? 0) + 1))
+    expect(screen.queryByText('source changed')).toBeNull()
+    await waitFor(() =>
+      expect(screen.getByRole('list', { name: 'breakpoints' }).textContent).toContain(
+        `0x${hex((set ?? 0) + 1)}`,
+      ),
+    )
+    // Once it has moved, an edit leaves the session as it is, and says so.
+    fireEvent.click(screen.getByRole('button', { name: 'step' }))
+    await waitFor(() => expect(stopLine()).toBe('cycle1·stepped'))
+    type(view, '; note\n')
+    await waitFor(() => expect(screen.getByText('source changed')).toBeTruthy())
+    expect(stopLine()).toBe('cycle1·stepped')
+    fireEvent.click(screen.getByRole('button', { name: 'reload' }))
+    await waitFor(() => expect(stopLine()).toBe('cycle0·ready: nothing has run'))
+    expect(screen.queryByText('source changed')).toBeNull()
+    expect(screen.getByRole('list', { name: 'breakpoints' }).textContent).toContain(
+      `0x${hex((set ?? 0) + 1)}`,
+    )
+  })
+
+  it('flashes a new process in, and fades a dead one out of the processes panel', async () => {
+    await renderEditor()
+    const view = await editorView()
+    // Each child dies on its first instruction.
+    replaceAll(view, '%name "Fork"\nstart:  spl     child\n        jmp     start\nchild:  dat\n')
+    await waitFor(() => expect(screen.getByRole('list', { name: 'Fork queue' })).toBeTruthy())
+    const queue = () => screen.getByRole('list', { name: 'Fork queue' })
+    fireEvent.click(screen.getByRole('button', { name: 'step' }))
+    await waitFor(() => expect(queue().querySelectorAll('[data-spawned]')).toHaveLength(1))
+    expect(within(queue()).getAllByRole('button')).toHaveLength(2)
+    // The child runs its `dat` in the next cycle, before the followed parent's turn.
+    fireEvent.click(screen.getByRole('button', { name: 'step' }))
+    await waitFor(() => expect(within(queue()).getAllByRole('button')).toHaveLength(1))
+    expect(queue().textContent).toContain('died')
+    await waitFor(() => expect(queue().textContent).not.toContain('died'), { timeout: 2000 })
+  })
+
+  it('folds the arena strip and opens it again, and the editor stays the same', async () => {
+    const { view } = await dwarfVsImp()
+    const strip = screen.getByRole('region', { name: 'arena strip' })
+    expect(within(strip).getByRole('application', { name: 'debug arena' })).toBeTruthy()
+    fireEvent.click(within(strip).getByRole('button', { name: 'fold the arena strip' }))
+    await waitFor(() => expect(within(strip).queryByRole('application')).toBeNull())
+    expect(useEditorPrefs.getState().strip).toBe(false)
+    expect(screen.queryByRole('separator', { name: 'arena strip height' })).toBeNull()
+    expect(await editorView()).toBe(view)
+    fireEvent.click(within(strip).getByRole('button', { name: 'open the arena strip' }))
+    await waitFor(() => expect(within(strip).getByRole('application')).toBeTruthy())
+    expect(await editorView()).toBe(view)
+  })
 })

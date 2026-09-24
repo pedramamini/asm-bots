@@ -30,6 +30,11 @@ export interface SplitPaneProps extends Omit<ComponentProps<'div'>, 'children'> 
   max?: number | undefined
   /** Keeps the ratio across visits, in `localStorage` under `split:<storageKey>`. */
   storageKey?: string | undefined
+  /**
+   * The second pane folds to its own size (a title row) and the first takes the rest; the
+   * divider goes. The ratio stays for when it opens again, and neither pane mounts anew.
+   */
+  collapsed?: boolean | undefined
 }
 
 /**
@@ -47,6 +52,7 @@ export function SplitPane({
   min = 0.1,
   max = 0.9,
   storageKey,
+  collapsed = false,
   className,
   style,
   ...rest
@@ -121,12 +127,17 @@ export function SplitPane({
     >
       <div
         id={firstId}
-        className="min-h-0 min-w-0 shrink-0 grow-0 basis-[calc((100%-var(--space-3))*var(--split))] overflow-auto"
+        className={
+          collapsed
+            ? 'min-h-0 min-w-0 flex-1 overflow-auto'
+            : 'min-h-0 min-w-0 shrink-0 grow-0 basis-[calc((100%-var(--space-3))*var(--split))] overflow-auto'
+        }
       >
         {first}
       </div>
       {/* biome-ignore lint/a11y/useSemanticElements: a focusable window splitter, not a thematic break. */}
       <div
+        hidden={collapsed || undefined}
         role="separator"
         tabIndex={0}
         aria-label={label}
@@ -156,7 +167,9 @@ export function SplitPane({
           )}
         />
       </div>
-      <div className="min-h-0 min-w-0 flex-1 overflow-auto">{second}</div>
+      <div className={cx('min-h-0 min-w-0', collapsed ? 'shrink-0' : 'flex-1 overflow-auto')}>
+        {second}
+      </div>
     </div>
   )
 }
