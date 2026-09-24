@@ -1,0 +1,134 @@
+# Papers and silk
+
+## Paper
+
+A paper is a replicator. It copies its body to another place with `rep movsw`, starts a process in the copy with `spl`, and goes on to copy again. Each copy copies too, so the count of processes doubles until it reaches the process cap (64). From then on, every copy writes the paper's code over whatever it lands on, and `spl` does nothing (see [the cap](/docs/machine/processes#the-process-cap)).
+
+A bomber must kill all 64 processes, in 64 places, while the survivors keep making more. It seldom does.
+
+```asm run="vs=stone"
+; Paper copies its body with rep movsw to a place 0x1234 bytes along its path, starts a process
+; in the copy with spl, drops a DAT bomb halfway to the next place, and goes on to the next.
+; Each copy starts its own path at its base with the two bytes swapped, so a parent and its child
+; land in different places, and the processes spread over the whole core up to the process cap.
+; From then on every copy writes 34 bytes of paper over whatever it lands on: a bomber or a
+; scanner loses its code faster than it can find 64 processes in 64 places, and seldom wins.
+; vs imp.asm, seeds 1..20: 14 W / 6 T / 0 L
+; vs dwarf.asm, seeds 1..20: 14 W / 6 T / 0 L
+
+%name     "Paper"
+%author   "ASM Bots"
+%strategy "Copy myself all over the core and start every copy"
+
+STEP    equ     0x1234                  ; bytes from one copy to the next along a path
+SIZE    equ     end - start
+WORDS   equ     (SIZE + 1) / 2          ; words in a copy
+
+; Setup: the base idiom puts our base address in bx, and dx starts the path.
+start:  call    .here
+.here:  pop     bx
+        sub     bx, .here
+        mov     dx, bx
+        xchg    dl, dh                  ; our base, bytes swapped: far from the parent's path
+
+; Copy: write the body STEP bytes on, start a process there, and bomb halfway to the next place.
+copy:   add     dx, STEP
+        mov     si, bx
+        mov     di, dx
+        mov     cx, WORDS
+        rep     movsw
+        spl     dx
+        mov     word [di+STEP/2], 0     ; the occasional bomb
+        jmp     copy
+
+end:
+```
+
+## What a copy costs
+
+`rep movsw` runs one iteration a cycle, so a copy of the 34-byte paper takes 17 of its bot's turns. With the 4 instructions before it and the 3 after, a pass of the loop is 24 turns. Alone at seed 1, the first `spl` runs in cycle 26 and the bot holds 64 processes after 2,026 cycles.
+
+Each copy starts with the base idiom, so it finds its own base and runs as a new paper. `xchg dl, dh` starts each copy's path from its own base with the bytes swapped: a parent and its children walk different paths, and the copies spread over the core instead of piling up on one line.
+
+## Why `spl` after `rep movsw`
+
+A process that `spl` starts runs at once: the child goes into the queue just ahead of its parent, so it takes the bot's next turn. If paper started the copy before writing it, the child would run empty core.
+
+<Note>
+
+Try moving `spl dx` to the line just above `rep movsw`. Alone at seed 1, the first child starts in cycle 9, runs in cycle 10, finds a zero where its code should be, and dies with `dat`. Every child dies the same way, the bot keeps just its one process, and against the dwarf the record falls from 14 W / 6 T / 0 L to 7 W / 0 T / 13 L.
+
+</Note>
+
+Paper's order has a cost too. The copy takes 17 turns, and the parent is exposed for all of them: a bomb on the `rep movsw` kills the parent mid-copy, and the half-written copy never runs.
+
+## Silk: `spl` first, safely
+
+Silk starts the child first and writes the copy after, with a pad that makes it safe:
+
+1. Write a `jmp $` pad (`EB FE`) where the copy will begin.
+2. `spl` to the pad. The child spins there, one `jmp $` a turn.
+3. Copy the body from the top word down (`std`), so the last word written lands on the pad.
+
+The moment the copy is whole, its first word replaces the pad, and the child runs into a whole copy. If a bomb kills the parent mid-copy, the child still lives, spinning on its pad, so the bot lives too.
+
+```asm run="vs=dwarf"
+; Silk, after the silk papers of Redcode, starts each copy before it writes it: it puts a jmp $
+; pad where the copy will begin, starts a process on the pad with spl, and then writes the body
+; over it with rep movsw from the top word down.
+; The child spins on the pad while the copy is written, and the last word written is the pad
+; itself, so the child runs into a whole copy the moment the copy is done.
+; A parent killed in the middle of a copy still leaves its child alive, spinning on the pad, and
+; each copy costs more turns than paper's, so silk wins less often than paper and loses less.
+; vs imp.asm, seeds 1..20: 16 W / 4 T / 0 L
+; vs dwarf.asm, seeds 1..20: 11 W / 9 T / 0 L
+
+%name     "Silk"
+%author   "ASM Bots"
+%strategy "Start each copy first, then write it"
+
+STEP    equ     0x1234                  ; bytes from one copy to the next along a path
+SIZE    equ     end - start
+WORDS   equ     (SIZE + 1) / 2          ; words in a copy
+TOPW    equ     2 * WORDS - 2           ; where a copy's top word is
+PAD     equ     0xFEEB                  ; jmp $ (EB FE), as a little-endian word
+
+; Setup: the base idiom puts our base address in bx, bp starts the path, and copies go down.
+start:  call    .here
+.here:  pop     bx
+        sub     bx, .here
+        mov     ax, bx
+        xchg    al, ah                  ; our base, bytes swapped: far from the parent's path
+        mov     bp, ax
+        std
+
+; Copy: pad the next place, start a process on the pad, and write the body from the top down.
+copy:   add     bp, STEP
+        mov     word [bp], PAD
+        spl     bp
+        lea     si, [bx+TOPW]
+        lea     di, [bp+TOPW]
+        mov     cx, WORDS
+        rep     movsw                   ; the last word lands on the pad
+        mov     word [di+STEP/2], 0     ; the occasional bomb
+        jmp     copy
+
+end:
+```
+
+The spinning children take turns too: while a copy is being written, its child spends a turn in each round of the queue on `jmp $`. Silk grows a little slower (64 processes after 2,213 cycles alone at seed 1, where paper takes 2,026) and wins a little less. It also loses less.
+
+| seeds 1..20, hill rules | record |
+|---|---|
+| `paper` vs `dwarf` | 14 W / 6 T / 0 L |
+| `silk` vs `dwarf` | 11 W / 9 T / 0 L |
+| `paper` vs `stone` | 13 W / 6 T / 1 L |
+| `silk` vs `stone` | 5 W / 15 T / 0 L |
+| `paper` vs `scanner` | 19 W / 1 T / 0 L |
+| `paper` vs `silk` | 0 W / 20 T / 0 L |
+
+## What paper kills with
+
+A paper kills by landing a copy on a rival's code, or with its one bomb a pass. A copy writes 34 bytes of paper over whatever is there. A rival's process then runs paper's bytes from wherever its ip is: from the copy's first byte, it becomes a paper for its own bot and lives; from the middle, it runs them out of step and seldom lasts. Two papers fill the core with copies of each other, and tie. Paper's threat is a bot that turns its numbers against it: the [vampire](/docs/strategy/vampires) holds its processes in a pit.
+
+See also: [`rep`](/docs/reference/string#rep), [`movsw`](/docs/reference/string#movsw), and [processes and cycles](/docs/machine/processes).

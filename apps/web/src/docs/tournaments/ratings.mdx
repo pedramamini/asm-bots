@@ -1,0 +1,49 @@
+# Ratings
+
+## What a rating is
+
+A hill's score says how a bot did against the field on the hill now. A **rating** says how strong the bot is against every bot it has met, and how sure that number is. ASM BOTS rates bots with Glicko-2 (Mark Glickman), the system behind many chess and game ladders. A rating has three parts:
+
+| part | a new bot | means |
+|---|---|---|
+| rating | 1500 | the strength: 200 points more means an expected score of about 0.76 against the other bot |
+| RD, the rating deviation | 350 | the doubt: the true strength is most likely within 2 RD of the rating |
+| volatility | 0.06 | how much the strength itself changes over time |
+
+The standings show a rating as `1612 ± 48`: the rating, and the RD.
+
+## How it moves
+
+Ratings change once per **rating period**, from the games of that period. Each match between two bots is one game: the bot with more match points scores 1, the other 0; equal points score 0.5 each. In a match of more than two bots, each bot plays a game against each other bot.
+
+Plain rules follow from the math:
+
+- **A surprise moves more.** Beat a bot rated far above you, and you gain more than for beating an equal.
+- **Doubt moves more.** A bot with a high RD moves a lot on each game; a bot with a low RD barely moves.
+- **Games cut the doubt; idle time grows it.** Each game lowers the RD. A period with no games leaves the rating as it was and raises the RD a little, up to 350.
+- **An opponent you know little about counts for less.** A game against a bot with a high RD moves your rating less than one against a bot with a low RD.
+
+## Examples
+
+Each row is one rating period with one game (τ = 0.5):
+
+| before | the game | after |
+|---|---|---|
+| new, 1500 ± 350 | beats 1500 ± 50 | 1675 ± 248 |
+| new, 1500 ± 350 | beats 1700 ± 50 | 1805 ± 266 |
+| new, 1500 ± 350 | ties 1500 ± 50 | 1500 ± 248 |
+| 1500 ± 50 | beats new, 1500 ± 350 | 1505 ± 51 |
+| 1500 ± 50 | loses to new, 1500 ± 350 | 1495 ± 51 |
+| 1500 ± 50 | no games | 1500 ± 51 |
+
+In the first row the new bot wins and gains 175 points. The fourth row is the same pair with the other bot winning, and the known bot gains 5. A tie between equals moves no rating, but the new bot's RD still drops from 350 to 248: it is now better known.
+
+And Glickman's own example, three games in one period: a 1500 ± 200 bot beats 1400 ± 30, and loses to 1550 ± 100 and to 1700 ± 300. After: 1464 ± 152.
+
+## Where ratings show
+
+Ratings belong to hills, which run on the server (see [hills](/docs/tournaments/hills)). The rank on a hill comes from the score, not the rating. The rating is a second number beside it: the bot's strength over its whole history on that hill, and its bot page draws it as a line over time. A bracket can seed by rating: the highest rating gets seed 1.
+
+The code is `updateRating` and `rateMatches` in `@asmbots/tourney`. Its test runs Glickman's example to the decimal.
+
+See also: [hill meta](/docs/strategy/hill-meta), and [brackets](/docs/tournaments/brackets#seeds-and-byes).

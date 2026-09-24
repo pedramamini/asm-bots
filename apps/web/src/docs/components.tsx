@@ -5,6 +5,7 @@ import type { MDXComponents } from 'mdx/types'
 import { type ComponentProps, isValidElement, type ReactNode } from 'react'
 import { Asm } from './Asm'
 import { Fig, Keys, Note, Shot, Warn } from './blocks'
+import { KeyMap } from './keymap'
 import { Encoding, Flags } from './reference'
 import { headingId, textOf } from './text'
 
@@ -104,7 +105,7 @@ function heading(Tag: 'h2' | 'h3', className: string) {
 /**
  * How a docs page draws its Markdown, in the kit's type (DESIGN_SYSTEM §3): body text at 13 px,
  * headings as panel titles, code in `--panel-2`; and the docs' own blocks, which a page uses with
- * no import: `Asm`, `Encoding`, `Flags`, `Keys`, `Note`, `Warn`, `Fig`, `Shot`.
+ * no import: `Asm`, `Encoding`, `Flags`, `Keys`, `Note`, `Warn`, `Fig`, `Shot`, `KeyMap`.
  */
 export const MDX_COMPONENTS: MDXComponents = {
   h1: (props) => <h1 {...props} className="mb-4 text-modal-title text-bright" />,
@@ -142,4 +143,5 @@ export const MDX_COMPONENTS: MDXComponents = {
   Warn,
   Fig,
   Shot,
+  KeyMap,
 }

@@ -1,0 +1,40 @@
+# ISA versions
+
+## x16c v1: frozen
+
+The instruction set is a contract between the assembler, the engine, the debugger, and every bot ever written. It has a version, and the current one, **x16c v1**, is frozen: no change to what a byte does, however small, goes in under this name.
+
+The status bar shows the ISA the engine runs (`x16c v1`), and every replay records it (`"isa": "x16c-v1"`). The arena refuses a replay of another ISA rather than run it under the wrong rules.
+
+| x16c v1 | |
+|---|---|
+| core | 65,536 bytes, one flat address space; every address and value wraps |
+| registers | ax bx cx dx si di bp sp, their 8-bit halves, ip, and the flags CF PF AF ZF SF DF OF |
+| instructions | the 8086 subset in the [language reference](/docs/reference/data), 1 to 6 bytes, every one 1 cycle |
+| processes | a queue for each bot, 64 by default; `spl` at the cap does nothing |
+| death | DAT (`00`), `hlt`, `int3`, an undefined opcode, or a divide error |
+| battle | turn order rotating each cycle; placement from a PCG32 seed, 1,024 bytes apart or more by default |
+| scoring | pMARS: `floor((N * N - 1) / S)` for each of S survivors |
+| divergences from the 8086 | three: `00` is DAT, `60`..`62` are SPL, and no segments, interrupts, I/O, or timing ([divergences](/docs/reference/divergences)) |
+
+## What makes a new version
+
+Any change to what a bot does: an opcode, a flag, a cycle cost, the process model, placement, or scoring. Even a flag fix. A new version:
+
+1. gets a new name, `x16c v2`, and a note here that says what changed and why;
+2. comes with new goldens: the roster's recorded rounds are played again, and every changed round is explained;
+3. may re-run a hill's standings, since old results were won under old rules.
+
+A change to the tools that leaves every byte doing the same thing is not a new ISA: a new diagnostic, a new directive that assembles to the same bytes, a faster engine that gives the same hashes. The goldens prove the last one: a faster engine must give the same event hash for every golden round.
+
+## Changes since the freeze
+
+None.
+
+One clarification. The ISA text says `push sp` pushes "the pre-decrement value (8086 behavior)". Those two disagree: the 8086 pushes sp after it takes 2 away, and the 80286 and later push the value from before. The engine does what the 8086 does, as the text's intent is, and the [reference](/docs/reference/data#push) documents it:
+
+```asm fragment
+        push    sp                      ; the word at the new sp = the new sp (sp - 2 before it)
+```
+
+See also: [changelog](/docs/changelog), and [verification](/docs/tournaments/verification) for how a replay records the ISA.

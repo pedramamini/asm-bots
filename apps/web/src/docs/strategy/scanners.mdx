@@ -1,0 +1,107 @@
+# Scanners
+
+## Look, then bomb
+
+A bomber spends most of its bombs on empty core. A scanner looks first: it reads the core for bytes that are not zero, and bombs only where it finds them. Empty core is zero, so a non-zero byte is code (or a trail, or a decoy). When the scan is cheap and the bomb is heavy, the scanner kills with few bombs.
+
+## `repe scasb` and `repne scasb`
+
+`scasb` compares al with the byte at di, sets the flags as `cmp` does, and steps di (down after `std`, up after `cld`). With a prefix it repeats, one iteration a cycle, while cx is not 0 and the condition holds:
+
+| prefix | repeats while | with al = 0 it stops at |
+|---|---|---|
+| `repe` (`repz`) | the byte equals al (ZF = 1) | the first byte that is **not** zero: code |
+| `repne` (`repnz`) | the byte differs from al (ZF = 0) | the first byte that **is** zero: a gap |
+
+So a scanner that hunts code uses `repe scasb` with al = 0. `repne scasb` is the scan for one known byte: set al to it, and the scan stops on the first match. [Hybrid](#hybrid) uses `repne scasb` the other way round, to find a zero in a guard that should hold none.
+
+After the scan, check why it stopped. ZF = 0 means it found a byte that is not al; ZF = 1 means cx ran out first. Either way di has already stepped past the byte, so the hit is at di + 1 (after `std`) or di - 1 (after `cld`).
+
+## The scanner
+
+```asm run="vs=imp"
+; Scanner looks down the core for non-zero bytes with repe scasb, from just under its own body,
+; and carpet-bombs 32 bytes around each one it finds with rep stosw.
+; An imp walks up toward it, so the scan meets the imp's newest word first, and the carpet
+; starts TOP bytes above that word so that it lands on the imp's next word before the imp runs it.
+; It skips hits on its own body and on the bytes where a carpet would reach it, and it scans one
+; byte a cycle, so a bomber that is far away has time to find it first.
+; vs imp.asm, seeds 1..20: 20 W / 0 T / 0 L
+
+%name     "Scanner"
+%author   "ASM Bots"
+%strategy "Scan down for code, carpet-bomb what I find"
+
+TOP     equ     18                      ; the carpet starts this far above the hit
+WORDS   equ     16                      ; words in a carpet: 32 bytes
+BELOW   equ     TOP + 3                 ; skip hits this close under the body
+ABOVE   equ     2 * WORDS - 2 - TOP     ; and this close above it
+SIZE    equ     end - start
+
+; Setup: the base idiom puts our base address in bx.
+start:  call    .here
+.here:  pop     bx
+        sub     bx, .here
+        xor     ax, ax                  ; al = 0 for the scan, ax = 0 for the bombs
+        std                             ; scasb and stosw step down
+        lea     di, [bx-BELOW-1]        ; the scan starts under the body
+
+; Scan: pass zero bytes, and bomb the hit unless it is our body or too close to it.
+scan:   mov     cx, 0xFFFF              ; more bytes than a scan passes before it meets our body
+        repe    scasb                   ; stops with di one byte under the hit
+        lea     dx, [di+BELOW+1]
+        sub     dx, bx                  ; dx = hit - (base - BELOW)
+        cmp     dx, BELOW + SIZE + ABOVE
+        jae     bomb
+        lea     di, [bx-BELOW-1]        ; our body: scan on from under it
+        jmp     scan
+
+; Bomb: 16 words from TOP bytes above the hit down, then scan on from under them.
+bomb:   add     di, TOP + 1
+        mov     cx, WORDS
+        rep     stosw
+        jmp     scan
+
+end:
+```
+
+One register does the whole bomb: ax = 0 is both the byte the scan passes over and the word the carpet writes. `std` makes the scan and the carpet both walk down. The carpet is 16 words, 32 bytes of zeros, from 18 bytes above the hit: the scan goes down, so the first byte it meets of an imp is the imp's newest word, and the imp's next word is just above it.
+
+## Self-skip
+
+The scan wraps around the core and comes back to the scanner itself. Its own code is not zero, so the scan stops on it. The scanner must know its own body and not bomb it. It also must not bomb near it: a carpet that starts 18 bytes above a hit reaches down, and up, past the hit.
+
+The check is one subtraction and one unsigned compare. `dx = hit - (base - BELOW)` is small when the hit is in the band from BELOW bytes under the base to ABOVE bytes over the end, and huge otherwise, because a hit under the band wraps to a number near 65,536. So `cmp dx, BELOW + SIZE + ABOVE` then `jae bomb` bombs only hits outside the band. For a hit inside it, the scanner starts the scan again from under its own body.
+
+<Note>
+
+Try replacing `jae bomb` with `jmp bomb`: no self-skip (the linter warns that the next lines are unreachable). Run it alone. The scan reads the whole core, one byte a cycle, finds its own body, carpets it, and dies with `undefined` in cycle 65,497.
+
+</Note>
+
+## Speed
+
+A byte a cycle is slow. The scan needs 65,536 cycles to read the whole core: most of a hill round (80,000 cycles). A bomber that is far away gets time to find the scanner first, which is why a stone usually does. And paper has 64 copies in 64 places: the scanner finds and carpets them one at a time, while the rest make more.
+
+| seeds 1..20, hill rules | record |
+|---|---|
+| `scanner` vs `imp` | 20 W / 0 T / 0 L |
+| `scanner` vs `dwarf` | 9 W / 0 T / 11 L |
+| `scanner` vs `stone` | 3 W / 0 T / 17 L |
+| `scanner` vs `paper` | 0 W / 2 T / 18 L |
+
+A faster scanner samples. The [vampire](/docs/strategy/vampires) reads one word every 16 bytes: `mov dx, [di]` and three `or dx, [di-K]` test 4 words in 4 instructions, and it runs `repe scasw` only where a sample was not zero. With the jump and the step, it passes 64 bytes of empty core in 7 instructions, where `repe scasb` takes 64. The cost is blind spots: a bot of 14 bytes or less can fall between the sampled words. Long bots and trails cannot.
+
+## Decoys
+
+A scanner stops at every non-zero byte, whether it is a rival's code or not. A decoy is non-zero bytes that are not code: noise that a scanner carpets and a sampler bites, for nothing. [Hygiene](/docs/strategy/hygiene) measures what noise buys against each kind of scanner.
+
+## Hybrid
+
+Hybrid scans and carpets as the scanner does, and keeps a guard: 16 bytes of `0xFF`, 768 bytes over its body. A bot cannot read who owns a byte, but it can read a byte, so every 128 bytes of scan it checks the guard with `repne scasb` (al = 0): a zero in the guard is a bomb, and a bomber walking down the core is 768 bytes away. Then it turns to paper. It scores 17 W / 3 T / 0 L against the dwarf, where the plain scanner scores 9 W / 0 T / 11 L.
+
+| seeds 1..20, hill rules | record |
+|---|---|
+| `hybrid` vs `dwarf` | 17 W / 3 T / 0 L |
+
+See also: [`scasb`](/docs/reference/string#scasb), [`repe`](/docs/reference/string#repe), [`repne`](/docs/reference/string#repne), and [`stosw`](/docs/reference/string#stosw) in the reference.

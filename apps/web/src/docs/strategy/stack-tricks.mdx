@@ -1,0 +1,84 @@
+# Stack tricks
+
+## The stack is core
+
+There is no stack segment. sp is an address in the core, like di, and a process starts with sp at its bot's base: the stack grows down into the free space under the body (see [registers](/docs/machine/registers)).
+
+| instruction | bytes | does |
+|---|---|---|
+| `push ax` | `50` | sp = sp - 2, then the word at sp = ax |
+| `pop ax` | `58` | ax = the word at sp, then sp = sp + 2 |
+| `call label` | `E8` rel16 | push the address of the next instruction, then jump |
+| `ret` | `C3` | pop an address, and jump to it |
+
+Two things follow. `push` is a memory write and a pointer step in one byte. And `call` pushes an absolute address, the one thing a bot cannot know when it assembles.
+
+## `call` and `pop`: where am I?
+
+Every bot in this guide starts with the base idiom:
+
+```asm fragment
+start:  call    .here                   ; E8 00 00: pushes base + 3, jumps to .here
+.here:  pop     bx                      ; 5B: bx = base + 3
+        sub     bx, .here               ; 83 EB 03: bx = base
+```
+
+`call` is relative, so it runs anywhere, and it pushes the address after it, which is absolute. `pop` takes that address off the stack. [Position independence](/docs/machine/position-independence#the-base-idiom) explains why a bot needs its base.
+
+The idiom leaves a trace: `call` wrote base + 3 into the word at base - 2, and `pop` does not erase it. That is one non-zero word just under the body. It is small, but a sampling scanner can land on it (see [hygiene](/docs/strategy/hygiene)).
+
+## `push` as a bomb
+
+`push ax` with ax = 0 is a DAT bomb and a step of 2 in one byte. Point sp where you want to bomb, and each `push` zeros the next word down. Eight of them in a row, then `loop`, make a carpet: a zero on every byte, 16 bytes each 9 cycles.
+
+```asm run="vs=imp-ring"
+%name     "Pusher"
+%strategy "Bomb with push: one DAT word a cycle, walking down"
+
+WORDS   equ     8                       ; pushes in a pass
+SIZE    equ     end - start
+LAP     equ     (0x10000 - SIZE) / (2 * WORDS) ; passes in a lap: it stops short of home
+
+start:  call    .here
+.here:  pop     bx
+        sub     bx, .here               ; bx = our base
+        xor     ax, ax                  ; ax = 0: the bomb
+
+lap:    mov     sp, bx                  ; the stack top: our base
+        mov     cx, LAP
+.bomb:  times   WORDS push ax           ; [sp-2] = 0, sp -= 2: a bomb and a step in one byte
+        loop    .bomb
+        jmp     lap
+
+end:
+```
+
+A lap zeros 65,504 bytes, every byte of the core but the 26 of the body and the 6 just over it, in 36,849 cycles. The dwarf's loop at stride 2 takes 98,271 cycles for the same carpet ([stride math](/docs/strategy/dwarves#what-a-stride-hits)). The first push also zeros the word that the base idiom's `call` left at base - 2.
+
+A carpet with no gaps leaves an imp no gap to walk through:
+
+| seeds 1..20, hill rules | record |
+|---|---|
+| `Pusher` vs `imp` | 20 W / 0 T / 0 L |
+| `Pusher` vs `imp-ring` | 20 W / 0 T / 0 L |
+| `Pusher` vs `dwarf` | 13 W / 0 T / 7 L |
+| `Pusher` vs `scanner` | 14 W / 0 T / 6 L |
+| `Pusher` vs `paper` | 0 W / 8 T / 12 L |
+| `Pusher` vs `vampire` | 1 W / 0 T / 19 L |
+
+It loses to what a carpet cannot catch up with. Paper makes copies faster than one carpet can zero them. And eight `push ax` bytes in a row are code a vampire finds and bites.
+
+<Note>
+
+Try `WORDS equ 1`. A pass is now `push ax` and `loop`, a bomb every 2 cycles instead of 8 in 9, and a lap takes 65,519 cycles. Against the imp the record falls from 20 W / 0 T / 0 L to 16 W / 4 T / 0 L: some imps now get to the cycle cap before the carpet reaches them.
+
+</Note>
+
+## Rules for sp tricks
+
+- **sp is yours alone.** Nothing else uses the stack: there are no interrupts, and no handler pushes onto it. So sp can point anywhere, and a `push` there is safe until your own code pushes.
+- **A bomber that uses sp cannot use `call`.** `call` pushes wherever sp is, and `ret` pops from there. Pusher runs `call` once, in the base idiom, before `mov sp, bx`.
+- **Each process has its own sp.** A child that `spl` starts copies the parent's sp, and from then on each moves its own. Two processes that push from the same sp bomb the same words.
+- **`push sp` pushes the decremented sp.** That is 8086 behavior, and it is what the engine does.
+
+See also: [`push`](/docs/reference/data#push), [`pop`](/docs/reference/data#pop), and [`call`](/docs/reference/control#call) in the reference.

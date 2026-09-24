@@ -1,0 +1,108 @@
+# Anti-scanner hygiene
+
+## What a scanner sees
+
+Empty core is zero. A scanner cannot read who owns a byte, only the byte, so to a scanner every non-zero byte looks the same: your code, your data, your trail, your bombs if they are not zero. Hygiene is keeping the bytes a scanner can find few, small, and in one place, and making the ones you cannot hide cost it time.
+
+Two kinds of scanner look in different ways (see [scanners](/docs/strategy/scanners)):
+
+| scanner | reads | finds a bot | pays for a false hit |
+|---|---|---|---|
+| byte scanner (`repe scasb`) | every byte, one a cycle | always, when the scan gets there | one carpet of 16 words: 24 turns |
+| sampler (the vampire) | one word in every 16 bytes | only if a sampled word is in it | one bite of 16 fangs: over 90 turns |
+
+## The rules
+
+1. **Be small.** A bomb pattern with stride s hits a bot of s - 1 bytes or more on every lap, and a sampler can miss only a bot of 14 bytes or less. Each byte you cut is a byte that cannot be hit.
+2. **Bomb with zeros.** A zero bomb in empty core leaves no trace. A bomb that is not zero, such as the `0xCCCC` of [Carrier](/docs/machine/position-independence#a-bot-that-reads-its-own-data), kills as well, and leaves a trail of non-zero words that leads back toward you.
+3. **Keep your data in your body.** A counter or a table far from the body is a second place to find, and a second thing to lose.
+4. **Clean up after the base idiom.** `call` leaves base + 3 in the word at base - 2 (see [stack tricks](/docs/strategy/stack-tricks#call-and-pop-where-am-i)). `mov word [bx-2], 0` costs one instruction and erases it.
+5. **Make false hits cost.** Non-zero bytes that are not code, a **decoy**, cost a scanner a carpet or a bite each. That only pays when a false hit is dear, as the numbers below show.
+
+## A decoy
+
+Decoy writes 1 KB of noise under its body and 1 KB over it, then bombs the core as a dwarf does. The noise is the word `A1 00` over and over: `mov ax, [0xa100]` and then a DAT, so a process that runs into it dies within two instructions.
+
+```asm run="vs=vampire"
+; Decoy covers the 1 KB under its body and the 1 KB over it with the word A1 00, which reads as
+; mov ax, [0xa100] and then a DAT, and then it bombs the core as a dwarf does.
+; A scanner stops at non-zero bytes, so the noise costs it a carpet or a bite for each stretch it
+; hits, and a process that runs into the noise dies within two instructions.
+; The bomber is the dwarf's loop unrolled to four DAT words a pass, 4 bytes apart, and a lap
+; counter ends each lap just past the body: the noise gets bombed, and the body never does.
+; vs imp.asm, seeds 1..20: 16 W / 4 T / 0 L
+; vs dwarf.asm, seeds 1..20: 14 W / 0 T / 6 L
+
+%name     "Decoy"
+%author   "ASM Bots"
+%strategy "Hide in 2 KB of mov noise, then bomb"
+
+NOISE   equ     1024                    ; bytes of noise on each side
+FILL    equ     0x00A1                  ; A1 00: mov ax, [0xa100] and then a DAT
+STRIDE  equ     4                       ; bytes between bombs
+PASS    equ     4 * STRIDE              ; bytes a pass covers: four bombs
+SIZE    equ     end - start
+LAP     equ     (0x10000 - SIZE) / PASS ; passes in a lap: the last bomb lands past the body
+
+; Setup: the base idiom puts our base address in bx.
+start:  call    .here
+.here:  pop     bx
+        sub     bx, .here
+
+; Noise: NOISE bytes of FILL under the body and NOISE bytes over it, one word a turn.
+noise:  mov     ax, FILL
+        lea     di, [bx-NOISE]
+        mov     cx, NOISE / 2
+        rep     stosw
+        lea     di, [bx+end]
+        mov     cx, NOISE / 2
+        rep     stosw
+        xor     ax, ax                  ; ax = 0 is the bomb from here on
+
+; Bomb: each lap starts under our base and walks down, four bombs a pass.
+lap:    lea     di, [bx-STRIDE]
+        mov     cx, LAP
+.bomb:  mov     [di], ax
+        mov     [di-STRIDE], ax
+        mov     [di-2*STRIDE], ax
+        mov     [di-3*STRIDE], ax
+        sub     di, PASS
+        loop    .bomb
+        jmp     lap
+
+end:
+```
+
+The noise costs 1,024 turns to write, `rep stosw` one word a turn, before the first bomb.
+
+## What noise buys
+
+The same bot with 0, 1 KB, and 4 KB of noise on each side (`NOISE equ 0`, `1024`, `4096`), over 100 seeds:
+
+| seeds 1..100, hill rules | record |
+|---|---|
+| `Decoy, no noise` vs `scanner` | 80 W / 0 T / 20 L |
+| `decoy` vs `scanner` | 80 W / 0 T / 20 L |
+| `Decoy, 4 KB` vs `scanner` | 81 W / 0 T / 19 L |
+| `Decoy, no noise` vs `vampire` | 22 W / 0 T / 78 L |
+| `decoy` vs `vampire` | 33 W / 0 T / 67 L |
+| `Decoy, 4 KB` vs `vampire` | 48 W / 0 T / 52 L |
+
+Against the byte scanner, noise buys nothing. The scanner carpets 32 bytes for each hit and scans on from under the carpet, so it passes noise about as fast as empty core, and it still reaches the body. Decoy beats it for another reason: its bomber gets there first.
+
+Against the sampler, noise buys a lot. Each bite of noise is 16 fangs, over 90 turns, and it holds nothing. 4 KB of noise on each side lifts the record from 22 wins in 100 to 48.
+
+<Note>
+
+Try `NOISE equ 4096`: 48 wins in 100 against the vampire, where 1 KB gets 33. Open it in the arena against the vampire and watch the fangs land in the noise, bite after bite, while the bombs walk toward the vampire.
+
+</Note>
+
+## Trails you did not mean
+
+- **Imps.** An imp leaves a trail of `A5 90` words the whole way it walks. A stone's decoy imp is a trail on purpose; an imp you launched and forgot is a path to you.
+- **Copies.** Each paper copy is a whole bot. Paper hides by number, not by size.
+- **Fangs and pits.** A vampire's bite leaves 48 bytes of code in the core, and every fang holds the pit's distance.
+- **Gates.** An [imp gate](/docs/strategy/imp-gates) is a word that is never zero for long, just under the body.
+
+See also: [scanners](/docs/strategy/scanners), [`stosw`](/docs/reference/string#stosw), and [death](/docs/machine/death).

@@ -95,6 +95,164 @@ export const DOCS: readonly DocSection[] = [
     ],
   },
   REFERENCE,
+  {
+    title: 'strategy guide',
+    pages: [
+      {
+        slug: 'strategy/imps',
+        title: 'imps and imp rings',
+        blurb: 'the self-copying bot: why it is hard to kill, and rings of spares.',
+        load: () => import('./strategy/imps.mdx'),
+      },
+      {
+        slug: 'strategy/dwarves',
+        title: 'dwarves and stride math',
+        blurb: 'bombers, what a stride hits, and which strides self-avoid.',
+        load: () => import('./strategy/dwarves.mdx'),
+      },
+      {
+        slug: 'strategy/stones',
+        title: 'stones',
+        blurb: 'several bombers in one bot, unrolled loops, and a decoy.',
+        load: () => import('./strategy/stones.mdx'),
+      },
+      {
+        slug: 'strategy/papers',
+        title: 'papers and silk',
+        blurb: 'replicators, what a copy costs, and why silk splits first.',
+        load: () => import('./strategy/papers.mdx'),
+      },
+      {
+        slug: 'strategy/scanners',
+        title: 'scanners',
+        blurb: 'repe scasb, the self-skip, carpets, and sampling.',
+        load: () => import('./strategy/scanners.mdx'),
+      },
+      {
+        slug: 'strategy/vampires',
+        title: 'vampires and pits',
+        blurb: 'jmp fangs built at run time, and the pit that holds a bot.',
+        load: () => import('./strategy/vampires.mdx'),
+      },
+      {
+        slug: 'strategy/imp-gates',
+        title: 'imp gates',
+        blurb: 'one word that kills every imp that walks through it.',
+        load: () => import('./strategy/imp-gates.mdx'),
+      },
+      {
+        slug: 'strategy/stack-tricks',
+        title: 'stack tricks',
+        blurb: 'call and pop for the base, and push as a one-byte bomb.',
+        load: () => import('./strategy/stack-tricks.mdx'),
+      },
+      {
+        slug: 'strategy/hygiene',
+        title: 'anti-scanner hygiene',
+        blurb: 'what a scanner sees, and what noise buys against it.',
+        load: () => import('./strategy/hygiene.mdx'),
+      },
+      {
+        slug: 'strategy/melee',
+        title: 'melee tactics',
+        blurb: 'scoring in a crowd: aggression against survival.',
+        load: () => import('./strategy/melee.mdx'),
+      },
+      {
+        slug: 'strategy/hill-meta',
+        title: 'hill meta',
+        blurb: 'what a hill score rewards, from a hill of the roster.',
+        load: () => import('./strategy/hill-meta.mdx'),
+      },
+    ],
+  },
+  {
+    title: 'tournaments and hills',
+    pages: [
+      {
+        slug: 'tournaments/formats',
+        title: 'formats',
+        blurb: 'rounds, matches, round robins, brackets, and melees.',
+        load: () => import('./tournaments/formats.mdx'),
+      },
+      {
+        slug: 'tournaments/brackets',
+        title: 'brackets',
+        blurb: 'seeds, byes, who goes on, and the third-place match.',
+        load: () => import('./tournaments/brackets.mdx'),
+      },
+      {
+        slug: 'tournaments/hills',
+        title: 'hills',
+        blurb: 'king of the hill: how a challenge scores.',
+        load: () => import('./tournaments/hills.mdx'),
+      },
+      {
+        slug: 'tournaments/ratings',
+        title: 'ratings',
+        blurb: 'glicko-2 in plain words, with examples.',
+        load: () => import('./tournaments/ratings.mdx'),
+      },
+      {
+        slug: 'tournaments/verification',
+        title: 'verification',
+        blurb: 'why every result can be run again, and the verified chip.',
+        load: () => import('./tournaments/verification.mdx'),
+      },
+    ],
+  },
+  {
+    title: 'tools',
+    pages: [
+      {
+        slug: 'tools/cli',
+        title: 'the cli',
+        blurb: 'asmbots: assemble, disassemble, fight, and run tournaments in a shell.',
+        load: () => import('./tools/cli.mdx'),
+      },
+      {
+        slug: 'tools/replay-format',
+        title: 'the replay format',
+        blurb: 'every field of a replay file and a replay link.',
+        load: () => import('./tools/replay-format.mdx'),
+      },
+      {
+        slug: 'tools/share-links',
+        title: 'share links',
+        blurb: 'what each link carries, and how it opens.',
+        load: () => import('./tools/share-links.mdx'),
+      },
+      {
+        slug: 'tools/keys',
+        title: 'keyboard map',
+        blurb: 'every key of the app.',
+        load: () => import('./tools/keys.mdx'),
+      },
+      {
+        slug: 'tools/api',
+        title: 'api',
+        blurb: 'the server api: not live yet.',
+        load: () => import('./tools/api.mdx'),
+      },
+    ],
+  },
+  {
+    title: 'changelog',
+    pages: [
+      {
+        slug: 'changelog',
+        title: 'changelog',
+        blurb: 'what each release changed.',
+        load: () => import('./changelog.mdx'),
+      },
+      {
+        slug: 'isa-versions',
+        title: 'isa versions',
+        blurb: 'x16c v1, frozen, and what makes a new version.',
+        load: () => import('./isa-versions.mdx'),
+      },
+    ],
+  },
 ]
 
 /** The MDX file of a page under `src/docs/`, less `.mdx`: `generated/reference/data`. */

@@ -33,19 +33,29 @@ function useAsmRuntime(): Runtime | null {
   return loaded
 }
 
-/** A `run` of `vs=imp` or `vs=imp seed=7`: the roster bot to fight, and a fixed seed. */
+/**
+ * A `run` of `vs=imp`, `vs=imp seed=7`, or `vs=dwarf,stone,paper` (a melee): the roster bots to
+ * fight, in order, and a fixed seed.
+ */
 export interface AsmRun {
-  vs: string
+  vs: readonly string[]
   seed?: number | undefined
 }
 
+/** The most roster bots a run fights: the arena takes 16 bots, and the block's bot is one. */
+const MAX_RUN_RIVALS = 15
+
 /** The run a block is tagged with, or null when the tag is not one. */
 export function parseRun(run: string): AsmRun | null {
-  const match = /^vs=([a-z0-9_-]{1,64})(?:\s+seed=(\d{1,10}))?$/.exec(run.trim())
+  const match = /^vs=([a-z0-9_-]{1,64}(?:,[a-z0-9_-]{1,64})*)(?:\s+seed=(\d{1,10}))?$/.exec(
+    run.trim(),
+  )
   if (match === null) return null
+  const vs = (match[1] as string).split(',')
+  if (vs.length > MAX_RUN_RIVALS) return null
   const seed = match[2] === undefined ? undefined : Number(match[2])
   if (seed !== undefined && seed > 0xffffffff) return null
-  return { vs: match[1] as string, seed }
+  return { vs, seed }
 }
 
 /**
@@ -70,7 +80,10 @@ function botName(source: string): string | null {
 export interface AsmProps {
   /** The source: a string, or a template literal in MDX, `<Asm>{`…`}</Asm>`. */
   children?: ReactNode
-  /** `vs=imp` (and `seed=7`): an `open in arena` that fights the block against that roster bot. */
+  /**
+   * `vs=imp` (and `seed=7`): an `open in arena` that fights the block against that roster bot;
+   * `vs=dwarf,stone,paper`, against each of them in one melee.
+   */
   run?: string | undefined
   /** A piece of a bot, not a whole one: it copies, but opens nowhere (no `%name`, no bytes). */
   fragment?: boolean | undefined
@@ -79,7 +92,7 @@ export interface AsmProps {
 /**
  * An x16c code block of the docs (PRODUCT_SPEC §7): the source in the editor's colors, `copy`,
  * `open in editor` (a whole bot opens as a bot not saved yet), and for a block tagged
- * `run="vs=imp"`, `open in arena` against that roster bot. The colors and links arrive with the
+ * `run="vs=imp"`, `open in arena` against that roster bot (or bots: `vs=dwarf,stone`). The colors and links arrive with the
  * runtime (`asm-runtime.ts`); until then the text is plain and the links wait, disabled.
  */
 export function Asm({ children, run, fragment = false }: AsmProps) {
@@ -122,11 +135,11 @@ export function Asm({ children, run, fragment = false }: AsmProps) {
         {fight !== null &&
           (loaded === null ? (
             <Button icon={Grid2x2} disabled>
-              open in arena · vs {fight.vs}
+              open in arena · vs {fight.vs.join(', ')}
             </Button>
           ) : (
             <NavLink to="/arena" {...loaded.arenaLink(source, fight.vs, fight.seed)} icon={Grid2x2}>
-              open in arena · vs {fight.vs}
+              open in arena · vs {fight.vs.join(', ')}
             </NavLink>
           ))}
       </figcaption>

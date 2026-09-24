@@ -71,3 +71,46 @@ test("the start page's tour screenshots load from the build", async ({ page }) =
   }
   expect(errors).toEqual([])
 })
+
+test('a melee block: open in arena picks the bot and each rival of its run', async ({ page }) => {
+  const errors = watch(page)
+  await page.goto('/docs/strategy/melee')
+  await page
+    .getByRole('figure', { name: 'Vampire · x16c code' })
+    .getByRole('link', { name: 'open in arena · vs dwarf, stone, paper' })
+    .click()
+  await expect(page).toHaveTitle('ASM BOTS // ARENA')
+  await expect(page.getByRole('list', { name: 'bots picked' }).getByRole('listitem')).toHaveText([
+    /Vampire/,
+    /Dwarf.*roster/,
+    /Stone.*roster/,
+    /Paper.*roster/,
+  ])
+  expect(errors).toEqual([])
+})
+
+test('the keyboard map draws every group of keys', async ({ page }) => {
+  const errors = watch(page)
+  await page.goto('/docs/tools/keys')
+  const article = page.getByRole('region', { name: 'keyboard map' })
+  for (const group of ['global', 'go', 'arena', 'editor', 'source', 'debugger']) {
+    await expect(article.locator('caption', { hasText: new RegExp(`^${group}$`) })).toHaveCount(1)
+  }
+  await expect(article.getByRole('row', { name: /isolate bot n/ })).toHaveCount(1)
+  expect(errors).toEqual([])
+})
+
+test('the strategy, tournament, and tools pages load with no errors', async ({ page }) => {
+  const errors = watch(page)
+  await page.goto('/docs')
+  const links = page
+    .getByRole('navigation', { name: 'docs pages' })
+    .locator('a[href^="/docs/strategy/"], a[href^="/docs/tournaments/"], a[href^="/docs/tools/"]')
+  const hrefs = await links.evaluateAll((as) => as.map((a) => a.getAttribute('href') as string))
+  expect(hrefs).toHaveLength(21)
+  for (const href of [...hrefs, '/docs/changelog', '/docs/isa-versions']) {
+    await page.goto(href)
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+  }
+  expect(errors).toEqual([])
+})

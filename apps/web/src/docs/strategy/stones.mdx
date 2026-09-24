@@ -1,0 +1,112 @@
+# Stones
+
+## Several bombers in one bot
+
+In Redcode, a stone is a small, fast bomber, often paired with an imp. In x16c a stone uses `spl` to run several bombers at once, each with its own stride, and often an imp as a decoy. The bombers share the bot's turn: a bot runs one instruction a cycle whatever it holds (see [processes](/docs/machine/processes)). So splitting does not bomb faster. It buys two things:
+
+- **Coverage.** Two strides make two patterns. A sparse one laps the core fast and hits a rival early; a dense one follows and leaves no instruction of 3 bytes or more whole.
+- **Spares.** A bomb kills one process. A bot with a bomber and a decoy still lives, for a tie, when its bomber is hit.
+
+## Unrolled bombers
+
+Each bomber of the stone is the dwarf's loop, unrolled: four stores at fixed offsets from di, then one `sub` and one `loop`. That is 6 instructions for 4 bombs, 1.5 cycles a bomb, where the dwarf's loop takes 3.
+
+```asm fragment
+.bomb:  mov     [di], ax                ; ax = 0: 89 05, 2 bytes, where mov word [di], 0 takes 4
+        mov     [di-STRIDE], ax
+        mov     [di-2*STRIDE], ax
+        mov     [di-3*STRIDE], ax
+        sub     di, 4 * STRIDE
+        loop    .bomb
+```
+
+The bomb comes from a register: `mov [di], ax` with ax = 0 is 2 bytes (3 with a displacement), where `mov word [di], 0` is 4. Smaller code is a smaller target. [Dwarf Wide](/docs/strategy/dwarves#what-a-stride-hits) is this loop at stride 3.
+
+## The stone
+
+```asm run="vs=scanner"
+; Stone runs three processes: two bombers that walk backward with strides of 4 and 11 bytes,
+; and a decoy imp that a tiny launcher starts a quarter of the core ahead.
+; The stride-11 bomber laps the core in 27,000 cycles and gets to a rival early, and the
+; stride-4 bomber follows with a pattern that leaves no instruction of 3 bytes or more whole.
+; If bombs or an imp stop both bombers, the decoy keeps the bot alive for a tie, and its long
+; trail of non-zero bytes keeps a scanner busy away from the body.
+; vs imp.asm, seeds 1..20: 15 W / 5 T / 0 L
+
+%name     "Stone"
+%author   "ASM Bots"
+%strategy "Two bombers, two strides, one decoy imp"
+
+DENSE   equ     4                       ; the stride of the dense bomber
+SPARSE  equ     11                      ; the stride of the fast, sparse bomber
+AHEAD   equ     0x4000                  ; the decoy starts a quarter of the core ahead
+PAIR    equ     0x90A5                  ; an imp: movsw (A5) then nop (90), as a word
+SIZE    equ     end - start
+LAPD    equ     (0x10000 - SIZE) / (4 * DENSE) ; passes in a dense lap
+LAPS    equ     (0x10000 - SIZE) / (4 * SPARSE) ; passes in a sparse lap
+
+; Setup: the base idiom puts our base address in bx, and ax = 0 is the bomb.
+start:  call    .here
+.here:  pop     bx
+        sub     bx, .here
+        xor     ax, ax
+
+; Decoy: write an imp AHEAD bytes on and start a process on it, then start the sparse bomber.
+; This process goes on as the dense bomber.
+decoy:  lea     si, [bx+AHEAD]
+        mov     word [si], PAIR
+        lea     di, [si+2]
+        spl     si                      ; the imp gets these si and di
+        spl     sparse
+
+; Dense: each lap starts under our base and walks down, four bombs a pass.
+dense:  lea     di, [bx-DENSE]
+        mov     cx, LAPD
+.bomb:  mov     [di], ax
+        mov     [di-DENSE], ax
+        mov     [di-2*DENSE], ax
+        mov     [di-3*DENSE], ax
+        sub     di, 4 * DENSE
+        loop    .bomb
+        jmp     dense
+
+; Sparse: the same with SPARSE bytes between bombs, so its laps are 2.75 times as fast.
+sparse: lea     di, [bx-SPARSE]
+        mov     cx, LAPS
+.bomb:  mov     [di], ax
+        mov     [di-SPARSE], ax
+        mov     [di-2*SPARSE], ax
+        mov     [di-3*SPARSE], ax
+        sub     di, 4 * SPARSE
+        loop    .bomb
+        jmp     sparse
+
+end:
+```
+
+The launcher is 5 instructions. `spl si` starts the decoy on an imp word a quarter of the core away, with the si and di it needs. `spl sparse` starts the second bomber, and the parent falls through to `dense`. From then on the three processes take turns, so each runs every third cycle. Alone at seed 1, the sparse bomber's first lap takes 23,749 cycles and the dense bomber's 54,997; the header's 27,000 is the sparse lap with the decoy imp still alive the whole way. The decoy walks into bombs sooner or later, and the bombers then share the turn two ways.
+
+## Why a stone beats a scanner
+
+A scanner reads one byte a cycle and carpets what it finds. The sparse bomber covers the core in under 24,000 cycles, so it usually reaches the scanner first, and stride 11 puts 4 bombs on the scanner's 43 bytes. But a stone loses to paper: paper has 64 processes in 64 places, and it copies faster than the stone can bomb them.
+
+| seeds 1..20, hill rules | record |
+|---|---|
+| `stone` vs `imp` | 15 W / 5 T / 0 L |
+| `stone` vs `dwarf` | 16 W / 0 T / 4 L |
+| `stone` vs `scanner` | 16 W / 0 T / 4 L |
+| `stone` vs `paper` | 0 W / 8 T / 12 L |
+
+<Note>
+
+Try deleting the line `spl sparse`. The stone keeps one bomber (the dense one) and the decoy. Against the imp its record goes from 15 W / 5 T / 0 L to 12 W / 8 T / 0 L: without the fast lap, more imps live to the cycle cap.
+
+</Note>
+
+## Tuning a stone
+
+- **Strides that share no factor** make patterns that seldom meet. Bombs of stride 4 and stride 11 land on the same address once every 44 bytes.
+- **Order the spl lines** so the process you most need starts first. Each child goes into the queue just ahead of its parent (see [`spl`](/docs/reference/process#spl)).
+- **The decoy is a cost.** It takes one turn in three. It pays when the bombers die, and when its trail pulls a scanner away. Against an imp it costs wins: without `spl si`, the stone goes 17 W / 3 T / 0 L.
+
+See also: [dwarves and stride math](/docs/strategy/dwarves), and [papers](/docs/strategy/papers) for the bots that stones lose to.

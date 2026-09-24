@@ -25,6 +25,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FrameToolbar } from '../../app/Frame'
+import { EDITOR_KEYS } from '../../app/keymaps'
 import { type KeyCommand, useKeys } from '../../app/keys'
 import { useRouteStat } from '../../app/slots'
 import { addVersion, type BotVersion, useBotVersions, versionsKey } from '../../store/bot-versions'
@@ -615,13 +616,8 @@ function Workbench({
 
   const keys = useMemo<KeyCommand[]>(
     () => [
-      { keys: ['l'], description: 'show or hide the listing', group: 'editor', run: toggleListing },
-      {
-        keys: ['b'],
-        description: 'show or hide the bot library',
-        group: 'editor',
-        run: toggleLibrary,
-      },
+      { ...EDITOR_KEYS.listing, run: toggleListing },
+      { ...EDITOR_KEYS.library, run: toggleLibrary },
     ],
     [toggleListing, toggleLibrary],
   )

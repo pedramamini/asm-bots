@@ -1,0 +1,120 @@
+# Dwarves and stride math
+
+## The dwarf
+
+A dwarf is a bomber: it walks through the core and writes a DAT (a zero word) every few bytes. A process that runs into a bomb dies. The gap between two bombs is the **stride**. The dwarf below uses a stride of 4 and walks backward, down from its own base.
+
+```asm run="vs=imp"
+; Dwarf, after A. K. Dewdney's Dwarf (1984), walks backward through the core and drops a DAT
+; word every 4 bytes, one bomb for each three instructions.
+; The core is a multiple of 4 bytes long, so a whole lap would bomb the dwarf itself: a lap
+; counter ends each lap just past its body and starts the next lap from its base again.
+; Any process that runs into a bomb dies, and an imp that walks toward the dwarf dies if a bomb
+; lands on its next word as the two pass each other.
+; vs imp.asm, seeds 1..20: 14 W / 6 T / 0 L
+
+%name     "Dwarf"
+%author   "ASM Bots"
+%strategy "Bomb every 4th byte, walking backward"
+
+STRIDE  equ     4                       ; bytes between bombs
+SIZE    equ     end - start
+LAP     equ     (0x10000 - SIZE) / STRIDE ; bombs in a lap: the last one lands past the body
+
+; Setup: the base idiom puts our base address in bx.
+start:  call    .here
+.here:  pop     bx
+        sub     bx, .here
+
+; Bomb: each lap starts at our base and walks down, one DAT word every STRIDE bytes.
+lap:    mov     di, bx
+        mov     cx, LAP
+.bomb:  sub     di, STRIDE
+        mov     word [di], 0
+        loop    .bomb                   ; the jmp back, counting the lap down
+        jmp     lap
+
+end:
+```
+
+The loop is three instructions (`sub`, `mov`, `loop`) for one bomb, so the dwarf drops a bomb every 3 cycles. `loop` is the jump back and the lap counter in one: it takes 1 from cx and jumps while cx is not 0.
+
+## What a stride hits
+
+A bomb is a word: it zeros 2 bytes. With a stride of s bytes, one lap zeros 2 bytes of every s. An instruction survives the lap only if it fits in the s - 2 bytes between two bombs, so the stride sets the longest instruction a lap can miss. The dwarf's loop costs 3 cycles a bomb whatever the stride, so a longer stride laps the core faster.
+
+| stride | a lap zeros | longest instruction a lap can miss | cycles a lap (the dwarf's loop) |
+|---|---|---|---|
+| 2 | every byte | none | 98,271 |
+| 3 | 2 bytes of 3 | 1 byte | 65,514 |
+| 4 | 2 bytes of 4 | 2 bytes | 49,137 |
+| 5 | 2 bytes of 5 | 3 bytes | 39,309 |
+| 8 | 2 bytes of 8 | 6 bytes: any instruction | 24,570 |
+
+A stride of 2 is a solid carpet, but its first lap does not end before a hill round does (80,000 cycles). A stride of 8 laps fast and can miss every instruction of a bot. Most bombers sit between: at stride 3 no instruction of 2 bytes or more survives a lap, at stride 4 none of 3 bytes or more, and a bot of more than a few instructions nearly always loses one.
+
+<Note>
+
+A missed instruction still hurts its bot. If a bomb takes the next instruction, the process dies when it gets there. If a bomb takes only a byte or two of a long instruction, the process runs the bytes that are left out of step with its code, and those seldom make sense for long.
+
+</Note>
+
+Unrolling makes the loop cheaper per bomb. [Dwarf Wide](/docs/strategy/stones#unrolled-bombers) writes 4 bombs a pass with 4 stores at fixed offsets from di, one `sub`, and one `loop`: 6 instructions for 4 bombs, 1.5 cycles a bomb, twice the dwarf's pace.
+
+## Which strides hit every address
+
+Take away the lap counter and let di run on around the core. After n bombs, di has moved n × s bytes, mod 65,536. It comes back to its start after 65,536 / g bombs, where g is the largest power of 2 that divides s (the greatest common divisor of s and 65,536). So:
+
+- **An odd stride (g = 1) visits every address.** Given time, it bombs every word of the core, the bomber's own code too.
+- **A stride of 2 (g = 2) visits every even address.** Word bombs cover the odd bytes, so it bombs every byte.
+- **A stride with g of 4 or more visits one address in g.** The bombs land on 2 bytes of every g-byte block, the same 2 bytes each time, and never on the other g - 2.
+
+## Which strides self-avoid
+
+The core is a multiple of every power of 2, so a bomber with no lap counter comes back to where it started. If its own code sits on the bytes it bombs, it kills itself. It self-avoids only when its code fits in the g - 2 bytes that it never bombs: g - 2 bytes or less, placed between the bombs.
+
+The dwarf's 23 bytes need g of 32 or more. That is why the dwarf counts laps instead: at stride 4, a lap without the counter comes back to the dwarf and bombs its code.
+
+<Note>
+
+Try replacing `loop .bomb` with `jmp .bomb` (the linter warns that `jmp lap` is now unreachable). Run the dwarf alone in the debugger: di comes back around, a bomb lands on the dwarf's own loop, and it dies with `dat` in cycle 49,142.
+
+</Note>
+
+A bomber that self-avoids the Redcode way picks a stride of 32 and aims its bombs at the last 2 bytes of each 32-byte block. Its 19 bytes sit in the 30 that it never bombs, so it needs no counter and never stops:
+
+```asm run="vs=imp"
+%name     "Stride 32"
+%strategy "Bomb every 32nd word forever: the bombs never land on me"
+
+STRIDE  equ     32                      ; bytes between bombs, and the period of the pattern
+
+start:  call    .here
+.here:  pop     bx
+        sub     bx, .here
+        lea     di, [bx+STRIDE-2]       ; every bomb lands on bytes 30 and 31 of a 32-byte block
+
+bomb:   sub     di, STRIDE
+        mov     word [di], 0
+        jmp     bomb
+
+end:
+```
+
+It lives alone for as long as you run it. But it zeros only 2 bytes of 32, and a bot of 30 bytes or less can sit in its gaps forever. The trade is density for safety, and density wins:
+
+| seeds 1..20, hill rules | record |
+|---|---|
+| `dwarf` vs `imp` | 14 W / 6 T / 0 L |
+| `dwarf-wide` vs `imp` | 16 W / 4 T / 0 L |
+| `Stride 32` vs `imp` | 9 W / 10 T / 1 L |
+| `Stride 32` vs `dwarf` | 1 W / 6 T / 13 L |
+
+## Choosing a stride
+
+- **Bomb density** decides what you kill: stride 3 or 4 breaks nearly every bot that it passes over.
+- **Lap time** decides when: a rival far away may run for most of a lap before the first bomb reaches it.
+- **Self-safety** is the lap counter's job. Count the bombs in a lap so the last one lands just past your own body: `LAP equ (0x10000 - SIZE) / STRIDE`.
+- **Imps** walk through a stride-4 pattern often enough to tie. Add an [imp gate](/docs/strategy/imp-gates), or a stride of 2 ([stack tricks](/docs/strategy/stack-tricks) has a fast one).
+
+See also: [`loop`](/docs/reference/control#loop) and [`mov`](/docs/reference/data#mov) in the reference.

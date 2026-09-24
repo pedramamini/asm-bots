@@ -28,6 +28,7 @@ import {
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useSettings } from '../store/settings'
+import { GLOBAL_KEYS, goKey } from './keymaps'
 import {
   focusRouteSearch,
   type KeyCommand,
@@ -49,7 +50,7 @@ export const NAV = [
 ] as const
 
 /** The instruction set the engine runs, as the status bar names it. */
-const ISA = 'x16c v1'
+export const ISA = 'x16c v1'
 
 /** The build's version stamp; `dev` where Vite did not define it (the unit tests). */
 const VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev'
@@ -105,13 +106,11 @@ function useGlobalKeys(toggleKeys: () => void): void {
   const cycleTheme = useSettings((state) => state.cycleTheme)
   const commands = useMemo<KeyCommand[]>(
     () => [
-      { keys: ['?'], description: 'show the keys', group: 'global', run: toggleKeys },
-      { keys: ['t'], description: 'next theme', group: 'global', run: cycleTheme },
-      { keys: ['/'], description: 'search this page', group: 'global', run: focusRouteSearch },
+      { ...GLOBAL_KEYS.help, run: toggleKeys },
+      { ...GLOBAL_KEYS.theme, run: cycleTheme },
+      { ...GLOBAL_KEYS.search, run: focusRouteSearch },
       ...NAV.map(({ to, label, key }) => ({
-        keys: ['g', key],
-        description: `go to ${label}`,
-        group: 'go',
+        ...goKey(key, label),
         run: () => void router.navigate({ to }),
       })),
     ],

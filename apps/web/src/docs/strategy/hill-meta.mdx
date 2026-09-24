@@ -1,0 +1,107 @@
+# Hill meta
+
+## How a hill scores
+
+A hill is a standing field of bots (see [hills](/docs/tournaments/hills)). A new bot fights every entry, one match of several rounds each, and its score is the sum of its match points. Every entry is scored the same way against the rest of the field, so the whole field ranks on equal terms. Over the size of the hill, the lowest entry goes.
+
+Three facts decide what does well:
+
+- **A point is a point.** A round win is 3, a tie 1, a loss 0, and they add up across every entry. Whether you won the match does not count; how many points you took from it does.
+- **Every entry counts.** A bot that takes 25 of 30 from each entry scores more than one that takes 30 from half the field and 15 from the other half.
+- **The field is the other bots.** Your score depends on who is on the hill. A new entry that beats you drops your score even if you never meet it again.
+
+## A roster hill
+
+Here is the roster's 12 fighters as one field: every pair plays a match of 10 rounds at hill rules, from seed 1, and each bot's score is the sum of its points. W, T, and L count matches.
+
+| roster round robin: 10 rounds, hill rules | points | W | T | L |
+|---|---|---|---|---|
+| Vampire | 268 | 9 | 0 | 2 |
+| Paper | 253 | 10 | 1 | 0 |
+| Silk | 225 | 9 | 2 | 0 |
+| Hybrid | 203 | 8 | 0 | 3 |
+| Stone | 172 | 6 | 1 | 4 |
+| Gate | 168 | 6 | 1 | 4 |
+| Decoy | 153 | 4 | 1 | 6 |
+| Dwarf Wide | 150 | 3 | 3 | 5 |
+| Dwarf | 104 | 3 | 1 | 7 |
+| Scanner | 97 | 2 | 0 | 9 |
+| Imp Ring | 32 | 0 | 1 | 10 |
+| Imp | 31 | 0 | 1 | 10 |
+
+Paper loses no match, and still ranks second. Here is where the two top bots took their points:
+
+| against | Paper | Vampire |
+|---|---|---|
+| Imp | 28-1 | 27-3 |
+| Imp Ring | 18-6 | 28-1 |
+| Dwarf | 24-3 | 30-0 |
+| Dwarf Wide | 24-3 | 30-0 |
+| Gate | 26-2 | 30-0 |
+| Decoy | 26-2 | 27-3 |
+| Stone | 24-3 | 24-6 |
+| Silk | 10-10 | 3-27 |
+| Scanner | 30-0 | 30-0 |
+| Hybrid | 22-4 | 30-0 |
+| each other | 21-9 | 9-21 |
+
+Paper wins its matches by leaving rivals alive: a round it ties is 1 point, not 3, and it ties often, because its copies seldom finish a bot. The vampire loses badly to the two papers, but it finishes most of the rest: 30 of 30 against five of them. Its two bad matchups cost it 48 points of the 60 on offer; the finishes gave it back more.
+
+## What the meta rewards
+
+1. **Finishing.** A tie at the cycle cap is 1 point of 3. A bot that kills slowly, or only sometimes, bleeds points in every matchup it should win. Count what your kill needs: a whole lap at stride 4 is 49,137 cycles (see [stride math](/docs/strategy/dwarves#what-a-stride-hits)), and a hill round is 80,000.
+2. **No zeros.** Against a bot you cannot beat, a tie is 10 points in 10 rounds where a loss is 0. Paper's 10-10 against silk is worth a third of a clean sweep.
+3. **Breadth over peaks.** The imps win no match and take 31 and 32 points of the 330 on offer. A bot is only as strong as its sum.
+4. **The field moves.** Scores are relative to the field. Take the two papers off this hill and the vampire loses no match; add two more, and its two bad matchups become four.
+
+```asm run="vs=vampire"
+; Paper copies its body with rep movsw to a place 0x1234 bytes along its path, starts a process
+; in the copy with spl, drops a DAT bomb halfway to the next place, and goes on to the next.
+; Each copy starts its own path at its base with the two bytes swapped, so a parent and its child
+; land in different places, and the processes spread over the whole core up to the process cap.
+; From then on every copy writes 34 bytes of paper over whatever it lands on: a bomber or a
+; scanner loses its code faster than it can find 64 processes in 64 places, and seldom wins.
+; vs imp.asm, seeds 1..20: 14 W / 6 T / 0 L
+; vs dwarf.asm, seeds 1..20: 14 W / 6 T / 0 L
+
+%name     "Paper"
+%author   "ASM Bots"
+%strategy "Copy myself all over the core and start every copy"
+
+STEP    equ     0x1234                  ; bytes from one copy to the next along a path
+SIZE    equ     end - start
+WORDS   equ     (SIZE + 1) / 2          ; words in a copy
+
+; Setup: the base idiom puts our base address in bx, and dx starts the path.
+start:  call    .here
+.here:  pop     bx
+        sub     bx, .here
+        mov     dx, bx
+        xchg    dl, dh                  ; our base, bytes swapped: far from the parent's path
+
+; Copy: write the body STEP bytes on, start a process there, and bomb halfway to the next place.
+copy:   add     dx, STEP
+        mov     si, bx
+        mov     di, dx
+        mov     cx, WORDS
+        rep     movsw
+        spl     dx
+        mov     word [di+STEP/2], 0     ; the occasional bomb
+        jmp     copy
+
+end:
+```
+
+<Note>
+
+Try deleting paper's one bomb, `mov word [di+STEP/2], 0`, and score the field again. Paper falls from 253 points to 222 and drops below silk: the bomb is worth 31 points across the hill. A single instruction that finishes a few more rounds matters more than a new trick.
+
+</Note>
+
+## Reading your own score
+
+- **Look at the rows, not the rank.** A rank hides where the points went. Find the matchups where you tie or lose, and ask whether a change turns them without costing the others.
+- **Test against the whole field.** The editor's `test vs` fights one roster bot for 10 rounds; a local [round robin](/docs/tournaments/formats#round-robin) of your bot and the roster is a hill in miniature.
+- **Test with the hill's rules.** Cycles, rounds, and the byte limit change what works: a 256-byte hill has no room for a long bot, and a 50,000-cycle hill has no time for a slow one.
+
+See also: [hills](/docs/tournaments/hills), [ratings](/docs/tournaments/ratings), and [scoring](/docs/machine/scoring).

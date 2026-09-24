@@ -39,17 +39,19 @@ export function editorHash(source: string): string {
 }
 
 /**
- * The arena setup of `source` against the roster bot `vs`: the query and the fragment that carries
- * the source. The rest of the config is the arena's duel; no seed is a random seed each battle.
+ * The arena setup of `source` against the roster bots `vs`, first: the query and the fragment that
+ * carries the source. The rest of the config is the arena's duel; no seed is a random seed each
+ * battle.
  */
 export function arenaLink(
   source: string,
-  vs: string,
+  vs: readonly string[],
   seed: number | undefined,
 ): { search: ArenaSearch; hash: string } {
   const id = testedId(source, null)
+  const rivals = vs.map((slug) => `roster:${slug}`).join(',')
   return {
-    search: { b: `local:${id},roster:${vs}`, ...(seed !== undefined && { seed }) },
+    search: { b: `local:${id},${rivals}`, ...(seed !== undefined && { seed }) },
     hash: sharedFragment([{ id, source }]),
   }
 }

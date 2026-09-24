@@ -1,0 +1,132 @@
+# Vampires and pits
+
+## Capture, not kill
+
+A bomb kills the process that runs it. A **fang** does worse: it is a jump, written over a rival's code, into a **pit** that the vampire owns. A rival's process that runs the fang jumps into the pit and stays there, running the vampire's code on its own bot's turns. In Redcode the pit is a loop of `SPL` and `JMP`; the captured bot's processes spin in it until the vampire closes it and they die together.
+
+Capture beats a kill against bots with many processes. A held process still takes its turn and its slot, so a held paper runs pit code instead of copying, and its `spl` fills its own queue with more held processes.
+
+## Building a jump at run time
+
+A jump in the core must hold the distance to its target, and the vampire does not know, when it assembles, where a fang will land. So it builds each fang as it bites: the byte `E9` (`jmp rel16`) and a 16-bit distance.
+
+`jmp rel16` jumps to the address of the next instruction plus rel16. A fang is 3 bytes, so a fang at address f jumps to f + 3 + rel16, and to reach a pit at address p:
+
+```text
+rel16 = p - (f + 3)
+```
+
+The vampire works this out once for the top fang, `dx = (bx + pit - 3) - di`, and then writes the fangs downward, 3 bytes apart. Each fang is 3 bytes lower, so its distance to the pit is 3 bytes more: `add dx, 3`.
+
+## The vampire
+
+```asm run="vs=dwarf"
+; Vampire samples the core for code four words at a time, finds the top word of what it hit with
+; repe scasw, and bites: it writes 16 jmp fangs over the code there, each an E9 and the rel16 from
+; that fang to the pit, which it works out as it goes.
+; A process that runs a fang lands in the pit, which spl's it into every free slot of its bot and
+; loops forever zeroing the 64 bytes that its bx points to, the home of a house-style bot.
+; Held processes use up their bot's turns and slots, so a bitten paper copies less and less, and
+; at the end of each scan lap the vampire zeros the pit's loop: a held process dies on its next
+; pass, and a bot held whole is dead.
+; vs imp.asm, seeds 1..20: 19 W / 1 T / 0 L
+; vs dwarf.asm, seeds 1..20: 16 W / 0 T / 4 L
+
+%name     "Vampire"
+%author   "ASM Bots"
+%strategy "Bite code with jmp fangs, hold the bitten in a pit"
+
+K       equ     16                      ; bytes between sampled words
+TOP     equ     17                      ; the top fang is this far above the hit
+FANGS   equ     16                      ; fangs in a bite: 48 bytes
+SPAN    equ     64                      ; bytes of home a held process zeros
+BELOW   equ     4 * K                   ; the scan starts this far under the body
+ABOVE   equ     3 * (FANGS - 1) - TOP   ; do not bite this close above the body
+SIZE    equ     end - start
+
+; Setup: the base idiom puts our base address in bx.
+start:  call    .here
+.here:  pop     bx
+        sub     bx, .here
+        xor     ax, ax                  ; ax = 0, what repe scasw passes over
+        std                             ; the scan goes down
+        lea     di, [bx-BELOW]
+
+; Scan: or four words K bytes apart; when one is not zero, find the top word with repe scasw.
+scan:   mov     dx, [di]
+        or      dx, [di-K]
+        or      dx, [di-2*K]
+        or      dx, [di-3*K]
+        jnz     .look
+        sub     di, 4 * K
+        jmp     scan
+.look:  add     di, 2
+        mov     cx, 2 * K
+        repe    scasw                   ; stops with di one word under the hit
+        lea     dx, [di+BELOW+2]
+        sub     dx, bx                  ; dx = hit - (base - BELOW)
+        cmp     dx, BELOW + SIZE + ABOVE
+        jae     bite
+        lea     di, [bx-BELOW]          ; our body, or too near it: the lap is over
+        mov     word [bx+pit.hold], 0   ; and so is the pit: its loop is DAT from now on
+        jmp     scan
+
+; Bite: FANGS fangs from TOP bytes above the hit down, each E9 and its rel16 to the pit.
+bite:   add     di, TOP + 2
+        lea     dx, [bx+pit-3]
+        sub     dx, di                  ; dx = pit - (fang + 3), the rel16 of the top fang
+        mov     cx, FANGS
+.fang:  mov     byte [di], 0xE9
+        mov     [di+1], dx
+        add     dx, 3                   ; the next fang is 3 bytes lower, so 3 bytes farther
+        sub     di, 3
+        loop    .fang
+        jmp     scan
+
+; Pit: a bitten process runs this with its own registers, and writes only zeros, over its home.
+pit:    xor     si, si
+.hold:  spl     .hold                   ; take every free slot of the bitten bot
+        mov     word [bx+si], 0
+        add     si, 2
+        and     si, SPAN - 1
+        jmp     .hold
+
+end:
+```
+
+## The pit
+
+A bitten process runs the pit with its own registers and for its own bot. So everything it does, it does to its own side:
+
+1. `spl .hold` starts another held process, until its bot is at the cap. The bot's free slots fill with processes that do nothing useful.
+2. `mov word [bx+si], 0` zeros the word at bx + si. A bot in the house style keeps its base in bx, so a held process zeros its own bot's home, 64 bytes of it, over and over.
+3. The loop never ends by itself. At the end of each scan lap the vampire writes a zero word over `.hold`: every held process runs a DAT on its next pass and dies. A bot whose processes were all held is dead.
+
+The pit writes only zeros, and only through the bitten bot's own registers. The vampire's own body is not in reach of that write unless the bitten bot's bx points at it.
+
+## Records
+
+The vampire beats bombers and scanners: it samples fast (64 bytes of empty core in 7 instructions, see [scanners](/docs/strategy/scanners#speed)), and one bite turns a rival's own processes against it. Paper is the bad match: its copies are everywhere, one of them lands on the vampire sooner or later, and the vampire has no spares.
+
+| seeds 1..20, hill rules | record |
+|---|---|
+| `vampire` vs `imp` | 19 W / 1 T / 0 L |
+| `vampire` vs `dwarf` | 16 W / 0 T / 4 L |
+| `vampire` vs `scanner` | 19 W / 0 T / 1 L |
+| `vampire` vs `paper` | 4 W / 0 T / 16 L |
+| `vampire` vs `silk` | 6 W / 4 T / 10 L |
+
+<Note>
+
+Try deleting the line `mov word [bx+pit.hold], 0`, so the pit never closes. Held bots now live to the cycle cap, and wins turn into ties: against the dwarf the record goes from 16 W / 0 T / 4 L to 12 W / 4 T / 4 L, and against paper from 4 W / 0 T / 16 L to 0 W / 12 T / 8 L.
+
+</Note>
+
+## Pitfalls
+
+- **The pit is code in your body.** A rival that reads your fangs finds the pit address in them. Keep the pit small.
+- **Fangs are not zero.** A bite leaves 48 bytes of non-zero code in the core, which another scanner stops on.
+- **The pit relies on the victim's bx.** A bot that keeps its base elsewhere is held, but the pit zeros some other place.
+- **Imps are hard to bite.** An imp writes over a fang in its path before it gets there, so only a fang written on the bytes the imp runs next catches it. The bite starts 17 bytes above the hit, where an imp walking up goes next, and that is enough: 19 W / 1 T / 0 L.
+
+See also: [`jmp`](/docs/reference/control#jmp), [`spl`](/docs/reference/process#spl), and [position independence](/docs/machine/position-independence).

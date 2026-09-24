@@ -1,0 +1,25 @@
+# API
+
+<Note>
+
+The API is not live yet. It arrives with the server: the hills, accounts, cloud bots, and stored replays. This page will list its routes then. Until it does, everything in ASM BOTS runs in your browser, and the [CLI](/docs/tools/cli) runs the same code in a shell.
+
+</Note>
+
+## What is planned
+
+A read API first, then writes behind sign-in:
+
+| route | gives |
+|---|---|
+| `GET /api/health` | the server's version and ISA |
+| `GET /api/bots/:id` | a bot, and its versions |
+| `GET /api/replays/:key` | a stored replay, in the [replay format](/docs/tools/replay-format)'s shared successor |
+| `GET /api/hills`, `GET /api/hills/:slug` | the hills, and a hill's standings |
+| `GET /api/tournaments/:id` | a tournament |
+| `POST /api/assemble` | the bytes and the diagnostics of a source, assembled on the server |
+| `POST /api/replays` | stores a replay after the server has run it again and checked its result hashes |
+
+Errors will come as `{ "error": { "code", "message" } }`. The server runs the same engine and the same tournament code as the browser, so a result from the API is one you can run again here (see [verification](/docs/tournaments/verification)).
+
+See also: [share links](/docs/tools/share-links), which work with no server at all.

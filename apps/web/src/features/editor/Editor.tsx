@@ -22,6 +22,7 @@ import {
   lineNumbers,
 } from '@codemirror/view'
 import { useEffect, useRef } from 'react'
+import { SOURCE_KEYS } from '../../app/keymaps'
 import { x16c } from './cm'
 import { debugLines } from './cm/debug'
 import { changesProblems, type Problem, problemsOf } from './cm/diagnostics'
@@ -109,21 +110,21 @@ export function Editor({
     const { initial, readOnly, showListing, selection } = start.current
     const pageKeys: KeyBinding[] = [
       {
-        key: 'Shift-Alt-f',
+        key: SOURCE_KEYS.format.cm,
         run: () => {
           latest.current.commands.format()
           return true
         },
       },
       {
-        key: 'Mod-Enter',
+        key: SOURCE_KEYS.assemble.cm,
         run: () => {
           latest.current.commands.assemble()
           return true
         },
       },
-      { key: 'F8', run: nextDiagnostic },
-      { key: 'Tab', run: tabToStop, shift: indentLess },
+      { key: SOURCE_KEYS.problem.cm, run: nextDiagnostic },
+      { key: SOURCE_KEYS.tab.cm, run: tabToStop, shift: indentLess },
     ]
     const made = new EditorView({
       parent,
@@ -157,7 +158,7 @@ export function Editor({
             ...searchKeymap,
             ...historyKeymap,
           ]),
-          Prec.low(keymap.of([{ key: 'Escape', run: leaveEditor }])),
+          Prec.low(keymap.of([{ key: SOURCE_KEYS.leave.cm, run: leaveEditor }])),
           x16c(),
           EditorState.readOnly.of(readOnly),
           EditorView.contentAttributes.of({ 'aria-label': 'bot source' }),

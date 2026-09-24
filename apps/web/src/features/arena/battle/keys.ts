@@ -4,14 +4,12 @@
  * isolate a bot, `f` fullscreen, `s` screenshot. `?` lists them.
  */
 import { type RefObject, useMemo } from 'react'
+import { ARENA_KEYS, DIGIT_BOTS, isolateKey } from '../../../app/keymaps'
 import { type KeyCommand, useKeys } from '../../../app/keys'
 import type { ArenaCanvasHandle } from '../ArenaCanvas'
 import type { ArenaClient } from '../worker/client'
 import { faster, slower } from './speed'
 import { useArenaView } from './view'
-
-/** The bots `1`..`9` reach. */
-const DIGIT_BOTS = 9
 
 /** Roles and inputs that `space` presses when they have the focus. */
 const SPACE_CONTROLS =
@@ -48,9 +46,7 @@ export function useArenaKeys({
     }
     return [
       {
-        keys: ['space'],
-        description: 'play or pause',
-        group: 'arena',
+        ...ARENA_KEYS.play,
         run: () => {
           const { status } = store.getState()
           if (spaceTaken() || (status !== 'playing' && status !== 'paused')) return false
@@ -59,9 +55,7 @@ export function useArenaKeys({
         },
       },
       {
-        keys: ['.'],
-        description: 'step one cycle',
-        group: 'arena',
+        ...ARENA_KEYS.step,
         run: () => {
           const { status } = store.getState()
           if (status !== 'playing' && status !== 'paused') return false
@@ -70,9 +64,7 @@ export function useArenaKeys({
         },
       },
       {
-        keys: [','],
-        description: 'step back one cycle',
-        group: 'arena',
+        ...ARENA_KEYS.back,
         run: () => {
           const { cycle } = store.getState()
           if (!loaded() || cycle === 0) return false
@@ -80,32 +72,15 @@ export function useArenaKeys({
           client.seek(cycle - 1)
         },
       },
-      {
-        keys: ['['],
-        description: 'slower',
-        group: 'arena',
-        run: () => client.speed(slower(store.getState().speed)),
-      },
-      {
-        keys: [']'],
-        description: 'faster',
-        group: 'arena',
-        run: () => client.speed(faster(store.getState().speed)),
-      },
-      {
-        keys: ['0'],
-        description: 'reset the zoom',
-        group: 'arena',
-        run: () => canvas.current?.camera.reset(),
-      },
+      { ...ARENA_KEYS.slower, run: () => client.speed(slower(store.getState().speed)) },
+      { ...ARENA_KEYS.faster, run: () => client.speed(faster(store.getState().speed)) },
+      { ...ARENA_KEYS.zoom, run: () => canvas.current?.camera.reset() },
       ...Array.from({ length: Math.min(DIGIT_BOTS, bots) }, (_, bot) => ({
-        keys: [String(bot + 1)],
-        description: `isolate bot ${bot + 1}`,
-        group: 'arena',
+        ...isolateKey(bot),
         run: () => useArenaView.getState().isolate(bot),
       })),
-      { keys: ['f'], description: 'fullscreen', group: 'arena', run: onFullscreen },
-      { keys: ['s'], description: 'screenshot', group: 'arena', run: onScreenshot },
+      { ...ARENA_KEYS.fullscreen, run: onFullscreen },
+      { ...ARENA_KEYS.screenshot, run: onScreenshot },
     ]
   }, [client, canvas, bots, onFullscreen, onScreenshot])
   useKeys(commands)

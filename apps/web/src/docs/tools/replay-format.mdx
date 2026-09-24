@@ -1,0 +1,107 @@
+# The replay format
+
+## What a replay holds
+
+A replay is a match as the arena played it: everything it takes to run the match again, and what came out, so anyone can run it and compare (see [verification](/docs/tournaments/verification)). It is JSON. The arena writes it two ways:
+
+- **`download replay`** saves a file, `asmbots-<bots>-<seed>.asmreplay.json`: the bots' names, lowercase with dashes (or `8-bots` past three), and the seed. For example `asmbots-dwarf-imp-1.asmreplay.json`. The file keeps each bot's source where the arena had it.
+- **`replay link`** copies a link to `/arena/<match key>#r=<replay>`: the same JSON, sources left out, as base64url in the link's fragment. The page it opens plays the match and checks it.
+
+The app cannot open a replay file yet. A replay link carries the same inputs.
+
+## An example
+
+The dwarf against the imp, one round, seed 1, at the arena's `duel` config:
+
+```json
+{
+  "format": "asmbots-replay-local/1",
+  "isa": "x16c-v1",
+  "createdAt": "2026-09-24T12:00:00.000Z",
+  "config": {
+    "coreSize": 65536,
+    "maxCycles": 100000,
+    "maxProcesses": 64,
+    "minSpacing": 1024,
+    "maxBotBytes": 512,
+    "seed": 1
+  },
+  "rounds": 1,
+  "bots": [
+    {
+      "name": "Dwarf",
+      "bytes": "6AAAW4PrA4nfufo/g+8ExwUAAOL36/A=",
+      "sha256": "f164e968908a439cd9d2a9f1866035e31d6067d4f1ec4c226aafadb7dedd85bf"
+    },
+    {
+      "name": "Imp",
+      "bytes": "6AAAW4PrA413DY1/D6WQ",
+      "sha256": "a521388fa3123938c093d72ae60f8c3f9adba1353eb70cfe7858b0c7370189a5"
+    }
+  ],
+  "match": {
+    "key": "88b668c9f8e75e5e",
+    "names": ["Dwarf", "Imp"],
+    "of": 1,
+    "rounds": [
+      {
+        "round": 0,
+        "seed": 1,
+        "order": [0, 1],
+        "resultHash": "22bea637e0bb3afa",
+        "durationCycles": 16141,
+        "points": [3, 0],
+        "survivors": [0],
+        "survival": [16141, 16140]
+      }
+    ],
+    "points": [3, 0]
+  }
+}
+```
+
+## The fields
+
+| field | holds |
+|---|---|
+| `format` | `asmbots-replay-local/1`: this schema and its version |
+| `isa` | `x16c-v1`: the instruction set the bots are written for (see [ISA versions](/docs/isa-versions)) |
+| `createdAt` | when the replay was made, ISO 8601 |
+| `config` | the whole battle config, every field written out; `seed` is the match's first seed |
+| `rounds` | rounds in the match, 1 to 10 |
+| `bots` | 2 to 16 bots, in the order they were loaded |
+| `bots[].name` | the name in the battle: `Dwarf`, or `Dwarf 2` for a second dwarf |
+| `bots[].bytes` | the machine code, standard base64 |
+| `bots[].sha256` | SHA-256 of the machine code, lowercase hex |
+| `bots[].meta` | optional: `author`, `strategy`, `version` |
+| `bots[].source` | optional: the source; a file has it, a link does not |
+| `match.key` | the match key: FNV-1a 64 of the config, the round count, and each bot's name and bytes |
+| `match.names` | the bots' names, in `bots` order |
+| `match.of` | the rounds the match has; equals `rounds` |
+| `match.points` | each bot's match points, in `bots` order |
+| `match.rounds[]` | one entry for each round, in order |
+
+Each round:
+
+| field | holds |
+|---|---|
+| `round` | its number, from 0 |
+| `seed` | its placement seed: the match seed plus `round`, mod 2^32 |
+| `order` | the fighting order: `order[j]` is the bot placed j-th, as an index into `bots`. Round i rotates the order by i. |
+| `resultHash` | the [result hash](/docs/tournaments/verification#the-result-hash) of the round's battle, with the bots in fighting order |
+| `durationCycles` | the cycles the battle ran |
+| `points` | each bot's round points, in `bots` order |
+| `survivors` | the bots alive at the end, ascending, as indices into `bots` |
+| `survival` | the cycles each bot lived through: its death cycle, or `durationCycles` if it lived |
+
+## Checks and limits
+
+The arena reads a replay only if every field is there and well formed. It refuses one of another `format` or `isa`, one with a count out of range (2 to 16 bots, 1 to 10 rounds, up to 1,000,000 cycles, up to 256 processes a bot), and a link whose replay is over 1,048,576 characters. Then it plays the match and checks it as [verification](/docs/tournaments/verification#the-verified-chip) describes: the bytes against their SHA-256, the match key, and each round's result hash.
+
+<Note>
+
+The `-local` in the format's name is a promise: the server will define the shared replay schema, and the arena will keep reading this one.
+
+</Note>
+
+See also: [share links](/docs/tools/share-links), and [the CLI](/docs/tools/cli), whose `fight --json` prints the same engine result that a round's hash covers.

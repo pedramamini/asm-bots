@@ -1,0 +1,60 @@
+# Share links
+
+## The URL is the state
+
+A link in ASM BOTS carries what it shows. There is no server to look it up in: the query names the settings, and the fragment (after `#`) carries anything bigger, such as your bots' sources. A browser does not send a fragment to the server, so the source of your unsaved bot stays between you and the person you send the link to.
+
+Every link that runs a battle carries its inputs, so the battle it shows is the battle you saw (see [verification](/docs/tournaments/verification)).
+
+| link | copied by | opens |
+|---|---|---|
+| `/arena?b=…&seed=…` | `copy a share link` in the arena setup, `share` on the victory | the arena, set up to fight |
+| `/arena/<match key>#r=…` | `replay link` on the victory | a replay, checked as it plays |
+| `/editor#src=…` | `share` in the editor | the source, as a bot not saved yet |
+| `/editor/roster-dwarf` | `share` on a roster bot | that roster bot |
+| `/tournaments/<id>#t=…` | `share` on a tournament | the tournament, as a snapshot |
+
+## Arena links
+
+The query names the bots and the config:
+
+```text
+/arena?b=roster:dwarf,roster:imp&seed=42&cycles=100000&rounds=1&procs=64&spacing=1024
+```
+
+| key | holds |
+|---|---|
+| `b` | the bots, in order, comma-separated: `roster:<slug>` for a roster bot, `local:<id>` for a bot of the sharer's browser. Up to 16. |
+| `seed` | the seed of the first round, 0 to 4,294,967,295. Left out, or out of range, each battle draws a random one. |
+| `cycles` | the cycle cap, 10,000 to 1,000,000 |
+| `rounds` | rounds per match, 1 to 10 |
+| `procs` | the process cap, 1 to 256 |
+| `spacing` | the least gap between bots, 0 to 8,192 bytes |
+
+A field left out takes its `duel` value, so a link means the same battle in every browser. Any other value out of range is held to the range. The one exception is `/arena` with no query at all: that opens the setup you last used.
+
+A `local:` bot is in no other browser, so the link carries its source in the fragment: `#src=` and the base64url of the deflated JSON `[[id, source], …]`. The page that opens the link loads each `local:` bot from there.
+
+## Editor links
+
+`share` in the editor copies `/editor#src=…`, the same fragment with one bot. It opens the source as a bot not saved yet; save it to keep it. A roster bot needs no source in the link: its link is its page, `/editor/roster-<slug>`.
+
+Every `open in editor` and `open in arena` button of these docs is one of these links.
+
+The editor also reads two queries: `?t=dwarf` starts a new bot from a template, and the arena's `open in debugger` sends its `?b=…&seed=…`, which opens the first bot in the debugger against the others.
+
+## Replay links
+
+`/arena/<match key>#r=` and the base64url of the replay's JSON, sources left out. [The replay format](/docs/tools/replay-format) has every field. The page plays the match and shows the `verified` chip.
+
+## Tournament links
+
+`/tournaments/<id>#t=` and the base64url of the tournament's deflated JSON (format `asmbots-tournament-link/1`): its name, kind, status, config, rounds, seeding, and entrants, and every match it played. A roster bot travels as its slug. A bot of yours travels as its machine code, so its rounds can be watched from the link.
+
+A browser that has no tournament by that id opens the link as a snapshot: the page rebuilds the standings, the bracket, and the champion from the matches, and runs nothing. A tournament that was running when it was shared reads as paused.
+
+## Size
+
+Links are long when they carry sources, and some chat apps cut long links. A share link holds up to 16 bots of 16 KB of source each, and a replay link up to about 1 MB. If a link opens with its bots missing, it was cut: share it another way, or share the `.asm` files.
+
+See also: [the replay format](/docs/tools/replay-format), and [verification](/docs/tournaments/verification).

@@ -1,0 +1,84 @@
+# Imps and imp rings
+
+## The imp
+
+An imp is a bot that is its own copy. Its step is two bytes, `movsw` and `nop`: `movsw` copies the word it runs from (si) to the word after it (di) and moves si and di 2 bytes on, and `nop` steps onto the copy. [Start here](/docs/start-here#write-your-first-bot) takes it apart line by line. It moves one byte a cycle, around the core, forever.
+
+## Why an imp is hard to kill
+
+A bomb that lands ahead of the imp is gone before the imp gets there: the imp writes its next word over it. A bomb behind it hits old copies that no process runs. A bomb kills it only when it lands on the bytes the imp runs next, in the cycle or two between the `movsw` that writes them and the step onto them.
+
+## Why an imp seldom wins
+
+An imp writes nothing but itself. It kills only when a rival's process runs into its trail: that process runs `movsw` with its own si and di, copies a word from somewhere to somewhere, and walks on until it meets a zero. So imps tie, and ties are worth 1 point of 3.
+
+These records play seeds 1 to 20 at hill rules (80,000 cycles), and swap the order each seed, as a match does: the bot on the left goes first at seed 1.
+
+| seeds 1..20, hill rules | record |
+|---|---|
+| `imp` vs `imp` | 0 W / 20 T / 0 L |
+| `imp` vs `dwarf` | 2 W / 9 T / 9 L |
+| `imp` vs `gate` | 0 W / 1 T / 19 L |
+
+## Imp rings
+
+In Redcode, an imp ring is a few imps spaced evenly around the core, each copying itself onto the place of the next. In x16c each imp copies only itself, one word ahead, so a ring is simpler: several independent imps, spread out. A bomb that kills one leaves the others walking, and the bot lives until the last one is hit.
+
+The price is speed. A bot runs one instruction a cycle, whatever the count of its processes (see [processes](/docs/machine/processes)). With three imps, each imp runs every third cycle and moves a byte every 3 cycles, so a bomber has three times as long to hit each next word.
+
+```asm run="vs=dwarf"
+; Imp Ring writes an imp (movsw, nop) a third of the core ahead and two thirds ahead, starts a
+; process on each with spl, and then walks as the third imp itself.
+; Each imp copies itself, not the next imp as in a Redcode ring, so a bomb that kills one imp
+; leaves two walking, and the bot lives until all three are hit.
+; The three processes share the bot's turn, so each imp moves a byte every three cycles: the
+; ring trades speed for spares, and like the imp it ties far more often than it kills.
+; vs imp.asm, seeds 1..20: 0 W / 20 T / 0 L
+
+%name     "Imp Ring"
+%author   "ASM Bots"
+%strategy "Three imps a third of the core apart"
+
+THIRD   equ     21846                   ; a third of the core, rounded to an even number
+PAIR    equ     0x90A5                  ; movsw (A5) then nop (90), as a little-endian word
+
+; Setup: the base idiom puts our base address in bx.
+start:  call    .here
+.here:  pop     bx
+        sub     bx, .here
+        lea     si, [bx+imp]            ; si steps from our imp to each launch point
+        mov     cx, 2                   ; two imps to launch
+
+; Launch: write an imp THIRD bytes on, aim its copy at the next word, and start a process there.
+launch: add     si, THIRD
+        mov     word [si], PAIR
+        lea     di, [si+2]
+        spl     si                      ; the child gets these si and di
+        loop    launch
+        lea     si, [bx+imp]            ; this process walks from our own imp
+        lea     di, [bx+imp+2]
+
+; Walk: the imp step, as in imp.asm.
+imp:    movsw
+        nop
+```
+
+The launch writes each imp as one word, `0x90A5`: the bytes `A5 90` in little-endian order. `spl si` starts the child with a copy of the parent's registers, so each child walks from its own si and di. The ring's record is no better than the imp's against a bomber. It is the same kind of bot, with spares:
+
+| seeds 1..20, hill rules | record |
+|---|---|
+| `imp-ring` vs `dwarf` | 3 W / 5 T / 12 L |
+| `imp-ring` vs `stone` | 1 W / 8 T / 11 L |
+| `imp-ring` vs `gate` | 0 W / 3 T / 17 L |
+
+<Note>
+
+Try more imps: set `THIRD equ 8192` and `mov cx, 7`. That is eight imps, an eighth of the core apart, each moving a byte every 8 cycles. Against the dwarf the record goes from 3 W / 5 T / 12 L to 5 W / 7 T / 8 L, and against the gate from 0 W / 3 T / 17 L to 1 W / 11 T / 8 L. Spares beat speed here, because the bombers need one hit per imp.
+
+</Note>
+
+## What imps are for
+
+Few bots win as imps. They are parts: a decoy that keeps a bot alive for a tie when its bombers are dead ([stones](/docs/strategy/stones)), or a trail of non-zero bytes that keeps a scanner busy ([hygiene](/docs/strategy/hygiene)). And every bomber must plan for them: an imp crosses a stride-4 bomb pattern often enough to live, so the answer is an [imp gate](/docs/strategy/imp-gates) or a solid carpet ([stack tricks](/docs/strategy/stack-tricks)).
+
+See also: [`movsw`](/docs/reference/string#movsw) and [`spl`](/docs/reference/process#spl) in the reference.

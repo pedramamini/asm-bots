@@ -1,0 +1,45 @@
+# Verification
+
+## Every result can be run again
+
+A battle is a pure function: the same bots, the same config, and the same seed give the same battle, cycle for cycle, on every machine. The engine reads no clock and no random source. The only chance in a battle is where the loader puts the bots, and that comes from the seed (see [placement and seeds](/docs/machine/placement)).
+
+So a result needs no trust. Anyone with the inputs can run the battle again and get the same end. That is what makes a share link, a replay, and a tournament snapshot worth something: each carries the inputs, and the page that opens it plays them.
+
+## The result hash
+
+The engine sums up a battle's end as a **result**: the cycles it ran, the survivors, and for each bot its name, whether it lived, its points, the cycle and reason of its death, and its counts (processes, peak processes, instructions, writes, and the bytes it owns). The **result hash** is FNV-1a 64 over that result as canonical JSON (keys sorted, no spaces): 16 hex digits. The dwarf against the imp at hill rules, seed 1, ends at cycle 16,141 with the dwarf alone, and hashes to `22bea637e0bb3afa`. Two runs that end the same way give the same hash; a change anywhere in the end gives another.
+
+A replay, a tournament's `results.json`, and a shared tournament record one result hash for each round.
+
+The engine also hashes a battle's whole event stream, every instruction, write, spawn, and death. The test suite plays the roster's 152 golden rounds in Bun on the main thread and in a Worker, and checks both hashes against the stored ones. The same inputs give the same event hash, byte for byte, or the build fails.
+
+## The `verified` chip
+
+A replay page (`/arena/<match key>#r=…`, the link that `replay link` copies) plays the replay's match in the arena and checks it as it goes:
+
+1. **The bots.** Each bot's bytes must hash to the SHA-256 the replay records.
+2. **The match.** The arena's match key, a hash of the config, the round count, and each bot's name and bytes, must equal the replay's.
+3. **Each round.** When a round ends, its result hash must equal the recorded one.
+
+| chip | means |
+|---|---|
+| `verifying` | no round has ended yet |
+| `verified 1/3` | one round of three matched; the rest are still running |
+| `verified` | every round matched, the bots matched their SHA-256, and the match key matched |
+| `mismatch` | one check failed; the chip's title, and the victory, say which |
+
+A mismatch names what failed: bytes that do not match their SHA-256, a replay that would not run, a match of other bots or another config (a changed setting is a mismatch even if the result happens to agree), or a round whose result hash differs from the one recorded.
+
+The chip checks the arena's own run. It is not a second simulation, and it proves the same thing: these inputs give this result, here, now.
+
+## Tournaments
+
+`watch` on a round of a tournament rebuilds that round from its inputs (the bots in the round's order, and the round's seed), plays it in the arena, and shows the same chip: `verified` when the result hash matches the one the tournament recorded. A shared tournament carries every match's rounds with their hashes, so anyone who opens the link can watch and check any round.
+
+## What verification does not cover
+
+- **That a bot is the one a person wrote.** A replay proves what these bytes do. Names and sources are labels; the SHA-256 is of the bytes.
+- **A different ISA.** A replay records `x16c-v1`. The arena refuses a replay of another ISA version rather than run it under the wrong rules (see [ISA versions](/docs/isa-versions)).
+
+See also: [the replay format](/docs/tools/replay-format), and [share links](/docs/tools/share-links).

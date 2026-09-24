@@ -4,6 +4,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
   type RefObject,
+  useCallback,
   useEffect,
   useId,
   useMemo,
@@ -159,7 +160,8 @@ type IndexState =
 /**
  * The search field, and under it the pages by section, or, while the field holds a query, the
  * sections of the pages that match it (the built index, loaded on first use). Enter opens the
- * best match at its heading, and clears and leaves the field, as Escape does.
+ * best match at its heading, and clears and leaves the field, as Escape does. An Enter typed
+ * before the index has loaded waits for it, so a fast typist still lands on the page.
  */
 function DocsSidebar({
   docs,
@@ -171,6 +173,9 @@ function DocsSidebar({
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [state, setState] = useState<IndexState>({ status: 'idle' })
+  // Enter pressed while the index loads: open the best match once it is here.
+  const [enterPending, setEnterPending] = useState(false)
+  const field = useRef<HTMLInputElement>(null)
   const listId = useId()
 
   const load = () => {
@@ -189,19 +194,33 @@ function DocsSidebar({
     return searchIndex(state.index, query).filter(({ slug }) => findDoc(slug, docs) !== undefined)
   }, [state, query, searching, docs])
 
+  // Found: the search is done, and the tree comes back with the page lit.
+  const open = useCallback(
+    (hit: SearchRecord) => {
+      setQuery('')
+      field.current?.blur()
+      void router.navigate({ to: '/docs/$', params: { _splat: hit.slug }, hash: hit.anchor })
+    },
+    [router],
+  )
+
+  useEffect(() => {
+    if (!enterPending || state.status === 'loading' || state.status === 'idle') return
+    setEnterPending(false)
+    const first = hits[0]
+    if (first !== undefined) open(first)
+  }, [enterPending, state, hits, open])
+
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     const first = hits[0]
     if (event.key === 'Enter' && first !== undefined) {
-      // Found: the search is done, and the tree comes back with the page lit.
       event.preventDefault()
-      setQuery('')
-      event.currentTarget.blur()
-      void router.navigate({
-        to: '/docs/$',
-        params: { _splat: first.slug },
-        hash: first.anchor,
-      })
+      open(first)
+    } else if (event.key === 'Enter' && searching && state.status === 'loading') {
+      event.preventDefault()
+      setEnterPending(true)
     } else if (event.key === 'Escape') {
+      setEnterPending(false)
       setQuery('')
       event.currentTarget.blur()
     }
@@ -217,8 +236,10 @@ function DocsSidebar({
         placeholder="search docs"
         value={query}
         onFocus={load}
+        ref={field}
         onChange={(event) => {
           load()
+          setEnterPending(false)
           setQuery(event.currentTarget.value)
         }}
         onKeyDown={onKeyDown}

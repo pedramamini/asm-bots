@@ -60,10 +60,13 @@ async function renderDocs(
     docs = DOCS,
     pages = {},
     index,
+    loadIndex = () => (index === undefined ? new Promise(() => {}) : Promise.resolve(index)),
   }: {
     docs?: readonly DocSection[]
     pages?: Record<string, () => ReactNode>
     index?: SearchIndex
+    /** How the frame loads the index; by default `index` at once, or never without one. */
+    loadIndex?: () => Promise<SearchIndex>
   } = {},
 ) {
   const root = createRootRoute({ component: Outlet })
@@ -71,10 +74,7 @@ async function renderDocs(
     getParentRoute: () => root,
     path: '/docs',
     component: () => (
-      <DocsFrame
-        docs={docs}
-        loadIndex={() => (index === undefined ? new Promise(() => {}) : Promise.resolve(index))}
-      >
+      <DocsFrame docs={docs} loadIndex={loadIndex}>
         <Outlet />
       </DocsFrame>
     ),
@@ -140,8 +140,13 @@ imp:    movsw
 
 describe('Asm', () => {
   it('reads a run tag: the roster bot, and a seed', () => {
-    expect(parseRun('vs=imp')).toEqual({ vs: 'imp', seed: undefined })
-    expect(parseRun(' vs=dwarf  seed=7 ')).toEqual({ vs: 'dwarf', seed: 7 })
+    expect(parseRun('vs=imp')).toEqual({ vs: ['imp'], seed: undefined })
+    expect(parseRun(' vs=dwarf  seed=7 ')).toEqual({ vs: ['dwarf'], seed: 7 })
+    expect(parseRun('vs=dwarf,stone,paper')).toEqual({ vs: ['dwarf', 'stone', 'paper'] })
+    expect(parseRun(`vs=${Array(15).fill('imp').join(',')}`)?.vs).toHaveLength(15)
+    expect(parseRun(`vs=${Array(16).fill('imp').join(',')}`)).toBeNull()
+    expect(parseRun('vs=dwarf,')).toBeNull()
+    expect(parseRun('vs=dwarf, stone')).toBeNull()
     expect(parseRun('vs=')).toBeNull()
     expect(parseRun('imp')).toBeNull()
     expect(parseRun('vs=imp seed=99999999999')).toBeNull()
@@ -186,6 +191,21 @@ describe('Asm', () => {
     fireEvent.click(arena)
     await screen.findByText('the arena')
     expect(router.state.location.pathname).toBe('/arena')
+  })
+
+  it('links a melee: the block first, then each roster bot of the run, in order', async () => {
+    await renderDocs('/docs/p', {
+      pages: { p: () => <Asm run="vs=dwarf,stone,paper">{IMP}</Asm> },
+    })
+    await runtimeLoaded()
+    const arena = screen.getByRole('link', { name: 'open in arena · vs dwarf, stone, paper' })
+    const url = new URL(arena.getAttribute('href') as string, 'http://x')
+    expect(url.searchParams.get('seed')).toBeNull()
+    const [mine, ...theirs] = parseRefs(url.searchParams.get('b') as string)
+    expect(mine?.kind).toBe('local')
+    expect(theirs).toEqual(
+      ['dwarf', 'stone', 'paper'].map((slug) => ({ kind: 'roster', slug }) as const),
+    )
   })
 
   it('copies its source', async () => {
@@ -472,6 +492,40 @@ describe('DocsFrame', () => {
     expect(screen.getByRole('navigation', { name: 'docs pages' })).toBeTruthy()
   })
 
+  it('keeps an Enter typed while the index loads, and opens the best match when it is here', async () => {
+    let arrive: (index: SearchIndex) => void = () => {}
+    const router = await renderDocs('/docs/start-here', {
+      docs: TEST_DOCS,
+      loadIndex: () => new Promise((resolve) => (arrive = resolve)),
+    })
+    const search = screen.getByRole('searchbox', { name: 'search the docs' }) as HTMLInputElement
+    await act(async () => search.focus())
+    fireEvent.change(search, { target: { value: 'rep mov' } })
+    fireEvent.keyDown(search, { key: 'Enter' })
+    expect(router.state.location.pathname).toBe('/docs/start-here')
+    await act(async () => arrive(TEST_INDEX))
+    await screen.findByText('page strategy/paper')
+    expect(router.state.location.hash).toBe('why-spl-before-rep-movsw')
+    expect(search.value).toBe('')
+  })
+
+  it('drops a waiting Enter when the query changes before the index is here', async () => {
+    let arrive: (index: SearchIndex) => void = () => {}
+    const router = await renderDocs('/docs/start-here', {
+      docs: TEST_DOCS,
+      loadIndex: () => new Promise((resolve) => (arrive = resolve)),
+    })
+    const search = screen.getByRole('searchbox', { name: 'search the docs' }) as HTMLInputElement
+    await act(async () => search.focus())
+    fireEvent.change(search, { target: { value: 'rep mov' } })
+    fireEvent.keyDown(search, { key: 'Enter' })
+    fireEvent.change(search, { target: { value: 'rep movs' } })
+    await act(async () => arrive(TEST_INDEX))
+    await screen.findByRole('navigation', { name: 'search results' })
+    expect(router.state.location.pathname).toBe('/docs/start-here')
+    expect(search.value).toBe('rep movs')
+  })
+
   it('says so while the index loads', async () => {
     await renderDocs('/docs/start-here', { docs: TEST_DOCS })
     const search = screen.getByRole('searchbox', { name: 'search the docs' })
@@ -574,8 +628,12 @@ describe('the pages', () => {
         const arena = within(block).queryByRole('link', { name: /^open in arena/ })
         if (arena === null) continue
         const b = new URL(arena.getAttribute('href') as string, 'http://x').searchParams.get('b')
-        const vs = parseRefs(b ?? '')[1]
-        expect(vs?.kind === 'roster' && ROSTER.some((bot) => bot.slug === vs.slug)).toBe(true)
+        const [self, ...rivals] = parseRefs(b ?? '')
+        expect(self?.kind).toBe('local')
+        expect(rivals.length).toBeGreaterThan(0)
+        for (const vs of rivals) {
+          expect(vs.kind === 'roster' && ROSTER.some((bot) => bot.slug === vs.slug)).toBe(true)
+        }
       }
     })
   }

@@ -1,0 +1,86 @@
+# The CLI
+
+## Install
+
+`asmbots` is the command line of ASM BOTS: the same assembler, engine, and tournament code as the web app, in a shell. It runs on [Bun](https://bun.sh). From a clone of the repository:
+
+```sh
+bun install
+cd apps/cli && bun link          # puts asmbots on your PATH
+asmbots fight roster:dwarf roster:imp --seed 1
+```
+
+Or, with no link, from the repository root: `bun apps/cli/src/main.ts <command> …`.
+
+Each command takes `--help`. A bot is a roster slug (`roster:dwarf`), an `.asm` file (assembled first), or a `.bin` file (raw bytes). Color is off with `--no-color`, with `--json`, when `NO_COLOR` is set, or when the output is not a terminal.
+
+| exit code | means |
+|---|---|
+| 0 | done |
+| 1 | usage: a missing argument, an unknown command or format, or a `--trace-bot` name that no bot has |
+| 2 | `asm`: the source has errors |
+| 3 | a runtime error: a file that cannot be read, a bot that does not assemble, or an unknown roster slug |
+
+## asm
+
+```sh
+asmbots asm dwarf.asm [--listing] [--bin dwarf.bin] [--max-bytes 256]
+```
+
+Assembles a source file and prints each diagnostic as `file:line:col: severity: message [code]`, the form editors turn into links, then the size:
+
+```text
+bot.asm:4:7: error: far jumps and pointers are not supported: x16c has no segments [unsupported]
+```
+
+`--listing` prints each line's address and bytes beside its source. `--bin` writes the bytes to a file; without it, nothing is written. `--max-bytes` fails the build of a bot over that size (the arena's limit is 512).
+
+## dis
+
+```sh
+asmbots dis dwarf.bin [--base 0x3051]
+```
+
+Disassembles raw bytes, one instruction a line: address, bytes, and NASM text that assembles back to the same bytes. `--base` is the address of the first byte, in hex, so jump targets read as the core's addresses. A byte that is not a defined instruction prints as `db 0xNN`, and `00` as `dat`.
+
+## fight
+
+```sh
+asmbots fight roster:dwarf roster:imp [more bots…] [--seed 1] [--rounds 1] [--cycles 100000] [--procs 64] [--spacing 1024]
+```
+
+Runs a battle and prints where each bot was placed, the survivors, and each bot's counts: instructions, writes, peak processes, points, and the cycle and reason of its death. With no `--seed`, the seed is random. `--cycles`, `--procs`, and `--spacing` set the cycle cap, the process cap, and the least gap between two bots.
+
+`--json` prints the engine's result as JSON, with the trace lines: the same result that the [result hash](/docs/tournaments/verification#the-result-hash) hashes.
+
+`--trace` prints a line for each bot each cycle: the cycle, the bot, the process, the address and bytes of the instruction, then ax, cx, dx, bx, si, di, bp, and sp, and the flags as `cpazstido` (a capital letter for a flag that is set). `--trace-bot "Dwarf"` keeps one bot's lines. The screen shows the first 100 lines; `--json` holds them all.
+
+## tourney
+
+```sh
+asmbots tourney roundrobin|bracket|melee roster:dwarf roster:imp roster:paper … [--rounds 10] [--out results.json] [--svg bracket.svg]
+```
+
+Runs a tournament of the bots at the engine's default config (see [formats](/docs/tournaments/formats)) and prints the standings, or a bracket's champion. `--rounds` is the rounds per match. `--out` writes the results as JSON: the standings of a round robin or a melee, or a whole bracket with every match's rounds (seed, order, points, and result hash). `--svg` writes a bracket as an SVG file. The seed is random on each run.
+
+## bench
+
+```sh
+asmbots bench [--seconds 5]
+```
+
+Runs battles of two dwarves for that long and prints the engine's speed in instructions a second.
+
+<Warn>
+
+Known gaps in this build:
+
+- `fight --rounds K` runs K rounds with the seeds `seed` to `seed + K - 1`, but it does not rotate the bot order as a match does, and it prints only the last round. For a match, use `tourney roundrobin` with two bots.
+- `tourney` has no `--seed`, and only a bracket's `--out` file records the seeds it used.
+- `hill submit` does not work: the second bot fails with "is 8192 bytes, not 1..512". Hills arrive with the server.
+- `golden` fails with "Bun.run is not a function". Use `bun run golden` at the repository root.
+- `--json` does nothing for `asm` and `dis`.
+
+</Warn>
+
+See also: [the replay format](/docs/tools/replay-format), and [verification](/docs/tournaments/verification).

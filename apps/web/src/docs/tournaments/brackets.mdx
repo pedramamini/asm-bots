@@ -1,0 +1,47 @@
+# Brackets
+
+## Single elimination
+
+A bracket plays matches in rounds. The two bots of a match fight one match of K rounds; the winner goes on to the next round, and the loser is out. The winner of the final is the champion. A bracket of n bots plays n - 1 matches, one more with a third-place match.
+
+## Seeds and byes
+
+A bracket holds 2, 4, 8, 16, or 32 places: the smallest size that holds the bots. Each bot gets a seed, 1 to n. In the first round, seed s meets seed `size + 1 - s`, placed so that the top seeds meet as late as they can:
+
+| 8 places | match 1 | match 2 | match 3 | match 4 |
+|---|---|---|---|---|
+| 8 bots | 1 v 8 | 4 v 5 | 2 v 7 | 3 v 6 |
+| 6 bots | 1 v bye | 4 v 5 | 2 v bye | 3 v 6 |
+| 5 bots | 1 v bye | 4 v 5 | 2 v bye | 3 v bye |
+
+Seeds above the count of bots are **byes**, so the byes go to the top seeds. A match against a bye is a walkover: the bot goes on with no match run.
+
+Seeds come from one of:
+
+- **Seeds as picked**: the order you picked the bots in. Pick the strongest first.
+- **Shuffle seeds**: a random order, drawn from a seed the tournament keeps, so the same tournament shuffles the same way.
+- **Rating** (in `@asmbots/tourney`, for the server): the highest rating first.
+
+## Who goes on
+
+A bracket match cannot end in a tie. The winner is the bot with:
+
+1. more match points; if level,
+2. more survival cycles, added over the match's rounds (the cycles each bot lived through in each round); if level,
+3. the better seed.
+
+So two imps that tie every round split nothing: the one that lived longer goes on, and if both lived to the cap every round, the higher seed does.
+
+## The third-place match
+
+With 4 or more bots, the form can add a match between the two semifinal losers. It plays in the last round, beside the final, and ranks third and fourth.
+
+## The view
+
+The bracket draws as columns of rounds, byes greyed, the third-place match under the final, and the champion at the right. The match in flight pulses. Click a match to open its panel: its bots with their seeds and points, and a row for each round (the seed, who fought first, the survivors, the points, the cycles) with `watch`, which replays that round in the arena and checks its result hash (see [verification](/docs/tournaments/verification)).
+
+While a tournament runs, its status chip counts the matches (`running · 5 / 7`). `auto-watch` opens each match in the arena at max speed as it starts, rebuilt from its inputs, while the runner plays it headless.
+
+`bracket.svg` saves the bracket as an SVG file in the page's theme. `asmbots tourney bracket --svg bracket.svg` draws the same bracket from a shell.
+
+See also: [formats](/docs/tournaments/formats), and [ratings](/docs/tournaments/ratings) for rating seeds.

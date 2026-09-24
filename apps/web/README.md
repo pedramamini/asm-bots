@@ -20,18 +20,23 @@ import (`src/docs/components.tsx`):
 
 | Block | What it draws |
 | --- | --- |
-| ```` ```asm run="vs=imp" ```` or `<Asm run="vs=imp">` | x16c in the editor's colors, `copy`, `open in editor`, and with `run`, `open in arena` against that roster bot (`seed=7` fixes the seed). `fragment` marks a piece of a bot: copy only |
+| ```` ```asm run="vs=imp" ```` or `<Asm run="vs=imp">` | x16c in the editor's colors, `copy`, `open in editor`, and with `run`, `open in arena` against that roster bot, or a melee against several (`vs=dwarf,stone,paper`, up to 15); `seed=7` fixes the seed. `fragment` marks a piece of a bot: copy only |
 | `<Encoding form="mov r/m16, imm16" />` | A form's bytes from `docs/opcodes.json`: opcode, ModR/M, displacement, immediate |
 | `<Flags op="add" />`, `<Flags set="CZ" />` | The ODITSZAPC row, changed flags lit |
 | `<Keys>g a</Keys>`, `<Keys>ctrl+enter</Keys>` | Keycaps: a chord, a combination |
 | `<Note>`, `<Warn>` | Callouts |
 | `<Fig src="modrm" alt="…">caption</Fig>` | An SVG of `src/docs/figures/`, drawn inline in theme colors |
+| `<KeyMap />` | Every key of the app, from the key tables of `src/app/keymaps.ts` |
 
 A code block's colors and links load after the page paints (`src/docs/asm-runtime.ts`: the CM
 tokenizer and the share codec). The sidebar's search (`/`) reads a prebuilt index of every page's
 headings and prose, `src/docs/generated/search-index.json`: run `bun run docs-index` after
 editing a page (`test/docs-index.test.ts` fails on a stale index). `test/docs.test.tsx` compiles
 and draws every page, and assembles every `open in editor` snippet with zero errors.
+`test/docs-machine.test.ts`, `test/docs-strategy.test.ts`, and `test/docs-guide.test.ts` run
+what the pages claim: every record table is fought again, every roster bot on a page must be the
+roster's file word for word, and each "try" edit is made and measured. Change a bot, the engine,
+or a page, and they say which words no longer hold.
 
 ## Arena
 
@@ -241,7 +246,8 @@ The bot library (`Library.tsx`, `b`) lists recent documents, my bots, and the ro
 The function keys go through one window listener (`debug/keys.ts`): they work in the editor and in
 the panels' fields, and never reach the browser, where F5 reloads and F11 goes full screen. The
 page keys are the app's keymap: a text field keeps them while it has the focus, and Esc leaves the
-editor (a popup or the search panel closes first). `?` lists them all.
+editor (a popup or the search panel closes first). `?` lists them all. Every key's words live in
+`src/app/keymaps.ts`, which the hooks, the key help, and the docs' keyboard map all read.
 
 | Key | Where | Does |
 | --- | --- | --- |

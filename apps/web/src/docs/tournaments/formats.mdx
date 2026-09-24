@@ -1,0 +1,62 @@
+# Formats
+
+## Rounds and matches
+
+Every format is built from the same two parts.
+
+- **A round** is one battle. Each survivor scores `floor((N * N - 1) / S)` points, where N is the count of bots and S the count of survivors; a dead bot scores 0 (see [scoring](/docs/machine/scoring)).
+- **A match** is K rounds of the same bots. Round i uses the seed `seed + i` and rotates the bot order by i, so each bot goes first as often as the others. A bot's match score is the sum of its round points.
+
+A match has one winner when one bot has the most points. When two or more share the top, the match is a tie.
+
+| format | bots | plays | ranks by |
+|---|---|---|---|
+| round robin | 2 to 32 | one match for each pair | points, then match wins |
+| bracket | 3 to 32 | one match for each pair that meets, the loser out | how far a bot got |
+| melee | 2 to 16 | one match of all the bots, in one core | points, then round wins |
+
+## Round robin
+
+Every bot fights every other bot once, one match each. With n bots that is n × (n - 1) / 2 matches: 28 for 8 bots, 66 for 12, 496 for 32. Above 12 bots the form warns about the count.
+
+The standings add up each bot's match points, and count its match wins, ties, and losses. They rank by points, then by wins, then by name. The view shows the standings and a results matrix: one row and one column for each bot, and in each cell the points the row's bot took from the column's.
+
+A round robin is the fairest format and the slowest. It is also a [hill](/docs/tournaments/hills) in miniature: a hill ranks its entries the same way.
+
+## Bracket
+
+Single elimination: a bot that loses a match is out, and the winner of the final is the champion. See [brackets](/docs/tournaments/brackets) for seeds, byes, ties, and the third-place match.
+
+## Melee
+
+All the bots share one core, every round (see [melee tactics](/docs/strategy/melee)). A melee is one match: K rounds, the seeds stepping and the order rotating as in any match. Each round, a bot **wins** if it is the only survivor, **ties** if it survives with others, and **loses** if it dies. The standings rank by points, then by round wins.
+
+A melee also keeps how long each bot lived in each round: its survival histogram puts the rounds in 10 bins from 0 to the cycle cap, and a bot that lived to the cap lands in the last bin. `watch round N` replays any round in the arena.
+
+## Running a tournament here
+
+[Tournaments](/tournaments) run in your browser. `new tournament` asks for:
+
+1. **A name and a kind**: round robin, bracket, or melee.
+2. **The bots**: roster bots, your own bots, or `.asm` files dropped on the form. A bot of yours is copied in with its source, so a later edit to the bot does not change the tournament.
+3. **The config**: rounds per match, cycles, the process cap, and the spacing, or one of the arena's presets (`duel`, `melee 8`, `melee 16`, `hill rules`).
+4. **For a bracket**: seeds as picked or shuffled, and the third-place match.
+
+Under the bots, the form says how many matches the tournament plays and how long it may take at most: every round run to its last cycle, at 20 million instructions a second.
+
+The matches run one at a time in the arena's Worker, headless, and the tournament is saved in this browser after every match (every round of a melee). A reload loses at most the match in flight, and the tournament goes on from where it stopped. `pause` and `cancel` stop at once and drop the match in flight.
+
+## Exports and links
+
+| export | what | for |
+|---|---|---|
+| `results.json` | every match with its rounds: seeds, order, points, survivors, result hashes | all kinds |
+| standings CSV | `rank,entrant,name,points,wins,ties,losses` | round robin, melee |
+| `bracket.svg` | the bracket, drawn in the page's theme | bracket |
+| `share` | a link that carries the inputs and every match played | all kinds |
+
+A shared tournament opens as a snapshot: the page rebuilds the standings, the bracket, and the champion from the matches in the link, so the standings cannot say what the matches do not add up to. Nothing runs it in the browser that opens it. Every match can be watched, and each round's result is checked on the way (see [verification](/docs/tournaments/verification)). The link format is in [share links](/docs/tools/share-links#tournament-links).
+
+From a shell, `asmbots tourney` runs the same formats (see [the CLI](/docs/tools/cli#tourney)).
+
+See also: [brackets](/docs/tournaments/brackets), [hills](/docs/tournaments/hills), and [scoring](/docs/machine/scoring).

@@ -7,6 +7,7 @@
  * field while it has the focus, as every key of the app's keymap does.
  */
 import { type RefObject, useEffect, useMemo } from 'react'
+import { DEBUG_FUNCTION_KEYS, DEBUG_KEYS, functionKey } from '../../../app/keymaps'
 import { type KeyCommand, useKeys } from '../../../app/keys'
 import type { ArenaCanvasHandle } from '../../arena/ArenaCanvas'
 import { spaceTaken } from '../../arena/battle/keys'
@@ -33,16 +34,6 @@ export interface DebugCommands {
   stepOut: () => void
   stepBack: () => void
 }
-
-/** The function keys: a key, whether Shift is down, and the command. */
-const FUNCTION_KEYS: readonly (readonly [string, boolean, keyof DebugCommands, string])[] = [
-  ['F5', false, 'run', 'run'],
-  ['F6', false, 'pause', 'pause'],
-  ['F9', false, 'toggleBreakpoint', "breakpoint on the cursor's line"],
-  ['F10', false, 'stepOver', 'step over'],
-  ['F11', false, 'step', 'step'],
-  ['F11', true, 'stepOut', 'step out'],
-]
 
 /** The debugger's commands over `controller`. */
 export function debugCommands(
@@ -78,12 +69,12 @@ export function useDebugKeys({ controller, cursorAddress, strip, notify }: Debug
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return
-      const key = FUNCTION_KEYS.find(
-        ([name, shift]) => name === event.key && shift === event.shiftKey,
+      const key = DEBUG_FUNCTION_KEYS.find(
+        ({ key, shift }) => key === event.key && shift === event.shiftKey,
       )
       if (key === undefined) return
       event.preventDefault()
-      commands[key[2]]()
+      commands[key.command]()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -92,16 +83,9 @@ export function useDebugKeys({ controller, cursorAddress, strip, notify }: Debug
   const keys = useMemo<KeyCommand[]>(
     () => [
       // Listed for the key help; the listener above runs them.
-      ...FUNCTION_KEYS.map(([name, shift, , description]) => ({
-        keys: [shift ? `shift+${name}` : name],
-        description,
-        group: 'debugger',
-        run: () => false,
-      })),
+      ...DEBUG_FUNCTION_KEYS.map((key) => ({ ...functionKey(key), run: () => false })),
       {
-        keys: ['space'],
-        description: 'run or pause',
-        group: 'debugger',
+        ...DEBUG_KEYS.run,
         run: () => {
           if (spaceTaken() || controller.snapshot.session === null) return false
           if (controller.snapshot.running !== null) controller.pause()
@@ -109,39 +93,23 @@ export function useDebugKeys({ controller, cursorAddress, strip, notify }: Debug
         },
       },
       {
-        keys: ['.'],
-        description: 'step',
-        group: 'debugger',
+        ...DEBUG_KEYS.step,
         run: () => {
           if (controller.snapshot.session === null) return false
           commands.step()
         },
       },
       {
-        keys: [','],
-        description: 'step back',
-        group: 'debugger',
+        ...DEBUG_KEYS.back,
         run: () => {
           if (controller.snapshot.session === null) return false
           commands.stepBack()
         },
       },
+      { ...DEBUG_KEYS.slower, run: () => controller.setSpeed(slower(controller.snapshot.speed)) },
+      { ...DEBUG_KEYS.faster, run: () => controller.setSpeed(faster(controller.snapshot.speed)) },
       {
-        keys: ['['],
-        description: 'slower runs',
-        group: 'debugger',
-        run: () => controller.setSpeed(slower(controller.snapshot.speed)),
-      },
-      {
-        keys: [']'],
-        description: 'faster runs',
-        group: 'debugger',
-        run: () => controller.setSpeed(faster(controller.snapshot.speed)),
-      },
-      {
-        keys: ['0'],
-        description: "the strip's whole core",
-        group: 'debugger',
+        ...DEBUG_KEYS.zoom,
         run: () => {
           const canvas = strip.current
           if (canvas === null) return false

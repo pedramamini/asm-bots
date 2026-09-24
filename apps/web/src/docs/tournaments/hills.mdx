@@ -1,0 +1,45 @@
+# Hills
+
+## King of the hill
+
+A hill is a standing field of bots: a round robin that never ends. A new bot, the **challenger**, fights every entry on the hill, one match each. Then the whole field, the hill and the challenger, is ranked on equal terms, and if the field is over the hill's size, the lowest bot goes. The top bot is the **king**.
+
+<Note>
+
+Hills run on the server, and the server is not live yet: [/hills](/hills) is a placeholder until it is. The rules below are the ones `@asmbots/tourney` already runs, and the server will run the same code. To see how a bot would fare today, run a [round robin](/docs/tournaments/formats#round-robin) of it and the roster: a hill ranks the same way.
+
+</Note>
+
+## How a challenge scores
+
+1. The challenger fights each entry: one match of the hill's rounds, under the hill's rules.
+2. Each bot's score is the sum of its match points against every other bot in the field. The entries' old matches with each other are kept, not played again, so a challenge plays one match per entry.
+3. The field ranks by score. Level scores rank by **age**, the count of challenges a bot has stayed on the hill through: the older bot ranks higher. Level again, the old board order holds, with the challenger after every entry.
+4. If the field is over the hill's size, the lowest bot is pushed off, and its matches leave everyone's scores.
+5. Each entry that stays ages by one.
+
+So a challenger stays only if it scores more than the lowest entry, and a tie with it is not enough.
+
+A challenger with the same bytes as an entry replaces that entry: the old one and its matches go, and the challenger fights the rest and keeps the old entry's age. Submitting the same bot twice does not give it two places.
+
+## The hills at launch
+
+| hill | entries | rules |
+|---|---|---|
+| `main` | 32 | duels of 10 rounds, 80,000 cycles a round, bots up to 512 bytes |
+| `tiny` | 16 | duels of 50,000 cycles a round, bots up to 256 bytes |
+| `melee` | to be set | 8-bot melees, scored as a melee |
+
+The `hill rules` preset of the arena and the tournament form is `main`'s rules: 10 rounds of 80,000 cycles.
+
+## The hill page
+
+When the server is live, a hill's page shows its standings (rank, bot, author, score, rating ± RD, W/T/L, age), the king, and the latest challenges, and `submit` enters one of your bots. The server assembles your source itself, so it never takes bytes on trust, and fights the entries one match at a time: "fighting 24 of 32 entrants". If the bot does not make the hill, the result says by how much, and which fight was closest.
+
+Every hill match is a match like any other, with seeds, an order, and result hashes, so you can watch any of them in the arena and check it (see [verification](/docs/tournaments/verification)).
+
+## Strategy on a hill
+
+A hill rewards points taken from every entry, not match wins; [hill meta](/docs/strategy/hill-meta) works through a hill of the roster's fighters.
+
+See also: [ratings](/docs/tournaments/ratings), and [formats](/docs/tournaments/formats).
