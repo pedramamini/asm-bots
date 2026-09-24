@@ -11,7 +11,27 @@ Query, Zustand, and the `@asmbots/ui` kit.
 | `bun run --filter @asmbots/web test` | Unit and component tests (`test/`), the arena Worker in Bun's real `Worker` |
 | `bun run --filter @asmbots/web e2e` | Playwright (`e2e/`): the build, and the dev server for `/_gallery` and the arena Worker |
 
-Docs pages are MDX in `src/docs/`, listed in `src/docs/index.ts`.
+## Docs
+
+`/docs` pages are MDX in `src/docs/`: a page at slug `machine/memory` is `machine/memory.mdx`,
+listed in the sidebar tree `src/docs/nav.ts` (a test holds every file to a page). MDX compiles
+with GitHub tables and fenced-block meta (`src/docs/remark.ts`). A page uses these blocks with no
+import (`src/docs/components.tsx`):
+
+| Block | What it draws |
+| --- | --- |
+| ```` ```asm run="vs=imp" ```` or `<Asm run="vs=imp">` | x16c in the editor's colors, `copy`, `open in editor`, and with `run`, `open in arena` against that roster bot (`seed=7` fixes the seed). `fragment` marks a piece of a bot: copy only |
+| `<Encoding form="mov r/m16, imm16" />` | A form's bytes from `docs/opcodes.json`: opcode, ModR/M, displacement, immediate |
+| `<Flags op="add" />`, `<Flags set="CZ" />` | The ODITSZAPC row, changed flags lit |
+| `<Keys>g a</Keys>`, `<Keys>ctrl+enter</Keys>` | Keycaps: a chord, a combination |
+| `<Note>`, `<Warn>` | Callouts |
+| `<Fig src="modrm" alt="…">caption</Fig>` | An SVG of `src/docs/figures/`, drawn inline in theme colors |
+
+A code block's colors and links load after the page paints (`src/docs/asm-runtime.ts`: the CM
+tokenizer and the share codec). The sidebar's search (`/`) reads a prebuilt index of every page's
+headings and prose, `src/docs/generated/search-index.json`: run `bun run docs-index` after
+editing a page (`test/docs-index.test.ts` fails on a stale index). `test/docs.test.tsx` compiles
+and draws every page, and assembles every `open in editor` snippet with zero errors.
 
 ## Arena
 
@@ -31,7 +51,8 @@ URL holds the setup, `?b=roster:dwarf,local:<id>&seed=42&cycles=100000&rounds=3&
 sources in `#src=` (deflated JSON, base64url). `setup/search.ts`, the route's `validateSearch`,
 imports nothing, since it rides the entry chunk. `setup/config.ts` has the limits and the presets,
 and `setup/bots.ts` the roster, the local and shared bots, dropped files, and the fight button's
-words. `vite.config.ts` loads the roster's `.asm` imports as text (`asmText`).
+words. `vite.config.ts` loads the roster's `.asm` imports as text (`textImport`, which also reads the docs'
+figures).
 
 `ArenaBattle.tsx` is the battle, its parts in `battle/`: `Hud.tsx` (a band over the core that the
 camera keeps clear), `Transport.tsx` (the scrub bar marks keyframes and bot deaths), the rail's

@@ -10,6 +10,7 @@ import { defineConfig, type Plugin } from 'vite'
 import { parseTokenRules, themeTokens } from '../../packages/ui/src/css-tokens'
 import { getVersion } from '../../scripts/version'
 import { themeBootScript } from './src/app/theme-boot'
+import { REMARK_PLUGINS } from './src/docs/remark'
 
 const PACKAGES = fileURLToPath(new URL('../../packages/', import.meta.url))
 
@@ -26,12 +27,12 @@ export default defineConfig({
   plugins: [
     tanstackRouter({ target: 'react', autoCodeSplitting: true }),
     // The docs pages: MDX compiles to JSX before React's plugin sees it.
-    { enforce: 'pre', ...mdx() },
+    { enforce: 'pre', ...mdx({ remarkPlugins: REMARK_PLUGINS }) },
     react({ include: /\.(mdx|tsx?|jsx?)$/ }),
     tailwindcss(),
     themeBoot(),
     preloadFonts(),
-    asmText(),
+    textImport(),
   ],
   define: {
     __APP_VERSION__: JSON.stringify(getVersion()),
@@ -70,36 +71,47 @@ export default defineConfig({
   },
 })
 
-/** An `.asm` import's text attribute, after the specifier: `from './dwarf.asm' with { type: 'text' }`. */
-const ASM_TEXT_IMPORT = /(from\s*(['"])[^'"]+\.asm\2)\s*with\s*\{\s*type\s*:\s*(['"])text\3\s*\}/g
+/**
+ * A text import's attribute, after the specifier: `from './dwarf.asm' with { type: 'text' }`, or
+ * a docs figure's `from './modrm.svg' with { type: 'text' }`.
+ */
+const TEXT_IMPORT =
+  /(from\s*(['"])[^'"]+\.(?:asm|svg)\2)\s*with\s*\{\s*type\s*:\s*(['"])text\3\s*\}/g
 
 /**
- * The roster's sources, imported as text (`import dwarf from '../roster/dwarf.asm' with { type:
- * 'text' }`) the way Bun reads them. Browsers take only the `json` and `css` import types, and
- * Rollup would parse the file as JavaScript: this drops the attribute from the importer and makes
- * each `.asm` file a module whose default export is its text.
+ * The roster's sources and the docs' figures, imported as text (`import dwarf from
+ * '../roster/dwarf.asm' with { type: 'text' }`) the way Bun reads them. Browsers take only the
+ * `json` and `css` import types, and Rollup would parse the file as JavaScript: this drops the
+ * attribute from the importer and makes each such file a module whose default export is its text.
  */
-function asmText(): Plugin {
+function textImport(): Plugin {
   return {
-    name: 'asmbots:asm-text',
+    name: 'asmbots:text-import',
     enforce: 'pre',
     load(id) {
-      const file = asmFile(id)
+      const file = textFile(id)
       if (file === null) return null
       return { code: `export default ${JSON.stringify(readFileSync(file, 'utf8'))}`, map: null }
     },
     transform(code, id) {
-      if (asmFile(id) !== null || !code.includes('.asm')) return null
-      const stripped = code.replace(ASM_TEXT_IMPORT, '$1')
+      if (textFile(id) !== null || !/\.(asm|svg)['"]/.test(code)) return null
+      const stripped = code.replace(TEXT_IMPORT, '$1')
       return stripped === code ? null : { code: stripped, map: null }
     },
   }
 }
 
-/** The path of an `.asm` module id, or null. Vite adds `?import` to a file it does not know as code. */
-function asmFile(id: string): string | null {
+/** The docs' figures: the only SVG files read as text (any other SVG stays an asset URL). */
+const FIGURES = fileURLToPath(new URL('./src/docs/figures/', import.meta.url))
+
+/**
+ * The path of a text module id (an `.asm` file, or a docs figure), or null. Vite adds `?import`
+ * to a file it does not know as code.
+ */
+function textFile(id: string): string | null {
   const file = id.split('?')[0] ?? id
-  return file.endsWith('.asm') ? file : null
+  if (file.endsWith('.asm')) return file
+  return file.endsWith('.svg') && file.startsWith(FIGURES) ? file : null
 }
 
 /** The tokens a theme swatch on `/settings` draws, per theme, from the kit's tokens.css. */

@@ -10,6 +10,7 @@ bun run check       # typecheck, lint, contrast, test
 bun run contrast    # WCAG contrast of the text tokens in all five themes
 bun run golden      # the roster goldens; --update writes packages/bots/goldens/results.json
 bun run opcodes     # writes docs/opcodes.json, the instruction reference the editor's cards read
+bun run docs-index  # writes the /docs search index from the MDX pages
 ```
 
 ## Optional Dependencies

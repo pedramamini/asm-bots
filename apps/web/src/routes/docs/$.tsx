@@ -10,16 +10,16 @@ export const Route = createFileRoute('/docs/$')({
     const page = findDoc(params._splat)
     if (page === undefined) throw notFound()
     const { default: Content } = await page.load()
-    return { title: page.title, Content }
+    return { slug: page.slug, title: page.title, Content }
   },
   head: ({ params }) => titleHead('docs', findDoc(params._splat)?.title ?? params._splat),
   component: DocsPage,
 })
 
 function DocsPage() {
-  const { title, Content } = Route.useLoaderData()
+  const { slug, title, Content } = Route.useLoaderData()
   return (
-    <DocsArticle title={title}>
+    <DocsArticle title={title} slug={slug}>
       <Content components={MDX_COMPONENTS} />
     </DocsArticle>
   )

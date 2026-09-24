@@ -15,6 +15,7 @@
     "build": "bun run --filter '*' build",
     "golden": "bun run scripts/golden.ts",
     "opcodes": "bun run scripts/gen-opcode-docs.ts",
+    "docs-index": "bun run apps/web/scripts/gen-docs-index.ts",
     "version": "bun run scripts/version.ts",
     "asmbots": "bun run --filter @asmbots/cli asmbots"
   },

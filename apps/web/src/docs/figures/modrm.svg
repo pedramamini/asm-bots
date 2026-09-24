@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 344 104" width="344" height="104" font-family="var(--font-mono)" font-size="12">
+  <title>The ModR/M byte: mod in bits 7 and 6, reg in bits 5 to 3, r/m in bits 2 to 0</title>
+  <g fill="var(--text-dim)" text-anchor="middle" font-size="10">
+    <text x="32" y="14">7</text>
+    <text x="72" y="14">6</text>
+    <text x="112" y="14">5</text>
+    <text x="152" y="14">4</text>
+    <text x="192" y="14">3</text>
+    <text x="232" y="14">2</text>
+    <text x="272" y="14">1</text>
+    <text x="312" y="14">0</text>
+  </g>
+  <g stroke="var(--border-strong)" fill="var(--panel-2)">
+    <rect x="12" y="22" width="80" height="32" />
+    <rect x="92" y="22" width="120" height="32" />
+    <rect x="212" y="22" width="120" height="32" />
+  </g>
+  <g stroke="var(--border)">
+    <line x1="52" y1="22" x2="52" y2="54" />
+    <line x1="132" y1="22" x2="132" y2="54" />
+    <line x1="172" y1="22" x2="172" y2="54" />
+    <line x1="252" y1="22" x2="252" y2="54" />
+    <line x1="292" y1="22" x2="292" y2="54" />
+  </g>
+  <g text-anchor="middle">
+    <text x="52" y="43" fill="var(--accent)">mod</text>
+    <text x="152" y="43" fill="var(--text-bright)">reg</text>
+    <text x="272" y="43" fill="var(--info)">r/m</text>
+  </g>
+  <g fill="var(--text-muted)" text-anchor="middle" font-size="10">
+    <text x="52" y="74">addressing</text>
+    <text x="52" y="88">mode</text>
+    <text x="152" y="74">register, or</text>
+    <text x="152" y="88">opcode /0../7</text>
+    <text x="272" y="74">register, or</text>
+    <text x="272" y="88">base + index</text>
+  </g>
+</svg>
