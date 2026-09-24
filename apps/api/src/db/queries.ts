@@ -26,6 +26,8 @@ export interface UserRow {
   handle: string
   avatar_url: string | null
   created_at: string
+  /** The GitHub account's primary verified email; never in a `User`. */
+  email: string | null
 }
 
 export interface BotRow {
@@ -233,6 +235,57 @@ export async function getUser(db: D1Database, id: string): Promise<User | null> 
 export async function getUserByHandle(db: D1Database, handle: string): Promise<User | null> {
   const row = await db.prepare('SELECT * FROM users WHERE handle = ?').bind(handle).first<UserRow>()
   return row && toUser(row)
+}
+
+export async function getUserRowByGithubId(
+  db: D1Database,
+  githubId: number,
+): Promise<UserRow | null> {
+  return db.prepare('SELECT * FROM users WHERE github_id = ?').bind(githubId).first<UserRow>()
+}
+
+/** Whether `handle` is someone's, in any case. */
+export async function isHandleTaken(db: D1Database, handle: string): Promise<boolean> {
+  const row = await db.prepare('SELECT 1 FROM users WHERE handle = ?').bind(handle).first()
+  return row !== null
+}
+
+/** What sign-in learns from GitHub each time. */
+export interface GithubProfile {
+  githubId: number
+  avatarUrl: string | null
+  email: string | null
+}
+
+/**
+ * The user for a GitHub account: made with `id` and `handle` the first time; after that, the same
+ * row with the avatar and email refreshed (its handle is the user's to change, not GitHub's).
+ */
+export async function upsertGithubUser(
+  db: D1Database,
+  { id, handle, githubId, avatarUrl, email }: GithubProfile & { id: string; handle: string },
+): Promise<UserRow> {
+  const row = await db
+    .prepare(
+      `INSERT INTO users (id, github_id, handle, avatar_url, email) VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT (github_id) DO UPDATE
+         SET avatar_url = excluded.avatar_url, email = excluded.email
+       RETURNING *`,
+    )
+    .bind(id, githubId, handle, avatarUrl, email)
+    .first<UserRow>()
+  if (row === null) throw new Error(`upserting github user ${githubId} returned no row`)
+  return row
+}
+
+export async function updateGithubUser(
+  db: D1Database,
+  { githubId, avatarUrl, email }: GithubProfile,
+): Promise<UserRow | null> {
+  return db
+    .prepare('UPDATE users SET avatar_url = ?, email = ? WHERE github_id = ? RETURNING *')
+    .bind(avatarUrl, email, githubId)
+    .first<UserRow>()
 }
 
 export async function getBot(db: D1Database, id: string): Promise<Bot | null> {

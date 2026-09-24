@@ -19,6 +19,7 @@ export {
   MAX_VERIFIED_CYCLES,
   MatchList,
   MatchSummary,
+  Me,
   ReplayUpload,
   StoredReplay,
   TournamentDetail,

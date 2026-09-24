@@ -18,6 +18,7 @@
     "@asmbots/protocol": "workspace:*",
     "@asmbots/tourney": "workspace:*",
     "@asmbots/ui": "workspace:*",
+    "arctic": "3.7.0",
     "hono": "4.13.9"
   },
   "devDependencies": {

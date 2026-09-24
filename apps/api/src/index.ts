@@ -4,6 +4,8 @@
  */
 import { Hono } from 'hono'
 import { requestId } from 'hono/request-id'
+import { auth } from './auth/github'
+import { loadSession, sameOrigin } from './auth/session'
 import { scheduled } from './cron'
 import type { AppEnv, Env } from './env'
 import { appCors, errorResponse, onError, requestLog } from './middleware'
@@ -12,6 +14,7 @@ import { assembler } from './routes/assemble'
 import { bots } from './routes/bots'
 import { health } from './routes/health'
 import { hills } from './routes/hills'
+import { me } from './routes/me'
 import { replays } from './routes/replays'
 import { tournaments } from './routes/tournaments'
 import { users } from './routes/users'
@@ -22,10 +25,13 @@ const app = new Hono<AppEnv>()
 app.use(requestId())
 app.use(requestLog)
 app.use('/api/*', appCors)
-app.on(['POST', 'PUT', 'PATCH', 'DELETE'], '/api/*', rateLimit(WRITE_LIMIT))
+app.on(['POST', 'PUT', 'PATCH', 'DELETE'], '/api/*', sameOrigin, rateLimit(WRITE_LIMIT))
+app.use('/api/*', loadSession)
 
 app.route('/api/health', health)
 app.route('/api/version', version)
+app.route('/api/auth', auth)
+app.route('/api/me', me)
 app.route('/api/assemble', assembler)
 app.route('/api/bots', bots)
 app.route('/api/hills', hills)

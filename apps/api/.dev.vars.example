@@ -1,9 +1,9 @@
 # `wrangler dev` secrets: copy to `.dev.vars` (git-ignored) and fill in. Production sets each
-# with `wrangler secret put <NAME>` (ARCHITECTURE §10). Nothing reads them yet: GitHub sign-in
-# lands with the auth routes. `wrangler dev` runs without this file.
+# with `wrangler secret put <NAME>` (ARCHITECTURE §10). `wrangler dev` runs without this file,
+# with sign-in off.
 
 # A GitHub OAuth app (https://github.com/settings/developers) whose callback is on the Vite dev
-# server's origin, http://localhost:5173.
+# server's origin: http://localhost:5173/api/auth/github/callback.
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
 

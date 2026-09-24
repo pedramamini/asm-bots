@@ -12,7 +12,12 @@ export default defineConfig(async () => {
       cloudflareTest({
         wrangler: { configPath: './wrangler.jsonc' },
         miniflare: {
-          bindings: { TEST_MIGRATIONS: migrations },
+          bindings: {
+            TEST_MIGRATIONS: migrations,
+            GITHUB_CLIENT_ID: 'test-client-id',
+            GITHUB_CLIENT_SECRET: 'test-client-secret',
+            SESSION_SECRET: 'test-session-secret',
+          },
           assets: {
             directory: 'test/fixtures/site',
             binding: 'ASSETS',

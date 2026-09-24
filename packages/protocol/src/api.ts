@@ -74,6 +74,10 @@ export type BotVersionDetail = z.output<typeof BotVersionDetail>
 export const UserDetail = z.object({ user: User, bots: z.array(Bot) })
 export type UserDetail = z.output<typeof UserDetail>
 
+/** `GET /api/me`: the signed-in user; a 401 when nobody is. */
+export const Me = z.object({ user: User })
+export type Me = z.output<typeof Me>
+
 /** `GET /api/tournaments` */
 export const TournamentList = z.object({ tournaments: z.array(Tournament) })
 export type TournamentList = z.output<typeof TournamentList>

@@ -26,7 +26,7 @@ Local D1, R2, and KV live in `apps/api/.wrangler/state`; delete that folder to s
 
 ### Secrets
 
-Copy `.dev.vars.example` to `.dev.vars` (git-ignored) for `wrangler dev`. Production sets the same names with `wrangler secret put`. No route reads them yet; the Worker runs without the file.
+Copy `.dev.vars.example` to `.dev.vars` (git-ignored) for `wrangler dev`. Production sets the same names with `wrangler secret put`. The Worker runs without the file; sign-in then answers 500 `sign-in is not configured` and every reader is anonymous.
 
 | Name | For |
 | --- | --- |
@@ -40,7 +40,7 @@ Copy `.dev.vars.example` to `.dev.vars` (git-ignored) for `wrangler dev`. Produc
 | `ASSETS` | Static assets | `../web/dist` | The SPA; unknown paths get `index.html`, except `/api/*` (`run_worker_first`) |
 | `DB` | D1 | `asmbots` | Users, bots, versions, hills, tournaments, matches (`src/db/migrations`) |
 | `REPLAYS` | R2 | `asmbots-replays` | Replays at `replays/<key>.json`, bot binaries; content-addressed |
-| `KV` | KV | `asmbots-kv` | Rate-limit counters, OG image cache (`og:<key>`, 1 day) |
+| `KV` | KV | `asmbots-kv` | Sessions (`sess:<id>`, 30 days), rate-limit counters, OG image cache (`og:<key>`, 1 day) |
 | `RUNNER` | Durable Object | `Runner` | Tournament and hill runs (stub until EXEC 3.3) |
 | `LIVE_ROOM` | Durable Object | `LiveRoom` | Live match WebSocket room (stub until EXEC 3.3) |
 | `ISA_VERSION` | var | `x16c-v1` | The ISA the hills run |
@@ -64,9 +64,21 @@ A new migration is the next `src/db/migrations/NNNN_name.sql`; never edit one th
 
 Every error is the protocol shape `{ error: { code, message } }` with an `X-Request-Id` header. Write routes (`POST`, `PUT`, `PATCH`, `DELETE`) are rate limited to 60 requests a minute per IP (KV).
 
+### Sign-in and sessions (`src/auth`)
+
+GitHub OAuth through `arctic`. The redirect URI is the OAuth app's registered callback, so the dev app's is `http://localhost:5173/api/auth/github/callback` and production's is the site's. A session is a random id in the signed cookie `__Host-session` (HttpOnly, Secure, SameSite=Lax, 30 days) and `{ userId, createdAt, ua }` in KV at `sess:<id>` with the same TTL. A route that needs someone uses the `requireUser` middleware; `viewerId(c)` is the signed-in user or null.
+
+CSRF: no token. SameSite=Lax keeps the cookie off every cross-site request but a top-level GET, and no GET changes state. A write whose `Origin` is neither the site nor `APP_ORIGIN` is 403. A write with no `Origin` (the CLI, scripts) is allowed, but its cookie counts for nothing, since every browser sends `Origin` on a write. The reasoning is in `src/auth/session.ts`.
+
+In dev, sign in from a browser that keeps a Secure cookie on `http://localhost` (Chrome, Firefox).
+
 | Method and path | Answers |
 | --- | --- |
 | `GET /api/health` | `{ ok, version, isa }`; touches no binding |
+| `GET /api/auth/github?returnTo=/path` | 302 to GitHub, with the state (and `returnTo`, a local path) in 10-minute cookies |
+| `GET /api/auth/github/callback` | Checks the state, trades the code, makes or refreshes the user by `github_id` (first handle: the login, else login plus a suffix), starts a session, 302 to `returnTo` or `/?signed-in=1`; 400 on a bad state or code |
+| `POST /api/auth/logout` | Ends the session (KV and cookie); 204 |
+| `GET /api/me` | `{ user }` for the signed-in user; 401 otherwise |
 | `GET /api/version` | `{ version, isa, live }` (`live`: the `LiveRoom` protocol version) |
 | `POST /api/assemble` | `{ source }` → `{ bytes, size, diagnostics, sha256 }`; `bytes: null` when the source has errors |
 | `GET /api/bots/:id` | The bot, its owner, its versions (no sources), and its hill places; a private bot is 404 to others |
