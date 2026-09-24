@@ -19,6 +19,14 @@ battle and its keyframes, and `worker/client.ts` the `ArenaClient` and the `useA
 `render/post.ts`), `render/canvas2d.ts` is the 2D fallback, `render/camera.ts` zooms and pans, and
 `render/overlay.ts` draws the rulers.
 
+`/arena` is `ArenaPage.tsx`: `ArenaSetup.tsx` until the fight button, then `ArenaBattle.tsx`. The
+URL holds the setup, `?b=roster:dwarf,local:<id>&seed=42&cycles=100000&rounds=3&procs=64&spacing=1024`
+(`setup/url.ts`; no `seed` is a random seed each battle), and a share link carries its local bots'
+sources in `#src=` (deflated JSON, base64url). `setup/search.ts`, the route's `validateSearch`,
+imports nothing, since it rides the entry chunk. `setup/config.ts` has the limits and the presets,
+and `setup/bots.ts` the roster, the local and shared bots, dropped files, and the fight button's
+words. `vite.config.ts` loads the roster's `.asm` imports as text (`asmText`).
+
 The renderer's Playwright specs drive `e2e/harness/arena.html`, a page only the dev server serves.
 `e2e/arena-perf.spec.ts` (16 roster bots at 2,000 cycles a frame, p95 frame gap at most 20 ms) is
 its own project and runs after the rest: `bunx playwright test --project perf --no-deps` runs it

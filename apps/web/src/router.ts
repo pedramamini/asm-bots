@@ -1,12 +1,21 @@
 import { QueryClient } from '@tanstack/react-query'
-import { createRouter } from '@tanstack/react-router'
+import { createRouter, defaultStringifySearch } from '@tanstack/react-router'
 import { NotFound } from './app/NotFound'
 import { routeTree } from './routeTree.gen'
+
+/**
+ * The query string as the router writes it by default, with `:` and `,` left as they are (a query
+ * may hold both, RFC 3986 §3.4), so a shared arena link reads `?b=roster:dwarf,roster:paper`.
+ */
+export function stringifySearch(search: Record<string, unknown>): string {
+  return defaultStringifySearch(search).replace(/%3A/gi, ':').replace(/%2C/gi, ',')
+}
 
 export function createAppRouter(queryClient: QueryClient) {
   return createRouter({
     routeTree,
     context: { queryClient },
+    stringifySearch,
     defaultPreload: 'intent',
     // The query cache holds loader data; the router need not hold it twice.
     defaultPreloadStaleTime: 0,

@@ -3,8 +3,9 @@
  * `arena.worker.ts` as a module Worker, and the frames come back with their arrays transferred.
  * `test/arena-worker.test.ts` runs the same checks in Bun's Worker.
  *
- * No route of the build loads the client yet, so the spec runs against the dev server: DEV_URL
- * says where it listens (default: Vite's http://localhost:5173).
+ * The page imports `client.ts` by its source path, which only the dev server serves, so the spec
+ * runs there: DEV_URL says where it listens (default: Vite's http://localhost:5173).
+ * `arena-setup.spec.ts` starts the build's Worker through `/arena`.
  */
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
