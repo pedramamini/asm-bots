@@ -34,6 +34,17 @@ export type {
   UnaryExpr,
   UnaryOp,
 } from './ast'
+export type {
+  CompareCondition,
+  CompareOp,
+  Condition,
+  LogicCondition,
+  LogicOp,
+  NotCondition,
+  ParsedCondition,
+  ValueCondition,
+} from './condition'
+export { evaluateCondition, parseCondition } from './condition'
 export type { Diag, DiagCode } from './diag'
 export { DIAG_CODES, formatDiag } from './diag'
 export type { DisassembleOptions, DisLine } from './disassemble'

@@ -19,14 +19,15 @@ flowchart LR
 | `lint(source, assembled, { maxBytes })` | Warnings about a bot that assembles but may not do what its author means (see [Linter](#linter)). Give it the options that `assemble` got. It does not repeat the assembler's errors, so show both. |
 | `formatSource(source)` | The canonical layout (see [Formatter](#formatter)). It never changes what the source assembles to. |
 | `disassemble(bytes, base, { symbols })` | One `DisLine` (`{ address, length, text, bytesHex, kind }`) per instruction or loose byte. The texts assemble back to `bytes` (see [Disassembly](#disassembly)). |
-| `tokenize(source, diags, { comments })` | The `Token`s of the source, ending in `eof`. Lexer errors go into `diags`. With `comments: true`, each comment is a `comment` token. |
+| `tokenize(source, diags, { comments, conditions })` | The `Token`s of the source, ending in `eof`. Lexer errors go into `diags`. With `comments: true`, each comment is a `comment` token. With `conditions: true`, the operators of a [condition](#conditions) are `punct` tokens. |
 | `parse(tokens)` | `{ lines, diags }`: one `Line` per source line, with `%define` expanded and `.local` names made full (`start.loop`). |
 | `evaluate(expr, symbols, here)`, `evaluateExact(expr, symbols, here)` | The value of a parsed `Expr`, wrapped to 16 bits or exact, or an `Unresolved` for an undefined symbol or a division by zero. |
+| `parseCondition(text)`, `evaluateCondition(condition, symbols, here)` | A debugger condition such as `ax == 0x10 && cx < 3` (see [Conditions](#conditions)): `{ ok: true, condition }` or `{ ok: false, diag }`, and whether it holds, or an `Unresolved`. |
 | `formatDiag(diag, file)` | A diagnostic on one line: `dwarf.asm:3:9: error: jump out of range [jump-out-of-range]`. |
 | `DIAG_CODES` | Every `DiagCode`, in the order of the [codes table](#codes). |
 | `WORDS` | The dialect's words by class, lowercase, as sets: `mnemonics` (aliases included), `prefixes`, `registers`, `sizes` (`byte`, `word`, `short`, `near`, `strict`), `directives` (`db dw resb resw org bits align equ times`), `percent` (`%define` and the metadata directives), and `targets` (the mnemonics that take a jump target). For tools that color or complete source without parsing it, such as the editor. |
 
-Types: `Assembled`, `AssembleOptions`, `AssembleOrThrowOptions`, `ListingLine`, `Diag`, `DiagCode`, `DisLine`, `DisassembleOptions`, `Token` and its kinds, `TokenizeOptions`, `Parsed`, `Line` and its kinds, `OperandAst` and its kinds, `Expr` and its kinds, and `Unresolved`.
+Types: `Assembled`, `AssembleOptions`, `AssembleOrThrowOptions`, `ListingLine`, `Diag`, `DiagCode`, `DisLine`, `DisassembleOptions`, `Token` and its kinds, `TokenizeOptions`, `Parsed`, `Line` and its kinds, `OperandAst` and its kinds, `Expr` and its kinds, `Unresolved`, `ParsedCondition`, `Condition` and its kinds, `CompareOp`, and `LogicOp`.
 
 Apart from the `AssembleError` of `assembleOrThrow`, only bad options throw: `assemble`, `assembleOrThrow`, and `lint` throw a `RangeError` when `maxBytes` is not an integer in 0..65536, and `disassemble` does when `base` is not an integer in 0..0xFFFF.
 
@@ -284,11 +285,23 @@ The round trip is exact for any byte string, not only for defined instructions: 
 
 `lint` does not read `; lint: allow <code>` comments. A caller that allows a warning drops it.
 
+## Conditions
+
+The debugger stops at a conditional breakpoint when its condition holds (`apps/web`, EXEC 2.4). `parseCondition(text)` reads one:
+
+- A value is an expression of ISA §6.1, read by the parser of source, so the number forms, the operators, and their precedence are the ones of source. A register is a value, not an address part: `ax`, `AL`, and `$ax` all become the symbol of the lowercase name. Other names stay as written.
+- `== != < <= > >=` compare two values, `!` negates, `&&` and `||` join, and parentheses group. From loosest: `||`, `&&`, `!`, the comparisons, then the operators of source. So `ax & 0xFF == 0x10` is `(ax & 0xFF) == 0x10`, where C would read `ax & (0xFF == 0x10)`, and `!ax == 1` is `!(ax == 1)`.
+- A value on its own is true when it is not 0: `cx` is `cx != 0`.
+- A condition is not a value: `(ax == 1) == 1` and `ax < bx < cx` are errors.
+- Errors are `Diag`s on line 1, with the codes of the lexer and the parser. `=` alone is `bad-char`, with a hint to write `==`.
+
+`evaluateCondition(condition, symbols, here)` takes the value of each name from `symbols` and gives `$` the value `here`. Each value wraps to a word and comparisons are unsigned, so `ax == -1` is `ax == 0xFFFF`, `ax < 0` never holds, and `ax >= 0x8000` holds for the negative ones. `&&` and `||` evaluate their right side only when the left side does not decide, so `cx != 0 && 100 / cx > 3` never divides by zero. A missing name or a division by zero gives an `Unresolved`.
+
 ## Limits
 
 The hills take source from anyone, so the assembler has limits:
 
-- `%define` expansion: 10,000 tokens per line and 256 levels of nesting. Expressions: 1,024 operators. Past a limit, the result is a diagnostic, not a stack overflow.
+- `%define` expansion: 10,000 tokens per line and 256 levels of nesting. Expressions: 1,024 operators. Conditions: 256 levels of `!` and parentheses, and 1,024 operators. Past a limit, the result is a diagnostic, not a stack overflow.
 - Layout stops when a bot gets past 64 KB, with `size-over-cap` ("more than 65536 bytes").
 - The work is linear in the lines plus the bytes. On 2026-09-23 (Apple M5 Max, Bun 1.3.6), a 10,000-line bot assembled in about 45 ms, and a 50,000-line bot formatted in about 150 ms and linted in about 85 ms.
 
@@ -304,6 +317,7 @@ The hills take source from anyone, so the assembler has limits:
 | `disassemble.test.ts`, `roundtrip.test.ts` | The disassembler, and the round trip of [Disassembly](#disassembly). |
 | `format.test.ts` | `fixtures/format/*.asm` against their `.fmt.asm` goldens, idempotence over every fixture, and 2,000 seeded random programs that format to the same parse, diagnostics, and bytes. |
 | `lint.test.ts` | `fixtures/lint/*.asm` against their warning JSON. |
+| `condition.test.ts` | Conditions: precedence, groups against parenthesized values, spans, errors and limits, evaluation, and the lexer's condition operators. |
 | `api.test.ts` | The exports, `assembleOrThrow`, `formatDiag`, and the dependency rule: no import other than `@asmbots/codec`. |
 | `readme.test.ts` | This file: the codes table against `DIAG_CODES` and its examples, the dialect tables against the assembler, and the listing example. |
 

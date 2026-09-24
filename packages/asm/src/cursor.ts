@@ -56,6 +56,17 @@ export class Cursor {
     return t
   }
 
+  /** Where the cursor is, for `rewind`. */
+  mark(): number {
+    return this.pos
+  }
+
+  /** Goes back to a `mark`, to read the tokens after it another way. */
+  rewind(mark: number): void {
+    this.pos = mark
+    this.last = this.tokens[Math.max(mark - 1, 0)] as Token
+  }
+
   get atEnd(): boolean {
     return isEnd(this.peek())
   }

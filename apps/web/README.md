@@ -181,6 +181,7 @@ new bot from a template. The code is in `src/features/editor/`:
 | Toolbar | `EditorToolbar.tsx`: name, `%name`, size (warn from 90%, danger past the cap), assemble (Mod-Enter), format (Shift-Alt-f; `diff.ts` turns the formatter's text into small changes so the cursor stays in its token), lint, save (Mod-s), versions, share, `test vs ▾`, templates, listing. |
 | Storage | Local bots in IndexedDB (`store/local-bots.ts`), the last 20 saves of each in their own database (`store/bot-versions.ts`); the switches, the recent list, and each unsaved text (a draft) in `localStorage` (`store.ts`). |
 | `test vs ▾` | `test-vs.ts`: ten rounds of the duel against a roster bot in the arena Worker (`match`), shown as `W 7 · T 2 · L 1 vs imp`; `watch` opens `/arena` with the same bots and seed. |
+| Debugger core | `debug/session.ts`: `DebugSession` runs a `Battle` on the main thread, a cycle at a time: step (one instruction of the followed process), step over (`call`, REP), step out, run to cursor, run until death, run N, and step back through the last 256 snapshots (a cycle at a time through a run). Breakpoints are checks before each cycle, never bytes in the core; a condition such as `ax == 0x10 && cx < 3` is `@asmbots/asm`'s `parseCondition` over the registers and flags (`debug/condition.ts`). |
 
 The bot library (`Library.tsx`, `b`) lists recent documents, my bots, and the roster. In the editor,
 Esc leaves the text, so the page keys work.

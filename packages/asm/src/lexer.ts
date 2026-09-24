@@ -49,6 +49,11 @@ export type Token = NumberToken | StringToken | PlainToken
 export interface TokenizeOptions {
   /** Keep each `;` comment as a `comment` token, for the formatter. The parser skips them. */
   comments?: boolean
+  /**
+   * Read the operators of `parseCondition` as `punct` tokens: `== != < <= > >= && || !`. In
+   * source they are errors: `<` and `!` start no token, and `&&` is two `&`.
+   */
+  conditions?: boolean
 }
 
 /** ISA §6.1 identifiers: `[A-Za-z_.$?][A-Za-z0-9_.$?#@~]*`. A number is a word of IDENT_PART too. */
@@ -57,6 +62,9 @@ const IDENT_PART = /[A-Za-z0-9_.$?#@~]/
 /** Sticky, so it matches in place and leaves the end of the match in `lastIndex`. */
 const DIRECTIVE = /%[A-Za-z_][A-Za-z0-9_]*/y
 const PUNCT: ReadonlySet<string> = new Set('[],:+-*/%&|^~()')
+/** The operators a condition adds, two characters and then one, so `<=` is not `<` and `=`. */
+const CONDITION_PAIRS: ReadonlySet<string> = new Set(['==', '!=', '<=', '>=', '&&', '||'])
+const CONDITION_SINGLES: ReadonlySet<string> = new Set('<>!')
 
 /** Escape letter → character, in strings and character literals. */
 const ESCAPES: ReadonlyMap<string, string> = new Map([
@@ -208,6 +216,12 @@ export function tokenize(source: string, diags: Diag[] = [], opts: TokenizeOptio
       tokens.push({ kind: 'directive', ...span(start) })
     } else if (source.startsWith('<<', i) || source.startsWith('>>', i)) {
       i += 2
+      tokens.push({ kind: 'punct', ...span(start) })
+    } else if (opts.conditions === true && CONDITION_PAIRS.has(source.slice(i, i + 2))) {
+      i += 2
+      tokens.push({ kind: 'punct', ...span(start) })
+    } else if (opts.conditions === true && CONDITION_SINGLES.has(c)) {
+      i++
       tokens.push({ kind: 'punct', ...span(start) })
     } else if (PUNCT.has(c)) {
       i++

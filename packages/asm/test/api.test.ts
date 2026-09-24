@@ -33,11 +33,13 @@ describe('api: exports', () => {
       'assembleOrThrow',
       'disassemble',
       'evaluate',
+      'evaluateCondition',
       'evaluateExact',
       'formatDiag',
       'formatSource',
       'lint',
       'parse',
+      'parseCondition',
       'tokenize',
     ])
     expect(byName.assemble).toBe(assemble)
