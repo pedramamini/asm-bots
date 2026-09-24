@@ -21,6 +21,14 @@ The Worker (API, D1, R2, KV, local migrations and seed): [apps/api/README.md](./
 
 - **nasm** — The Netwide Assembler is used for codec cross-checks. Install with `brew install nasm`. Tests gracefully skip nasm-dependent checks if not available.
 
+## Branch Protection
+
+The `main` branch requires that the `CI` workflow passes before merging. Configure this in GitHub repository settings:
+
+- Require status checks to pass before merging
+- Require the `check` job from the `CI` workflow to succeed
+- Dismiss stale pull request approvals when new commits are pushed
+
 ## Documentation
 
 - [Architecture](./docs/ARCHITECTURE.md) — Repository layout, engine design, test strategy
