@@ -36,7 +36,13 @@ export type {
   SubmitToHillOptions,
 } from './hill'
 export { botHash, createHill, hill, submitToHill } from './hill'
-export type { IterateMatchOptions, MatchProgress, MatchResult, MatchRound } from './match'
+export type {
+  IterateMatchOptions,
+  MatchProgress,
+  MatchResult,
+  MatchRound,
+  RunMatchOptions,
+} from './match'
 export {
   iterateMatch,
   matchHash,
@@ -65,6 +71,7 @@ export { roundResult, runRound } from './round'
 export type {
   IterateRoundRobinOptions,
   MatchSpec,
+  RoundRobinMatchRunner,
   RoundRobinOptions,
   RoundRobinProgress,
   RoundRobinResult,

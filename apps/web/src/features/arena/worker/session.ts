@@ -162,7 +162,8 @@ export class ArenaSession {
         return this.requestFrame()
       case 'match': {
         const bots = request.bots.map(({ name, bytes, meta }) => ({ name, bytes, meta }))
-        return [{ type: 'match', match: runMatch(bots, request.config, request.rounds) }]
+        const { config, rounds, resume, through } = request
+        return [{ type: 'match', match: runMatch(bots, config, rounds, { resume, through }) }]
       }
     }
   }

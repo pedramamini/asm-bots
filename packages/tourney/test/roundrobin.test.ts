@@ -223,6 +223,40 @@ describe('iterateRoundRobin', () => {
     expect(rest).toEqual(roundRobin(entrants, CONFIG, opts))
   })
 
+  it('runs each match with run, in schedule order, and ends as roundRobin does', async () => {
+    const asked: number[][] = []
+    const result = await drain(
+      iterateRoundRobin(entrants, CONFIG, {
+        ...opts,
+        resume: roundRobin(entrants, CONFIG, opts).matches.slice(0, 2),
+        run: async (bots, spec) => {
+          asked.push([...spec.entrants])
+          expect(bots).toEqual(spec.entrants.map((e) => entrants[e]!))
+          return runMatch(bots, CONFIG, opts.rounds)
+        },
+      }),
+    )
+    expect(asked).toEqual([
+      [0, 3],
+      [1, 2],
+      [1, 3],
+      [2, 3],
+    ])
+    expect(result).toEqual(roundRobin(entrants, CONFIG, opts))
+  })
+
+  it('refuses what run gives when it is not the whole match', async () => {
+    const partial = (bots: readonly LoadedBot[]) =>
+      runMatch(bots, CONFIG, opts.rounds, { through: 1 })
+    await expect(
+      drain(iterateRoundRobin(entrants, CONFIG, { ...opts, run: partial })),
+    ).rejects.toThrow('not the whole match')
+    const other = (bots: readonly LoadedBot[]) => runMatch(bots, CONFIG, opts.rounds + 1)
+    await expect(
+      drain(iterateRoundRobin(entrants, CONFIG, { ...opts, run: other })),
+    ).rejects.toThrow('not the whole match')
+  })
+
   it('refuses a resume that does not fit the schedule', async () => {
     const wrong = runMatch([entrants[1]!, entrants[0]!], CONFIG, 2)
     await expect(

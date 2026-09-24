@@ -115,13 +115,17 @@ export type ArenaRequest =
   | { readonly type: 'requestFrame' }
   /**
    * A whole match of `rounds` rounds, headless: no frames, and the battle loaded stays as it was.
-   * Its answer is a `match` with the result `runMatch` gives.
+   * Its answer is a `match` with the result `runMatch` gives. With `resume` and `through`, part of
+   * one: the rounds after `resume`'s, up to `through` of them (a tournament's melee, a round at a
+   * time).
    */
   | {
       readonly type: 'match'
       readonly bots: readonly ArenaBot[]
       readonly config: BattleConfigInput
       readonly rounds: number
+      readonly resume?: MatchResult | undefined
+      readonly through?: number | undefined
     }
 
 /** The requests that get a frame, or an error in its place. */

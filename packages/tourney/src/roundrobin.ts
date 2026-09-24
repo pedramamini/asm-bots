@@ -5,7 +5,8 @@
  * tournaments.
  *
  * `iterateRoundRobin` runs one match per step and yields the standings after each. With
- * `resume` it takes the matches already played and runs only the rest.
+ * `resume` it takes the matches already played and runs only the rest; with `run` the caller
+ * runs each match (the web app, in its arena Worker).
  */
 import type { BattleConfigInput, LoadedBot } from '@asmbots/engine'
 import { type MatchResult, matchHash, runMatch } from './match'
@@ -27,11 +28,22 @@ export interface RoundRobinOptions {
   readonly groupSize?: number | undefined
 }
 
+/**
+ * Runs one scheduled match: `bots` are its entrants, in `spec.entrants` order. It must give what
+ * `runMatch(bots, config, rounds)` gives: the iterator checks the key.
+ */
+export type RoundRobinMatchRunner = (
+  bots: readonly LoadedBot[],
+  spec: MatchSpec,
+) => MatchResult | Promise<MatchResult>
+
 export interface IterateRoundRobinOptions extends RoundRobinOptions {
   /** When it aborts, the iterator throws the abort reason before it runs the next match. */
   readonly signal?: AbortSignal | undefined
   /** The results of the first matches of the schedule, in order: the iterator skips them. */
   readonly resume?: readonly MatchResult[] | undefined
+  /** Runs each match. Default: `runMatch`, in this thread. */
+  readonly run?: RoundRobinMatchRunner | undefined
 }
 
 /** What `iterateRoundRobin` yields after each match. */
@@ -160,19 +172,47 @@ export function roundRobin(
 /**
  * `roundRobin` one match at a time: yields `{ match, of, spec, result, standings }` after each
  * match and returns the whole round robin. With `resume`, it starts after the matches given;
- * an `Error` when they do not fit the schedule. With `signal`, an abort stops it before the
- * next match: the iterator throws the abort reason.
+ * an `Error` when they do not fit the schedule. With `run`, the caller runs each match; an
+ * `Error` when what it gives is not the whole match. With `signal`, an abort stops it before
+ * the next match: the iterator throws the abort reason.
  */
 export async function* iterateRoundRobin(
   entrants: readonly LoadedBot[],
   config: BattleConfigInput,
   options: IterateRoundRobinOptions,
 ): AsyncGenerator<RoundRobinProgress, RoundRobinResult> {
-  const { signal, resume = [] } = options
-  const it = play(entrants, config, options, resume, () => signal?.throwIfAborted())
-  for (;;) {
-    const step = it.next()
-    if (step.done) return step.value
-    yield step.value
+  const { signal, resume = [], run } = options
+  if (run === undefined) {
+    const it = play(entrants, config, options, resume, () => signal?.throwIfAborted())
+    for (;;) {
+      const step = it.next()
+      if (step.done) return step.value
+      yield step.value
+    }
   }
+  const { rounds, groupSize = 2 } = options
+  const schedule = roundRobinSchedule(entrants.length, groupSize)
+  checkResume(entrants, config, rounds, schedule, resume)
+  const names = entrants.map((b) => b.name)
+  const matches = [...resume]
+  const played = () =>
+    matches.map((result, i) => ({ entrants: (schedule[i] as MatchSpec).entrants, result }))
+  for (let i = matches.length; i < schedule.length; i++) {
+    signal?.throwIfAborted()
+    const spec = schedule[i] as MatchSpec
+    const bots = spec.entrants.map((e) => entrants[e] as LoadedBot)
+    const result = await run(bots, spec)
+    if (result.key !== matchHash(bots, config, rounds) || result.rounds.length !== result.of) {
+      throw new Error(`round robin: match ${i} ran as ${result.key}, not the whole match`)
+    }
+    matches.push(result)
+    yield {
+      match: matches.length,
+      of: schedule.length,
+      spec,
+      result,
+      standings: standingsFromMatches(names, played()),
+    }
+  }
+  return { schedule, matches, standings: standingsFromMatches(names, played()) }
 }

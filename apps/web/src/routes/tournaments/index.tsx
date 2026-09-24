@@ -1,16 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Placeholder } from '../../app/Placeholder'
 import { titleHead } from '../../app/title'
+import { TournamentsPage } from '../../features/tournaments/TournamentsPage'
 
 export const Route = createFileRoute('/tournaments/')({
   head: () => titleHead('tournaments'),
-  component: TournamentsPage,
+  component: TournamentsRoute,
 })
 
-function TournamentsPage() {
-  return (
-    <Placeholder title="tournaments">
-      scheduled, running, and finished tournaments list here.
-    </Placeholder>
-  )
+function TournamentsRoute() {
+  return <TournamentsPage />
 }

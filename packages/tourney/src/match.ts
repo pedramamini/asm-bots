@@ -72,6 +72,16 @@ export interface IterateMatchOptions {
   readonly resume?: MatchResult | undefined
 }
 
+export interface RunMatchOptions {
+  /** A partial of the same match (same key): only the rounds it lacks run. */
+  readonly resume?: MatchResult | undefined
+  /**
+   * Stop once the match has this many rounds, 1..`rounds`: a partial comes back, which a later
+   * call resumes. Default: all of them. Fewer than `resume` has is an `Error`.
+   */
+  readonly through?: number | undefined
+}
+
 /** `config` over the engine defaults. The engine checks the values when a round runs. */
 function resolve(config: BattleConfigInput): BattleConfig {
   return {
@@ -180,9 +190,9 @@ export function withRound(match: MatchResult, r: RoundResult): MatchResult {
 }
 
 /**
- * Runs the rounds of a match after the `from.rounds.length` already run, yielding the match
- * after each. `before` runs ahead of each round. The partials are fresh objects each time, so a
- * caller can keep them.
+ * Runs the rounds of a match after the `from.rounds.length` already run, up to `through` of
+ * them, yielding the match after each. `before` runs ahead of each round. The partials are fresh
+ * objects each time, so a caller can keep them.
  */
 function* play(
   bots: readonly LoadedBot[],
@@ -190,6 +200,7 @@ function* play(
   rounds: number,
   from: MatchResult | undefined,
   before: () => void,
+  through = rounds,
 ): Generator<MatchResult, MatchResult> {
   const c = resolve(config)
   const start = newMatch(bots, c, rounds)
@@ -197,7 +208,7 @@ function* play(
   if (match.key !== start.key || match.of !== rounds || match.rounds.length > rounds) {
     throw new Error(`match: cannot resume match ${match.key} as match ${start.key}`)
   }
-  for (let i = match.rounds.length; i < rounds; i++) {
+  for (let i = match.rounds.length; i < through; i++) {
     before()
     const order = roundOrder(bots.length, i)
     const r = runRound(
@@ -212,14 +223,26 @@ function* play(
 
 /**
  * Runs a match of `rounds` rounds (ISA §5.5). Round i has seed `config.seed + i` and the bot
- * order rotated by i. Throws `RangeError` for a bad round count, and what `simulate` throws.
+ * order rotated by i. With `resume`, it starts after the rounds that partial holds; with
+ * `through`, it stops at that many rounds and returns the partial, so a caller can run a match a
+ * round at a time. Throws `RangeError` for a bad round count or `through`, `Error` for a
+ * `resume` of another match, and what `simulate` throws.
  */
 export function runMatch(
   bots: readonly LoadedBot[],
   config: BattleConfigInput,
   rounds: number,
+  options: RunMatchOptions = {},
 ): MatchResult {
-  const it = play(bots, config, rounds, undefined, () => {})
+  checkRounds(rounds)
+  const { resume, through = rounds } = options
+  if (!Number.isInteger(through) || through < 1 || through > rounds) {
+    throw new RangeError(`match: through must be an integer in 1..${rounds}, got ${through}`)
+  }
+  if (resume !== undefined && resume.rounds.length > through) {
+    throw new Error(`match: ${resume.rounds.length} rounds run, past through ${through}`)
+  }
+  const it = play(bots, config, rounds, resume, () => {}, through)
   for (;;) {
     const step = it.next()
     if (step.done) return step.value

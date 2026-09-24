@@ -8,7 +8,7 @@
  * or hidden tab slows the battle down instead of piling frames up.
  */
 import type { BattleConfig, BattleConfigInput, Result } from '@asmbots/engine'
-import type { MatchResult } from '@asmbots/tourney'
+import type { MatchResult, RunMatchOptions } from '@asmbots/tourney'
 import { create, createStore, type StoreApi } from 'zustand'
 import {
   type ArenaBot,
@@ -272,18 +272,20 @@ export class ArenaClient {
 
   /**
    * Runs a whole match headless (`match`), beside the battle and without touching it: the
-   * editor's `test vs`. Resolves with the result `runMatch` gives; rejects when the Worker refuses
+   * editor's `test vs`, a tournament's matches. `options` resume a partial and stop short, as
+   * `runMatch`'s do. Resolves with the result `runMatch` gives; rejects when the Worker refuses
    * the match or fails.
    */
   runMatch(
     bots: readonly ArenaBot[],
     config: BattleConfigInput,
     rounds: number,
+    options: RunMatchOptions = {},
   ): Promise<MatchResult> {
     if (this.disposed) return Promise.reject(new Error('arena worker: closed'))
     return new Promise((resolve, reject) => {
       this.matches.push({ resolve, reject })
-      this.send({ type: 'match', bots, config, rounds })
+      this.send({ type: 'match', bots, config, rounds, ...options })
     })
   }
 

@@ -106,6 +106,30 @@ describe('runMatch', () => {
       expect(() => runMatch([loop()], CONFIG, k)).toThrow(RangeError)
     }
   })
+  it('runs a match a round at a time with resume and through', () => {
+    const bots = [loop('a'), loop('b'), dat('c')]
+    const whole = runMatch(bots, CONFIG, 4)
+    let match = runMatch(bots, CONFIG, 4, { through: 1 })
+    expect(match.rounds).toEqual(whole.rounds.slice(0, 1))
+    for (let k = 2; k <= 4; k++) {
+      match = runMatch(bots, CONFIG, 4, { resume: match, through: k })
+      expect(match.rounds.length).toBe(k)
+    }
+    expect(match).toEqual(whole)
+    expect(runMatch(bots, CONFIG, 4, { resume: whole })).toEqual(whole)
+  })
+
+  it('rejects a bad through, a resume past it, and a resume of another match', () => {
+    const bots = [loop('a'), dat('c')]
+    for (const k of [0, 5, 1.5]) {
+      expect(() => runMatch(bots, CONFIG, 4, { through: k })).toThrow(RangeError)
+    }
+    const two = runMatch(bots, CONFIG, 4, { through: 2 })
+    expect(() => runMatch(bots, CONFIG, 4, { resume: two, through: 1 })).toThrow('past through')
+    expect(() => runMatch([dat('c'), loop('a')], CONFIG, 4, { resume: two })).toThrow(
+      'cannot resume',
+    )
+  })
 })
 
 describe('matchHash', () => {
