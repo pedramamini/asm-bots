@@ -295,6 +295,7 @@ export async function buildSeed(
         size: spec.size,
         rounds: spec.rounds,
         config_json: JSON.stringify(spec.config),
+        scoring: spec.scoring,
         created_at: at,
       }),
     )

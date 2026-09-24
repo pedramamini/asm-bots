@@ -3,6 +3,7 @@
  * over WebSocket. They carry inputs and outcomes only; spectators simulate a match themselves.
  */
 import * as z from 'zod/mini'
+import { JobStatus } from './jobs'
 import { Match } from './models'
 import { Seed } from './replay'
 import { Id, parse, Timestamp, whole } from './schema'
@@ -12,6 +13,12 @@ export const LIVE_PROTOCOL = 1
 
 /** What a room is of. */
 export const LiveRoomRef = z.object({ kind: z.enum(['hill', 'tournament']), id: Id })
+export type LiveRoomRef = z.output<typeof LiveRoomRef>
+
+/** A room's name, and so its `LiveRoom`'s: `hill:<hill id>` or `tournament:<tournament id>`. */
+export function liveRoomName(ref: LiveRoomRef): string {
+  return `${ref.kind}:${ref.id}`
+}
 
 /** A place in the room's standings. */
 export const Standing = z.object({
@@ -47,6 +54,18 @@ export const MatchFinished = z.object({ type: z.literal('matchFinished'), match:
 
 export const Standings = z.object({ type: z.literal('standings'), entries: z.array(Standing) })
 
+/**
+ * How far a `Runner` job is: `done` of the `of` matches it knows of ("fighting 24 of 32"). A hill
+ * job can learn of more when an entry joins the hill while it runs.
+ */
+export const Progress = z.object({
+  type: z.literal('progress'),
+  job: z.string().check(z.minLength(1), z.maxLength(128)),
+  status: JobStatus,
+  done: whole('done', 0, Number.MAX_SAFE_INTEGER),
+  of: whole('of', 0, Number.MAX_SAFE_INTEGER),
+})
+
 /** Either side's keepalive; `t` is the sender's clock, ms, echoed back. */
 export const Ping = z.object({ type: z.literal('ping'), t: z.number() })
 
@@ -55,6 +74,7 @@ export const LiveMessage = z.discriminatedUnion('type', [
   MatchStarted,
   MatchFinished,
   Standings,
+  Progress,
   Ping,
 ])
 export type LiveMessage = z.output<typeof LiveMessage>

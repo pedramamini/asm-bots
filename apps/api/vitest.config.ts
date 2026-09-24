@@ -17,6 +17,8 @@ export default defineConfig(async () => {
             GITHUB_CLIENT_ID: 'test-client-id',
             GITHUB_CLIENT_SECRET: 'test-client-secret',
             SESSION_SECRET: 'test-session-secret',
+            // No Runner alarm fires on its own: the tests step them (`runDurableObjectAlarm`).
+            RUNNER_ALARM_DELAY_MS: String(60 * 60 * 1000),
           },
           assets: {
             directory: 'test/fixtures/site',

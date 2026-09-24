@@ -1,7 +1,7 @@
 /** The Worker's bindings (`wrangler.jsonc`) and the Hono context they ride in. */
 import type { ActiveSession } from './auth/session'
-import type { LiveRoom } from './durable/live-room'
-import type { Runner } from './durable/runner'
+import type { LiveRoom } from './do/live-room'
+import type { Runner } from './do/runner'
 
 export interface Env {
   /** The web app's `dist`, with the single-page fallback. */
@@ -27,6 +27,11 @@ export interface Env {
    * e2e specs). Honored only for a request to localhost, so a production Worker never takes it.
    */
   DEV_FAKE_AUTH?: string
+  /**
+   * How long a `Runner` waits between its alarms, ms; 0 when unset. The API tests set an hour, so
+   * no alarm fires on its own, and step the alarms with `runDurableObjectAlarm`.
+   */
+  RUNNER_ALARM_DELAY_MS?: string
 }
 
 export interface AppEnv {

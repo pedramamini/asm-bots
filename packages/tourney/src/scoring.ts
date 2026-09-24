@@ -28,10 +28,13 @@ export interface Standing {
   readonly matches: number
 }
 
-/** A played match and the tournament entrants in it: `entrants[j]` is the match's entrant j. */
+/**
+ * A played match and the tournament entrants in it: `entrants[j]` is the match's entrant j. Only
+ * its points count, so a caller that keeps no more of a match than its points can pass those.
+ */
 export interface PlayedMatch {
   readonly entrants: readonly number[]
-  readonly result: MatchResult
+  readonly result: Pick<MatchResult, 'points'>
 }
 
 /**

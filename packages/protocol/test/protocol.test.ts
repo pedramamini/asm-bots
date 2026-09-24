@@ -20,17 +20,21 @@ import {
   Hill,
   HillEntry,
   type LiveMessage,
+  liveRoomName,
   Match,
   matchResultHash,
   ProtocolError,
+  parse,
   parseLiveMessage,
   parseReplay,
   Replay,
   type Replay as ReplayType,
+  RunnerJob,
   replayBots,
   replayConfig,
   replayKey,
   replayMatch,
+  runnerJobId,
   type ShareLink,
   sha256Hex,
   Tournament,
@@ -375,11 +379,38 @@ describe('records', () => {
         type: 'standings',
         entries: [{ botVersionId: 'v1', rank: 1, score: 3, wins: 1, ties: 0, losses: 0 }],
       },
+      { type: 'progress', job: 'hill:main:s1', status: 'running', done: 24, of: 32 },
       { type: 'ping', t: 12 },
     ]
     for (const message of messages)
       expect(parseLiveMessage(JSON.stringify(message))).toEqual(message)
     expect(() => parseLiveMessage('{"type":"shout"}')).toThrow(ProtocolError)
     expect(() => parseLiveMessage('not json')).toThrow('the message is missing')
+    expect(() =>
+      parseLiveMessage('{"type":"progress","job":"j","status":"paused","done":0,"of":1}'),
+    ).toThrow(ProtocolError)
+  })
+})
+
+describe('runner jobs', () => {
+  it('read a hill job and a tournament job, and name their runners and rooms', () => {
+    const hill = parse(
+      RunnerJob,
+      { kind: 'hill', hill: 'main', submissionId: 's-1', botVersionId: 'v1' },
+      'the job',
+    )
+    expect(runnerJobId(hill)).toBe('hill:main:s-1')
+    const tournament = parse(RunnerJob, { kind: 'tournament', tournamentId: 't_1' }, 'the job')
+    expect(runnerJobId(tournament)).toBe('tournament:t_1')
+    expect(liveRoomName({ kind: 'hill', id: 'hill-main' })).toBe('hill:hill-main')
+  })
+
+  it('refuse a job whose ids would not make a job id or a match id', () => {
+    const job = { kind: 'hill', hill: 'main', submissionId: 's1', botVersionId: 'v1' }
+    expect(RunnerJob.safeParse({ ...job, submissionId: 'a:b' }).success).toBe(false)
+    expect(RunnerJob.safeParse({ ...job, submissionId: 'x'.repeat(49) }).success).toBe(false)
+    expect(RunnerJob.safeParse({ ...job, hill: 'Main' }).success).toBe(false)
+    expect(RunnerJob.safeParse({ kind: 'hill', tournamentId: 't1' }).success).toBe(false)
+    expect(RunnerJob.safeParse({ ...job, kind: 'melee' }).success).toBe(false)
   })
 })

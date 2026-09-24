@@ -80,7 +80,10 @@ describe('the schema', () => {
       'bot_versions_bot_version',
       'bots_owner',
       'hill_entries_rank',
+      'hill_submissions_hill',
+      'hill_submissions_user',
       'matches_hill_finished',
+      'matches_key',
       'matches_tournament',
       'tournaments_starts',
     ])

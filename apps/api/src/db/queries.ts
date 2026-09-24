@@ -72,6 +72,10 @@ export interface HillRow {
   rounds: number
   config_json: string
   created_at: string
+  /** The changes its board has had: a Runner writes a board over the revision it read. */
+  revision: number
+  /** One match per entry, or all in one core. */
+  scoring: 'duel' | 'melee'
 }
 
 export interface HillEntryRow {
@@ -85,6 +89,19 @@ export interface HillEntryRow {
   age: number
   entered_at: string
   rank: number
+}
+
+export interface HillSubmissionRow {
+  id: string
+  hill_id: string
+  bot_version_id: string
+  user_id: string
+  status: 'queued' | 'running' | 'finished' | 'cancelled' | 'failed'
+  /** Its score in the field; null until it is finished. */
+  score: number | null
+  /** Its rank on the new board; null when it did not stay, or is not finished. */
+  rank: number | null
+  created_at: string
 }
 
 export interface TournamentRow {
@@ -112,6 +129,8 @@ export interface MatchRow {
   result_json: string | null
   replay_key: string | null
   finished_at: string | null
+  /** The match's `matchHash`; null for a seeded match. */
+  match_key: string | null
 }
 
 /** A bot version's name columns: `LABEL_COLUMNS` from `bot_versions v` and `LABEL_JOINS`. */
@@ -732,7 +751,8 @@ const KEPT_BOT = `owner_id = ?1 AND id IN (
  * Deletes user `userId` in one batch (a transaction). Their bots are hard-deleted with their
  * versions, but for bots with a version on a hill or in a tournament: those stay, so standings and
  * brackets keep their shape, owned by `DELETED_USER`, named and authored `[deleted]`, with no
- * source, and deleted (404 to all). Their draft tournaments go; the others pass to `DELETED_USER`.
+ * source, and deleted (404 to all). Their draft tournaments go; the others pass to `DELETED_USER`,
+ * as do their hill submissions of the versions that stay (the others go with their versions).
  * Their audit rows go with them (cascade). Sessions are in KV: the caller ends them. False when
  * there was no such user.
  */
@@ -759,6 +779,9 @@ export async function deleteAccount(db: D1Database, userId: string): Promise<boo
     db.prepare("DELETE FROM tournaments WHERE owner_id = ? AND status = 'draft'").bind(userId),
     db
       .prepare('UPDATE tournaments SET owner_id = ? WHERE owner_id = ?')
+      .bind(DELETED_USER.id, userId),
+    db
+      .prepare('UPDATE hill_submissions SET user_id = ? WHERE user_id = ?')
       .bind(DELETED_USER.id, userId),
     db.prepare('DELETE FROM users WHERE id = ?').bind(userId),
   ])

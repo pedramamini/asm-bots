@@ -51,13 +51,24 @@ export { fromBase64, fromBase64Url, sha256Hex, toBase64, toBase64Url } from './b
 export { canonicalJson } from './canonical'
 export { ApiError, apiError, ERROR_STATUS, type ErrorCode } from './errors'
 export {
+  HillJob,
+  JOB_STATUSES,
+  JobRef,
+  JobStatus,
+  RunnerJob,
+  runnerJobId,
+  TournamentJob,
+} from './jobs'
+export {
   Hello,
   LIVE_PROTOCOL,
   LiveMessage,
   LiveRoomRef,
+  liveRoomName,
   MatchFinished,
   MatchStarted,
   Ping,
+  Progress,
   parseLiveMessage,
   Standing,
   Standings,

@@ -183,7 +183,7 @@ describe('DELETE /api/me', () => {
   it('leaves hill entries in place, anonymized to [deleted]', async () => {
     const jar = await signedIn('hill-leaver')
     const { bot, version } = await makeBot(jar)
-    const { bot: offHill } = await makeBot(jar, HALT)
+    const { bot: offHill, version: offVersion } = await makeBot(jar, HALT)
     await env.DB.batch([
       env.DB.prepare(
         `INSERT INTO hills (id, slug, name, size, rounds, config_json)
@@ -192,8 +192,17 @@ describe('DELETE /api/me', () => {
       env.DB.prepare(
         `INSERT INTO hill_entries (hill_id, bot_version_id, rank) VALUES ('h-gone', ?, 1)`,
       ).bind(version.id),
+      env.DB.prepare(
+        `INSERT INTO hill_submissions (id, hill_id, bot_version_id, user_id, status)
+         VALUES ('s-on', 'h-gone', ?1, ?3, 'finished'), ('s-off', 'h-gone', ?2, ?3, 'finished')`,
+      ).bind(version.id, offVersion.id, await userId('hill-leaver')),
     ])
     expect((await send(jar, '/api/me', { method: 'DELETE' })).status).toBe(204)
+    // The submission of the version that stays passes to `deleted`; the other goes with it.
+    const submissions = await env.DB.prepare(
+      "SELECT id, user_id FROM hill_submissions WHERE hill_id = 'h-gone'",
+    ).all()
+    expect(submissions.results).toEqual([{ id: 's-on', user_id: 'deleted' }])
 
     const hill = await send(new Jar(), '/api/hills/gone')
     const { standings } = parse(HillDetail, await hill.json(), 'the hill')

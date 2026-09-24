@@ -60,8 +60,8 @@ app.notFound((c) =>
     : c.env.ASSETS.fetch(c.req.raw),
 )
 
-export { LiveRoom } from './durable/live-room'
-export { Runner } from './durable/runner'
+export { LiveRoom } from './do/live-room'
+export { Runner } from './do/runner'
 
 export default {
   fetch: app.fetch,

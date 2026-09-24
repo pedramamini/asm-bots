@@ -41,11 +41,12 @@ Copy `.dev.vars.example` to `.dev.vars` (git-ignored) for `wrangler dev`. Produc
 | `DB` | D1 | `asmbots` | Users, bots, versions, hills, tournaments, matches (`src/db/migrations`) |
 | `REPLAYS` | R2 | `asmbots-replays` | Replays at `replays/<key>.json`, bot binaries; content-addressed |
 | `KV` | KV | `asmbots-kv` | Sessions (`sess:<id>`, 30 days, and `usess:<user>:<id>` beside each so a user's sessions list by prefix), rate-limit counters (`rl:<scope>:<client>:<window>`), OG image cache (`og:<key>`, 1 day) |
-| `RUNNER` | Durable Object | `Runner` | Tournament and hill runs (stub until EXEC 3.3) |
-| `LIVE_ROOM` | Durable Object | `LiveRoom` | Live match WebSocket room (stub until EXEC 3.3) |
+| `RUNNER` | Durable Object | `Runner` | One per job (`hill:<slug>:<submissionId>`, `tournament:<id>`): plays one match an alarm into D1 and R2, then writes the hill board or the tournament's end (`src/do/runner.ts`, `src/runner/`) |
+| `LIVE_ROOM` | Durable Object | `LiveRoom` | One per hill or tournament (`hill:<id>`, `tournament:<id>`): takes its Runners' messages and keeps the last 20; the sockets come later in EXEC 3.3 |
 | `ISA_VERSION` | var | `x16c-v1` | The ISA the hills run |
 | `APP_VERSION` | var | `dev` | Build stamp; deploy passes `--var APP_VERSION:<bun run version>` |
 | `APP_ORIGIN` | var | `http://localhost:5173` | The one origin CORS lets in (the Vite dev server) |
+| `RUNNER_ALARM_DELAY_MS` | var, unset | 0 | Ms between a Runner's alarms. The API tests set an hour and step the alarms by hand (`runDurableObjectAlarm`) |
 
 Cron: `0 18 * * 6` (Saturdays 18:00 UTC), the weekly championship; `src/cron.ts` only logs until EXEC 3.3. The D1 and KV ids are placeholders that work locally; the deploy playbook fills in the real ones.
 

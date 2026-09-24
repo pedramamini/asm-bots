@@ -151,13 +151,14 @@ Verification model: the client may run anything locally. Anything that changes s
 users(id, github_id, handle, avatar_url, created_at)
 bots(id, owner_id, slug, name, created_at, updated_at, visibility)         -- visibility: private|unlisted|public
 bot_versions(id, bot_id, version, source, bytes_sha256, size, author, strategy, isa, created_at)
-hills(id, slug, name, description, size, rounds, config_json, created_at)
+hills(id, slug, name, description, size, rounds, config_json, created_at, revision, scoring)  -- scoring: duel|melee; revision guards Runner board writes
 hill_entries(hill_id, bot_version_id, score, rating, wins, ties, losses, age, entered_at, rank)
 tournaments(id, slug, name, kind, status, config_json, bracket_json, owner_id, starts_at, created_at)  -- kind: roundrobin|bracket|melee
 tournament_entries(tournament_id, bot_version_id, seed)
-matches(id, tournament_id, hill_id, a_version_id, b_version_id, participants_json, rounds, seed, result_json, replay_key, finished_at)
+matches(id, tournament_id, hill_id, a_version_id, b_version_id, participants_json, rounds, seed, result_json, replay_key, finished_at, match_key)  -- match_key: tourney matchHash
 ratings(bot_version_id, hill_id, rating, rd, volatility, updated_at)
 audit(id, user_id, action, target, at)                                     -- action: protocol AUDIT_ACTIONS
+hill_submissions(id, hill_id, bot_version_id, user_id, status, score, rank, created_at)  -- one Runner job each
 ```
 
 ## 8. CLI (apps/cli)
