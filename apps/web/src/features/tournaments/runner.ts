@@ -76,6 +76,9 @@ export function entrantBots(entrants: readonly TournamentEntrant[]): ArenaBot[] 
     ),
   )
   return entrants.map((entrant) => {
+    if (entrant.code === undefined && entrant.bytes !== undefined) {
+      return { name: entrant.name, bytes: entrant.bytes }
+    }
     const assembled =
       entrant.source === 'roster'
         ? roster.get(entrant.ref)
@@ -92,7 +95,7 @@ export function entrantBots(entrants: readonly TournamentEntrant[]): ArenaBot[] 
 }
 
 /** A bracket's matches played, and those it will play at most: walkovers settle unplayed. */
-function bracketProgress(bracket: Bracket): Tournament['progress'] {
+export function bracketProgress(bracket: Bracket): Tournament['progress'] {
   const done = bracket.matches.filter((m) => m.status === 'done').length
   const left = bracket.matches.filter((m) => m.status === 'ready' || m.status === 'pending')
   return { done, of: done + left.length }

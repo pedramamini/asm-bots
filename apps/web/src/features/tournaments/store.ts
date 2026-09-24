@@ -42,6 +42,11 @@ export interface TournamentEntrant {
   readonly name: string
   /** A local bot's source as it was when the tournament was made. */
   readonly code?: string | undefined
+  /**
+   * A shared tournament's local bot (`share.ts`): its machine code, when the link carried it.
+   * Such a bot has no `code`.
+   */
+  readonly bytes?: Uint8Array | undefined
 }
 
 export interface Tournament {

@@ -23,12 +23,26 @@ export interface TournamentControlsProps {
   createClient?: Parameters<typeof WatchModal>[0]['createClient']
 }
 
+/** The status chip: `running · 12 / 66`, pulsing while it runs unless motion is reduced. */
+export function StatusChip({ tournament: t }: { tournament: Tournament }) {
+  const reduced = useMotionReduced()
+  const running = t.status === 'running'
+  return (
+    <Chip
+      variant={STATUS_VARIANT[t.status]}
+      data-live={running ? 'true' : undefined}
+      className={cx(running && !reduced && 'animate-skeleton')}
+    >
+      {statusLabel(t)}
+    </Chip>
+  )
+}
+
 export function TournamentControls({
   tournament: t,
   runner = tournamentRunner(),
   createClient,
 }: TournamentControlsProps) {
-  const reduced = useMotionReduced()
   const [autoWatch, setAutoWatch] = useState(false)
   const [watching, setWatching] = useState<{ target: WatchTarget; ended: boolean } | null>(null)
   // The subscription reads the record and the watch as they are when a match starts.
@@ -58,13 +72,7 @@ export function TournamentControls({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Chip
-        variant={STATUS_VARIANT[status]}
-        data-live={running ? 'true' : undefined}
-        className={cx(running && !reduced && 'animate-skeleton')}
-      >
-        {statusLabel(t)}
-      </Chip>
+      <StatusChip tournament={t} />
       {status === 'scheduled' && (
         <Button size="sm" variant="primary" icon={Play} onClick={start}>
           start

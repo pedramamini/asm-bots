@@ -82,7 +82,10 @@ export function statusLabel(t: Tournament): string {
 }
 
 /** The bytes an entrant's identicon draws: its machine code, or its name when it has none. */
-function identiconValue(entrant: TournamentEntrant): Uint8Array | string {
+export function identiconValue(entrant: TournamentEntrant): Uint8Array | string {
+  if (entrant.code === undefined && entrant.bytes !== undefined && entrant.bytes.length > 0) {
+    return entrant.bytes
+  }
   const assembled =
     entrant.source === 'roster'
       ? rosterCatalog().find((b) => b.ref.kind === 'roster' && b.ref.slug === entrant.ref)

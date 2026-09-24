@@ -3,7 +3,8 @@
  * bracket of five roster bots, the runner plays it in the arena Worker of the build, and its card
  * goes from `running · n / 5` to `finished` with a champion. Its bracket then shows eight matches;
  * the final's panel opens, and `watch` replays a round in the arena. A round robin of four bots
- * runs to its end with a full results matrix and standings.
+ * runs to its end with a full results matrix and standings, and its share link opens read only in
+ * a browser that has no tournaments.
  */
 import { expect, type Page, test } from '@playwright/test'
 
@@ -65,7 +66,7 @@ test('a bracket of five roster bots runs to a champion', async ({ page }) => {
   expect(errors).toEqual([])
 })
 
-test('a round robin of four roster bots fills its matrix', async ({ page }) => {
+test('a round robin of four roster bots fills its matrix', async ({ page, browser }) => {
   const errors = watch(page)
   await page.goto('/tournaments')
   await page.getByRole('button', { name: 'new tournament' }).first().click()
@@ -91,5 +92,33 @@ test('a round robin of four roster bots fills its matrix', async ({ page }) => {
   // Entrants go in the order picked: Imp v Dwarf is the schedule's first match.
   await matrix.getByRole('button', { name: /^Dwarf v Imp: / }).click()
   await expect(page.getByRole('region', { name: 'match' })).toContainText('Imp v Dwarf · match 1')
+
+  // Its share link opens in a browser that has no tournaments: the same matrix, read only.
+  await page.evaluate(() => {
+    const copied = window as unknown as { copied: string }
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: async (text: string) => void (copied.copied = text) },
+    })
+  })
+  const header = page.getByRole('region', { name: 'league' })
+  await expect(header.getByRole('list', { name: 'entrants' }).getByRole('listitem')).toHaveCount(4)
+  await header.getByRole('button', { name: 'share' }).click()
+  await expect(page.getByText('link copied.')).toBeVisible()
+  const link = await page.evaluate(() => (window as unknown as { copied: string }).copied)
+  expect(link).toMatch(/\/tournaments\/[\w-]+#t=[\w-]+$/)
+  const other = await browser.newContext()
+  const fresh = await other.newPage()
+  const freshErrors = watch(fresh)
+  await fresh.goto(link)
+  const shared = fresh.getByRole('region', { name: 'league' })
+  await expect(shared).toContainText('shared')
+  await expect(shared).toContainText('finished')
+  await expect(shared.getByRole('button', { name: 'auto-watch' })).toHaveCount(0)
+  const sharedMatrix = fresh.getByRole('table', { name: 'results matrix' })
+  await expect(sharedMatrix.locator('[data-played]')).toHaveCount(12)
+  await expect(fresh.getByRole('table', { name: 'standings' }).getByRole('row')).toHaveCount(5)
+  await other.close()
+  expect(freshErrors).toEqual([])
   expect(errors).toEqual([])
 })

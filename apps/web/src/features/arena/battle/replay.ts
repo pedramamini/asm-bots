@@ -182,30 +182,33 @@ export function readReplayFragment(fragment: string): ReplayRead {
   }
 }
 
-/** Why a replay does not load: its message says what is wrong, lowercase. */
+/**
+ * Why a replay, or another link built on these checks (a tournament link), does not load: its
+ * message says what is wrong, lowercase.
+ */
 export class ReplayError extends Error {
   override readonly name = 'ReplayError'
 }
 
-function fail(reason: string): never {
+export function fail(reason: string): never {
   throw new ReplayError(reason)
 }
 
 type Fields = Readonly<Record<string, unknown>>
 
-function fields(value: unknown, what: string): Fields {
+export function fields(value: unknown, what: string): Fields {
   if (typeof value !== 'object' || value === null || Array.isArray(value))
     fail(`${what} is missing`)
   return value as Fields
 }
 
-function list(value: unknown, what: string): readonly unknown[] {
+export function list(value: unknown, what: string): readonly unknown[] {
   if (!Array.isArray(value)) fail(`${what} is missing`)
   return value
 }
 
 /** `value` as an integer in `min..max`. */
-function integer(value: unknown, what: string, min: number, max: number): number {
+export function integer(value: unknown, what: string, min: number, max: number): number {
   if (typeof value !== 'number' || !Number.isInteger(value) || value < min || value > max) {
     fail(
       `${what} must be a whole number in ${min.toLocaleString('en-US')}..${max.toLocaleString('en-US')}`,
@@ -214,7 +217,7 @@ function integer(value: unknown, what: string, min: number, max: number): number
   return value
 }
 
-function text(value: unknown, what: string, pattern?: RegExp): string {
+export function text(value: unknown, what: string, pattern?: RegExp): string {
   if (typeof value !== 'string' || (pattern !== undefined && !pattern.test(value))) {
     fail(`${what} is not well formed`)
   }
@@ -230,12 +233,12 @@ function integers(value: unknown, what: string, n: number | null, min = 0, max =
 
 const botCount = (n: number) => `${n} ${n === 1 ? 'bot' : 'bots'}`
 
-const UINT32 = 0xffff_ffff
+export const UINT32 = 0xffff_ffff
 const HASH = /^[0-9a-f]{16}$/
 const SHA256 = /^[0-9a-f]{64}$/
 const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/
 /** A name in the battle: what the arena shows, one line. */
-const NAME = /^[^\n\r]{1,64}$/
+export const NAME = /^[^\n\r]{1,64}$/
 
 /**
  * `value` as a replay the arena can run, or a `ReplayError` that says what is wrong. The engine
@@ -258,7 +261,7 @@ export function parseReplay(value: unknown): LocalReplay {
   return { format: REPLAY_FORMAT, isa: REPLAY_ISA, createdAt, config, rounds, bots, match }
 }
 
-function parseConfig(value: unknown): BattleConfig {
+export function parseConfig(value: unknown): BattleConfig {
   const c = fields(value, 'the config')
   return {
     coreSize: integer(c.coreSize, 'coreSize', 1, UINT32),
@@ -295,15 +298,25 @@ function parseMeta(value: unknown, name: string): BotMeta {
   return meta
 }
 
-/** The recorded match: `n` entrants and every one of its `rounds` rounds. */
-function parseMatch(value: unknown, n: number, rounds: number): MatchResult {
+/**
+ * The recorded match: `n` entrants and every one of its `rounds` rounds; with `partial`, the first
+ * rounds of them (a melee in progress).
+ */
+export function parseMatch(
+  value: unknown,
+  n: number,
+  rounds: number,
+  partial = false,
+): MatchResult {
   const m = fields(value, 'the recorded match')
   const key = text(m.key, 'the match key', HASH)
   const names = list(m.names, 'the match names').map((name) => text(name, 'a match name', NAME))
   if (names.length !== n) fail(`the match names ${botCount(names.length)}, not ${n}`)
   if (m.of !== rounds) fail(`the match has ${String(m.of)} rounds, not ${rounds}`)
   const played = list(m.rounds, 'the rounds')
-  if (played.length !== rounds) fail(`it records ${played.length} of its ${rounds} rounds`)
+  if (partial ? played.length > rounds : played.length !== rounds) {
+    fail(`it records ${played.length} of its ${rounds} rounds`)
+  }
   return {
     key,
     names,
