@@ -22,6 +22,7 @@
         "@asmbots/asm": "workspace:*",
         "@asmbots/bots": "workspace:*",
         "@asmbots/engine": "workspace:*",
+        "@asmbots/protocol": "workspace:*",
         "@asmbots/tourney": "workspace:*",
       },
     },
@@ -33,6 +34,7 @@
         "@asmbots/bots": "workspace:*",
         "@asmbots/codec": "workspace:*",
         "@asmbots/engine": "workspace:*",
+        "@asmbots/protocol": "workspace:*",
         "@asmbots/tourney": "workspace:*",
         "@asmbots/ui": "workspace:*",
         "@codemirror/autocomplete": "6.20.3",
@@ -99,6 +101,12 @@
     "packages/protocol": {
       "name": "@asmbots/protocol",
       "version": "0.0.0",
+      "dependencies": {
+        "@asmbots/engine": "workspace:*",
+        "@asmbots/tourney": "workspace:*",
+        "fflate": "0.8.3",
+        "zod": "4.6.5",
+      },
     },
     "packages/tourney": {
       "name": "@asmbots/tourney",

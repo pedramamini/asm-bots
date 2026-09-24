@@ -104,9 +104,13 @@ asmbots fight dwarf.asm imp.asm --trace
 # Trace only one bot
 asmbots fight dwarf.asm imp.asm imp.bin --trace --trace-bot "Imp"
 
-# JSON output for machine consumption
+# JSON output for machine consumption: { result, traces, replay }
 asmbots fight dwarf.asm imp.asm --json
 ```
+
+`--json` prints the last round's engine `result`, the `traces`, and `replay`: the fight as an
+`@asmbots/protocol` `Replay` (the match `runMatch` plays, bots rotated each round), which the arena
+and the API read. `replay` is null, with a warning, past 16 bots, 10 rounds, or 1M cycles.
 
 **Trace Format**
 

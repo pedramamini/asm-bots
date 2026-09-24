@@ -3,6 +3,8 @@ import { writeFileSync, unlinkSync, readFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { spawnSync } from 'bun'
+import { bytesProblem, parseReplay, replayBots, replayConfig, replayMatch } from '@asmbots/protocol'
+import { runMatch } from '@asmbots/tourney'
 
 const TEST_DIR = join(tmpdir(), 'asm-bots-cli-test')
 const DWARF_PATH = join(TEST_DIR, 'dwarf.asm')
@@ -205,6 +207,23 @@ describe('asmbots CLI', () => {
     expect(json.result.bots.length).toBe(2)
     expect(json.result.bots[0]!.name).toBe('Dwarf')
     expect(json.result.bots[1]!.name).toBe('Imp')
+  })
+
+  it('includes a protocol replay that plays back to its recorded result with --json', async () => {
+    const proc = spawnSync({
+      cmd: ['bun', './apps/cli/src/main.ts', 'fight', 'roster:dwarf', 'roster:imp', '--seed', '1', '--rounds', '2', '--json'],
+      cwd: process.cwd(),
+      stdout: 'pipe',
+      stderr: 'pipe',
+    })
+
+    expect(proc.success).toBe(true)
+    const replay = parseReplay(JSON.parse(new TextDecoder().decode(proc.stdout!)).replay)
+    expect(replay.seed).toBe(1)
+    expect(replay.rounds).toBe(2)
+    expect(replay.bots.map((bot) => bot.name)).toEqual(['Dwarf', 'Imp'])
+    expect(await bytesProblem(replay)).toBeNull()
+    expect(runMatch(replayBots(replay), replayConfig(replay), replay.rounds)).toEqual(replayMatch(replay))
   })
 
   it('produces trace output with --trace flag', () => {

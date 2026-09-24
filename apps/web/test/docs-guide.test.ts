@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs'
 import { MAX_BOT_BYTES } from '@asmbots/asm'
 import { fighter, GOLDEN_MATCHUPS, HILL_RULES, ROSTER } from '@asmbots/bots'
 import { DEFAULT_CONFIG, resultHash, simulate } from '@asmbots/engine'
+import { ISA as REPLAY_ISA, replayConfig, replayMatch, sha256Hex } from '@asmbots/protocol'
 import {
   createBracket,
   csv,
@@ -30,7 +31,7 @@ import {
 } from '../src/app/keymaps'
 import { allBindings } from '../src/docs/keymap'
 import { replayName } from '../src/features/arena/battle/files'
-import { parseReplay, REPLAY_FORMAT, REPLAY_ISA, sha256 } from '../src/features/arena/battle/replay'
+import { readReplay } from '../src/features/arena/battle/replay'
 import {
   CYCLES,
   MAX_ARENA_BOTS,
@@ -182,8 +183,8 @@ describe('tools/replay-format', () => {
   const json = /```json\n([\s\S]*?)\n```/.exec(mdx('tools/replay-format'))?.[1] ?? ''
 
   it('the example is a replay the arena reads, and the match plays to what it records', async () => {
-    const replay = parseReplay(JSON.parse(json))
-    expect(replay.format).toBe(REPLAY_FORMAT)
+    const replay = readReplay(JSON.parse(json))
+    expect(JSON.parse(json)).toEqual(replay)
     expect(replay.isa).toBe(REPLAY_ISA)
     const slugs = ['dwarf', 'imp']
     const bots = slugs.map((slug) => fighter(slug))
@@ -191,10 +192,10 @@ describe('tools/replay-format', () => {
       const bytes = (bots[i] as { bytes: Uint8Array }).bytes
       expect(bot.name).toBe(bots[i]?.name as string)
       expect(bot.bytes).toBe(Buffer.from(bytes).toString('base64'))
-      expect(bot.sha256).toBe(await sha256(bytes))
+      expect(bot.sha256).toBe(await sha256Hex(bytes))
     }
-    expect(replay.config).toEqual({ ...DEFAULT_CONFIG, seed: 1 })
-    expect(runMatch(bots, { seed: 1 }, 1)).toEqual(replay.match)
+    expect(replayConfig(replay)).toEqual({ ...DEFAULT_CONFIG, seed: 1 })
+    expect(runMatch(bots, { seed: 1 }, 1)).toEqual(replayMatch(replay))
     expect(mdx('tools/replay-format')).toContain(`\`${replayName(['Dwarf', 'Imp'], 1)}\``)
   })
 

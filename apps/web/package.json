@@ -15,6 +15,7 @@
     "@asmbots/bots": "workspace:*",
     "@asmbots/codec": "workspace:*",
     "@asmbots/engine": "workspace:*",
+    "@asmbots/protocol": "workspace:*",
     "@asmbots/tourney": "workspace:*",
     "@asmbots/ui": "workspace:*",
     "@codemirror/autocomplete": "6.20.3",

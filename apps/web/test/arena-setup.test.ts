@@ -7,6 +7,7 @@ import { describe, expect, it } from 'bun:test'
 import { assemble } from '@asmbots/asm'
 import { HILL_RULES, loadRoster, ROSTER } from '@asmbots/bots'
 import { DEFAULT_CONFIG, simulate } from '@asmbots/engine'
+import { fromBase64Url, SOURCES_KEY, toBase64Url } from '@asmbots/protocol'
 import { MAX_MELEE_ENTRANTS } from '@asmbots/tourney'
 import { defaultParseSearch } from '@tanstack/react-router'
 import { deflateSync, strToU8 } from 'fflate'
@@ -41,16 +42,13 @@ import {
   type ArenaSetupSpec,
   type BotRef,
   formatRef,
-  fromBase64Url,
   parseRef,
   parseRefs,
-  SHARE_KEY,
   searchFromSetup,
   setupFromSearch,
   sharedBots,
   sharedFragment,
   shareUrl,
-  toBase64Url,
 } from '../src/features/arena/setup/url'
 import { stringifySearch } from '../src/router'
 import type { LocalBot } from '../src/store/local-bots'
@@ -269,7 +267,7 @@ describe('share fragment', () => {
 
   it('carries local bots by id and gives them back', () => {
     const fragment = sharedFragment(bots)
-    expect(fragment.startsWith(`${SHARE_KEY}=`)).toBe(true)
+    expect(fragment.startsWith(`${SOURCES_KEY}=`)).toBe(true)
     expect(fragment).toMatch(/^src=[A-Za-z0-9_-]+$/)
     expect([...sharedBots(fragment)]).toEqual(bots.map((b) => [b.id, b.source]))
     expect([...sharedBots(`#${fragment}`)]).toHaveLength(2)

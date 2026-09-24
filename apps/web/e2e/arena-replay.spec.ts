@@ -87,7 +87,7 @@ test('a link whose recorded result was changed plays, and ends in mismatch', asy
   const { link, hash } = await duelReplay(context)
   const url = new URL(link)
   const replay = JSON.parse(fromBase64Url(url.hash.slice('#r='.length)))
-  replay.match.rounds[0].resultHash = 'ffffffffffffffff'
+  replay.result.rounds[0].resultHash = 'ffffffffffffffff'
   url.hash = `r=${toBase64Url(JSON.stringify(replay))}`
   const page = await context.newPage()
   const errors = watch(page)

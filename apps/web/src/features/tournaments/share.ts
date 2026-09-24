@@ -12,6 +12,7 @@
  */
 import { MAX_BOT_BYTES } from '@asmbots/asm'
 import { DEFAULT_CONFIG } from '@asmbots/engine'
+import { fromBase64Url, toBase64Url } from '@asmbots/protocol'
 import {
   advance,
   type Bracket,
@@ -40,7 +41,6 @@ import {
 } from '../arena/battle/replay'
 import { assembleCached } from '../arena/setup/bots'
 import { ROUNDS } from '../arena/setup/config'
-import { fromBase64Url, toBase64Url } from '../arena/setup/url'
 import { copyLink } from '../arena/share'
 import { ENTRANT_LIMITS } from './create'
 import { bracketProgress } from './runner'

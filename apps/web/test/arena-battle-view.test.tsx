@@ -8,6 +8,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, mock } from 'bun:test'
 import { fighter } from '@asmbots/bots'
 import { Battle, type LoadedBot, NullSink } from '@asmbots/engine'
+import { replayConfig, replayMatch } from '@asmbots/protocol'
 import type { MatchResult } from '@asmbots/tourney'
 import { ToastProvider } from '@asmbots/ui'
 import {
@@ -360,10 +361,11 @@ describe('the end', () => {
       await waitFor(() => expect(saved).toEqual(['asmbots-dwarf-imp-1.asmreplay.json']))
       const replay = JSON.parse(await (created[0] as Blob).text())
       expect(replay).toMatchObject({
-        format: 'asmbots-replay-local/1',
+        isa: 'x16c-v1',
         rounds: 1,
-        config: { seed: 1, maxCycles: 100_000 },
-        match: { of: 1, rounds: [{ resultHash: client.store.getState().resultHash }] },
+        seed: 1,
+        config: { maxCycles: 100_000 },
+        result: { rounds: [{ resultHash: client.store.getState().resultHash }] },
       })
       expect(replay.bots.map((bot: { name: string }) => bot.name)).toEqual(['Dwarf', 'Imp'])
     } finally {
@@ -396,8 +398,12 @@ describe('the replay link', () => {
       expect(link.pathname).toBe(`/arena/${match?.key}`)
       const read = readReplayFragment(link.hash)
       if (read.kind !== 'ok') throw new Error(read.kind)
-      expect(read.replay.match).toEqual(match as MatchResult)
-      expect(read.replay.config).toMatchObject({ seed: 1, maxCycles: 100_000, maxProcesses: 64 })
+      expect(replayMatch(read.replay)).toEqual(match as MatchResult)
+      expect(replayConfig(read.replay)).toMatchObject({
+        seed: 1,
+        maxCycles: 100_000,
+        maxProcesses: 64,
+      })
       // A link carries bytes, not sources (PRODUCT_SPEC §10).
       expect(read.replay.bots.map((bot) => [bot.name, bot.source])).toEqual([
         ['Dwarf', undefined],

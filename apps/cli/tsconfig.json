@@ -23,6 +23,7 @@
     { "path": "../../packages/engine" },
     { "path": "../../packages/asm" },
     { "path": "../../packages/bots" },
-    { "path": "../../packages/tourney" }
+    { "path": "../../packages/tourney" },
+    { "path": "../../packages/protocol" }
   ]
 }

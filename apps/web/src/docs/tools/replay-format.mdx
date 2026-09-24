@@ -15,7 +15,6 @@ The dwarf against the imp, one round, seed 1, at the arena's `duel` config:
 
 ```json
 {
-  "format": "asmbots-replay-local/1",
   "isa": "x16c-v1",
   "createdAt": "2026-09-24T12:00:00.000Z",
   "config": {
@@ -23,9 +22,9 @@ The dwarf against the imp, one round, seed 1, at the arena's `duel` config:
     "maxCycles": 100000,
     "maxProcesses": 64,
     "minSpacing": 1024,
-    "maxBotBytes": 512,
-    "seed": 1
+    "maxBotBytes": 512
   },
+  "seed": 1,
   "rounds": 1,
   "bots": [
     {
@@ -39,10 +38,11 @@ The dwarf against the imp, one round, seed 1, at the arena's `duel` config:
       "sha256": "a521388fa3123938c093d72ae60f8c3f9adba1353eb70cfe7858b0c7370189a5"
     }
   ],
-  "match": {
+  "result": {
     "key": "88b668c9f8e75e5e",
-    "names": ["Dwarf", "Imp"],
-    "of": 1,
+    "survivors": [0],
+    "points": [3, 0],
+    "resultHash": "cfe39284c61cf895",
     "rounds": [
       {
         "round": 0,
@@ -54,8 +54,7 @@ The dwarf against the imp, one round, seed 1, at the arena's `duel` config:
         "survivors": [0],
         "survival": [16141, 16140]
       }
-    ],
-    "points": [3, 0]
+    ]
   }
 }
 ```
@@ -64,10 +63,10 @@ The dwarf against the imp, one round, seed 1, at the arena's `duel` config:
 
 | field | holds |
 |---|---|
-| `format` | `asmbots-replay-local/1`: this schema and its version |
 | `isa` | `x16c-v1`: the instruction set the bots are written for (see [ISA versions](/docs/isa-versions)) |
-| `createdAt` | when the replay was made, ISO 8601 |
-| `config` | the whole battle config, every field written out; `seed` is the match's first seed |
+| `createdAt` | optional: when the replay was made, ISO 8601 |
+| `config` | the battle config, every field written out, less the seed |
+| `seed` | the match's first seed: round i is placed with `seed + i`, mod 2^32 |
 | `rounds` | rounds in the match, 1 to 10 |
 | `bots` | 2 to 16 bots, in the order they were loaded |
 | `bots[].name` | the name in the battle: `Dwarf`, or `Dwarf 2` for a second dwarf |
@@ -75,11 +74,11 @@ The dwarf against the imp, one round, seed 1, at the arena's `duel` config:
 | `bots[].sha256` | SHA-256 of the machine code, lowercase hex |
 | `bots[].meta` | optional: `author`, `strategy`, `version` |
 | `bots[].source` | optional: the source; a file has it, a link does not |
-| `match.key` | the match key: FNV-1a 64 of the config, the round count, and each bot's name and bytes |
-| `match.names` | the bots' names, in `bots` order |
-| `match.of` | the rounds the match has; equals `rounds` |
-| `match.points` | each bot's match points, in `bots` order |
-| `match.rounds[]` | one entry for each round, in order |
+| `result.key` | the match key: FNV-1a 64 of the config, the seed, the round count, and each bot's name and bytes |
+| `result.survivors` | the bots alive at the end of the last round, ascending, as indices into `bots` |
+| `result.points` | each bot's match points, in `bots` order |
+| `result.resultHash` | one hash for the match: FNV-1a 64 of the JSON list of the rounds' result hashes, in order |
+| `result.rounds[]` | one entry for each round, in order |
 
 Each round:
 
@@ -94,13 +93,15 @@ Each round:
 | `survivors` | the bots alive at the end, ascending, as indices into `bots` |
 | `survival` | the cycles each bot lived through: its death cycle, or `durationCycles` if it lived |
 
+A replay's content key, the name the server stores it by, is the SHA-256 of its inputs as canonical JSON (keys sorted, no whitespace): `isa`, `config`, `seed`, `rounds`, and each bot's `name` and `bytes`. The result, the sources, and the date do not change it.
+
 ## Checks and limits
 
-The arena reads a replay only if every field is there and well formed. It refuses one of another `format` or `isa`, one with a count out of range (2 to 16 bots, 1 to 10 rounds, up to 1,000,000 cycles, up to 256 processes a bot), and a link whose replay is over 1,048,576 characters. Then it plays the match and checks it as [verification](/docs/tournaments/verification#the-verified-chip) describes: the bytes against their SHA-256, the match key, and each round's result hash.
+The arena reads a replay only if every field is there and well formed. It refuses one of another `isa`, one with a count out of range (2 to 16 bots, 1 to 10 rounds, up to 1,000,000 cycles, up to 256 processes a bot), and a link whose replay is over 1,048,576 characters. Then it plays the match and checks it as [verification](/docs/tournaments/verification#the-verified-chip) describes: the bytes against their SHA-256, the match key, and each round's result hash.
 
 <Note>
 
-The `-local` in the format's name is a promise: the server will define the shared replay schema, and the arena will keep reading this one.
+Before this format, the arena wrote `asmbots-replay-local/1`: the seed inside `config`, and `match` (with `names` and `of`) where `result` is now. The arena still reads those files and links.
 
 </Note>
 

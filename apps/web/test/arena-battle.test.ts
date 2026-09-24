@@ -6,6 +6,7 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import { fighter } from '@asmbots/bots'
 import { Battle, type BattleConfigInput, type LoadedBot, simulate } from '@asmbots/engine'
+import { matchResultHash, replayConfig, replayMatch } from '@asmbots/protocol'
 import { newMatch, roundOrder, roundSeed, runMatch } from '@asmbots/tourney'
 import { fileStem, replayName, screenshotName, slug } from '../src/features/arena/battle/files'
 import { byteInfo } from '../src/features/arena/battle/HoverTip'
@@ -18,7 +19,7 @@ import {
   MAX_MINOR,
   reasonText,
 } from '../src/features/arena/battle/log'
-import { buildReplay, REPLAY_FORMAT } from '../src/features/arena/battle/replay'
+import { buildReplay } from '../src/features/arena/battle/replay'
 import { runningStandings } from '../src/features/arena/battle/StandingsPanel'
 import { faster, SPEED_STEPS, slower, speedLabel } from '../src/features/arena/battle/speed'
 import { matchOutcome, roundOutcome } from '../src/features/arena/battle/Victory'
@@ -202,12 +203,17 @@ describe('the replay file', () => {
     const when = new Date('2026-09-23T12:00:00Z')
     const replay = await buildReplay(bots, ['; dwarf', ''], config, 2, match, when)
     expect(replay).toMatchObject({
-      format: REPLAY_FORMAT,
       isa: 'x16c-v1',
       createdAt: '2026-09-23T12:00:00.000Z',
-      config: { seed: 9, maxCycles: 20_000, maxProcesses: 64, minSpacing: 1024 },
+      config: { maxCycles: 20_000, maxProcesses: 64, minSpacing: 1024 },
+      seed: 9,
       rounds: 2,
-      match,
+      result: {
+        key: match.key,
+        points: match.points,
+        resultHash: matchResultHash(match.rounds),
+        rounds: match.rounds,
+      },
     })
     const [dwarf, imp] = replay.bots
     expect(dwarf?.source).toBe('; dwarf')
@@ -223,10 +229,10 @@ describe('the replay file', () => {
         name: bot.name,
         bytes: Uint8Array.from(atob(bot.bytes), (c) => c.charCodeAt(0)),
       })),
-      replay.config,
+      replayConfig(replay),
       replay.rounds,
     )
-    expect(again).toEqual(replay.match)
+    expect(again).toEqual(replayMatch(replay))
   })
 })
 

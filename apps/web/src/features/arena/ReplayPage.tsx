@@ -1,3 +1,4 @@
+import { bytesProblem, type Replay, replayConfig } from '@asmbots/protocol'
 import { useToast } from '@asmbots/ui'
 import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -5,7 +6,7 @@ import { Placeholder } from '../../app/Placeholder'
 import { ArenaBattle } from './ArenaBattle'
 import { downloadBlob, replayName } from './battle/files'
 import { BattleLog } from './battle/log'
-import { bytesProblem, type LocalReplay, readReplayFragment, replayUrl } from './battle/replay'
+import { readReplayFragment, replayUrl } from './battle/replay'
 import { type BytesCheck, checkReplay, NO_RUN, type ReplayRun } from './battle/verify'
 import { useArenaView } from './battle/view'
 import type { ArenaFight } from './setup/bots'
@@ -69,7 +70,7 @@ export function ReplayPage({ replayId, createClient = () => new ArenaClient() }:
       }
     })
     useArenaView.getState().clearIsolation()
-    client.load(bots, replay.config, replay.rounds)
+    client.load(bots, replayConfig(replay), replay.rounds)
     client.play()
     setSession({ client, log })
     return () => {
@@ -125,7 +126,7 @@ export function ReplayPage({ replayId, createClient = () => new ArenaClient() }:
       blob,
       replayName(
         loaded.bots.map((bot) => bot.name),
-        loaded.config.seed,
+        loaded.seed,
       ),
     )
   }
@@ -148,11 +149,12 @@ export function ReplayPage({ replayId, createClient = () => new ArenaClient() }:
 }
 
 /** A replay as the arena fights it. Its bots are bytes, not refs: it has no setup to show. */
-function replayFight(replay: LocalReplay, bots: readonly ArenaBot[]): ArenaFight {
-  const { maxCycles, maxProcesses, minSpacing, seed } = replay.config
+function replayFight(replay: Replay, bots: readonly ArenaBot[]): ArenaFight {
+  const config = replayConfig(replay)
+  const { maxCycles, maxProcesses, minSpacing, seed } = config
   return {
     bots,
-    config: replay.config,
+    config,
     rounds: replay.rounds,
     spec: {
       bots: [],

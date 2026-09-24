@@ -3,7 +3,7 @@
  * replay's inputs, and each round's result hash (ISA §5.6) must equal the one the replay recorded.
  * The arena's own run is the check: a round is verified when it ends.
  */
-import type { LocalReplay } from './replay'
+import type { Replay } from '@asmbots/protocol'
 
 /** What the arena's run of a replay has given so far. */
 export interface ReplayRun {
@@ -35,19 +35,19 @@ export type ReplayCheck =
  * not what the replay says, a run that failed, a match loaded from other inputs than the recorded
  * one's (another key), and a round's hash that differs are each a mismatch.
  */
-export function checkReplay(replay: LocalReplay, run: ReplayRun, bytes: BytesCheck): ReplayCheck {
-  const of = replay.match.of
+export function checkReplay(replay: Replay, run: ReplayRun, bytes: BytesCheck): ReplayCheck {
+  const of = replay.rounds
   if (typeof bytes === 'object') return { state: 'mismatch', reason: bytes.problem }
   if (run.error !== null)
     return { state: 'mismatch', reason: `the replay did not run: ${run.error}` }
-  if (run.key !== null && run.key !== replay.match.key) {
+  if (run.key !== null && run.key !== replay.result.key) {
     return { state: 'mismatch', reason: 'the recorded match is of other bots or another config' }
   }
   let verified = 0
   for (let round = 0; round < of; round++) {
     const hash = run.hashes.get(round)
     if (hash === undefined) continue
-    const recorded = replay.match.rounds[round]?.resultHash
+    const recorded = replay.result.rounds[round]?.resultHash
     if (hash !== recorded) {
       const which = of > 1 ? `round ${round + 1}: ` : ''
       return {

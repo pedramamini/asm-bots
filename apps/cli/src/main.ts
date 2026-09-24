@@ -5,6 +5,7 @@ import { resolve } from 'path'
 import { assemble, disassemble, type AssembleOptions, type DisassembleOptions, formatDiag } from '@asmbots/asm'
 import { Battle, type LoadedBot, type BattleConfigInput, type Result, DEFAULT_CONFIG } from '@asmbots/engine'
 import { fighter } from '@asmbots/bots'
+import { buildReplay, parseReplay, ProtocolError, type Replay } from '@asmbots/protocol'
 import type { EventSink } from '@asmbots/engine'
 import { NullSink } from '@asmbots/engine'
 import {
@@ -124,7 +125,7 @@ function formatTable(rows: TableRow[], columns: TableColumn[]): string[] {
   return result
 }
 
-async function loadBot(fileOrSlug: string): Promise<LoadedBot> {
+async function loadBot(fileOrSlug: string): Promise<LoadedBot & { source?: string }> {
   if (fileOrSlug.startsWith('roster:')) {
     const slug = fileOrSlug.slice(7)
     try {
@@ -145,6 +146,7 @@ async function loadBot(fileOrSlug: string): Promise<LoadedBot> {
       name: result.name || path,
       bytes: result.bytes,
       meta: { author: result.author, strategy: result.strategy, version: result.version },
+      source,
     }
   } else if (path.endsWith('.bin')) {
     const bytes = readFileSync(path)
@@ -152,6 +154,26 @@ async function loadBot(fileOrSlug: string): Promise<LoadedBot> {
   }
 
   throw new Error(`unsupported file type: ${fileOrSlug} (use .asm or .bin)`)
+}
+
+/**
+ * The fight as an `@asmbots/protocol` replay: the match `runMatch` plays (round i rotates the bots
+ * by i, ISA §5.5), which anyone can re-run and check. Null, with a warning, when the fight is past
+ * what a replay holds (16 bots, 10 rounds, 1M cycles).
+ */
+async function fightReplay(
+  bots: readonly (LoadedBot & { source?: string })[],
+  config: BattleConfigInput,
+  rounds: number,
+): Promise<Replay | null> {
+  try {
+    const match = runMatch(bots, config, rounds)
+    return parseReplay(await buildReplay({ bots, config, rounds, match }))
+  } catch (err) {
+    if (!(err instanceof ProtocolError)) throw err
+    console.error(colorize(`warning: no replay: ${err.message}`, 'yellow'))
+    return null
+  }
 }
 
 class TraceEventSink implements EventSink {
@@ -245,7 +267,7 @@ async function cmdFight(inputs: string[], flags: Record<string, string | boolean
     const traceBotName = flags['trace-bot'] ? String(flags['trace-bot']) : undefined
     const json = !!flags.json
 
-    const bots: LoadedBot[] = []
+    const bots: (LoadedBot & { source?: string })[] = []
     for (const input of inputs) {
       bots.push(await loadBot(input))
     }
@@ -295,7 +317,8 @@ async function cmdFight(inputs: string[], flags: Record<string, string | boolean
     }
 
     if (json) {
-      console.log(JSON.stringify({ result: totalResult, traces: allTraces }, null, 2))
+      const replay = await fightReplay(bots, { seed, maxCycles: cycles, maxProcesses: procs, minSpacing: spacing }, rounds)
+      console.log(JSON.stringify({ result: totalResult, traces: allTraces, replay }, null, 2))
     } else {
       console.log(`Placement:`)
       for (let i = 0; i < totalResult.bots.length; i++) {

@@ -78,9 +78,9 @@ scores it with `withRound`, so the arena's match equals `runMatch`'s. Frames nam
 place in the load, whatever order a round fights them in.
 
 `/arena/$replayId` is `ReplayPage.tsx`: a replay in the same battle view. The victory's
-`replay link` copies `/arena/<match key>#r=<base64url of the replay's JSON>`: the
-`asmbots-replay-local/1` schema of `battle/replay.ts` (the `download replay` file), with the bots'
-bytes and SHA-256 but not their sources. The page loads it into the Worker and plays at once.
+`replay link` copies `/arena/<match key>#r=<base64url of the replay's JSON>`: `@asmbots/protocol`'s
+`Replay` (the `download replay` file), with the bots' bytes and SHA-256 but not their sources.
+`battle/replay.ts` still reads the arena's older `asmbots-replay-local/1` files and links. The page loads it into the Worker and plays at once.
 `battle/verify.ts` checks each bot's SHA-256, then that the Worker's match key (`matchHash` of the
 replay's inputs) is the recorded one, then each round's result hash as the round ends. The chip
 beside the arena's title says `verifying`, `verified 1/3`, `verified` in accent, or `mismatch` in

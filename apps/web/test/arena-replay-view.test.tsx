@@ -7,6 +7,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, mock } from 'bun:test'
 import { fighter } from '@asmbots/bots'
 import type { BattleConfigInput } from '@asmbots/engine'
+import { type Replay, replayConfig } from '@asmbots/protocol'
 import { runMatch } from '@asmbots/tourney'
 import { ToastProvider } from '@asmbots/ui'
 import {
@@ -21,7 +22,6 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { stubLayout, useDom, window } from '../../../packages/ui/test/dom'
 import {
   buildReplay,
-  type LocalReplay,
   readReplayFragment,
   replayFragment,
   replayUrl,
@@ -49,7 +49,7 @@ const CONFIG: BattleConfigInput = {
 }
 
 /** The replay of `rounds` rounds of Dwarf vs Imp from seed 1, as a link carries it. */
-async function duel(rounds = 1): Promise<LocalReplay> {
+async function duel(rounds = 1): Promise<Replay> {
   const match = runMatch(BOTS, CONFIG, rounds)
   return buildReplay(BOTS, [], CONFIG, rounds, match, new Date(0))
 }
@@ -97,7 +97,7 @@ async function renderAt(path: string) {
 }
 
 /** The replay page of `replay`'s link, loaded: its client and its Worker. */
-async function renderReplay(replay: LocalReplay) {
+async function renderReplay(replay: Replay) {
   const link = new URL(replayUrl('http://localhost', replay))
   const page = await renderAt(`${link.pathname}${link.hash}`)
   await screen.findByRole('application', { name: 'arena' })
@@ -143,7 +143,7 @@ describe('a replay link', () => {
   it('plays at once, and verifies at the end with the replay’s own actions', async () => {
     const replay = await duel()
     const { client, worker } = await renderReplay(replay)
-    expect(worker.sent[0]).toMatchObject({ type: 'load', rounds: 1, config: replay.config })
+    expect(worker.sent[0]).toMatchObject({ type: 'load', rounds: 1, config: replayConfig(replay) })
     await settle()
     expect(chip().textContent).toBe('verifying')
     expect(chip().dataset.check).toBe('pending')
@@ -155,7 +155,7 @@ describe('a replay link', () => {
     await waitFor(() => expect(chip().textContent).toBe('verified'))
     expect(chip().title).toBe('the result hash matches the recorded one')
     expect(within(victory).getByText('verified').dataset.check).toBe('verified')
-    expect(victory.dataset.resultHash).toBe(replay.match.rounds[0]?.resultHash ?? '')
+    expect(victory.dataset.resultHash).toBe(replay.result.rounds[0]?.resultHash ?? '')
     for (const name of ['rematch', 'share', 'download replay']) {
       expect(within(victory).getByRole('button', { name })).toBeTruthy()
     }
@@ -213,10 +213,10 @@ describe('a replay link', () => {
 
   it('says mismatch when the battle ends on another result hash', async () => {
     const replay = await duel()
-    const round = replay.match.rounds[0] as LocalReplay['match']['rounds'][0]
-    const tampered: LocalReplay = {
+    const round = replay.result.rounds[0] as Replay['result']['rounds'][0]
+    const tampered: Replay = {
       ...replay,
-      match: { ...replay.match, rounds: [{ ...round, resultHash: 'ffffffffffffffff' }] },
+      result: { ...replay.result, rounds: [{ ...round, resultHash: 'ffffffffffffffff' }] },
     }
     const { client } = await renderReplay(tampered)
     await settle()
@@ -232,7 +232,7 @@ describe('a replay link', () => {
 
   it('says mismatch at once when a bot’s bytes are not what its SHA-256 names', async () => {
     const replay = await duel()
-    const [dwarf, imp] = replay.bots as [LocalReplay['bots'][0], LocalReplay['bots'][0]]
+    const [dwarf, imp] = replay.bots as [Replay['bots'][0], Replay['bots'][0]]
     const tampered = { ...replay, bots: [dwarf, { ...imp, sha256: '0'.repeat(64) }] }
     await renderReplay(tampered)
     await settle()
@@ -284,7 +284,7 @@ describe('a link with no replay', () => {
     const replay = await duel()
     const cut = replayFragment(replay).slice(0, -40)
     expect(readReplayFragment(cut).kind).toBe('broken')
-    await renderAt(`/arena/${replay.match.key}#${cut}`)
+    await renderAt(`/arena/${replay.result.key}#${cut}`)
     expect(screen.getByRole('region', { name: 'replay' }).textContent).toContain(
       'this replay link is broken: it does not decode, so the link may be cut short.',
     )

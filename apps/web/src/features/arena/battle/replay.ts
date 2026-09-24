@@ -1,185 +1,149 @@
 /**
- * Replays (PRODUCT_SPEC §2, §10): a match the arena played, as what it takes to run it again and
- * what came out, so anyone can run it and check the result hashes (ISA §5.6). `download replay`
- * saves one as a `.asmreplay.json` file; `replay link` puts one in a link to `/arena/$replayId`,
- * whose page runs it and checks it:
+ * Replays (PRODUCT_SPEC §2, §10): a match that the arena played, as `@asmbots/protocol`'s `Replay`,
+ * so anyone can run it and check the result hashes (ISA §5.6). `download replay` saves one as a
+ * `.asmreplay.json` file; `replay link` puts one in a link to `/arena/$replayId`, whose page runs
+ * it and checks it:
  *
  *     /arena/<match key>#r=<base64url of the replay's JSON>
  *
- * TODO(EXEC 3.1): this is a local schema, `asmbots-replay-local/1`, until `@asmbots/protocol`
- * defines `Replay`. Then write that one, and keep reading this one.
+ * The arena wrote `asmbots-replay-local/1` before the protocol had a replay. It still reads one,
+ * file or link, as the replay it is.
  */
+import type { BattleConfig, BattleConfigInput, BotMeta } from '@asmbots/engine'
 import {
-  type BattleConfig,
-  type BattleConfigInput,
-  type BotMeta,
-  DEFAULT_CONFIG,
-} from '@asmbots/engine'
+  buildReplay as buildProtocolReplay,
+  decodeReplayFragment,
+  encodeReplayFragment,
+  encodeShare,
+  ISA,
+  matchResultHash,
+  ProtocolError,
+  parseReplay,
+  type Replay,
+  replayBots,
+} from '@asmbots/protocol'
 import type { MatchResult, MatchRound } from '@asmbots/tourney'
 import { CYCLES, MAX_ARENA_BOTS, MIN_ARENA_BOTS, PROCS, ROUNDS } from '../setup/config'
-import { fromBase64Url, toBase64Url } from '../setup/url'
 import type { ArenaBot } from '../worker/protocol'
 
-/** The schema's name and version. */
-export const REPLAY_FORMAT = 'asmbots-replay-local/1'
-/** The instruction set the bots are written in. */
-export const REPLAY_ISA = 'x16c-v1'
+/** The schema the arena wrote before `@asmbots/protocol`: read, never written. */
+export const LOCAL_REPLAY_FORMAT = 'asmbots-replay-local/1'
 
-/** A bot of a replay. */
-export interface ReplayBot {
-  /** Its name in the battle: `Dwarf`, `Dwarf 2`. */
+/** A bot of a local replay. */
+interface LocalReplayBot {
   readonly name: string
-  /** Its machine code, base64. */
   readonly bytes: string
-  /** SHA-256 of its machine code, lowercase hex. */
   readonly sha256: string
   readonly meta?: BotMeta | undefined
-  /** Its source, when the arena had it. A replay link leaves it out. */
   readonly source?: string | undefined
 }
 
-/** A match that the arena played, as a file. */
+/** A replay as the arena wrote it before `@asmbots/protocol`. */
 export interface LocalReplay {
-  readonly format: typeof REPLAY_FORMAT
-  readonly isa: typeof REPLAY_ISA
-  /** When the file was made, ISO 8601. */
+  readonly format: typeof LOCAL_REPLAY_FORMAT
+  readonly isa: typeof ISA
   readonly createdAt: string
-  /** The match's config over the engine defaults: round i is placed with `seed + i`. */
+  /** The config over the engine defaults, its seed the match's. */
   readonly config: BattleConfig
   readonly rounds: number
-  /** In the order they were loaded: round i fights them rotated by i (ISA §5.5). */
-  readonly bots: readonly ReplayBot[]
-  /** What the arena's rounds came to: each round's seed, order, result hash, and points. */
+  readonly bots: readonly LocalReplayBot[]
   readonly match: MatchResult
-}
-
-/** Standard base64 of `bytes`. */
-function base64(bytes: Uint8Array): string {
-  let binary = ''
-  for (const byte of bytes) binary += String.fromCharCode(byte)
-  return btoa(binary)
-}
-
-/** The bytes of standard base64 text. */
-function fromBase64(text: string): Uint8Array {
-  const binary = atob(text)
-  const bytes = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-  return bytes
-}
-
-/** SHA-256 of `bytes`, lowercase hex. */
-export async function sha256(bytes: Uint8Array): Promise<string> {
-  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes as BufferSource))
-  return Array.from(digest, (b) => b.toString(16).padStart(2, '0')).join('')
 }
 
 /**
  * The replay of `match`: `bots` loaded with `config` (its seed the match's), and each bot's
- * source where `sources` has it (an empty string where it does not).
+ * source where `sources` has it.
  */
-export async function buildReplay(
+export function buildReplay(
   bots: readonly ArenaBot[],
   sources: readonly string[],
   config: BattleConfigInput,
   rounds: number,
   match: MatchResult,
   now: Date = new Date(),
-): Promise<LocalReplay> {
-  const resolved = { ...DEFAULT_CONFIG }
-  for (const [key, value] of Object.entries(config)) {
-    if (value !== undefined) resolved[key as keyof BattleConfig] = value
-  }
-  return {
-    format: REPLAY_FORMAT,
-    isa: REPLAY_ISA,
-    createdAt: now.toISOString(),
-    config: resolved,
+): Promise<Replay> {
+  return buildProtocolReplay({
+    bots: bots.map((bot, i) => ({ ...bot, source: sources[i] })),
+    config,
     rounds,
-    bots: await Promise.all(
-      bots.map(async (bot, i) => ({
-        name: bot.name,
-        bytes: base64(bot.bytes),
-        sha256: await sha256(bot.bytes),
-        ...(bot.meta !== undefined && { meta: bot.meta }),
-        ...(sources[i] ? { source: sources[i] } : {}),
-      })),
-    ),
     match,
-  }
-}
-
-/** The bots of `replay` as the Worker loads them. */
-export function replayBots(replay: LocalReplay): ArenaBot[] {
-  return replay.bots.map(({ name, bytes, meta }) => ({
-    name,
-    bytes: fromBase64(bytes),
-    ...(meta !== undefined && { meta }),
-  }))
-}
-
-/**
- * Why `replay`'s bytes are not what it says they are: the first bot whose bytes do not hash to
- * its `sha256`. Null when every bot's do.
- */
-export async function bytesProblem(replay: LocalReplay): Promise<string | null> {
-  for (const bot of replay.bots) {
-    if ((await sha256(fromBase64(bot.bytes))) !== bot.sha256) {
-      return `${bot.name}'s bytes do not match their SHA-256`
-    }
-  }
-  return null
-}
-
-/** The fragment key of a replay link. */
-export const REPLAY_KEY = 'r'
-
-/** The longest replay link fragment read: 16 bots at 512 B with their sources fit many times. */
-const MAX_REPLAY_LINK = 1 << 20
-
-/** `replay` as a link carries it: the sources left out, so the link stays short. */
-export function linkReplay(replay: LocalReplay): LocalReplay {
-  return { ...replay, bots: replay.bots.map(({ source: _, ...bot }) => bot) }
+    createdAt: now,
+  })
 }
 
 /** The fragment of a replay link: `r=` and the base64url of `replay`'s JSON, sources left out. */
-export function replayFragment(replay: LocalReplay): string {
-  const json = JSON.stringify(linkReplay(replay))
-  return `${REPLAY_KEY}=${toBase64Url(new TextEncoder().encode(json))}`
-}
+export const replayFragment = encodeReplayFragment
 
 /** The link of `replay`: its page, named by its match key, and the replay in the fragment. */
-export function replayUrl(origin: string, replay: LocalReplay): string {
-  return `${origin}/arena/${replay.match.key}#${replayFragment(replay)}`
+export function replayUrl(origin: string, replay: Replay): string {
+  return `${origin}${encodeShare({ bots: [], replay })}`
 }
 
 /** What a replay link's fragment holds. */
 export type ReplayRead =
   | { readonly kind: 'none' }
   | { readonly kind: 'broken'; readonly reason: string }
-  | { readonly kind: 'ok'; readonly replay: LocalReplay; readonly bots: readonly ArenaBot[] }
+  | { readonly kind: 'ok'; readonly replay: Replay; readonly bots: readonly ArenaBot[] }
 
 /**
  * The replay of a link's fragment (`#r=…`, the `#` optional): none when it has no `r`; broken,
  * and why, when it does not decode or is not a replay the arena can run.
  */
 export function readReplayFragment(fragment: string): ReplayRead {
-  const payload = new URLSearchParams(fragment.replace(/^#/, '')).get(REPLAY_KEY)
-  if (payload === null || payload === '') return { kind: 'none' }
   try {
-    if (payload.length > MAX_REPLAY_LINK) fail('it is longer than any replay link')
-    let json: unknown
-    try {
-      json = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(fromBase64Url(payload)))
-    } catch {
-      fail('it does not decode, so the link may be cut short')
-    }
-    const replay = parseReplay(json)
+    const json = decodeReplayFragment(fragment)
+    if (json === null) return { kind: 'none' }
+    const replay = readReplay(json)
     return { kind: 'ok', replay, bots: replayBots(replay) }
   } catch (error) {
-    if (error instanceof ReplayError) return { kind: 'broken', reason: error.message }
+    if (error instanceof ReplayError || error instanceof ProtocolError) {
+      return { kind: 'broken', reason: error.message }
+    }
     throw error
   }
+}
+
+/**
+ * `value` as a replay the arena can run, or a `ReplayError` that says what is wrong: a protocol
+ * replay, or a local one (it has a `format`) as the protocol replay it is. The protocol holds the
+ * counts to PRODUCT_SPEC §2 (16 bots, 10 rounds, 1M cycles); the arena also holds a bot to 256
+ * processes, so a link cannot ask a browser for more.
+ */
+export function readReplay(value: unknown): Replay {
+  const local = typeof value === 'object' && value !== null && 'format' in value
+  const replay = local ? fromLocal(parseLocalReplay(value)) : protocol(value)
+  integer(replay.config.maxProcesses, 'maxProcesses', PROCS.min, PROCS.max)
+  return replay
+}
+
+/** `parseReplay`, its `ProtocolError` a `ReplayError`. */
+function protocol(value: unknown): Replay {
+  try {
+    return parseReplay(value)
+  } catch (error) {
+    if (error instanceof ProtocolError) fail(error.message)
+    throw error
+  }
+}
+
+/** A local replay as the protocol has it: the seed out of the config, the match as its result. */
+export function fromLocal({ createdAt, config, rounds, bots, match }: LocalReplay): Replay {
+  const { seed, ...rest } = config
+  return protocol({
+    isa: ISA,
+    createdAt,
+    config: rest,
+    seed,
+    rounds,
+    bots,
+    result: {
+      key: match.key,
+      survivors: match.rounds[match.rounds.length - 1]?.survivors ?? [],
+      points: match.points,
+      resultHash: matchResultHash(match.rounds),
+      rounds: match.rounds,
+    },
+  })
 }
 
 /**
@@ -241,15 +205,14 @@ const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$
 export const NAME = /^[^\n\r]{1,64}$/
 
 /**
- * `value` as a replay the arena can run, or a `ReplayError` that says what is wrong. The engine
- * checks the config's values when the battle is made; this holds the counts to what the arena
- * runs (PRODUCT_SPEC §2: 16 bots, 10 rounds, 1M cycles, 256 processes a bot), so a link cannot
- * ask a browser for more.
+ * `value` as a local replay (`asmbots-replay-local/1`), or a `ReplayError` that says what is
+ * wrong. The engine checks the config's values when the battle is made; this holds the counts to
+ * what the arena runs (PRODUCT_SPEC §2: 16 bots, 10 rounds, 1M cycles, 256 processes a bot).
  */
-export function parseReplay(value: unknown): LocalReplay {
+export function parseLocalReplay(value: unknown): LocalReplay {
   const r = fields(value, 'the replay')
-  if (r.format !== REPLAY_FORMAT) fail(`it is not a replay of format ${REPLAY_FORMAT}`)
-  if (r.isa !== REPLAY_ISA) fail(`its bots are written for ${String(r.isa)}, not ${REPLAY_ISA}`)
+  if (r.format !== LOCAL_REPLAY_FORMAT) fail(`it is not a replay of format ${LOCAL_REPLAY_FORMAT}`)
+  if (r.isa !== ISA) fail(`its bots are written for ${String(r.isa)}, not ${ISA}`)
   const createdAt = text(r.createdAt, 'its date')
   const config = parseConfig(r.config)
   const rounds = integer(r.rounds, 'rounds', ROUNDS.min, ROUNDS.max)
@@ -258,7 +221,7 @@ export function parseReplay(value: unknown): LocalReplay {
     fail(`it has ${botCount(bots.length)}, and a battle has ${MIN_ARENA_BOTS} to ${MAX_ARENA_BOTS}`)
   }
   const match = parseMatch(r.match, bots.length, rounds)
-  return { format: REPLAY_FORMAT, isa: REPLAY_ISA, createdAt, config, rounds, bots, match }
+  return { format: LOCAL_REPLAY_FORMAT, isa: ISA, createdAt, config, rounds, bots, match }
 }
 
 export function parseConfig(value: unknown): BattleConfig {
@@ -273,13 +236,13 @@ export function parseConfig(value: unknown): BattleConfig {
   }
 }
 
-function parseBot(value: unknown, i: number): ReplayBot {
+function parseBot(value: unknown, i: number): LocalReplayBot {
   const what = `bot ${i + 1}`
   const b = fields(value, what)
   const name = text(b.name, `${what}'s name`, NAME)
   const bytes = text(b.bytes, `${name}'s bytes`, BASE64)
   if (bytes === '') fail(`${name} has no bytes`)
-  const bot: ReplayBot = { name, bytes, sha256: text(b.sha256, `${name}'s SHA-256`, SHA256) }
+  const bot: LocalReplayBot = { name, bytes, sha256: text(b.sha256, `${name}'s SHA-256`, SHA256) }
   const meta = b.meta === undefined ? undefined : parseMeta(b.meta, name)
   const source = b.source === undefined ? undefined : text(b.source, `${name}'s source`)
   return {

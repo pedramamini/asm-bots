@@ -6,16 +6,22 @@
 import { describe, expect, it } from 'bun:test'
 import { fighter } from '@asmbots/bots'
 import type { BattleConfigInput } from '@asmbots/engine'
+import {
+  bytesProblem,
+  parseReplay,
+  type Replay,
+  replayBots,
+  replayConfig,
+  toBase64Url,
+  withoutSources,
+} from '@asmbots/protocol'
 import { type MatchResult, runMatch } from '@asmbots/tourney'
 import {
   buildReplay,
-  bytesProblem,
+  LOCAL_REPLAY_FORMAT,
   type LocalReplay,
-  linkReplay,
-  parseReplay,
-  REPLAY_FORMAT,
+  readReplay,
   readReplayFragment,
-  replayBots,
   replayFragment,
   replayUrl,
 } from '../src/features/arena/battle/replay'
@@ -26,7 +32,6 @@ import {
   NO_RUN,
   type ReplayRun,
 } from '../src/features/arena/battle/verify'
-import { toBase64Url } from '../src/features/arena/setup/url'
 import type { ArenaBot } from '../src/features/arena/worker/protocol'
 
 const BOTS: readonly ArenaBot[] = ['dwarf', 'imp'].map((slug) => {
@@ -42,10 +47,25 @@ const CONFIG: BattleConfigInput = {
 const SOURCES = ['; dwarf', '; imp']
 
 /** The replay of `rounds` rounds of Dwarf vs Imp from seed 1, as `download replay` makes it. */
-async function duel(rounds = 1): Promise<{ replay: LocalReplay; match: MatchResult }> {
+async function duel(rounds = 1): Promise<{ replay: Replay; match: MatchResult }> {
   const match = runMatch(BOTS, CONFIG, rounds)
   const replay = await buildReplay(BOTS, SOURCES, CONFIG, rounds, match, new Date(0))
   return { replay, match }
+}
+
+/** `replay` as the arena wrote it before `@asmbots/protocol`. */
+function local(replay: Replay, match: MatchResult): LocalReplay {
+  const { createdAt = '', config, seed, rounds, bots } = replay
+  const { isa } = replay as { isa: LocalReplay['isa'] }
+  return {
+    format: LOCAL_REPLAY_FORMAT,
+    isa,
+    createdAt,
+    config: { ...config, seed },
+    rounds,
+    bots,
+    match,
+  }
 }
 
 /** A fragment whose `r` is the base64url of `value`'s JSON. */
@@ -77,7 +97,7 @@ describe('replay links', () => {
     expect(fragment).toMatch(/^r=[A-Za-z0-9_-]+$/)
     const read = readReplayFragment(`#${fragment}`)
     if (read.kind !== 'ok') throw new Error(read.kind)
-    expect(read.replay).toEqual(linkReplay(replay))
+    expect(read.replay).toEqual(withoutSources(replay))
     expect(read.replay.bots.every((bot) => bot.source === undefined)).toBe(true)
     expect(read.replay.bots.map((bot) => bot.meta)).toEqual(BOTS.map((bot) => bot.meta))
     expect(read.bots.map((bot) => bot.name)).toEqual(['Dwarf', 'Imp'])
@@ -111,18 +131,16 @@ describe('replay links', () => {
       kind: 'broken',
       reason: 'it is longer than any replay link',
     })
-    expect(brokenBecause([1, 2])).toBe('the replay is missing')
+    expect(brokenBecause([1, 2])).toBe('the replay is not well formed')
     expect(brokenBecause({ ...replay, format: 'asmbots-replay/0' })).toBe(
-      `it is not a replay of format ${REPLAY_FORMAT}`,
+      `it is not a replay of format ${LOCAL_REPLAY_FORMAT}`,
     )
-    expect(brokenBecause({ ...replay, isa: 'x86-64' })).toBe(
-      'its bots are written for x86-64, not x16c-v1',
-    )
+    expect(brokenBecause({ ...replay, isa: 'x86-64' })).toBe('isa is not well formed')
   })
 
   it('hold a replay to what the arena runs', async () => {
     const { replay } = await duel()
-    const [dwarf, imp] = replay.bots as [LocalReplay['bots'][0], LocalReplay['bots'][0]]
+    const [dwarf, imp] = replay.bots as [Replay['bots'][0], Replay['bots'][0]]
     const with_ = (change: Record<string, unknown>) => brokenBecause({ ...replay, ...change })
     const config = (change: Record<string, unknown>) =>
       with_({ config: { ...replay.config, ...change } })
@@ -131,43 +149,62 @@ describe('replay links', () => {
       'maxCycles must be a whole number in 1..1,000,000',
     )
     expect(config({ maxProcesses: 300 })).toBe('maxProcesses must be a whole number in 1..256')
-    expect(config({ seed: -1 })).toBe('the seed must be a whole number in 0..4,294,967,295')
-    expect(config({ seed: 1.5 })).toBe('the seed must be a whole number in 0..4,294,967,295')
+    expect(with_({ seed: -1 })).toBe('the seed must be a whole number in 0..4,294,967,295')
+    expect(with_({ seed: 1.5 })).toBe('the seed must be a whole number in 0..4,294,967,295')
     expect(with_({ bots: [dwarf] })).toBe('it has 1 bot, and a battle has 2 to 16')
     expect(with_({ bots: Array(17).fill(dwarf) })).toBe('it has 17 bots, and a battle has 2 to 16')
     expect(with_({ bots: [dwarf, { ...imp, bytes: 'not base64!' }] })).toBe(
-      "Imp's bytes is not well formed",
+      'bots[1].bytes is not well formed',
     )
-    expect(with_({ bots: [dwarf, { ...imp, bytes: '' }] })).toBe('Imp has no bytes')
+    expect(with_({ bots: [dwarf, { ...imp, bytes: '' }] })).toBe('bots[1].bytes is not well formed')
     expect(with_({ bots: [dwarf, { ...imp, sha256: 'abc' }] })).toBe(
-      "Imp's SHA-256 is not well formed",
+      'bots[1].sha256 is not well formed',
     )
     expect(with_({ bots: [dwarf, { ...imp, name: 'Imp\nand more' }] })).toBe(
-      "bot 2's name is not well formed",
+      'bots[1].name is not well formed',
     )
     expect(with_({ bots: [dwarf, { ...imp, meta: { author: 7 } }] })).toBe(
-      "Imp's author is not well formed",
+      'bots[1].meta.author is not well formed',
     )
-    const match = (change: Record<string, unknown>) =>
-      with_({ match: { ...replay.match, ...change } })
-    expect(match({ key: 'nope' })).toBe('the match key is not well formed')
-    expect(match({ of: 2 })).toBe('the match has 2 rounds, not 1')
-    expect(match({ rounds: [] })).toBe('it records 0 of its 1 rounds')
-    expect(match({ names: ['Dwarf'] })).toBe('the match names 1 bot, not 2')
-    const round = replay.match.rounds[0] as object
-    expect(match({ rounds: [{ ...round, order: [0, 0] }] })).toBe("round 1's order repeats a bot")
-    expect(match({ rounds: [{ ...round, round: 1 }] })).toBe('round 1 is out of order')
-    expect(match({ rounds: [{ ...round, resultHash: 'XYZ' }] })).toBe(
-      "round 1's result hash is not well formed",
+    const result = (change: Record<string, unknown>) =>
+      with_({ result: { ...replay.result, ...change } })
+    expect(result({ key: 'nope' })).toBe('result.key is not well formed')
+    expect(result({ rounds: [] })).toBe('it records 0 of its 1 rounds')
+    expect(result({ points: [3] })).toBe('the match points name 1 bot, not 2')
+    const round = replay.result.rounds[0] as object
+    expect(result({ rounds: [{ ...round, order: [0, 0] }] })).toBe(
+      "round 1's order is not the 2 bots",
+    )
+    expect(result({ rounds: [{ ...round, round: 1 }] })).toBe('round 1 is out of order')
+    expect(result({ rounds: [{ ...round, resultHash: 'XYZ' }] })).toBe(
+      'result.rounds[0].resultHash is not well formed',
     )
     // What `download replay` wrote reads as it was, sources and all.
+    expect(readReplay(JSON.parse(JSON.stringify(replay)))).toEqual(replay)
     expect(parseReplay(JSON.parse(JSON.stringify(replay)))).toEqual(replay)
+  })
+
+  it('still read a local replay, file or link, as the replay it is', async () => {
+    const { replay, match } = await duel(2)
+    const old = JSON.parse(JSON.stringify(local(replay, match)))
+    expect(readReplay(old)).toEqual(replay)
+    const read = readReplayFragment(fragmentOf(withoutSources(old)))
+    if (read.kind !== 'ok') throw new Error(read.kind)
+    expect(read.replay).toEqual(withoutSources(replay))
+    // Its own checks, in its own words.
+    expect(brokenBecause({ ...old, rounds: 11 })).toBe('rounds must be a whole number in 1..10')
+    expect(brokenBecause({ ...old, match: { ...old.match, of: 3 } })).toBe(
+      'the match has 3 rounds, not 2',
+    )
+    expect(brokenBecause({ ...old, isa: 'x86-64' })).toBe(
+      'its bots are written for x86-64, not x16c-v1',
+    )
   })
 
   it('know when a bot’s bytes are not the bytes its SHA-256 names', async () => {
     const { replay } = await duel()
     expect(await bytesProblem(replay)).toBeNull()
-    const [dwarf, imp] = replay.bots as [LocalReplay['bots'][0], LocalReplay['bots'][0]]
+    const [dwarf, imp] = replay.bots as [Replay['bots'][0], Replay['bots'][0]]
     // Imp's bytes, one bit changed: they still decode, to other code.
     const bytes = atob(imp.bytes)
     const flipped = btoa(String.fromCharCode(bytes.charCodeAt(0) ^ 1) + bytes.slice(1))
@@ -190,7 +227,7 @@ describe('the check', () => {
     // The engine plays the replay's own inputs the same, from the link.
     const read = readReplayFragment(replayFragment(replay))
     if (read.kind !== 'ok') throw new Error(read.kind)
-    const again = runMatch(read.bots, read.replay.config, read.replay.rounds)
+    const again = runMatch(read.bots, replayConfig(read.replay), read.replay.rounds)
     expect(checkReplay(read.replay, ranTo(again), 'ok')).toEqual({ state: 'verified', of: 3 })
   })
 
@@ -220,8 +257,8 @@ describe('the check', () => {
     const { replay: single, match: one } = await duel(1)
     const tampered = {
       ...single,
-      match: { ...one, rounds: [{ ...one.rounds[0], resultHash: 'ffffffffffffffff' }] },
-    } as LocalReplay
+      result: { ...single.result, rounds: [{ ...one.rounds[0], resultHash: 'ffffffffffffffff' }] },
+    } as Replay
     expect(checkReplay(tampered, ranTo(one), 'ok')).toEqual({
       state: 'mismatch',
       reason: `result ${one.rounds[0]?.resultHash}, recorded ffffffffffffffff`,

@@ -9,5 +9,5 @@
     "sourceMap": true
   },
   "include": ["src"],
-  "references": []
+  "references": [{ "path": "../engine" }, { "path": "../tourney" }]
 }

@@ -8,6 +8,7 @@
 import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 import { type BattleConfigInput, DEFAULT_CONFIG } from '@asmbots/engine'
+import { toBase64Url } from '@asmbots/protocol'
 import { bracket, meleeStandings, roundRobin, runMatch } from '@asmbots/tourney'
 import { ToastProvider } from '@asmbots/ui'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -22,7 +23,6 @@ import {
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { deflateSync, strToU8 } from 'fflate'
 import { useDom, window } from '../../../packages/ui/test/dom'
-import { toBase64Url } from '../src/features/arena/setup/url'
 import {
   entrantBots,
   type MatchExecutor,
