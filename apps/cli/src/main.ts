@@ -8,6 +8,7 @@ import { fighter } from '@asmbots/bots'
 import type { EventSink } from '@asmbots/engine'
 import { NullSink } from '@asmbots/engine'
 import {
+  bracketSvg,
   iterateRoundRobin,
   createBracket,
   iterateBracket,
@@ -475,6 +476,12 @@ async function cmdTourney(inputs: string[], flags: Record<string, string | boole
       } else {
         printMeleeStandings(results.standings)
       }
+    }
+
+    if (flags.svg && format === 'bracket') {
+      const svgPath = resolve(String(flags.svg))
+      writeFileSync(svgPath, bracketSvg(results.bracket, { title: 'asm bots bracket' }))
+      console.log(`Bracket written to ${colorize(svgPath, 'green')}`)
     }
 
     if (flags.out) {

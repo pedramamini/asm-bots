@@ -13,6 +13,8 @@ Rounds, matches, round robins, melees, brackets, King of the Hill, standings, an
 | Bracket | `bracket(bots, config, { rounds, ... })` | `createBracket`, `advance`, `nextMatches`, `iterateBracket` | Single elimination, 2..32 entrants, size 2..32. Standard seed positions, so byes go to the top seeds. Seeding is `given`, `rating`, or `{ random: seed }`. Optional third-place match. |
 | King of the Hill | `hill(state, challenger, lookup)` | `createHill`, `submitToHill` | The challenger fights every entry. The field ranks by score, then age (older stays), then old board order. Over `size`, the lowest entry goes. A challenger with the same bytes as an entry replaces it. |
 
+A bracket also draws itself: `bracketSvg(bracket, { palette, live, selected, interactive, title })` returns an SVG document (rounds as columns, byes greyed, the third-place match under the final, the champion at the right), every name escaped and every match a `data-match-id` group. `bracketLayout` gives the boxes' places. The CLI's `tourney bracket --svg` and the web's bracket view and `bracket.svg` download all use it.
+
 ## Scoring
 
 A round gives each survivor `pmarsPoints(n, s) = floor((n*n - 1) / s)`, and a dead bot 0 (ISA §5.5):

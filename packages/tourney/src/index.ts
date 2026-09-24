@@ -21,6 +21,22 @@ export {
   MAX_BRACKET_ENTRANTS,
   nextMatches,
 } from './bracket'
+export type {
+  BracketLayout,
+  BracketNode,
+  BracketPalette,
+  BracketSvgOptions,
+} from './bracket-svg'
+export {
+  bracketLayout,
+  bracketSvg,
+  DEFAULT_BRACKET_PALETTE,
+  escapeXml,
+  NODE_HEIGHT,
+  NODE_WIDTH,
+  ROW_HEIGHT,
+  roundTitle,
+} from './bracket-svg'
 export type { Game, GameScore, Glicko2Options, Rating } from './glicko2'
 export { DEFAULT_RATING, rateMatches, scoreFromPoints, TAU, updateRating } from './glicko2'
 export type {

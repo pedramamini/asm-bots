@@ -1,7 +1,8 @@
 /**
  * Local tournaments in Chromium, against the production build: the new tournament form makes a
  * bracket of five roster bots, the runner plays it in the arena Worker of the build, and its card
- * goes from `running · n / 5` to `finished` with a champion.
+ * goes from `running · n / 5` to `finished` with a champion. Its bracket then shows eight matches;
+ * the final's panel opens, and `watch` replays a round in the arena.
  */
 import { expect, type Page, test } from '@playwright/test'
 
@@ -44,5 +45,21 @@ test('a bracket of five roster bots runs to a champion', async ({ page }) => {
   await expect(card).toContainText(/running · \d \/ 5/)
   await expect(card).toContainText('finished', { timeout: 60_000 })
   await expect(card).toContainText('champion')
+
+  // The bracket: five bots in a bracket of 8, three byes, seven matches and the third place.
+  await card.getByRole('link').click()
+  const bracket = page.getByRole('region', { name: 'bracket' }).last()
+  await expect(bracket.locator('[data-match-id]')).toHaveCount(8)
+  await expect(bracket.locator('[data-status="walkover"]')).toHaveCount(3)
+  await expect(bracket.locator('[data-champion]')).toHaveCount(1)
+  await bracket.getByRole('button', { name: /^final, match 7/ }).click()
+  const match = page.getByRole('region', { name: 'match' })
+  await expect(match).toContainText('final · match 7')
+  await match.getByRole('button', { name: 'watch round 1', exact: true }).click()
+  const watching = page.getByRole('dialog')
+  await expect(watching.getByRole('application', { name: /^arena: / })).toBeVisible()
+  await expect(watching.getByRole('button', { name: 'pause' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(watching).toBeHidden()
   expect(errors).toEqual([])
 })
