@@ -5,9 +5,13 @@
  */
 import type {
   Bot,
+  BotLabel,
+  BotPlacement,
   BotVersion,
   Hill,
   HillEntry,
+  HillStanding,
+  HillSummary,
   Match,
   MatchOutcome,
   ReplayConfig,
@@ -98,6 +102,20 @@ export interface MatchRow {
   finished_at: string | null
 }
 
+/** A bot version's name columns: `LABEL_COLUMNS` from `bot_versions v` and `LABEL_JOINS`. */
+export interface BotLabelRow {
+  version_id: string
+  bot_id: string
+  version: number
+  author: string | null
+  slug: string
+  name: string
+  handle: string
+}
+
+const LABEL_COLUMNS = 'v.id AS version_id, v.bot_id, v.version, v.author, b.slug, b.name, u.handle'
+const LABEL_JOINS = 'JOIN bots b ON b.id = v.bot_id JOIN users u ON u.id = b.owner_id'
+
 export function toUser(row: UserRow): User {
   return { id: row.id, handle: row.handle, avatarUrl: row.avatar_url, createdAt: row.created_at }
 }
@@ -155,6 +173,18 @@ export function toHillEntry(row: HillEntryRow): HillEntry {
     age: row.age,
     enteredAt: row.entered_at,
     rank: row.rank,
+  }
+}
+
+export function toBotLabel(row: BotLabelRow): BotLabel {
+  return {
+    botId: row.bot_id,
+    versionId: row.version_id,
+    slug: row.slug,
+    name: row.name,
+    version: row.version,
+    owner: row.handle,
+    author: row.author,
   }
 }
 
@@ -265,11 +295,85 @@ export async function listHillEntries(db: D1Database, hillId: string): Promise<H
   return results.map(toHillEntry)
 }
 
+/** A hill's standings with each entry's label, king first. */
+export async function listHillStandings(db: D1Database, hillId: string): Promise<HillStanding[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT e.*, ${LABEL_COLUMNS} FROM hill_entries e
+       JOIN bot_versions v ON v.id = e.bot_version_id ${LABEL_JOINS}
+       WHERE e.hill_id = ? ORDER BY e.rank`,
+    )
+    .bind(hillId)
+    .all<HillEntryRow & BotLabelRow>()
+  return results.map((row) => ({ entry: toHillEntry(row), bot: toBotLabel(row) }))
+}
+
+/** Every hill, with its entrant count and its king. */
+export async function listHillSummaries(db: D1Database): Promise<HillSummary[]> {
+  const [hills, counts, kings] = await Promise.all([
+    listHills(db),
+    db
+      .prepare('SELECT hill_id, COUNT(*) AS n FROM hill_entries GROUP BY hill_id')
+      .all<{ hill_id: string; n: number }>(),
+    db
+      .prepare(
+        `SELECT e.*, ${LABEL_COLUMNS} FROM hill_entries e
+         JOIN bot_versions v ON v.id = e.bot_version_id ${LABEL_JOINS}
+         WHERE e.rank = 1 ORDER BY e.entered_at`,
+      )
+      .all<HillEntryRow & BotLabelRow>(),
+  ])
+  const count = new Map(counts.results.map((row) => [row.hill_id, row.n]))
+  const king = new Map<string, HillStanding>()
+  for (const row of kings.results) {
+    if (!king.has(row.hill_id))
+      king.set(row.hill_id, { entry: toHillEntry(row), bot: toBotLabel(row) })
+  }
+  return hills.map((hill) => ({
+    hill,
+    entrants: count.get(hill.id) ?? 0,
+    king: king.get(hill.id) ?? null,
+  }))
+}
+
+/** The labels of bot versions by id; an id with no version (deleted) is left out. */
+export async function listBotLabels(
+  db: D1Database,
+  versionIds: readonly string[],
+): Promise<Map<string, BotLabel>> {
+  if (versionIds.length === 0) return new Map()
+  const { results } = await db
+    .prepare(
+      `SELECT ${LABEL_COLUMNS} FROM bot_versions v ${LABEL_JOINS}
+       WHERE v.id IN (SELECT value FROM json_each(?))`,
+    )
+    .bind(JSON.stringify([...new Set(versionIds)]))
+    .all<BotLabelRow>()
+  return new Map(results.map((row) => [row.version_id, toBotLabel(row)]))
+}
+
+/** Where a bot's versions stand, hill by hill. */
+export async function listBotPlacements(db: D1Database, botId: string): Promise<BotPlacement[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT e.*, v.version, h.slug AS hill_slug, h.name AS hill_name FROM hill_entries e
+       JOIN bot_versions v ON v.id = e.bot_version_id JOIN hills h ON h.id = e.hill_id
+       WHERE v.bot_id = ? ORDER BY h.created_at, h.slug, e.rank`,
+    )
+    .bind(botId)
+    .all<HillEntryRow & { version: number; hill_slug: string; hill_name: string }>()
+  return results.map((row) => ({
+    hill: { slug: row.hill_slug, name: row.hill_name },
+    version: row.version,
+    entry: toHillEntry(row),
+  }))
+}
+
 /** A hill's finished matches, newest first; with `botVersionId`, only the ones it played. */
 export async function listHillMatches(
   db: D1Database,
   hillId: string,
-  { botVersionId, limit = 50 }: { botVersionId?: string; limit?: number } = {},
+  { botVersionId, limit = 50 }: { botVersionId?: string | undefined; limit?: number } = {},
 ): Promise<Match[]> {
   const statement =
     botVersionId === undefined
@@ -290,15 +394,21 @@ export async function listHillMatches(
   return results.map(toMatch)
 }
 
-/** Tournaments: running ones first, then by start time, latest first; unscheduled ones last. */
-export async function listTournaments(db: D1Database, limit = 50): Promise<Tournament[]> {
+/**
+ * Tournaments: running ones first, then by start time, latest first; unscheduled ones last. A
+ * draft shows to its owner only.
+ */
+export async function listTournaments(
+  db: D1Database,
+  { limit = 50, viewerId = null }: { limit?: number; viewerId?: string | null } = {},
+): Promise<Tournament[]> {
   const { results } = await db
     .prepare(
-      `SELECT * FROM tournaments
+      `SELECT * FROM tournaments WHERE status != 'draft' OR owner_id = ?
        ORDER BY (status = 'running') DESC, starts_at IS NULL, starts_at DESC, created_at DESC
        LIMIT ?`,
     )
-    .bind(clampLimit(limit))
+    .bind(viewerId, clampLimit(limit))
     .all<TournamentRow>()
   return results.map(toTournament)
 }
@@ -309,6 +419,22 @@ export async function getTournament(db: D1Database, id: string): Promise<Tournam
     .bind(id)
     .first<TournamentRow>()
   return row && toTournament(row)
+}
+
+/** A tournament's entrants: by bracket seed once drawn, then by name. */
+export async function listTournamentEntrants(
+  db: D1Database,
+  tournamentId: string,
+): Promise<BotLabel[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT ${LABEL_COLUMNS} FROM tournament_entries t
+       JOIN bot_versions v ON v.id = t.bot_version_id ${LABEL_JOINS}
+       WHERE t.tournament_id = ? ORDER BY t.seed IS NULL, t.seed, b.name`,
+    )
+    .bind(tournamentId)
+    .all<BotLabelRow>()
+  return results.map(toBotLabel)
 }
 
 export async function listTournamentMatches(

@@ -1,12 +1,14 @@
-import { bytesProblem, type Replay, replayConfig } from '@asmbots/protocol'
-import { useToast } from '@asmbots/ui'
+import { bytesProblem, type Replay, replayConfig, SHA256 } from '@asmbots/protocol'
+import { Panel, PanelGrid, RadarLoader, useToast } from '@asmbots/ui'
 import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { isNotFound } from '../../api/client'
+import { useReplay } from '../../api/queries'
 import { Placeholder } from '../../app/Placeholder'
 import { ArenaBattle } from './ArenaBattle'
 import { downloadBlob, replayName } from './battle/files'
 import { BattleLog } from './battle/log'
-import { readReplayFragment, replayUrl } from './battle/replay'
+import { type ReplayRead, readReplayFragment, readReplayValue, replayUrl } from './battle/replay'
 import { type BytesCheck, checkReplay, NO_RUN, type ReplayRun } from './battle/verify'
 import { useArenaView } from './battle/view'
 import type { ArenaFight } from './setup/bots'
@@ -32,16 +34,24 @@ const OPEN_ARENA = { label: 'open the arena', to: '/arena' } as const
 
 /**
  * `/arena/$replayId` (PRODUCT_SPEC §2): a replay in the arena's battle view. The replay comes in
- * the link's fragment, `#r=` (`battle/replay.ts`); it loads and plays at once. Its check's chip
+ * the link's fragment, `#r=` (`battle/replay.ts`), or, for a link with none whose id is a replay
+ * key (a SHA-256), from the server's store (`GET /api/replays/:key`); it loads and plays at once. Its check's chip
  * says `verifying` until the rounds end, then `verified` when each round's result hash equals the
- * recorded one, or `mismatch` (`battle/verify.ts`). `share` copies the replay's link, `download
- * replay` saves the replay as it came, and `setup` goes to the arena's setup.
- *
- * TODO(EXEC 3.1): a link with no `#r=` loads the replay `replayId` from `/api/replays/:key`.
+ * recorded one, or `mismatch` (`battle/verify.ts`). `share` copies the replay's link (a stored
+ * replay's is its page alone), `download replay` saves the replay as it came, and `setup` goes to
+ * the arena's setup.
  */
 export function ReplayPage({ replayId, createClient = () => new ArenaClient() }: ReplayPageProps) {
   const hash = useLocation({ select: (location) => location.hash })
-  const read = useMemo(() => readReplayFragment(hash), [hash])
+  const linked = useMemo(() => readReplayFragment(hash), [hash])
+  // No replay in the link: a replay key names one the server stores.
+  const stored = linked.kind === 'none' && SHA256.test(replayId) ? replayId : null
+  const fetched = useReplay(stored)
+  const read = useMemo(
+    (): ReplayRead =>
+      stored === null || fetched.data === undefined ? linked : readReplayValue(fetched.data),
+    [linked, stored, fetched.data],
+  )
   const replay = read.kind === 'ok' ? read.replay : null
   const bots = read.kind === 'ok' ? read.bots : null
   const navigate = useNavigate()
@@ -97,6 +107,26 @@ export function ReplayPage({ replayId, createClient = () => new ArenaClient() }:
     [replay, bots],
   )
 
+  if (read.kind === 'none' && stored !== null) {
+    if (fetched.error !== null) {
+      return (
+        <Placeholder title="replay" status={replayId} action={OPEN_ARENA}>
+          {isNotFound(fetched.error)
+            ? 'the server has no replay with this key.'
+            : `could not load this replay: ${fetched.error.message}`}
+        </Placeholder>
+      )
+    }
+    return (
+      <PanelGrid className="p-3">
+        <Panel className="col-span-12" title="replay" status={replayId}>
+          <div className="grid h-80 place-items-center">
+            <RadarLoader label="loading the replay" />
+          </div>
+        </Panel>
+      </PanelGrid>
+    )
+  }
   if (read.kind === 'none') {
     return (
       <Placeholder title="replay" status={replayId} action={OPEN_ARENA}>
@@ -141,7 +171,13 @@ export function ReplayPage({ replayId, createClient = () => new ArenaClient() }:
       replay={{
         check: checkReplay(loaded, run, bytes),
         onShare: () =>
-          void copyLink(replayUrl(window.location.origin, loaded), toast, 'replay link copied.'),
+          void copyLink(
+            stored === null
+              ? replayUrl(window.location.origin, loaded)
+              : `${window.location.origin}/arena/${stored}`,
+            toast,
+            'replay link copied.',
+          ),
         onDownload: download,
       }}
     />

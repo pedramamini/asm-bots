@@ -1,37 +1,21 @@
-import {
-  Button,
-  Panel,
-  PanelGrid,
-  RadarLoader,
-  Skeleton,
-  Stat,
-  Table,
-  type TableColumn,
-} from '@asmbots/ui'
+import type { Tournament } from '@asmbots/protocol'
+import { Button, Panel, PanelGrid, RadarLoader, Stat } from '@asmbots/ui'
 import { CodeXml, Grid2x2 } from 'lucide-react'
 import { type ComponentType, lazy, Suspense, useState } from 'react'
+import { useHill, useHillMatches, useTournament, useTournaments } from '../api/queries'
 import type { HomeDemoProps } from '../features/arena/demo/HomeDemo'
+import { HillStandingsTable } from '../features/hills/HillStandingsTable'
+import { count, day } from '../features/hills/links'
+import { MatchesTable } from '../features/hills/MatchesTable'
 import { NavLink } from './Frame'
+import { LoadFailure, readStatus } from './LoadFailure'
 import { usePaintedAndIdle } from './paint'
 
 /** The rows the hill and match panels hold (PRODUCT_SPEC §1): a top 10, and the last 10. */
 const ROWS = 10
 
-/** A column the panel draws before its data exists: the header only. */
-function column(id: string, align?: 'right'): TableColumn<never> {
-  return { id, header: id, cell: () => null, align }
-}
-
-const HILL_COLUMNS = [
-  column('rank', 'right'),
-  column('bot'),
-  column('author'),
-  column('score', 'right'),
-  column('rating', 'right'),
-  column('age', 'right'),
-]
-
-const MATCH_COLUMNS = [column('match'), column('winner'), column('cycles', 'right')]
+/** The hill the home page shows. */
+const MAIN_HILL = 'main'
 
 /** The demo battle, and the arena with it, load after the page: the page does not wait for them. */
 const HomeDemo = lazy(() =>
@@ -44,50 +28,104 @@ export interface HomePageProps {
 }
 
 /**
- * `/` (PRODUCT_SPEC §1): the hero over the live demo battle, then the main hill, the recent
- * matches, and the next championship. The panels arrive with the server; until then each holds
- * its skeleton.
+ * `/` (PRODUCT_SPEC §1): the hero over the live demo battle, then the main hill's top 10, its
+ * recent matches, and the next championship, read from the API; until each read lands its panel
+ * holds a skeleton. Entering a championship waits for sign-in (EXEC 3.2) and the Runner (3.3).
  */
 export function HomePage({ demo = HomeDemo }: HomePageProps) {
   return (
     <PanelGrid className="p-3">
       <Hero demo={demo} />
-      <Panel className="col-span-12 xl:col-span-6" title="main hill" status="loading">
-        <Table
+      <MainHill />
+      <RecentMatches />
+      <Championship />
+    </PanelGrid>
+  )
+}
+
+function MainHill() {
+  const { data, error } = useHill(MAIN_HILL)
+  return (
+    <Panel
+      className="col-span-12 xl:col-span-6"
+      title="main hill"
+      status={readStatus(data, error, (d) => `${d.standings.length} of ${d.hill.size}`)}
+    >
+      {error !== null && data === undefined ? (
+        <LoadFailure error={error} />
+      ) : (
+        <HillStandingsTable
           aria-label="main hill, top 10"
-          columns={HILL_COLUMNS}
-          rows={[]}
-          rowKey={() => 0}
-          empty={<Skeleton rows={ROWS} />}
+          compact
+          rows={ROWS}
+          standings={data?.standings.slice(0, ROWS)}
         />
-      </Panel>
-      <Panel
-        className="col-span-12 md:col-span-6 xl:col-span-3"
-        title="recent matches"
-        status="loading"
-      >
-        <Table
-          aria-label="recent matches"
-          columns={MATCH_COLUMNS}
-          rows={[]}
-          rowKey={() => 0}
-          empty={<Skeleton rows={ROWS} />}
-        />
-      </Panel>
-      <Panel
-        className="col-span-12 md:col-span-6 xl:col-span-3"
-        title="championship"
-        status="loading"
-      >
+      )}
+    </Panel>
+  )
+}
+
+function RecentMatches() {
+  const { data, error } = useHillMatches(MAIN_HILL, { limit: ROWS })
+  return (
+    <Panel
+      className="col-span-12 md:col-span-6 xl:col-span-3"
+      title="recent matches"
+      status={readStatus(data, error, () => MAIN_HILL)}
+    >
+      {error !== null && data === undefined ? (
+        <LoadFailure error={error} />
+      ) : (
+        <MatchesTable aria-label="recent matches" rows={ROWS} matches={data?.matches} />
+      )}
+    </Panel>
+  )
+}
+
+/** The championship to show: the one running, else the next scheduled; null when neither. */
+export function nextChampionship(tournaments: readonly Tournament[]): Tournament | null {
+  const running = tournaments.find((t) => t.status === 'running')
+  if (running !== undefined) return running
+  const scheduled = tournaments
+    .filter((t) => t.status === 'scheduled')
+    .sort((a, b) => (a.startsAt ?? '\uffff').localeCompare(b.startsAt ?? '\uffff'))
+  return scheduled[0] ?? null
+}
+
+function Championship() {
+  const list = useTournaments()
+  const next = list.data === undefined ? undefined : nextChampionship(list.data.tournaments)
+  const detail = useTournament(next?.id ?? null)
+  const loading = list.data === undefined && list.error === null
+  return (
+    <Panel
+      className="col-span-12 md:col-span-6 xl:col-span-3"
+      title="championship"
+      status={readStatus(list.data, list.error, () => next?.status ?? 'none')}
+    >
+      {list.error !== null && list.data === undefined ? (
+        <LoadFailure error={list.error} />
+      ) : (
         <div className="flex flex-1 flex-col gap-4">
-          <Stat label="next event" loading />
-          <Stat label="entrants so far" loading />
+          <Stat
+            label="next event"
+            loading={loading}
+            value={next === undefined ? undefined : next === null ? 'none scheduled' : next.name}
+            note={next?.startsAt ? day(next.startsAt) : undefined}
+          />
+          <Stat
+            label="entrants so far"
+            loading={loading || (next != null && detail.data === undefined)}
+            value={
+              next === null ? '–' : detail.data ? count(detail.data.entrants.length) : undefined
+            }
+          />
           <Button variant="primary" className="mt-auto self-start" disabled>
             enter
           </Button>
         </div>
-      </Panel>
-    </PanelGrid>
+      )}
+    </Panel>
   )
 }
 

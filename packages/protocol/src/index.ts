@@ -3,6 +3,21 @@
  * their types for the API's records, replays, share links, `LiveRoom` messages, and errors. It
  * runs in the browser, the Worker, and Bun: no Node built-ins.
  */
+export {
+  BotDetail,
+  BotLabel,
+  BotPlacement,
+  BotVersionDetail,
+  HillDetail,
+  HillList,
+  HillStanding,
+  HillSummary,
+  MatchList,
+  MatchSummary,
+  TournamentDetail,
+  TournamentList,
+  UserDetail,
+} from './api'
 export { fromBase64, fromBase64Url, sha256Hex, toBase64, toBase64Url } from './bytes'
 export { canonicalJson } from './canonical'
 export { ApiError, apiError, ERROR_STATUS, type ErrorCode } from './errors'
@@ -58,7 +73,7 @@ export {
   Seed,
   withoutSources,
 } from './replay'
-export { ProtocolError, parse } from './schema'
+export { Id, ProtocolError, parse, SHA256, Slug } from './schema'
 export {
   BotRef,
   decodeReplayFragment,

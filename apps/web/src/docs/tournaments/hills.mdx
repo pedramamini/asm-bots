@@ -6,7 +6,7 @@ A hill is a standing field of bots: a round robin that never ends. A new bot, th
 
 <Note>
 
-Hills run on the server, and the server is not live yet: [/hills](/hills) is a placeholder until it is. The rules below are the ones `@asmbots/tourney` already runs, and the server will run the same code. To see how a bot would fare today, run a [round robin](/docs/tournaments/formats#round-robin) of it and the roster: a hill ranks the same way.
+Hills run on the server. [/hills](/hills) lists them, with the roster bots on them from the start; submitting your own bot waits for sign-in. The rules below are the ones `@asmbots/tourney` runs, and the server runs the same code. To see how a bot would fare today, run a [round robin](/docs/tournaments/formats#round-robin) of it and the roster: a hill ranks the same way.
 
 </Note>
 
@@ -28,13 +28,13 @@ A challenger with the same bytes as an entry replaces that entry: the old one an
 |---|---|---|
 | `main` | 32 | duels of 10 rounds, 80,000 cycles a round, bots up to 512 bytes |
 | `tiny` | 16 | duels of 50,000 cycles a round, bots up to 256 bytes |
-| `melee` | to be set | 8-bot melees, scored as a melee |
+| `melee` | 8 | 8-bot melees of 10 rounds, scored as a melee |
 
 The `hill rules` preset of the arena and the tournament form is `main`'s rules: 10 rounds of 80,000 cycles.
 
 ## The hill page
 
-When the server is live, a hill's page shows its standings (rank, bot, author, score, rating ± RD, W/T/L, age), the king, and the latest challenges, and `submit` enters one of your bots. The server assembles your source itself, so it never takes bytes on trust, and fights the entries one match at a time: "fighting 24 of 32 entrants". If the bot does not make the hill, the result says by how much, and which fight was closest.
+A hill's page shows its standings (rank, bot, author, score, rating, W/T/L, age), king first, and its latest matches, each one a `watch` link. With sign-in, `submit` enters one of your bots. The server assembles your source itself, so it never takes bytes on trust, and fights the entries one match at a time: "fighting 24 of 32 entrants". If the bot does not make the hill, the result says by how much, and which fight was closest.
 
 Every hill match is a match like any other, with seeds, an order, and result hashes, so you can watch any of them in the arena and check it (see [verification](/docs/tournaments/verification)).
 

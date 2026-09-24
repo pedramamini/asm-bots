@@ -14,8 +14,12 @@ import { HomePage } from '../src/app/HomePage'
 import { NotFound } from '../src/app/NotFound'
 import { useTicker } from '../src/app/ticker'
 import type { HomeDemoProps } from '../src/features/arena/demo/HomeDemo'
+import { hang, useApiServer, WithQueries } from './api-server'
 
 useDom()
+// The server never answers: the home page's panels hold their skeletons (test/api-pages.test.tsx
+// fills them).
+useApiServer(hang('/hills/main'), hang('/hills/main/matches'), hang('/tournaments'))
 // The router restores the scroll on each navigation; jsdom has no scrolling.
 window.scrollTo = () => {}
 
@@ -34,7 +38,11 @@ async function renderAt(content: () => ReactNode, path = '/') {
     routeTree: root.addChildren([home, doc]),
     history: createMemoryHistory({ initialEntries: [path] }),
   })
-  render(<RouterProvider router={router as never} />)
+  render(
+    <WithQueries>
+      <RouterProvider router={router as never} />
+    </WithQueries>,
+  )
   await act(() => router.load())
   return router
 }
@@ -62,7 +70,7 @@ describe('HomePage', () => {
     ).toEqual(['rank', 'bot', 'author', 'score', 'rating', 'age'])
     expect(within(hill).getByText('loading')).toBeTruthy()
     const matches = screen.getByRole('region', { name: 'recent matches' })
-    expect(within(matches).getAllByRole('columnheader')).toHaveLength(3)
+    expect(within(matches).getAllByRole('columnheader')).toHaveLength(4)
     const cup = screen.getByRole('region', { name: 'championship' })
     expect(within(cup).getByRole('button', { name: 'enter' })).toHaveProperty('disabled', true)
   })

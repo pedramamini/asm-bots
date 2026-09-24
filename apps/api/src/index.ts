@@ -8,7 +8,12 @@ import { scheduled } from './cron'
 import type { AppEnv, Env } from './env'
 import { appCors, errorResponse, onError, requestLog } from './middleware'
 import { rateLimit, WRITE_LIMIT } from './rate-limit'
+import { bots } from './routes/bots'
 import { health } from './routes/health'
+import { hills } from './routes/hills'
+import { replays } from './routes/replays'
+import { tournaments } from './routes/tournaments'
+import { users } from './routes/users'
 import { version } from './routes/version'
 
 const app = new Hono<AppEnv>()
@@ -20,6 +25,11 @@ app.on(['POST', 'PUT', 'PATCH', 'DELETE'], '/api/*', rateLimit(WRITE_LIMIT))
 
 app.route('/api/health', health)
 app.route('/api/version', version)
+app.route('/api/bots', bots)
+app.route('/api/hills', hills)
+app.route('/api/replays', replays)
+app.route('/api/tournaments', tournaments)
+app.route('/api/users', users)
 
 app.onError(onError)
 app.notFound((c) =>

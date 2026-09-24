@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Placeholder } from '../../app/Placeholder'
 import { titleHead } from '../../app/title'
+import { BotPage } from '../../features/bots/BotPage'
 
 export const Route = createFileRoute('/bots/$id')({
   head: ({ params }) => titleHead('bots', params.id),
@@ -9,9 +9,5 @@ export const Route = createFileRoute('/bots/$id')({
 
 function BotsDetail() {
   const { id } = Route.useParams()
-  return (
-    <Placeholder title="bots" status={id}>
-      this bot's page shows here.
-    </Placeholder>
-  )
+  return <BotPage id={id} />
 }

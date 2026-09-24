@@ -90,11 +90,24 @@ export type ReplayRead =
  * and why, when it does not decode or is not a replay the arena can run.
  */
 export function readReplayFragment(fragment: string): ReplayRead {
-  try {
+  return guarded(() => {
     const json = decodeReplayFragment(fragment)
-    if (json === null) return { kind: 'none' }
-    const replay = readReplay(json)
+    return json === null ? { kind: 'none' } : readReplayValue(json)
+  })
+}
+
+/** `value`, a replay's JSON from a link or the API, as a replay the arena can run, or why not. */
+export function readReplayValue(value: unknown): ReplayRead {
+  return guarded(() => {
+    const replay = readReplay(value)
     return { kind: 'ok', replay, bots: replayBots(replay) }
+  })
+}
+
+/** What `read` gives, or broken with the reason a replay or protocol error gives. */
+function guarded(read: () => ReplayRead): ReplayRead {
+  try {
+    return read()
   } catch (error) {
     if (error instanceof ReplayError || error instanceof ProtocolError) {
       return { kind: 'broken', reason: error.message }

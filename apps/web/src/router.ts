@@ -1,5 +1,6 @@
 import { QueryClient } from '@tanstack/react-query'
 import { createRouter, defaultStringifySearch } from '@tanstack/react-router'
+import { shouldRetry } from './api/client'
 import { NotFound } from './app/NotFound'
 import { routeTree } from './routeTree.gen'
 
@@ -27,7 +28,9 @@ export function createAppRouter(queryClient: QueryClient) {
 
 export function createQueryClient() {
   return new QueryClient({
-    defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
+    defaultOptions: {
+      queries: { staleTime: 30_000, refetchOnWindowFocus: false, retry: shouldRetry },
+    },
   })
 }
 

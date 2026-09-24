@@ -7,7 +7,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, mock } from 'bun:test'
 import { fighter } from '@asmbots/bots'
 import type { BattleConfigInput } from '@asmbots/engine'
-import { type Replay, replayConfig } from '@asmbots/protocol'
+import { type Replay, replayConfig, replayKey } from '@asmbots/protocol'
 import { runMatch } from '@asmbots/tourney'
 import { ToastProvider } from '@asmbots/ui'
 import {
@@ -30,11 +30,13 @@ import { useArenaView } from '../src/features/arena/battle/view'
 import { ReplayPage } from '../src/features/arena/ReplayPage'
 import type { ArenaClient } from '../src/features/arena/worker/client'
 import type { ArenaBot } from '../src/features/arena/worker/protocol'
+import { answer, refuse, useApiServer, WithQueries } from './api-server'
 import { stubCanvas } from './fake-canvas'
 import { manualSchedule, type SessionWorker, sessionClient } from './session-worker'
 
 useDom()
 window.scrollTo = () => {}
+const server = useApiServer()
 
 /** Dwarf beats Imp at seed 1 in cycle 16,140. */
 const BOTS: readonly ArenaBot[] = ['dwarf', 'imp'].map((slug) => {
@@ -88,9 +90,11 @@ async function renderAt(path: string) {
     history: createMemoryHistory({ initialEntries: [path] }),
   })
   render(
-    <ToastProvider>
-      <RouterProvider router={router} />
-    </ToastProvider>,
+    <WithQueries>
+      <ToastProvider>
+        <RouterProvider router={router} />
+      </ToastProvider>
+    </WithQueries>,
   )
   await act(() => router.load())
   return { router, frames }
@@ -264,6 +268,54 @@ describe('a replay link', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/arena'))
     await screen.findByText('the setup')
     expect(worker.terminated).toBe(true)
+  })
+})
+
+describe('a stored replay', () => {
+  it('loads from the server by its key, plays, verifies, and shares its short link', async () => {
+    const writeText = mock((_text: string) => Promise.resolve())
+    const clipboard = Object.getOwnPropertyDescriptor(globalThis.navigator, 'clipboard')
+    Object.defineProperty(globalThis.navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    })
+    try {
+      const replay = await duel()
+      const key = await replayKey(replay)
+      server.use(answer(`/replays/${key}`, replay))
+      await renderAt(`/arena/${key}`)
+      await screen.findByRole('application', { name: 'arena' })
+      const { client, worker } = made[made.length - 1] as Made
+      await waitFor(() => expect(client.store.getState().status).toBe('playing'))
+      expect(worker.sent[0]).toMatchObject({ type: 'load', config: replayConfig(replay) })
+      client.seek(100_000)
+      await settle()
+      const victory = await screen.findByRole('region', { name: 'winner · Dwarf' })
+      await waitFor(() => expect(chip().textContent).toBe('verified'))
+      fireEvent.click(within(victory).getByRole('button', { name: 'share' }))
+      await screen.findByText('replay link copied.')
+      expect(writeText).toHaveBeenCalledWith(`http://localhost/arena/${key}`)
+    } finally {
+      if (clipboard === undefined) Reflect.deleteProperty(globalThis.navigator, 'clipboard')
+      else Object.defineProperty(globalThis.navigator, 'clipboard', clipboard)
+    }
+  })
+
+  it('says the server has none for a key it does not know', async () => {
+    const key = 'ef'.repeat(32)
+    server.use(refuse(`/replays/${key}`, 404, 'not_found', `no replay ${key}`))
+    const clients = made.length
+    await renderAt(`/arena/${key}`)
+    const panel = await screen.findByText('the server has no replay with this key.')
+    expect(panel).toBeTruthy()
+    expect(made).toHaveLength(clients)
+  })
+
+  it('says why a stored replay does not load', async () => {
+    const key = '12'.repeat(32)
+    server.use(answer(`/replays/${key}`, { isa: 'x16c-v1' }))
+    await renderAt(`/arena/${key}`)
+    expect(await screen.findByText(/^could not load this replay: /)).toBeTruthy()
   })
 })
 
