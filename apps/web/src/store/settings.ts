@@ -8,6 +8,7 @@ import {
   THEMES,
   type Theme,
 } from '@asmbots/ui/themes'
+import { useCallback } from 'react'
 import { create } from 'zustand'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 
@@ -218,6 +219,17 @@ function isArenaConfig(value: unknown): value is ArenaConfig {
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/**
+ * A first-visit coach mark (PRODUCT_SPEC §9) by id (`arena`, `editor`): open until the user
+ * dismisses it, then never again.
+ */
+export function useCoachMark(id: string): { open: boolean; dismiss: () => void } {
+  const open = useSettings((state) => !state.coachMarksSeen.includes(id))
+  const markCoachSeen = useSettings((state) => state.markCoachSeen)
+  const dismiss = useCallback(() => markCoachSeen(id), [markCoachSeen, id])
+  return { open, dismiss }
 }
 
 /** Whether to reduce motion now (DESIGN_SYSTEM §8): the setting, or the system's under `system`. */

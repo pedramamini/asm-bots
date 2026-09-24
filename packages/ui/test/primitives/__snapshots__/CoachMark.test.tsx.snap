@@ -1,0 +1,37 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`CoachMark draws the hint, the caret, and got it 1`] = `
+"<div>
+  <div
+    aria-label="tip"
+    class="absolute z-10 flex w-64 flex-col items-end gap-2 rounded-md border border-accent bg-panel p-3 text-data text-text transition-[opacity,translate] duration-120 ease-out starting:opacity-0 motion-reduce:transition-none top-full left-0 mt-2 starting:-translate-y-1"
+    role="note"
+  >
+    <span
+      aria-hidden="true"
+      class="absolute size-2 rotate-45 border-accent bg-panel -top-1 left-2 border-t border-l"
+    />
+    <p
+      class="self-stretch"
+    >
+      assemble runs as you type; press 
+      <kbd
+        class="inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-sm border border-border-strong bg-panel-2 px-1 text-panel-status text-muted"
+      >
+        F5
+      </kbd>
+       to debug.
+    </p>
+    <button
+      class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none h-5 gap-1 px-2 relative border-accent bg-accent-10 text-nav text-accent not-disabled:hover:bg-accent-25 focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40"
+      type="button"
+    >
+      <span
+        class="inline-flex items-center gap-[inherit]"
+      >
+        got it
+      </span>
+    </button>
+  </div>
+</div>"
+`;

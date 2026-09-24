@@ -1,12 +1,15 @@
-import { Download, Swords, Trash2 } from 'lucide-react'
+import { Download, Play, Swords, Trash2 } from 'lucide-react'
 import { Fragment, type ReactNode, useState } from 'react'
 import { hexByte } from '../hex'
 import { Button } from '../primitives/Button'
+import { CoachMark } from '../primitives/CoachMark'
 import { EmptyState } from '../primitives/EmptyState'
 import { Hex } from '../primitives/Hex'
 import { HueSwatch } from '../primitives/HueSwatch'
+import { IconButton } from '../primitives/IconButton'
 import { Identicon } from '../primitives/Identicon'
 import { Input } from '../primitives/Input'
+import { Kbd } from '../primitives/Kbd'
 import { KeyHelp } from '../primitives/KeyHelp'
 import { Modal } from '../primitives/Modal'
 import { RadarLoader } from '../primitives/RadarLoader'
@@ -323,10 +326,52 @@ export function DataSpecimens() {
         </States>
       </Specimen>
 
-      <Specimen name="KeyHelp" status={`${KEYS.length} bindings`} className="col-span-12">
+      <Specimen name="KeyHelp" status={`${KEYS.length} bindings`} className="col-span-8">
         <KeyHelp bindings={KEYS} />
       </Specimen>
+
+      <Specimen name="CoachMark" status="first visit · got it" className="col-span-4">
+        <CoachMarkSheet />
+      </Specimen>
     </>
+  )
+}
+
+/**
+ * The coach mark under an icon button and over a button, as the editor and the arena pin theirs.
+ * `got it` puts one away; `show again` brings them back.
+ */
+function CoachMarkSheet() {
+  const [shown, setShown] = useState({ under: true, over: true })
+  return (
+    <div className="flex h-full min-h-60 flex-col justify-between gap-3">
+      <span className="relative flex self-start">
+        <IconButton icon={Play} label="run" shortcut="F5" />
+        {shown.under && (
+          <CoachMark onDismiss={() => setShown({ ...shown, under: false })}>
+            assemble runs as you type; press <Kbd>F5</Kbd> to debug.
+          </CoachMark>
+        )}
+      </span>
+      <span className="flex items-center justify-between gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={shown.under && shown.over}
+          onClick={() => setShown({ under: true, over: true })}
+        >
+          show again
+        </Button>
+        <span className="relative flex">
+          <Button icon={Swords}>fight</Button>
+          {shown.over && (
+            <CoachMark placement="top-end" onDismiss={() => setShown({ ...shown, over: false })}>
+              then fight: the arena plays the battle.
+            </CoachMark>
+          )}
+        </span>
+      </span>
+    </div>
   )
 }
 

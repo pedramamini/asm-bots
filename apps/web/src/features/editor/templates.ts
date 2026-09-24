@@ -1,7 +1,8 @@
 /**
  * The templates menu (PRODUCT_SPEC §3): whole bots a new bot starts from, and the base idiom, a
  * snippet that goes in at the cursor. Each template assembles without an error or a warning, and
- * is in the formatter's layout (`test/editor-templates.test.ts`).
+ * is in the formatter's layout (`test/editor-docs.test.ts`). The toolbar's menu and the new bot's
+ * empty state (`EmptyEditor.tsx`) list them.
  */
 import { rosterCatalog } from '../arena/setup/bots'
 
@@ -12,16 +13,16 @@ export interface Template {
   readonly id: TemplateId
   /** The menu's label. */
   readonly label: string
-  /** What it is, in a few words. */
+  /** What it is, in a few words: the empty state's second column, 28 characters at most. */
   readonly detail: string
 }
 
 export const TEMPLATES: readonly Template[] = [
-  { id: 'blank', label: 'blank', detail: 'a name, a strategy, and a loop' },
-  { id: 'imp', label: 'imp', detail: 'the roster imp: movsw one word ahead' },
-  { id: 'dwarf', label: 'dwarf', detail: 'the roster dwarf: a DAT bomb every 4 bytes' },
-  { id: 'scanner', label: 'scanner skeleton', detail: 'scan for code, bomb what it finds' },
-  { id: 'replicator', label: 'replicator skeleton', detail: 'copy the body, start each copy' },
+  { id: 'blank', label: 'blank', detail: 'a name, a strategy, a loop' },
+  { id: 'imp', label: 'imp', detail: 'roster imp: a movsw runner' },
+  { id: 'dwarf', label: 'dwarf', detail: 'roster dwarf: a DAT bomber' },
+  { id: 'scanner', label: 'scanner skeleton', detail: 'scan for code, then bomb it' },
+  { id: 'replicator', label: 'replicator skeleton', detail: 'copy itself, start each copy' },
 ]
 
 export function isTemplateId(value: string): value is TemplateId {
@@ -95,6 +96,11 @@ copy:   add     dx, STEP
 
 end:
 `
+
+/** A new bot nobody has written in yet: the blank template as it comes, or no text at all. */
+export function isBlankBot(source: string): boolean {
+  return source.trim() === '' || source === BLANK
+}
 
 /** A template's source. */
 export function templateSource(id: TemplateId): string {

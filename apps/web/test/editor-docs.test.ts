@@ -26,6 +26,7 @@ import {
   useEditorPrefs,
 } from '../src/features/editor/store'
 import {
+  isBlankBot,
   isTemplateId,
   TEMPLATE_IDS,
   TEMPLATES,
@@ -66,6 +67,22 @@ describe('templates', () => {
   it('knows its ids', () => {
     expect(isTemplateId('scanner')).toBe(true)
     expect(isTemplateId('paper')).toBe(false)
+  })
+
+  it('says what each is in a line the empty state shows whole', () => {
+    for (const { id, detail } of TEMPLATES) {
+      expect([id, detail.length > 0 && detail.length <= 28]).toEqual([id, true])
+    }
+  })
+
+  it('knows a bot nobody has written in: the blank template as it comes, or no text', () => {
+    const blank = templateSource('blank')
+    expect([blank, '', '  \n\t\n'].map(isBlankBot)).toEqual([true, true, true])
+    expect(
+      [`${blank}; mine\n`, blank.replace('untitled', 'mine'), templateSource('imp')].map(
+        isBlankBot,
+      ),
+    ).toEqual([false, false, false])
   })
 })
 

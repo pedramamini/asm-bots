@@ -52,7 +52,7 @@ const figure = (route: string) =>
 describe('Gallery', () => {
   it('shows every primitive of the kit on a sheet of its own, a region named after it', () => {
     openGallery()
-    expect(PRIMITIVES).toHaveLength(31)
+    expect(PRIMITIVES).toHaveLength(32)
     expect(sheets().sort()).toEqual(PRIMITIVES)
     for (const name of PRIMITIVES) expect(screen.getByRole('region', { name })).toBeTruthy()
   })
@@ -65,7 +65,7 @@ describe('Gallery', () => {
     for (const [id, count] of [
       ['layout', 7],
       ['controls', 12],
-      ['data', 12],
+      ['data', 13],
     ] as const) {
       const section = document.getElementById(id) as HTMLElement
       expect(sheets(section)).toHaveLength(count)

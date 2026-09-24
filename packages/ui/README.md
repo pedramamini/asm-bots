@@ -1,6 +1,6 @@
 # @asmbots/ui
 
-The UI kit of ASM Bots: the tokens of [DESIGN_SYSTEM §2](../../docs/DESIGN_SYSTEM.md#2-tokens) in five themes, the type scale of §3, and 31 primitives on React 19 and Tailwind 4. There is no component library: each primitive is ours, one file in `src/primitives/`. The gallery shows every primitive in every state, in each theme, beside the three reference layouts of §4.
+The UI kit of ASM Bots: the tokens of [DESIGN_SYSTEM §2](../../docs/DESIGN_SYSTEM.md#2-tokens) in five themes, the type scale of §3, and 32 primitives on React 19 and Tailwind 4. There is no component library: each primitive is ours, one file in `src/primitives/`. The gallery shows every primitive in every state, in each theme, beside the three reference layouts of §4.
 
 ## Use it
 
@@ -97,6 +97,7 @@ Tailwind's own palette, font stacks, radii, and type sizes are off: a color, a r
 | `Skeleton` | `<Skeleton className="h-2.5 w-24" />`; `<Skeleton rows={5} />` holds a table's place. |
 | `RadarLoader` | `<RadarLoader framed label="loading dashboard" detail="6 sections remaining" />` |
 | `EmptyState` | `<EmptyState action={{ label: 'submit a bot', href: '/hills/main' }}>no entrants yet.</EmptyState>` |
+| `CoachMark` | `<span className="relative flex"><IconButton icon={Play} label="run" /><CoachMark onDismiss={dismiss}>press <Kbd>F5</Kbd> to debug.</CoachMark></span>`: a first-visit hint in its control's `relative` box, under it by default (`placement`: `bottom-start`, `bottom-end`, `top-start`, `top-end`); the page stores `got it`. |
 | `KeyHelp` | `<KeyHelp bindings={[{ keys: ['g', 'a'], description: 'go to arena', group: 'global' }]} />` |
 
 ## Themes

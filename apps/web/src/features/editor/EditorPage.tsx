@@ -4,10 +4,21 @@
  * assembles in the assembler Worker 300 ms after the last keystroke (`useAssembler`); each result
  * shows in the editor (squiggles, gutter marks, the listing gutter), in the panel, and in the
  * debugger, which loads it while its session has not moved (`debug/useDebugger.ts`). Unsaved text
- * is kept as a draft, so a reload loses nothing.
+ * is kept as a draft, so a reload loses nothing. A new bot shows the templates over the editor
+ * until it has text of its own (`EmptyEditor.tsx`), and the first visit a coach mark under the
+ * debugger's run button until it is dismissed or the debugger runs.
  */
 import { formatSource } from '@asmbots/asm'
-import { Chip, EmptyState, hexAddress, Skeleton, SplitPane, useToast } from '@asmbots/ui'
+import {
+  Chip,
+  CoachMark,
+  EmptyState,
+  hexAddress,
+  Kbd,
+  Skeleton,
+  SplitPane,
+  useToast,
+} from '@asmbots/ui'
 import { isolateHistory, undo } from '@codemirror/commands'
 import type { EditorView } from '@codemirror/view'
 import { useQueryClient } from '@tanstack/react-query'
@@ -18,6 +29,7 @@ import { type KeyCommand, useKeys } from '../../app/keys'
 import { useRouteStat } from '../../app/slots'
 import { addVersion, type BotVersion, useBotVersions, versionsKey } from '../../store/bot-versions'
 import { type LocalBot, useLocalBotActions, useLocalBots } from '../../store/local-bots'
+import { useCoachMark } from '../../store/settings'
 import type { ArenaCanvasHandle } from '../arena/ArenaCanvas'
 import { type CatalogBot, fightSeed, rosterCatalog } from '../arena/setup/bots'
 import { battleConfig, randomSeed } from '../arena/setup/config'
@@ -39,10 +51,11 @@ import { textChanges } from './diff'
 import { type DocTarget, docKey, paramOf, pathOf } from './doc'
 import { Editor, type EditorCommands } from './Editor'
 import { EditorToolbar, type SaveState, type TestState } from './EditorToolbar'
+import { EmptyEditor } from './EmptyEditor'
 import { Library } from './Library'
 import { Problems } from './Problems'
 import { useEditorPrefs } from './store'
-import { TEMPLATES, type TemplateId, templateSource } from './templates'
+import { isBlankBot, TEMPLATES, type TemplateId, templateSource } from './templates'
 import { TEST_CONFIG, TEST_ROUNDS, tally, testBots, testedId, watchSetup } from './test-vs'
 import { VersionsModal } from './VersionsModal'
 
@@ -224,6 +237,12 @@ interface WorkbenchProps {
 /** How long the text rests before its draft is written, ms. */
 const DRAFT_DELAY = 400
 
+/** The editor's first-visit coach mark, by its id in the settings' `coachMarksSeen`. */
+const COACH_MARK = 'editor'
+
+/** Where the blank template's name sits: a new bot's first word to write. */
+const BLANK_NAME = 'untitled'
+
 function Workbench({
   doc,
   assembler,
@@ -360,6 +379,41 @@ function Workbench({
     })
     onTemplateDone?.()
   }, [template, view, doc.target.kind, replaceText, toast, onTemplateDone])
+
+  const startFrom = useCallback(
+    (id: TemplateId) => void navigate({ to: '/editor', search: { t: id } }),
+    [navigate],
+  )
+
+  // The new bot's empty state: the templates, until the text is its own or the panel is closed.
+  const [emptyClosed, setEmptyClosed] = useState(false)
+  const emptyShown =
+    doc.target.kind === 'scratch' && template === null && !emptyClosed && isBlankBot(source)
+  const closeEmpty = useCallback(() => {
+    setEmptyClosed(true)
+    view?.focus()
+  }, [view])
+  const emptyTemplate = useCallback(
+    (id: TemplateId) => {
+      closeEmpty()
+      const blank = templateSource('blank')
+      if (id !== 'blank' || view === null || view.state.doc.toString() !== blank) {
+        startFrom(id)
+        return
+      }
+      // The blank bot is in already: its name is the first thing to write.
+      const at = blank.indexOf(BLANK_NAME)
+      view.dispatch({ selection: { anchor: at, head: at + BLANK_NAME.length } })
+    },
+    [closeEmpty, view, startFrom],
+  )
+
+  // The first visit's coach mark goes once the user dismisses it, or once the debugger has run.
+  const { open: coachOpen, dismiss: dismissCoach } = useCoachMark(COACH_MARK)
+  const debugged = (debug.snapshot.state?.cycle ?? 0) > 0
+  useEffect(() => {
+    if (coachOpen && debugged) dismissCoach()
+  }, [coachOpen, debugged, dismissCoach])
 
   const go = useCallback(
     (to: DocTarget) => {
@@ -638,7 +692,7 @@ function Workbench({
               hash: sharedFragment(watch.shared),
             })
           }}
-          onTemplate={(id) => void navigate({ to: '/editor', search: { t: id } })}
+          onTemplate={startFrom}
           onBaseIdiom={baseIdiom}
         />
       </FrameToolbar>
@@ -673,6 +727,13 @@ function Workbench({
           >
             <div className="flex h-full min-w-0 flex-col gap-3">
               <div className="relative min-h-0 flex-1 overflow-hidden rounded-md border border-border">
+                {emptyShown && (
+                  <EmptyEditor
+                    empty={source.trim() === ''}
+                    onTemplate={emptyTemplate}
+                    onClose={closeEmpty}
+                  />
+                )}
                 <Editor
                   className="h-full"
                   initial={doc.initial}
@@ -694,6 +755,13 @@ function Workbench({
               lineOf={lineOf}
               cursorAddress={debug.cursorAddress}
               notify={notify}
+              coach={
+                coachOpen && (
+                  <CoachMark onDismiss={dismissCoach} className="max-w-[100cqw]">
+                    assemble runs as you type; press <Kbd>F5</Kbd> to debug.
+                  </CoachMark>
+                )
+              }
               className="pr-1"
             />
           </SplitPane>

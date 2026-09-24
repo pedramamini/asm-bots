@@ -3,11 +3,12 @@
  * included): the dwarf typed in assembles clean with its size in the toolbar; `mov [bx], 0` shows
  * the size error at its column (squiggle, gutter mark, problems panel); `format` is idempotent;
  * `test vs imp` runs ten rounds in the arena Worker and shows the record, and `watch` opens the
- * arena set up as tested.
+ * arena set up as tested. A first visit shows the templates over the new bot and the coach mark
+ * under the debugger's run button.
  */
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { expect, type Page, test } from '@playwright/test'
+import { expect, type Locator, type Page, test } from '@playwright/test'
 
 const ROSTER = fileURLToPath(new URL('../../../packages/bots/roster/', import.meta.url))
 /** A roster bot's source file, read as text: the runner cannot import `.asm` (`e2e/roster.ts`). */
@@ -41,7 +42,8 @@ function editorText(page: Page): Promise<string> {
 async function typeBot(page: Page, text: string) {
   await page.goto('/editor')
   await expect(page).toHaveTitle('ASM BOTS // EDITOR')
-  await content(page).click()
+  // A line of the blank bot: the templates cover the middle of the editor.
+  await content(page).locator('.cm-line').first().click()
   await page.keyboard.press('ControlOrMeta+a')
   await page.keyboard.press('Delete')
   await expect(sizeChip(page)).toHaveText('— / 512 B')
@@ -140,5 +142,55 @@ test('test vs imp shows the record, and watch opens the arena as tested', async 
   await expect(picked).toHaveCount(2)
   await expect(picked.first()).toHaveAttribute('aria-label', 'Dwarf')
   await expect(page.locator('button[name="fight"]')).toHaveText('fight · 2 bots · 10 rounds')
+  expect(errors).toEqual([])
+})
+
+/** An element's box, laid out. */
+async function box(locator: Locator) {
+  const found = await locator.boundingBox()
+  if (found === null) throw new Error('not laid out')
+  return found
+}
+
+test('a first visit: the templates over the new bot, the coach mark under run', async ({
+  page,
+}) => {
+  const errors = watch(page)
+  await page.goto('/editor')
+  await expect(page).toHaveTitle('ASM BOTS // EDITOR')
+  const panel = page.getByRole('region', { name: 'new bot' })
+  await expect(panel).toBeVisible()
+  const tip = page.getByRole('note', { name: 'tip' })
+  await expect(tip).toContainText('assemble runs as you type; press F5 to debug.')
+  // The panel sits under the blank bot's five lines; the tip hangs under the run button.
+  const last = await box(page.locator('.cm-line', { hasText: 'start:  jmp     start' }))
+  expect((await box(panel)).y).toBeGreaterThan(last.y + last.height)
+  const run = await box(page.getByRole('button', { name: 'run', exact: true }))
+  const hint = await box(tip)
+  expect(hint.y).toBeGreaterThan(run.y + run.height)
+  expect(Math.abs(hint.x - run.x)).toBeLessThanOrEqual(1)
+  // Each template's line shows whole.
+  const cut = await panel
+    .getByRole('listitem')
+    .locator('span')
+    .evaluateAll((spans) => spans.filter((span) => span.scrollWidth > span.clientWidth).length)
+  expect(cut).toBe(0)
+  // A press beside the panel reaches the editor (its box: the content runs on past it).
+  const editor = await box(page.locator('.cm-editor'))
+  const beside = await box(panel)
+  expect(editor.x + editor.width - (beside.x + beside.width)).toBeGreaterThanOrEqual(16)
+  await page.mouse.click(editor.x + editor.width - 8, beside.y + beside.height / 2)
+  await expect(page.locator('.cm-editor')).toHaveClass(/cm-focused/)
+  // A template starts the bot, and the panel goes.
+  await panel.getByRole('button', { name: 'dwarf' }).click()
+  await expect(sizeChip(page)).toHaveText('23 / 512 B')
+  await expect(panel).toBeHidden()
+  // got it: the tip never shows again.
+  await tip.getByRole('button', { name: 'got it' }).click()
+  await expect(tip).toBeHidden()
+  await page.reload()
+  await expect(page).toHaveTitle('ASM BOTS // EDITOR')
+  await expect(page.getByRole('button', { name: 'run', exact: true })).toBeVisible()
+  await expect(tip).toBeHidden()
   expect(errors).toEqual([])
 })

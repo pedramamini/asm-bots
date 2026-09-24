@@ -1,10 +1,11 @@
 /**
  * `/editor` in jsdom (src/features/editor/EditorPage.tsx): the routes in a memory router under
  * the app frame, the local bots on fake-indexeddb, the assembler on the main thread, and a fake
- * arena client. The toolbar, the problems panel, format, save and versions, templates, the roster
- * read-only, the library and listing keys, `test vs`, share links, and drafts; the debugger: what
- * it loads, breakpoints from the gutter and F9, runs and steps and step back, the panels, and the
- * arena strip. `e2e/editor.spec.ts` and `e2e/debugger.spec.ts` run the main flows in Chromium.
+ * arena client. The toolbar, the problems panel, format, save and versions, templates and the new
+ * bot's empty state, the roster read-only, the library and listing keys, `test vs`, share links,
+ * and drafts; the debugger: what it loads, breakpoints from the gutter and F9, runs and steps and
+ * step back, the panels, the first visit's coach mark, and the arena strip. `e2e/editor.spec.ts`
+ * and `e2e/debugger.spec.ts` run the main flows in Chromium.
  */
 import 'fake-indexeddb/auto'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from 'bun:test'
@@ -46,6 +47,7 @@ import {
   listLocalBots,
   saveLocalBot,
 } from '../src/store/local-bots'
+import { useSettings } from '../src/store/settings'
 import { stubCanvas } from './fake-canvas'
 
 useDom()
@@ -69,6 +71,8 @@ const BLANK = templateSource('blank')
 beforeEach(async () => {
   await clearLocalBots()
   useEditorPrefs.setState(structuredClone(DEFAULT_EDITOR_PREFS as never))
+  // Each test is a first visit: the editor's coach mark shows until it goes.
+  useSettings.setState({ coachMarksSeen: [] })
 })
 
 /** An arena client whose matches the test scores. */
@@ -142,6 +146,7 @@ async function editorView(): Promise<EditorView> {
 }
 
 const sizeChip = () => screen.getByLabelText(/^size /).textContent
+const newBot = () => screen.queryByRole('region', { name: 'new bot' })
 const toolbar = () => within(screen.getByRole('toolbar', { name: 'editor' }))
 const problemRows = () =>
   within(screen.getByRole('list', { name: 'problems' }))
@@ -409,6 +414,97 @@ describe('the editor page', () => {
     }
   })
 
+  it('shows the templates over a new bot, and one starts the bot from it', async () => {
+    const { router } = await renderEditor()
+    const view = await editorView()
+    const panel = within(newBot() as HTMLElement)
+    const templates = within(panel.getByRole('list', { name: 'templates' })).getAllByRole('button')
+    expect(templates.map((row) => row.getAttribute('aria-label'))).toEqual([
+      'blank',
+      'imp',
+      'dwarf',
+      'scanner skeleton',
+      'replicator skeleton',
+    ])
+    expect(
+      panel.getByRole('button', { name: 'dwarf', description: 'roster dwarf: a DAT bomber' }),
+    ).toBeTruthy()
+    fireEvent.click(panel.getByRole('button', { name: 'dwarf' }))
+    await waitFor(() => expect(view.state.doc.toString()).toBe(source('dwarf')))
+    await waitFor(() => expect(router.state.location.search).toEqual({}))
+    expect(newBot()).toBeNull()
+    expect(view.hasFocus).toBe(true)
+    // Undo brings the blank bot back, and the panel stays put away.
+    fireEvent.click(await screen.findByRole('button', { name: 'undo' }))
+    expect(view.state.doc.toString()).toBe(BLANK)
+    expect(newBot()).toBeNull()
+  })
+
+  it('puts the templates away once the bot has text of its own, until it has none', async () => {
+    await renderEditor()
+    const view = await editorView()
+    expect(newBot()).not.toBeNull()
+    type(view, '; mine\n')
+    expect(newBot()).toBeNull()
+    // Emptied, the bot is new again: blank puts the blank template in.
+    replaceAll(view, ' \n')
+    expect(newBot()).not.toBeNull()
+    fireEvent.click(within(newBot() as HTMLElement).getByRole('button', { name: 'blank' }))
+    await waitFor(() => expect(view.state.doc.toString()).toBe(BLANK))
+    expect(await screen.findByText('a new bot from blank.')).toBeTruthy()
+    expect(newBot()).toBeNull()
+  })
+
+  it('blank keeps the blank bot and selects its name; close keeps the text', async () => {
+    const first = await renderEditor()
+    const view = await editorView()
+    fireEvent.click(within(newBot() as HTMLElement).getByRole('button', { name: 'blank' }))
+    expect(newBot()).toBeNull()
+    expect(view.state.doc.toString()).toBe(BLANK)
+    const { from, to } = view.state.selection.main
+    expect(view.state.sliceDoc(from, to)).toBe('untitled')
+    expect(view.hasFocus).toBe(true)
+    expect(first.router.state.location.search).toEqual({})
+    expect(screen.queryByText('a new bot from blank.')).toBeNull()
+    // Each new visit shows the panel again; close puts it away and leaves the text.
+    first.unmount()
+    await renderEditor()
+    const again = await editorView()
+    fireEvent.click(within(newBot() as HTMLElement).getByRole('button', { name: 'close' }))
+    expect(newBot()).toBeNull()
+    expect(again.state.doc.toString()).toBe(BLANK)
+    expect(again.hasFocus).toBe(true)
+  })
+
+  it('shows no templates over a saved bot, a roster bot, or a template on its way', async () => {
+    const bot = await saveLocalBot({ name: 'blank one', source: BLANK })
+    const mine = await renderEditor(`/editor/${bot.id}`)
+    expect((await editorView()).state.doc.toString()).toBe(BLANK)
+    expect(newBot()).toBeNull()
+    mine.unmount()
+    const roster = await renderEditor('/editor/roster-imp')
+    await editorView()
+    expect(newBot()).toBeNull()
+    roster.unmount()
+    // The panel must not flash over the blank text before the template goes in: a panel put in
+    // and taken out in one batch is gone from the page by now, but not from its removal record.
+    const flashed: string[] = []
+    const watcher = new window.MutationObserver((records: MutationRecord[]) => {
+      for (const record of records) {
+        for (const node of [...record.addedNodes, ...record.removedNodes]) {
+          if (node.textContent?.includes('start from a template')) flashed.push('new bot')
+        }
+      }
+    })
+    watcher.observe(document.body, { childList: true, subtree: true })
+    await renderEditor('/editor?t=imp')
+    const view = await editorView()
+    await waitFor(() => expect(view.state.doc.toString()).toBe(source('imp')))
+    watcher.disconnect()
+    expect(flashed).toEqual([])
+    expect(newBot()).toBeNull()
+  })
+
   it('says so for a bot this browser does not have', async () => {
     await renderEditor('/editor/no-such-bot')
     expect(await screen.findByText(/no bot with this id in this browser/)).toBeTruthy()
@@ -633,7 +729,10 @@ describe('the debugger', () => {
     type(view, '; note\n')
     await waitFor(() => expect(screen.getByText('source changed')).toBeTruthy())
     expect(stopLine()).toBe('cycle1·stepped')
-    fireEvent.click(screen.getByRole('button', { name: 'reload' }))
+    // The chip comes with the edit, reload once the edit has assembled.
+    const reload = screen.getByRole('button', { name: 'reload' })
+    await waitFor(() => expect(reload.hasAttribute('disabled')).toBe(false))
+    fireEvent.click(reload)
     await waitFor(() => expect(stopLine()).toBe('cycle0·ready: nothing has run'))
     expect(screen.queryByText('source changed')).toBeNull()
     expect(screen.getByRole('list', { name: 'breakpoints' }).textContent).toContain(
@@ -656,6 +755,38 @@ describe('the debugger', () => {
     await waitFor(() => expect(within(queue()).getAllByRole('button')).toHaveLength(1))
     expect(queue().textContent).toContain('died')
     await waitFor(() => expect(queue().textContent).not.toContain('died'), { timeout: 2000 })
+  })
+
+  it('pins the coach mark under run on the first visit, until got it, and never again', async () => {
+    const first = await dwarfVsImp()
+    const transport = screen.getByRole('group', { name: 'debugger transport' })
+    const tip = within(transport).getByRole('note', { name: 'tip' })
+    expect(tip.querySelector('p')?.textContent).toBe(
+      'assemble runs as you type; press F5 to debug.',
+    )
+    // In the run button's box, which it points at.
+    expect(within(tip.parentElement as HTMLElement).getByRole('button', { name: 'run' })).toBe(
+      screen.getByRole('button', { name: 'run' }),
+    )
+    fireEvent.click(within(tip).getByRole('button', { name: 'got it' }))
+    expect(screen.queryByRole('note', { name: 'tip' })).toBeNull()
+    expect(useSettings.getState().coachMarksSeen).toEqual(['editor'])
+    first.unmount()
+    await dwarfVsImp()
+    expect(screen.queryByRole('note', { name: 'tip' })).toBeNull()
+  })
+
+  it('puts the coach mark away once the debugger runs', async () => {
+    await dwarfVsImp()
+    expect(screen.getByRole('note', { name: 'tip' })).toBeTruthy()
+    key('F11')
+    await waitFor(() => expect(stopLine()).toBe('cycle1·stepped'))
+    await waitFor(() => expect(screen.queryByRole('note', { name: 'tip' })).toBeNull())
+    expect(useSettings.getState().coachMarksSeen).toEqual(['editor'])
+    // Back at cycle 0, it stays away.
+    key(',')
+    await waitFor(() => expect(stopLine()).toMatch(/^cycle0·/))
+    expect(screen.queryByRole('note', { name: 'tip' })).toBeNull()
   })
 
   it('folds the arena strip and opens it again, and the editor stays the same', async () => {
