@@ -1,0 +1,371 @@
+{
+  "hill": {
+    "id": "hill-main",
+    "slug": "main",
+    "name": "main",
+    "description": "the ladder: duels of 10 rounds, 80,000 cycles a round, bots up to 512 bytes.",
+    "size": 32,
+    "rounds": 10,
+    "config": {
+      "coreSize": 65536,
+      "maxCycles": 80000,
+      "maxProcesses": 64,
+      "minSpacing": 1024,
+      "maxBotBytes": 512
+    },
+    "scoring": "duel",
+    "createdAt": "2026-09-25T07:22:25.900Z"
+  },
+  "standings": [
+    {
+      "entry": {
+        "hillId": "hill-main",
+        "botVersionId": "roster-paper-v1",
+        "score": 313,
+        "rating": 1995.8245106987374,
+        "wins": 12,
+        "ties": 1,
+        "losses": 0,
+        "age": 6,
+        "enteredAt": "2026-09-25T07:22:25.900Z",
+        "rank": 1,
+        "reign": 6
+      },
+      "bot": {
+        "botId": "roster-paper",
+        "versionId": "roster-paper-v1",
+        "slug": "paper",
+        "name": "Paper",
+        "version": 1,
+        "owner": "system",
+        "author": "ASM Bots"
+      },
+      "rd": 143.43654287918105
+    },
+    {
+      "entry": {
+        "hillId": "hill-main",
+        "botVersionId": "roster-vampire-v1",
+        "score": 303,
+        "rating": 1872.8305821776696,
+        "wins": 11,
+        "ties": 0,
+        "losses": 2,
+        "age": 2,
+        "enteredAt": "2026-09-25T07:22:25.900Z",
+        "rank": 2,
+        "reign": null
+      },
+      "bot": {
+        "botId": "roster-vampire",
+        "versionId": "roster-vampire-v1",
+        "slug": "vampire",
+        "name": "Vampire",
+        "version": 1,
+        "owner": "system",
+        "author": "ASM Bots"
+      },
+      "rd": 129.02516076063017
+    },
+    {
+      "entry": {
+        "hillId": "hill-main",
+        "botVersionId": "roster-hybrid-v1",
+        "score": 258,
+        "rating": 1764.45736857577,
+        "wins": 9,
+        "ties": 1,
+        "losses": 3,
+        "age": 3,
+        "enteredAt": "2026-09-25T07:22:25.900Z",
+        "rank": 3,
+        "reign": null
+      },
+      "bot": {
+        "botId": "roster-hybrid",
+        "versionId": "roster-hybrid-v1",
+        "slug": "hybrid",
+        "name": "Hybrid",
+        "version": 1,
+        "owner": "system",
+        "author": "ASM Bots"
+      },
+      "rd": 130.02796049096366
+    },
+    {
+      "entry": {
+        "hillId": "hill-main",
+        "botVersionId": "roster-gate-v1",
+        "score": 246,
+        "rating": 1618.5722150541194,
+        "wins": 7,
+        "ties": 2,
+        "losses": 4,
+        "age": 9,
+        "enteredAt": "2026-09-25T07:22:25.900Z",
+        "rank": 4,
+        "reign": null
+      },
+      "bot": {
+        "botId": "roster-gate",
+        "versionId": "roster-gate-v1",
+        "slug": "gate",
+        "name": "Gate",
+        "version": 1,
+        "owner": "system",
+        "author": "ASM Bots"
+      },
+      "rd": 135.7851286288271
+    },
+    {
+      "entry": {
+        "hillId": "hill-main",
+        "botVersionId": "roster-silk-v1",
+        "score": 241,
+        "rating": 1992.3474853154266,
+        "wins": 12,
+        "ties": 1,
+        "losses": 0,
+        "age": 5,
+        "enteredAt": "2026-09-25T07:22:25.900Z",
+        "rank": 5,
+        "reign": null
+      },
+      "bot": {
+        "botId": "roster-silk",
+        "versionId": "roster-silk-v1",
+        "slug": "silk",
+        "name": "Silk",
+        "version": 1,
+        "owner": "system",
+        "author": "ASM Bots"
+      },
+      "rd": 139.90170089971
+    },
+    {
+      "entry": {
+        "hillId": "hill-main",
+        "botVersionId": "roster-stone-v1",
+        "score": 237,
+        "rating": 1675.869744083649,
+        "wins": 8,
+        "ties": 1,
+        "losses": 4,
+        "age": 7,
+        "enteredAt": "2026-09-25T07:22:25.900Z",
+        "rank": 6,
+        "reign": null
+      },
+      "bot": {
+        "botId": "roster-stone",
+        "versionId": "roster-stone-v1",
+        "slug": "stone",
+        "name": "Stone",
+        "version": 1,
+        "owner": "system",
+        "author": "ASM Bots"
+      },
+      "rd": 134.86725784844978
+    },
+    {
+      "entry": {
+        "hillId": "hill-main",
+        "botVersionId": "roster-decoy-v1",
+        "score": 214,
+        "rating": 1594.0037340300307,
+        "wins": 7,
+        "ties": 1,
+        "losses": 5,
+        "age": 8,
+        "enteredAt": "2026-09-25T07:22:25.900Z",
+        "rank": 7,
+        "reign": null
+      },
+      "bot": {
+        "botId": "roster-decoy",
+        "versionId": "roster-decoy-v1",
+        "slug": "decoy",
+        "name": "Decoy",
+        "version": 1,
+        "owner": "system",
+        "author": "ASM Bots"
+      },
+      "rd": 133.11270489185478
+    },
+    {
+      "entry": {
+        "hillId": "hill-main",
+        "botVersionId": "roster-dwarf-wide-v1",
+        "score": 187,
+        "rating": 1480.090694496587,
+        "wins": 6,
+        "ties": 0,
+        "losses": 7,
+        "age": 10,
+        "enteredAt": "2026-09-25T07:22:25.900Z",
+        "rank": 8,
+        "reign": null
+      },
+      "bot": {
+        "botId": "roster-dwarf-wide",
+        "versionId": "roster-dwarf-wide-v1",
+        "slug": "dwarf-wide",
+        "name": "Dwarf Wide",
+        "version": 1,
+        "owner": "system",
+        "author": "ASM Bots"
+      },
+      "rd": 133.3353896753241
+    },
+    {
+      "entry": {
+        "hillId": "hill-main",
+        "botVersionId": "roster-dwarf-v1",
+        "score": 149,
+        "rating": 1298.618015576803,
+        "wins": 3,
+        "ties": 1,
+        "losses": 9,
+        "age": 11,
+        "enteredAt": "2026-09-25T07:22:25.900Z",
+        "rank": 9,
+        "reign": null
+      },
+      "bot": {
+        "botId": "roster-dwarf",
+        "versionId": "roster-dwarf-v1",
+        "slug": "dwarf",
+        "name": "Dwarf",
+        "version": 1,
+        "owner": "system",
+        "author": "ASM Bots"
+      },
+      "rd": 142.73655289472936
+    },
+    {
+      "entry": {
+        "hillId": "hill-main",
+        "botVersionId": "roster-scanner-v1",
+        "score": 143,
+        "rating": 1353.7142176400723,
+        "wins": 4,
+        "ties": 1,
+        "losses": 8,
+        "age": 4,
+        "enteredAt": "2026-09-25T07:22:25.900Z",
+        "rank": 10,
+        "reign": null
+      },
+      "bot": {
+        "botId": "roster-scanner",
+        "versionId": "roster-scanner-v1",
+        "slug": "scanner",
+        "name": "Scanner",
+        "version": 1,
+        "owner": "system",
+        "author": "ASM Bots"
+      },
+      "rd": 130.60779866140652
+    },
+    {
+      "entry": {
+        "hillId": "hill-main",
+        "botVersionId": "roster-imp-ring-v1",
+        "score": 107,
+        "rating": 1290.95849893953,
+        "wins": 3,
+        "ties": 1,
+        "losses": 9,
+        "age": 12,
+        "enteredAt": "2026-09-25T07:22:25.900Z",
+        "rank": 11,
+        "reign": null
+      },
+      "bot": {
+        "botId": "roster-imp-ring",
+        "versionId": "roster-imp-ring-v1",
+        "slug": "imp-ring",
+        "name": "Imp Ring",
+        "version": 1,
+        "owner": "system",
+        "author": "ASM Bots"
+      },
+      "rd": 143.6522429045614
+    },
+    {
+      "entry": {
+        "hillId": "hill-main",
+        "botVersionId": "roster-painter-lcg-v1",
+        "score": 92,
+        "rating": 1181.6252778490048,
+        "wins": 2,
+        "ties": 1,
+        "losses": 10,
+        "age": 1,
+        "enteredAt": "2026-09-25T07:22:25.900Z",
+        "rank": 12,
+        "reign": null
+      },
+      "bot": {
+        "botId": "roster-painter-lcg",
+        "versionId": "roster-painter-lcg-v1",
+        "slug": "painter-lcg",
+        "name": "LCG Painter",
+        "version": 1,
+        "owner": "system",
+        "author": "ASM Bots"
+      },
+      "rd": 126.94573523889001
+    },
+    {
+      "entry": {
+        "hillId": "hill-main",
+        "botVersionId": "roster-imp-v1",
+        "score": 44,
+        "rating": 1078.9154240713478,
+        "wins": 0,
+        "ties": 2,
+        "losses": 11,
+        "age": 13,
+        "enteredAt": "2026-09-25T07:22:25.900Z",
+        "rank": 13,
+        "reign": null
+      },
+      "bot": {
+        "botId": "roster-imp",
+        "versionId": "roster-imp-v1",
+        "slug": "imp",
+        "name": "Imp",
+        "version": 1,
+        "owner": "system",
+        "author": "ASM Bots"
+      },
+      "rd": 154.33198447136934
+    },
+    {
+      "entry": {
+        "hillId": "hill-main",
+        "botVersionId": "roster-painter-spiral-v1",
+        "score": 27,
+        "rating": 1033.3365206110466,
+        "wins": 0,
+        "ties": 1,
+        "losses": 12,
+        "age": 0,
+        "enteredAt": "2026-09-25T07:22:25.900Z",
+        "rank": 14,
+        "reign": null
+      },
+      "bot": {
+        "botId": "roster-painter-spiral",
+        "versionId": "roster-painter-spiral-v1",
+        "slug": "painter-spiral",
+        "name": "Spiral Painter",
+        "version": 1,
+        "owner": "system",
+        "author": "ASM Bots"
+      },
+      "rd": 123.73974792693157
+    }
+  ]
+}

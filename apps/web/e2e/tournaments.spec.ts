@@ -4,7 +4,8 @@
  * goes from `running · n / 5` to `finished` with a champion. Its bracket then shows eight matches;
  * the final's panel opens, and `watch` replays a round in the arena. A round robin of four bots
  * runs to its end with a full results matrix and standings, and its share link opens read only in
- * a browser that has no tournaments. The server's list is stubbed empty: these are this browser's.
+ * a browser that has no tournaments. A melee of six plays its rounds to standings, each bot's
+ * survival histogram, and a champion. The server's list is stubbed empty: these are this browser's.
  */
 import { expect, type Page, test } from '@playwright/test'
 import { pickShare } from './share'
@@ -130,5 +131,40 @@ test('a round robin of four roster bots fills its matrix', async ({ page, browse
   await expect(fresh.getByRole('table', { name: 'standings' }).getByRole('row')).toHaveCount(5)
   await other.close()
   expect(freshErrors).toEqual([])
+  expect(errors).toEqual([])
+})
+
+test('a melee of six roster bots plays its rounds to standings and a champion', async ({
+  page,
+}) => {
+  const errors = watch(page)
+  await page.goto('/tournaments')
+  await page.getByRole('button', { name: 'new tournament' }).first().click()
+  const form = page.getByRole('dialog', { name: 'new tournament' })
+  await form.getByRole('textbox', { name: 'name' }).fill('free for all')
+  await form.getByRole('radio', { name: 'melee', exact: true }).click()
+  for (const name of ['Imp', 'Dwarf', 'Stone', 'Paper', 'Scanner', 'Silk']) {
+    await form.getByRole('checkbox', { name, exact: true }).check()
+  }
+  await expect(form.getByRole('list', { name: 'entrants' }).getByRole('listitem')).toHaveCount(6)
+  await form.locator('button[name="create"]').click()
+  await expect(form).toBeHidden()
+
+  const card = page.getByRole('listitem', { name: 'free for all' })
+  await expect(card).toContainText('melee')
+  await expect(card).toContainText('6 bots')
+  await expect(card).toContainText('finished', { timeout: 60_000 })
+  await card.getByRole('link').click()
+  const standings = page.getByRole('table', { name: 'standings' })
+  // A header row and a row a bot, each with its survival histogram.
+  await expect(standings.getByRole('row')).toHaveCount(7)
+  await expect(standings.getByRole('img', { name: / survival, rounds per tenth/ })).toHaveCount(6)
+  await expect(page.locator('[title="champion"], [data-champion]').first()).toBeVisible()
+  const rounds = page.getByRole('region', { name: 'match' })
+  await rounds.getByRole('button', { name: 'watch round 1', exact: true }).click()
+  const watching = page.getByRole('dialog')
+  await expect(watching.getByRole('application', { name: /^arena: / })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(watching).toBeHidden()
   expect(errors).toEqual([])
 })

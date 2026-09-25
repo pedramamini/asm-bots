@@ -3,8 +3,9 @@
  * included): the dwarf typed in assembles clean with its size in the toolbar; `mov [bx], 0` shows
  * the size error at its column (squiggle, gutter mark, problems panel); `format` is idempotent;
  * `test vs imp` runs ten rounds in the arena Worker and shows the record, and `watch` opens the
- * arena set up as tested. A first visit shows the templates over the new bot and the coach mark
- * under the debugger's run button.
+ * arena set up as tested. One bot goes the whole way: written, linted, formatted, tested, and saved
+ * in this browser, where the library lists it after a reload. A first visit shows the templates
+ * over the new bot and the coach mark under the debugger's run button.
  */
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -142,6 +143,57 @@ test('test vs imp shows the record, and watch opens the arena as tested', async 
   await expect(picked).toHaveCount(2)
   await expect(picked.first()).toHaveAttribute('aria-label', 'Dwarf')
   await expect(page.locator('button[name="fight"]')).toHaveText('fight · 2 bots · 10 rounds')
+  expect(errors).toEqual([])
+})
+
+test('write, lint, format, test vs imp, and save in this browser: the bot is in the library', async ({
+  page,
+}) => {
+  const errors = watch(page)
+  await typeBot(
+    page,
+    [
+      '%name "Walker"',
+      'start:mov bx,4',
+      '.loop:add bx,4',
+      '  mov word[bx],0',
+      '  jmp .loop',
+      '',
+    ].join('\n'),
+  )
+  await expect(sizeChip(page)).toHaveText(/^\d+ \/ 512 B$/)
+
+  // lint: its warnings show, the toggle hides them, and one goes once its cause does.
+  await expect(problems(page)).toContainText('no `%strategy`')
+  const lint = toolbar(page).getByRole('button', { name: 'lint' })
+  await lint.click()
+  await expect(problems(page)).not.toContainText('strategy')
+  await lint.click()
+  await expect(problems(page)).toContainText('no `%strategy`')
+  await content(page).locator('.cm-line').first().click()
+  await page.keyboard.press('End')
+  await page.keyboard.insertText('\n%strategy "Bomb every 4th byte"')
+  await expect(problems(page)).not.toContainText('strategy')
+
+  await toolbar(page).getByRole('button', { name: 'format' }).click()
+  await expect.poll(() => editorText(page)).toContain('start:  mov     bx, 4')
+
+  await toolbar(page).getByRole('button', { name: 'test vs ▾' }).click()
+  await page.getByRole('menuitem', { name: 'imp', exact: true }).click()
+  await expect(toolbar(page).getByRole('status', { name: /vs Imp/ })).toHaveText(
+    /^W \d+ · T \d+ · L \d+ vs imp$/,
+  )
+
+  // Signed out, save keeps the bot in this browser: the library lists it after a reload.
+  await page.keyboard.press('ControlOrMeta+s')
+  await expect(page.getByText('saved Walker.')).toBeVisible()
+  await expect(page).toHaveURL(/\/editor\/[\w-]+$/)
+  await page.reload()
+  await expect(page).toHaveTitle(/^ASM BOTS \/\/ EDITOR/)
+  await expect.poll(() => editorText(page)).toContain('%strategy "Bomb every 4th byte"')
+  const library = page.getByRole('button', { name: 'bot library' })
+  if ((await library.getAttribute('aria-pressed')) !== 'true') await library.click()
+  await expect(page.getByRole('button', { name: 'Walker', exact: true })).toBeVisible()
   expect(errors).toEqual([])
 })
 

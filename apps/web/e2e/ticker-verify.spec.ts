@@ -32,6 +32,13 @@ test("verify runs a main hill match here and checks it against the server's resu
   page,
 }) => {
   const errors = watch(page)
+  // The list as it first comes: other specs submit to the main hill, and a refetch mid-test would
+  // move another match into the row under test.
+  let first: unknown
+  await page.route('**/api/hills/main/matches?*', async (route) => {
+    first ??= await (await route.fetch()).json()
+    await route.fulfill({ json: first })
+  })
   await page.goto('/hills/main')
   const matches = page.getByRole('table', { name: 'recent matches' })
   const row = matches.getByRole('row').nth(1)

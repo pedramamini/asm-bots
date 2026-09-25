@@ -62,7 +62,10 @@ function watch(page: Page): string[] {
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
   page.on('console', (message) => {
-    if (message.type() === 'error') errors.push(message.text())
+    if (message.type() !== 'error') return
+    // The seeded API has no `b-42` or `t-7`: its 404 is the page's not-found state, not an error.
+    const missing = /status of 404/.test(message.text()) && /\/api\//.test(message.location().url)
+    if (!missing) errors.push(message.text())
   })
   return errors
 }

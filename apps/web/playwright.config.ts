@@ -36,6 +36,8 @@ const GPU_ARGS =
 export default defineConfig({
   testDir: './e2e',
   outputDir: './test-results',
+  // Committed baselines (`themes.spec.ts`), one set a platform: fonts and raster differ by OS.
+  snapshotPathTemplate: '{testDir}/__snapshots__/{testFilePath}/{arg}-{platform}{ext}',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
@@ -57,14 +59,18 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'bun run build && bun run preview',
+      // The Vite build alone: the type check is `bun run check`'s, and needs a `tsc` on the PATH.
+      command: 'bun run build:vite && bun run preview',
       url: PREVIEW,
+      // Its `/api` goes to the seeded e2e Worker, not a `bun run dev` one on :8787.
+      env: { API_ORIGIN: WORKER },
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },
     {
       command: 'bun run dev',
       url: `${DEV}/_gallery`,
+      env: { API_ORIGIN: WORKER },
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },

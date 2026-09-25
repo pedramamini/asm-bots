@@ -35,9 +35,12 @@ const SWATCH_TOKENS = [
 
 /**
  * `/api` goes to `wrangler dev` (`apps/api`, port 8787): the page calls its own origin. `ws`
- * carries the live rooms' sockets (`/api/live/:room`) too.
+ * carries the live rooms' sockets (`/api/live/:room`) too. `API_ORIGIN` names another Worker: the
+ * e2e preview's is the seeded one on :8788 (playwright.config.ts).
  */
-const API_PROXY = { '/api': { target: 'http://localhost:8787', ws: true } }
+const API_PROXY = {
+  '/api': { target: process.env.API_ORIGIN ?? 'http://localhost:8787', ws: true },
+}
 
 /** The build's version stamp, and its release's name from CHANGELOG.md: the version chip's. */
 const VERSION = getVersion()

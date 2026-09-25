@@ -1,0 +1,466 @@
+{
+  "matches": [
+    {
+      "match": {
+        "id": "main-2b07edb86ec59dfd",
+        "tournamentId": null,
+        "hillId": "hill-main",
+        "participants": [
+          "roster-painter-spiral-v1",
+          "roster-imp-v1"
+        ],
+        "rounds": 10,
+        "seed": 1,
+        "key": null,
+        "result": {
+          "points": [
+            11,
+            11
+          ],
+          "survivors": [
+            0,
+            1
+          ],
+          "resultHash": "5862ba24584686ef"
+        },
+        "replayKey": "ba48ddd254aa950482d36f6b69e8da6b5e1d9c72e5be2d0e9c64dafd3b9ad37c",
+        "finishedAt": "2026-09-25T07:23:55.900Z"
+      },
+      "bots": [
+        {
+          "botId": "roster-painter-spiral",
+          "versionId": "roster-painter-spiral-v1",
+          "slug": "painter-spiral",
+          "name": "Spiral Painter",
+          "version": 1,
+          "owner": "system",
+          "author": "ASM Bots"
+        },
+        {
+          "botId": "roster-imp",
+          "versionId": "roster-imp-v1",
+          "slug": "imp",
+          "name": "Imp",
+          "version": 1,
+          "owner": "system",
+          "author": "ASM Bots"
+        }
+      ]
+    },
+    {
+      "match": {
+        "id": "main-39412cb6f5e971ba",
+        "tournamentId": null,
+        "hillId": "hill-main",
+        "participants": [
+          "roster-painter-spiral-v1",
+          "roster-painter-lcg-v1"
+        ],
+        "rounds": 10,
+        "seed": 1,
+        "key": null,
+        "result": {
+          "points": [
+            7,
+            19
+          ],
+          "survivors": [
+            0,
+            1
+          ],
+          "resultHash": "282786639291ff31"
+        },
+        "replayKey": "53199f4761da09b66f3c9fb08c4abdbe733ac0b07cc992d6a0ecf35cbfa51b2e",
+        "finishedAt": "2026-09-25T07:23:54.900Z"
+      },
+      "bots": [
+        {
+          "botId": "roster-painter-spiral",
+          "versionId": "roster-painter-spiral-v1",
+          "slug": "painter-spiral",
+          "name": "Spiral Painter",
+          "version": 1,
+          "owner": "system",
+          "author": "ASM Bots"
+        },
+        {
+          "botId": "roster-painter-lcg",
+          "versionId": "roster-painter-lcg-v1",
+          "slug": "painter-lcg",
+          "name": "LCG Painter",
+          "version": 1,
+          "owner": "system",
+          "author": "ASM Bots"
+        }
+      ]
+    },
+    {
+      "match": {
+        "id": "main-a7eddb403c7ae711",
+        "tournamentId": null,
+        "hillId": "hill-main",
+        "participants": [
+          "roster-painter-spiral-v1",
+          "roster-imp-ring-v1"
+        ],
+        "rounds": 10,
+        "seed": 1,
+        "key": null,
+        "result": {
+          "points": [
+            0,
+            30
+          ],
+          "survivors": [
+            1
+          ],
+          "resultHash": "2abe5d29d596d933"
+        },
+        "replayKey": "da88964cffb431e70d07b4c08982886814337562fddea0866e912fad3822fcf1",
+        "finishedAt": "2026-09-25T07:23:53.900Z"
+      },
+      "bots": [
+        {
+          "botId": "roster-painter-spiral",
+          "versionId": "roster-painter-spiral-v1",
+          "slug": "painter-spiral",
+          "name": "Spiral Painter",
+          "version": 1,
+          "owner": "system",
+          "author": "ASM Bots"
+        },
+        {
+          "botId": "roster-imp-ring",
+          "versionId": "roster-imp-ring-v1",
+          "slug": "imp-ring",
+          "name": "Imp Ring",
+          "version": 1,
+          "owner": "system",
+          "author": "ASM Bots"
+        }
+      ]
+    },
+    {
+      "match": {
+        "id": "main-29d0442cb9f14969",
+        "tournamentId": null,
+        "hillId": "hill-main",
+        "participants": [
+          "roster-painter-spiral-v1",
+          "roster-scanner-v1"
+        ],
+        "rounds": 10,
+        "seed": 1,
+        "key": null,
+        "result": {
+          "points": [
+            0,
+            30
+          ],
+          "survivors": [
+            1
+          ],
+          "resultHash": "d3935636181939a3"
+        },
+        "replayKey": "6919b41e335337f286e79c828032d817eddae9b682282de758fdf5a00ba9a3e9",
+        "finishedAt": "2026-09-25T07:23:52.900Z"
+      },
+      "bots": [
+        {
+          "botId": "roster-painter-spiral",
+          "versionId": "roster-painter-spiral-v1",
+          "slug": "painter-spiral",
+          "name": "Spiral Painter",
+          "version": 1,
+          "owner": "system",
+          "author": "ASM Bots"
+        },
+        {
+          "botId": "roster-scanner",
+          "versionId": "roster-scanner-v1",
+          "slug": "scanner",
+          "name": "Scanner",
+          "version": 1,
+          "owner": "system",
+          "author": "ASM Bots"
+        }
+      ]
+    },
+    {
+      "match": {
+        "id": "main-ceac3bb30774faeb",
+        "tournamentId": null,
+        "hillId": "hill-main",
+        "participants": [
+          "roster-painter-spiral-v1",
+          "roster-dwarf-v1"
+        ],
+        "rounds": 10,
+        "seed": 1,
+        "key": null,
+        "result": {
+          "points": [
+            0,
+            30
+          ],
+          "survivors": [
+            1
+          ],
+          "resultHash": "1155a0777ee29827"
+        },
+        "replayKey": "93bd3b8445c6bc43d5e465326f446b1f221f07be22ab0ef6d6e7a82940874514",
+        "finishedAt": "2026-09-25T07:23:51.900Z"
+      },
+      "bots": [
+        {
+          "botId": "roster-painter-spiral",
+          "versionId": "roster-painter-spiral-v1",
+          "slug": "painter-spiral",
+          "name": "Spiral Painter",
+          "version": 1,
+          "owner": "system",
+          "author": "ASM Bots"
+        },
+        {
+          "botId": "roster-dwarf",
+          "versionId": "roster-dwarf-v1",
+          "slug": "dwarf",
+          "name": "Dwarf",
+          "version": 1,
+          "owner": "system",
+          "author": "ASM Bots"
+        }
+      ]
+    },
+    {
+      "match": {
+        "id": "main-abef65b4eed969ea",
+        "tournamentId": null,
+        "hillId": "hill-main",
+        "participants": [
+          "roster-painter-spiral-v1",
+          "roster-dwarf-wide-v1"
+        ],
+        "rounds": 10,
+        "seed": 1,
+        "key": null,
+        "result": {
+          "points": [
+            0,
+            30
+          ],
+          "survivors": [
+            1
+          ],
+          "resultHash": "efaa5abdecbce98e"
+        },
+        "replayKey": "7285415045acfac310b19c0935ad8fe03eaf3c678c484fe22d28e324651e88c9",
+        "finishedAt": "2026-09-25T07:23:50.900Z"
+      },
+      "bots": [
+        {
+          "botId": "roster-painter-spiral",
+          "versionId": "roster-painter-spiral-v1",
+          "slug": "painter-spiral",
+          "name": "Spiral Painter",
+          "version": 1,
+          "owner": "system",
+          "author": "ASM Bots"
+        },
+        {
+          "botId": "roster-dwarf-wide",
+          "versionId": "roster-dwarf-wide-v1",
+          "slug": "dwarf-wide",
+          "name": "Dwarf Wide",
+          "version": 1,
+          "owner": "system",
+          "author": "ASM Bots"
+        }
+      ]
+    },
+    {
+      "match": {
+        "id": "main-66470e2f4beffee5",
+        "tournamentId": null,
+        "hillId": "hill-main",
+        "participants": [
+          "roster-painter-spiral-v1",
+          "roster-decoy-v1"
+        ],
+        "rounds": 10,
+        "seed": 1,
+        "key": null,
+        "result": {
+          "points": [
+            0,
+            30
+          ],
+          "survivors": [
+            1
+          ],
+          "resultHash": "eaebbdfbc72bffc0"
+        },
+        "replayKey": "cf3effeda3e62c3c7fb5fea97edbee8664fa1af1bd413e100119ed24fc25699a",
+        "finishedAt": "2026-09-25T07:23:49.900Z"
+      },
+      "bots": [
+        {
+          "botId": "roster-painter-spiral",
+          "versionId": "roster-painter-spiral-v1",
+          "slug": "painter-spiral",
+          "name": "Spiral Painter",
+          "version": 1,
+          "owner": "system",
+          "author": "ASM Bots"
+        },
+        {
+          "botId": "roster-decoy",
+          "versionId": "roster-decoy-v1",
+          "slug": "decoy",
+          "name": "Decoy",
+          "version": 1,
+          "owner": "system",
+          "author": "ASM Bots"
+        }
+      ]
+    },
+    {
+      "match": {
+        "id": "main-9a130c8b86d3dea7",
+        "tournamentId": null,
+        "hillId": "hill-main",
+        "participants": [
+          "roster-painter-spiral-v1",
+          "roster-stone-v1"
+        ],
+        "rounds": 10,
+        "seed": 1,
+        "key": null,
+        "result": {
+          "points": [
+            0,
+            30
+          ],
+          "survivors": [
+            1
+          ],
+          "resultHash": "882fa94334092620"
+        },
+        "replayKey": "f92b75af8b4a6dfb1425654df296aca05bc2a77345e7ede04d36059d39294fbf",
+        "finishedAt": "2026-09-25T07:23:48.900Z"
+      },
+      "bots": [
+        {
+          "botId": "roster-painter-spiral",
+          "versionId": "roster-painter-spiral-v1",
+          "slug": "painter-spiral",
+          "name": "Spiral Painter",
+          "version": 1,
+          "owner": "system",
+          "author": "ASM Bots"
+        },
+        {
+          "botId": "roster-stone",
+          "versionId": "roster-stone-v1",
+          "slug": "stone",
+          "name": "Stone",
+          "version": 1,
+          "owner": "system",
+          "author": "ASM Bots"
+        }
+      ]
+    },
+    {
+      "match": {
+        "id": "main-e15000ff9583598d",
+        "tournamentId": null,
+        "hillId": "hill-main",
+        "participants": [
+          "roster-painter-spiral-v1",
+          "roster-gate-v1"
+        ],
+        "rounds": 10,
+        "seed": 1,
+        "key": null,
+        "result": {
+          "points": [
+            0,
+            30
+          ],
+          "survivors": [
+            1
+          ],
+          "resultHash": "8203aa7fc782982a"
+        },
+        "replayKey": "7456eea8203c7da6b4511e1cf8ea49a676d02b439a2852144523ae832b77e00d",
+        "finishedAt": "2026-09-25T07:23:47.900Z"
+      },
+      "bots": [
+        {
+          "botId": "roster-painter-spiral",
+          "versionId": "roster-painter-spiral-v1",
+          "slug": "painter-spiral",
+          "name": "Spiral Painter",
+          "version": 1,
+          "owner": "system",
+          "author": "ASM Bots"
+        },
+        {
+          "botId": "roster-gate",
+          "versionId": "roster-gate-v1",
+          "slug": "gate",
+          "name": "Gate",
+          "version": 1,
+          "owner": "system",
+          "author": "ASM Bots"
+        }
+      ]
+    },
+    {
+      "match": {
+        "id": "main-6033ff799a9db0d5",
+        "tournamentId": null,
+        "hillId": "hill-main",
+        "participants": [
+          "roster-painter-spiral-v1",
+          "roster-silk-v1"
+        ],
+        "rounds": 10,
+        "seed": 1,
+        "key": null,
+        "result": {
+          "points": [
+            4,
+            22
+          ],
+          "survivors": [
+            1
+          ],
+          "resultHash": "580552f140b90dce"
+        },
+        "replayKey": "323b54b01aef6466722d6ae7663c7c4a7211b178b40b5feb19b6252f6e65f5da",
+        "finishedAt": "2026-09-25T07:23:46.900Z"
+      },
+      "bots": [
+        {
+          "botId": "roster-painter-spiral",
+          "versionId": "roster-painter-spiral-v1",
+          "slug": "painter-spiral",
+          "name": "Spiral Painter",
+          "version": 1,
+          "owner": "system",
+          "author": "ASM Bots"
+        },
+        {
+          "botId": "roster-silk",
+          "versionId": "roster-silk-v1",
+          "slug": "silk",
+          "name": "Silk",
+          "version": 1,
+          "owner": "system",
+          "author": "ASM Bots"
+        }
+      ]
+    }
+  ]
+}

@@ -1,7 +1,8 @@
 /**
  * Replay links against the production build (PRODUCT_SPEC §2): a duel's `replay link` plays in
- * another page to the same result hash and `verified`, and `share` there copies the same link; a
- * link whose recorded result was changed ends in `mismatch`; a link with no replay says so.
+ * another page to the same result hash and `verified`, and `share` there stores it for a short link
+ * that plays it again, verified (the e2e Worker's `POST /api/replays`); a link whose recorded
+ * result was changed ends in `mismatch`; a link with no replay says so.
  */
 import { type BrowserContext, expect, type Page, test } from '@playwright/test'
 import { pickShare } from './share'
@@ -75,10 +76,17 @@ test('a replay link plays the duel again to the same result, verified', async ({
   expect(await victory(page).getAttribute('data-result-hash')).toBe(hash)
   await expect(victory(page).locator('[data-check="verified"]')).toBeVisible()
 
-  // `share` on a replay copies the replay's own link.
+  // `share` on a replay stores it on the server: its short link plays it again, verified.
   await pickShare(page, victory(page), 'copy link')
   await expect(page.getByText('replay link copied.')).toBeVisible()
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(link)
+  const short = await page.evaluate(() => navigator.clipboard.readText())
+  expect(short).toMatch(/^http:\/\/localhost:4173\/arena\/[0-9a-f]{64}$/)
+  const stored = await context.newPage()
+  const storedErrors = watch(stored)
+  await playToTheEnd(stored, short)
+  await expect(check(stored)).toHaveAttribute('data-check', 'verified')
+  expect(await victory(stored).getAttribute('data-result-hash')).toBe(hash)
+  expect(storedErrors).toEqual([])
   expect(errors).toEqual([])
 })
 

@@ -28,3 +28,30 @@ jobs:
         with:
           path: ~/.bun/install/cache
           key: bun-${{ hashFiles('bun.lock') }}
+
+  # The Playwright suite (apps/web/e2e) against the production build and the seeded e2e Worker
+  # (`wrangler dev`, Miniflare, `DEV_FAKE_AUTH=1`; apps/web/playwright.config.ts starts both), in
+  # the Playwright image, whose Linux screenshots the `-linux` baselines are. Four shards; the
+  # config retries a failure once under CI and keeps its trace, uploaded here.
+  e2e:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --ipc=host
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install -g bun@1.3.6
+      - run: bun install --frozen-lockfile
+      - name: Playwright, shard ${{ matrix.shard }} of 4
+        working-directory: apps/web
+        run: bunx playwright test --project=chromium --shard=${{ matrix.shard }}/4
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-traces-${{ matrix.shard }}
+          path: apps/web/test-results/
+          retention-days: 7

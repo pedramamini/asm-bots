@@ -18,9 +18,33 @@ async function visit(page: Page, motion?: 'reduce' | 'full'): Promise<void> {
       )
     }
   }, motion ?? null)
+  // A busy feed: its line is wider than the bar at this width, whatever the seeded one says now.
+  await page.route('**/api/ticker', (route) => route.fulfill({ json: busyTicker() }))
   await page.goto('/arena')
+  // The pointer off the ticker, which pauses under it: a new page's may start at (0, 0), on it.
+  await page.mouse.move(200, 400)
   await expect(page).toHaveTitle('ASM BOTS // ARENA')
   await expect(page.locator('[data-coach="arena-roster"]')).toBeVisible()
+}
+
+/** A ticker feed (`GET /api/ticker`) of four items: the next championship, its 16, 1,234 watching. */
+function busyTicker() {
+  const startsAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString()
+  return {
+    at: new Date().toISOString(),
+    hill: null,
+    lastChampionship: null,
+    nextChampionship: {
+      id: 't-weekly',
+      name: 'weekly',
+      status: 'scheduled',
+      startsAt,
+      finishedAt: null,
+      entrants: 16,
+      champion: null,
+    },
+    spectators: 1_234,
+  }
 }
 
 /** Whether the ticker's line scrolls: a running `marquee` animation on the page. */
