@@ -30,6 +30,9 @@ The standard path. On every push to `main` after CI passes (`ci.yml`), the `depl
 
 The version stamp is `YYYY.MM.DD[letter]` (e.g., `2026.09.24a`), auto-generated from git date.
 
+> [!WARNING]
+> Not active yet. GitHub reads `workflow_run` and `schedule` workflows only from the default branch, and the default branch of `pedramamini/asm-bots` is still v2's `main` (v3 is on `v3`). So `deploy.yml` and `backup.yml` have never run: deploy by hand (below) and back up by hand (**Backups**) until v3 is the default branch.
+
 ### Manual deploy (emergency)
 
 ```bash
@@ -293,6 +296,32 @@ wrangler d1 execute asmbots --remote < backup.sql
 ```
 
 In case of catastrophic failure, restore is also possible via Cloudflare's D1 point-in-time recovery (contact support).
+
+## Releasing
+
+A release is a tag, `v<stamp>`, on a commit whose `CHANGELOG.md` names it (the comment at the top of the file). The Cloudflare commands need `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` from the Keychain (`asmbots/cloudflare`).
+
+1. `bun run check` and CI are green.
+2. In `CHANGELOG.md`, replace `Unreleased` with the stamp `bun run version` prints. Commit, then `git tag v<stamp>`: `bun run version` now prints the tag's stamp.
+3. Back up production: `wrangler d1 export asmbots --remote --output <file>`, upload it to `asmbots-backups`, and note `wrangler d1 time-travel info asmbots`.
+4. From `apps/api`: `bun run build` (at the root), `wrangler d1 migrations apply asmbots --remote`, `wrangler deploy --var APP_VERSION:<stamp>`.
+5. `bun run scripts/launch-check.ts https://asmbots.io --version <stamp>`: the launch checklist below.
+6. `git push` and `git push origin v<stamp>`, then `gh release create v<stamp>` with the changelog section as notes.
+7. Assets: `RELEASE_SHOTS=<dir> bunx playwright test e2e/release-shots.spec.ts --workers 1` (in `apps/web`) writes the arena in each theme, the editor, a bracket, the main hill, and `melee.webm`. Trim the melee to 20 s: `ffmpeg -ss 2 -t 20 -i melee.webm -c:v libvpx-vp9 -crf 30 -b:v 0 asmbots-melee.webm`, and a GIF with `-vf "fps=12,scale=960:-1,split[a][b];[a]palettegen[p];[b][p]paletteuse"`.
+
+## Launch Checklist
+
+`scripts/launch-check.ts` runs every item it can; the rest need a person.
+
+| Item | Automated check | By hand |
+| --- | --- | --- |
+| Production smoke passes | `scripts/smoke.ts` (read-only) | |
+| Backups ran last night | newest object in `asmbots-backups` ≤ 30 h old | |
+| Cron championship scheduled | the Worker's schedules include `0 18 * * 6` | the home page's "next championship" countdown |
+| OAuth callback on the domain | `/api/auth/github` redirects to GitHub with the client id; the callback answers without a 404 | sign in on https://asmbots.io as a new user |
+| OG cards render | `/`, `/arena`, `/hills/main` fetched as Slackbot and Twitterbot have `og:*` and a large card; the card is a PNG | paste a link in Slack and in a post draft on X (X's card validator no longer previews) |
+| `robots.txt` allows indexing | `Allow: /` and no `Disallow: /` for `*` | |
+| Error rate < 0.1%, last hour | Workers Analytics GraphQL: errors / requests | |
 
 ## On-Call Checklist
 

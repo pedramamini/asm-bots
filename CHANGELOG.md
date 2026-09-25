@@ -11,7 +11,7 @@ file; this comment shows in neither place.
 
 Every release of ASM BOTS, newest first. A release is named by its date, `YYYY.MM.DD`, with a letter for each release of that day (`2026.10.03a`), and has a name of its own from Core War lore. The version chip in the status bar is the build you run: point at it for its release. The instruction set has its own version, which changes far less often: see [ISA versions](https://asmbots.io/docs/isa-versions).
 
-## Unreleased · "imp gate"
+## 2026.09.25a · "imp gate"
 
 ASM BOTS v3 is a new build from the ground up. Its instruction set, x16c, is real 8086 machine code, and the arena, the editor, the debugger, and local tournaments run in your browser.
 

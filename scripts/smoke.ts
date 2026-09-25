@@ -36,7 +36,7 @@ async function smoke() {
     const res = await fetch(`${baseUrl}/arena`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const text = await res.text()
-    if (!text.includes('<!DOCTYPE html')) throw new Error('No HTML')
+    if (!/<!doctype html/i.test(text)) throw new Error('No HTML')
     if (!text.includes('id="root"')) throw new Error('No root div')
   })
 
@@ -45,7 +45,7 @@ async function smoke() {
     const res = await fetch(`${baseUrl}/`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const text = await res.text()
-    if (!text.includes('<!DOCTYPE html')) throw new Error('No HTML')
+    if (!/<!doctype html/i.test(text)) throw new Error('No HTML')
   })
 
   // 4. Hills list has at least 3
@@ -57,41 +57,35 @@ async function smoke() {
     if (count < 3) throw new Error(`Expected ≥3 hills, got ${count}`)
   })
 
-  // 5. Roster bot fetch
-  await test('Roster bots endpoint returns bots', async () => {
-    const res = await fetch(`${baseUrl}/api/bots`)
+  // 5. The main hill has its standings
+  await test('Main hill has standings', async () => {
+    const res = await fetch(`${baseUrl}/api/hills/main`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const body = (await res.json()) as { bots?: unknown[] }
-    if (!Array.isArray(body.bots) || body.bots.length === 0)
-      throw new Error('No bots returned')
+    const body = (await res.json()) as { standings?: unknown[] }
+    if (!Array.isArray(body.standings) || body.standings.length === 0)
+      throw new Error('No standings')
   })
 
-  // 6. Replay POST + GET round trip
-  let replayId = ''
-  await test('POST /api/replays creates a replay', async () => {
-    const payload = {
-      isa: 'x16c-v1',
-      seed: 12345,
-      config: { kind: 'duel', cycles: 80000, rounds: 1 },
-      bots: [0, 1], // bot indices from roster
-    }
-    const res = await fetch(`${baseUrl}/api/replays`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`)
-    const body = (await res.json()) as { replay_id?: string }
-    replayId = body.replay_id || ''
-    if (!replayId) throw new Error('No replay_id returned')
+  // 6. A published match: its replay, and its verification inputs (read-only)
+  let match: { id: string; replayKey: string | null } | undefined
+  await test('Main hill has a finished match', async () => {
+    const res = await fetch(`${baseUrl}/api/hills/main/matches?limit=1`)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const body = (await res.json()) as { matches?: { match: typeof match }[] }
+    match = body.matches?.[0]?.match
+    if (!match?.replayKey) throw new Error('No finished match with a replay')
   })
 
-  if (replayId) {
-    await test(`GET /api/replays/${replayId} fetches the replay`, async () => {
-      const res = await fetch(`${baseUrl}/api/replays/${replayId}`)
+  if (match?.replayKey) {
+    const { id, replayKey } = match
+    await test(`GET /api/replays/${replayKey.slice(0, 12)}… fetches the replay`, async () => {
+      const res = await fetch(`${baseUrl}/api/replays/${replayKey}`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const text = await res.text()
-      if (text.length === 0) throw new Error('Empty response')
+      if ((await res.text()).length === 0) throw new Error('Empty response')
+    })
+    await test(`GET /api/matches/${id}/verify returns its inputs`, async () => {
+      const res = await fetch(`${baseUrl}/api/matches/${id}/verify`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
     })
   }
 
@@ -103,9 +97,7 @@ async function smoke() {
     const hasOgTitle = text.includes('og:title')
     const hasOgImage = text.includes('og:image')
     if (!hasOgTitle || !hasOgImage)
-      throw new Error(
-        `Missing OG tags: og:title=${hasOgTitle}, og:image=${hasOgImage}`,
-      )
+      throw new Error(`Missing OG tags: og:title=${hasOgTitle}, og:image=${hasOgImage}`)
   })
 
   // 8. Headers: HTTPS enforcement and CSP

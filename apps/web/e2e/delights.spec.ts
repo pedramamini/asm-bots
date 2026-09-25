@@ -26,15 +26,16 @@ test('the version stamp names its release, and opens the changelog: CHANGELOG.md
   await page.goto('/docs')
   const stamp = page.getByRole('contentinfo').getByRole('link', { name: /: the changelog$/ })
   await stamp.hover()
-  // A build ahead of every release: the name of the release in the making.
+  // A release's build: its name. A build ahead of every release: `unreleased`, with the name of
+  // the release in the making when the changelog has one.
   await expect(page.getByRole('tooltip')).toHaveText(
-    /^\d{4}\.\d{2}\.\d{2}[a-z] · "imp gate" · unreleased$/,
+    /^\d{4}\.\d{2}\.\d{2}[a-z]( · "[^"]+" · unreleased| · unreleased| · "[^"]+")$/,
   )
   await stamp.click()
   await expect(page).toHaveURL(/\/docs\/changelog$/)
   const article = page.getByRole('region', { name: 'changelog' })
   await expect(
-    article.getByRole('heading', { level: 2, name: 'Unreleased · "imp gate"' }),
+    article.getByRole('heading', { level: 2, name: '2026.09.25a · "imp gate"' }),
   ).toBeVisible()
   // CHANGELOG.md links the canonical site, so it reads on GitHub too; the app keeps it in the app.
   await article.getByRole('link', { name: 'ISA versions', exact: true }).click()

@@ -47,10 +47,14 @@ describe('releaseOf', () => {
 })
 
 describe('CHANGELOG.md', () => {
-  it('names the release in the making, and every release it lists', () => {
+  it('names every release it lists, newest first, the one in the making (if any) at the top', () => {
     const releases = readReleases()
-    expect(releases[0]?.version).toBeNull()
-    expect(releases.filter((r) => r.version === null)).toHaveLength(1)
+    expect(releases.length).toBeGreaterThan(0)
+    const making = releases.filter((r) => r.version === null)
+    expect(making.length).toBeLessThanOrEqual(1)
+    if (making.length === 1) expect(releases[0]?.version).toBeNull()
+    const cut = releases.map((r) => r.version).filter((v) => v !== null)
+    expect(cut).toEqual([...cut].sort().reverse())
     for (const release of releases) expect(release.name).toMatch(/^[a-z0-9][a-z0-9 -]*$/)
   })
 })
