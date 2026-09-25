@@ -1,5 +1,5 @@
 /**
- * The editor's layout in a real browser (PRODUCT_SPEC §3): a panel dragged by its title row lands
+ * The editor's layout in a real browser (PRODUCT_SPEC §3): a panel dragged by its grip lands
  * beside another, the source keeps its text as it moves, a divider drag sizes two panels, and the
  * layout is the same after a reload. Escape drops a drag; the layout menu puts the default back.
  */
@@ -25,13 +25,16 @@ async function box(page: Page, id: string) {
   return found
 }
 
-/** Drags panel `id` by its title row to `x, y`; `drop: false` lets go after Escape. */
+/**
+ * Drags panel `id` by the grip in its title row (a narrow tile's title may truncate away) to
+ * `x, y`; `drop: false` lets go after Escape.
+ */
 async function drag(page: Page, id: string, x: number, y: number, drop = true) {
-  const title = await slot(page, id).locator('header h2').first().boundingBox()
-  if (title === null) throw new Error(`no title for ${id}`)
-  await page.mouse.move(title.x + 4, title.y + title.height / 2)
+  const grip = await slot(page, id).locator('[data-panel-grip]').first().boundingBox()
+  if (grip === null) throw new Error(`no grip for ${id}`)
+  await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2)
   await page.mouse.down()
-  await page.mouse.move(title.x + 30, title.y + 30, { steps: 4 })
+  await page.mouse.move(grip.x - 30, grip.y + 30, { steps: 4 })
   await page.mouse.move(x, y, { steps: 10 })
   if (!drop) await page.keyboard.press('Escape')
   await page.mouse.up()
