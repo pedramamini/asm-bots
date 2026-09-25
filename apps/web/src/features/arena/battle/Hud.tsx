@@ -34,12 +34,15 @@ export function zoomLabel(zoom: number): string {
 
 /** The HUD's band over the arena, CSS px: the core fits under it, so the HUD hides none of it. */
 export const HUD_BAND = 36
+/** The band under `md`, where the chips take a second row under the controls. */
+export const HUD_BAND_NARROW = 62
 
 /**
  * The arena's HUD (PRODUCT_SPEC §2), in a band over the core: on the left the cycle, the speed,
  * the frame rate, and the zoom; on the right zoom in and out, the minimap, sound (`m`), fullscreen
  * (`f`), the screenshot (`s`), and the video (`v`), whose `rec` chip counts on the left while it
- * records. The controls sit on a panel: paper's dark text would vanish on black.
+ * records. The controls sit on a panel: paper's dark text would vanish on black. Under `md` the
+ * chips drop to a row under the controls, without the frame rate and the zoom.
  */
 export function Hud({
   client,
@@ -59,13 +62,17 @@ export function Hud({
   const speed = useStore(client.store, (state) => state.speed)
   return (
     <>
-      <div className="pointer-events-none absolute top-2.5 left-14 flex gap-1">
+      <div className="pointer-events-none absolute top-2.5 left-14 flex gap-1 max-md:top-9">
         <Chip className="text-text">
           cycle {count(cycle)} / {count(maxCycles)}
         </Chip>
         <Chip title="cycles per frame">{speedLabel(speed)}</Chip>
-        {fps !== null && <Chip variant={fps < 50 ? 'warn' : 'neutral'}>{Math.round(fps)} fps</Chip>}
-        <Chip>zoom {zoomLabel(zoom)}</Chip>
+        {fps !== null && (
+          <Chip variant={fps < 50 ? 'warn' : 'neutral'} className="max-md:hidden">
+            {Math.round(fps)} fps
+          </Chip>
+        )}
+        <Chip className="max-md:hidden">zoom {zoomLabel(zoom)}</Chip>
         <RendererChip />
         {recording !== null && <RecChip since={recording} />}
       </div>

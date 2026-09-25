@@ -1,5 +1,5 @@
 import type { MatchResult } from '@asmbots/tourney'
-import { Button, Panel, PanelGrid, useToast } from '@asmbots/ui'
+import { Button, Panel, PanelGrid, useMediaQuery, useToast, WIDE } from '@asmbots/ui'
 import { useNavigate } from '@tanstack/react-router'
 import { Settings2, Trophy } from 'lucide-react'
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -14,7 +14,7 @@ import { Announcer } from './battle/Announcer'
 import { BotsPanel } from './battle/BotsPanel'
 import { EventsPanel } from './battle/EventsPanel'
 import { downloadBlob, replayName, screenshotName, videoName } from './battle/files'
-import { HUD_BAND, Hud } from './battle/Hud'
+import { HUD_BAND, HUD_BAND_NARROW, Hud } from './battle/Hud'
 import { useFrameRate, useFullscreen } from './battle/hooks'
 import { useArenaKeys } from './battle/keys'
 import type { BattleLog } from './battle/log'
@@ -121,6 +121,7 @@ export function ArenaBattle({
   const view = useArenaView.getState()
   const fps = useFrameRate(status === 'playing')
   const [fullscreen, toggleFullscreen] = useFullscreen(panel)
+  const wide = useMediaQuery(WIDE)
   const [hidden, setHidden] = useState(false)
 
   const names = useMemo(() => meta.map((bot) => bot.name), [meta])
@@ -283,12 +284,14 @@ export function ArenaBattle({
         {status === 'error' ? (
           <p className="py-6 text-center text-danger">{error}</p>
         ) : (
-          <div className="flex h-full flex-col gap-2">
+          <div className="@container flex h-full flex-col gap-2">
+            {/* Under `lg` the box is the map: as tall as the core is wide (the width less the
+                44 px row ruler), plus the HUD's band. */}
             <div
               className={
                 fullscreen
                   ? 'relative min-h-0 flex-1'
-                  : 'relative h-[min(70vh,48rem)] min-h-80 lg:h-auto lg:min-h-0 lg:flex-1'
+                  : 'relative h-[min(100cqw_-_8px,70vh,48rem)] min-h-80 max-md:h-[min(100cqw_+_18px,70vh)] lg:h-auto lg:min-h-0 lg:flex-1'
               }
             >
               <ArenaCanvas
@@ -296,7 +299,7 @@ export function ArenaBattle({
                 client={client}
                 minimap={minimap}
                 isolated={isolated}
-                insetTop={HUD_BAND}
+                insetTop={wide ? HUD_BAND : HUD_BAND_NARROW}
                 className="size-full"
               >
                 <Hud
