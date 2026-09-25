@@ -157,7 +157,14 @@ for (const theme of THEMES) {
       // `?boot=1`: a driven browser skips the boot unless asked.
       await page.goto('/?boot=1')
       const boot = page.getByRole('dialog', { name: 'asm bots' })
-      await expect(boot.getByRole('list', { name: 'boot log' })).toContainText('live')
+      // Every line of the log is in the page from the start and fades in on its time: wait until
+      // all of them are opaque, so axe does not read a line's contrast mid-fade.
+      const log = boot.getByRole('list', { name: 'boot log' }).getByRole('listitem')
+      await expect
+        .poll(() =>
+          log.evaluateAll((lines) => lines.every((l) => getComputedStyle(l).opacity === '1')),
+        )
+        .toBe(true)
       await expectClean(page, 'boot screen')
       await page.keyboard.press('Enter')
       const tour = page.getByRole('dialog', { name: 'the tour' })

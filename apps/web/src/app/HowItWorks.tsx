@@ -138,10 +138,18 @@ const CONCEPTS: readonly Concept[] = [
       <>
         <ArtBox black>
           <ScopeTrace />
-          <span className="absolute top-1.5 left-2 text-panel-status text-arena-ruler">PROCS</span>
-          <span className="absolute bottom-1.5 left-2 text-panel-status text-arena-ruler">
-            CYCLE 0 → 100,000
-          </span>
+          {/* The scope's labels are SVG text: dim on black is the art's, and axe skips a drawing. */}
+          <svg
+            aria-hidden
+            className="pointer-events-none absolute inset-0 size-full font-mono text-panel-status"
+          >
+            <text x={8} y={16} className="fill-arena-ruler">
+              PROCS
+            </text>
+            <text x={8} y="100%" dy={-8} className="fill-arena-ruler">
+              CYCLE 0 → 100,000
+            </text>
+          </svg>
         </ArtBox>
         <Shot to="/arena" name="tour-arena" page="ARENA">
           four roster bots, 12,000 cycles in
