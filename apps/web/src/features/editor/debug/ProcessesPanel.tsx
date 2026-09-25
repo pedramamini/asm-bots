@@ -128,7 +128,7 @@ export function ProcessesPanel({
                 <header className="flex items-center gap-2 px-2 text-data">
                   <HueSwatch hue={bot.index} size={8} />
                   <span className="min-w-0 truncate text-text">{name}</span>
-                  <span className="min-w-0 flex-1 truncate text-dim" title="where it was loaded">
+                  <span className="min-w-0 flex-1 truncate text-muted" title="where it was loaded">
                     @ {hexAddress(bot.base)}
                   </span>
                   <span className={cx('shrink-0', bot.alive ? 'text-muted' : 'text-danger')}>
@@ -180,7 +180,7 @@ export function ProcessesPanel({
                     </li>
                   ))}
                 </ol>
-                {more > 0 && <p className="px-2 text-data text-dim">+ {more} more</p>}
+                {more > 0 && <p className="px-2 text-data text-muted">+ {more} more</p>}
               </section>
             )
           })}

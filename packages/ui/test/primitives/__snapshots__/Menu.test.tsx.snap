@@ -26,7 +26,7 @@ exports[`Menu draws the trigger and, open, the menu under it 1`] = `
     tabindex="-1"
   >
     <button
-      class="flex h-6 w-full items-center gap-2 rounded-sm px-2 text-left whitespace-nowrap outline-hidden disabled:cursor-not-allowed disabled:opacity-40 text-text focus:bg-accent-10 focus:text-accent"
+      class="flex h-6 w-full items-center gap-2 rounded-sm px-2 text-left whitespace-nowrap outline-hidden disabled:cursor-not-allowed disabled:opacity-40 text-text focus:bg-accent-10 focus:text-accent-fg"
       role="menuitem"
       tabindex="-1"
       type="button"
@@ -38,7 +38,7 @@ exports[`Menu draws the trigger and, open, the menu under it 1`] = `
       </span>
     </button>
     <button
-      class="flex h-6 w-full items-center gap-2 rounded-sm px-2 text-left whitespace-nowrap outline-hidden disabled:cursor-not-allowed disabled:opacity-40 text-text focus:bg-accent-10 focus:text-accent"
+      class="flex h-6 w-full items-center gap-2 rounded-sm px-2 text-left whitespace-nowrap outline-hidden disabled:cursor-not-allowed disabled:opacity-40 text-text focus:bg-accent-10 focus:text-accent-fg"
       role="menuitem"
       tabindex="-1"
       type="button"
@@ -50,7 +50,7 @@ exports[`Menu draws the trigger and, open, the menu under it 1`] = `
       </span>
     </button>
     <button
-      class="flex h-6 w-full items-center gap-2 rounded-sm px-2 text-left whitespace-nowrap outline-hidden disabled:cursor-not-allowed disabled:opacity-40 text-text focus:bg-accent-10 focus:text-accent"
+      class="flex h-6 w-full items-center gap-2 rounded-sm px-2 text-left whitespace-nowrap outline-hidden disabled:cursor-not-allowed disabled:opacity-40 text-text focus:bg-accent-10 focus:text-accent-fg"
       role="menuitem"
       tabindex="-1"
       type="button"
@@ -93,7 +93,7 @@ exports[`Menu draws the trigger and, open, the menu under it 1`] = `
       </kbd>
     </button>
     <button
-      class="flex h-6 w-full items-center gap-2 rounded-sm px-2 text-left whitespace-nowrap outline-hidden disabled:cursor-not-allowed disabled:opacity-40 text-text focus:bg-accent-10 focus:text-accent"
+      class="flex h-6 w-full items-center gap-2 rounded-sm px-2 text-left whitespace-nowrap outline-hidden disabled:cursor-not-allowed disabled:opacity-40 text-text focus:bg-accent-10 focus:text-accent-fg"
       disabled=""
       role="menuitem"
       tabindex="-1"
@@ -109,7 +109,7 @@ exports[`Menu draws the trigger and, open, the menu under it 1`] = `
       class="-mx-1 my-1 border-border"
     />
     <button
-      class="flex h-6 w-full items-center gap-2 rounded-sm px-2 text-left whitespace-nowrap outline-hidden disabled:cursor-not-allowed disabled:opacity-40 text-text focus:bg-accent-10 focus:text-accent"
+      class="flex h-6 w-full items-center gap-2 rounded-sm px-2 text-left whitespace-nowrap outline-hidden disabled:cursor-not-allowed disabled:opacity-40 text-text focus:bg-accent-10 focus:text-accent-fg"
       role="menuitem"
       tabindex="-1"
       type="button"

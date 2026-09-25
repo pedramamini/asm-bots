@@ -49,8 +49,8 @@ export type X16cToken = keyof typeof TOKEN_TAGS
 
 /** Each token class's color: a kit token (DESIGN_SYSTEM §2), set in every theme. */
 export const TOKEN_COLORS: Readonly<Record<X16cToken, string>> = {
-  mnemonic: '--accent',
-  prefix: '--accent',
+  mnemonic: '--accent-fg',
+  prefix: '--accent-fg',
   register: '--text-bright',
   number: '--info',
   string: '--info',
@@ -63,7 +63,7 @@ export const TOKEN_COLORS: Readonly<Record<X16cToken, string>> = {
   bracket: '--text-muted',
   operator: '--text-muted',
   punctuation: '--text-muted',
-  comment: '--text-dim',
+  comment: '--text-muted',
   invalid: '--danger',
 }
 
@@ -280,7 +280,8 @@ export const EDITOR_THEME = {
     backgroundColor: 'var(--panel-2)',
     fontSize: '13px',
   },
-  '&.cm-focused': { outline: 'none' },
+  // Focus draws the accent border an input's focus does (DESIGN_SYSTEM §4), inside the box.
+  '&.cm-focused': { outline: '1px solid var(--accent)', outlineOffset: '-1px' },
   '.cm-scroller': { fontFamily: 'var(--font-mono)', lineHeight: '20px' },
   '.cm-content': { caretColor: 'var(--accent)', padding: '8px 0' },
   '.cm-line': { padding: '0 12px 0 8px' },
@@ -289,11 +290,11 @@ export const EDITOR_THEME = {
     { backgroundColor: 'var(--accent-25)' },
   '.cm-activeLine': { backgroundColor: 'var(--accent-10)' },
   '.cm-gutters': {
-    color: 'var(--text-dim)',
+    color: 'var(--text-muted)',
     backgroundColor: 'var(--panel-2)',
     borderRight: '1px solid var(--border)',
   },
-  '.cm-activeLineGutter': { color: 'var(--text-muted)', backgroundColor: 'var(--accent-10)' },
+  '.cm-activeLineGutter': { color: 'var(--text)', backgroundColor: 'var(--accent-10)' },
   '.cm-lineNumbers .cm-gutterElement': { padding: '0 8px 0 12px', minWidth: '4ch' },
   '.cm-selectionMatch': { backgroundColor: 'var(--accent-10)' },
   '.cm-matchingBracket, &.cm-focused .cm-matchingBracket': {
@@ -324,7 +325,7 @@ export const EDITOR_THEME = {
     backgroundColor: 'var(--accent-10)',
     boxShadow: 'inset 2px 0 0 var(--accent)',
   },
-  '.cm-completionMatchedText': { color: 'var(--accent)', textDecoration: 'none' },
+  '.cm-completionMatchedText': { color: 'var(--accent-fg)', textDecoration: 'none' },
   '.cm-completionDetail': { color: 'var(--text-muted)', fontStyle: 'normal', marginLeft: '2ch' },
   '.cm-tooltip.cm-completionInfo': { padding: '0' },
 
@@ -339,7 +340,7 @@ export const EDITOR_THEME = {
   },
   '.cm-x16c-card-head': { display: 'flex', alignItems: 'baseline', gap: '12px' },
   '.cm-x16c-card-name': {
-    color: 'var(--accent)',
+    color: 'var(--accent-fg)',
     fontSize: '11px',
     fontWeight: '600',
     letterSpacing: '0.10em',
@@ -380,8 +381,8 @@ export const EDITOR_THEME = {
     gridTemplateColumns: 'repeat(9, 2.5ch)',
     textAlign: 'center',
   },
-  '.cm-x16c-card-flag': { color: 'var(--text-dim)' },
-  '.cm-x16c-card-flag[data-on]': { color: 'var(--accent)' },
+  '.cm-x16c-card-flag': { color: 'var(--text-muted)' },
+  '.cm-x16c-card-flag[data-on]': { color: 'var(--accent-fg)' },
 
   // Diagnostics (diagnostics.ts): a wavy underline in the severity's color, a caret under a point,
   // and a dot (error) or a triangle (warning) in the gutter, all from the theme.
@@ -439,7 +440,7 @@ export const EDITOR_THEME = {
   '.cm-x16c-diagnostic': { display: 'flex', flexDirection: 'column', gap: '2px' },
   '.cm-x16c-fix': { color: 'var(--text-muted)' },
 
-  // The listing (listing.ts): each line's address and bytes, as dim as the line numbers.
+  // The listing (listing.ts): each line's address and bytes, as muted as the line numbers.
   '.cm-listing-gutter .cm-gutterElement': {
     padding: '0 12px 0 4px',
     whiteSpace: 'pre',

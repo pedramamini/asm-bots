@@ -9,7 +9,7 @@ exports[`Segmented draws the pills, the chosen one accent 1`] = `
   >
     <button
       aria-checked="true"
-      class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none h-6 gap-1.5 px-2.5 text-nav focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40 border-accent text-accent"
+      class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none h-6 gap-1.5 px-2.5 text-nav focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40 border-accent text-accent-fg"
       role="radio"
       tabindex="0"
       type="button"

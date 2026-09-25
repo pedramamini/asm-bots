@@ -24,7 +24,7 @@ export interface SegmentedProps<T extends string>
 }
 
 /** The chosen pill: accent border and text, no fill (the reference's `WEEK`). */
-const CHOSEN = 'border-accent text-accent'
+const CHOSEN = 'border-accent text-accent-fg'
 
 /** The keys that move the choice, as a step through the enabled pills or an end. */
 const MOVES: Readonly<Record<string, 'next' | 'previous' | 'first' | 'last'>> = {

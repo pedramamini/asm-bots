@@ -93,7 +93,11 @@ export function Frame({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-dvh flex-col bg-bg text-text">
-      <FrameTicker />
+      <SkipLink />
+      {/* A landmark, so the ticker is not content outside every region. */}
+      <aside aria-label="ticker">
+        <FrameTicker />
+      </aside>
       <Header
         brand={<Brand />}
         stat={<HeaderStat />}
@@ -102,7 +106,13 @@ export function Frame({ children }: { children: ReactNode }) {
       />
       <div ref={setToolbar} className="contents" />
       <ToolbarSlot value={toolbar}>
-        <main className="relative min-h-0 flex-1 overflow-auto">{children}</main>
+        <main
+          id={CONTENT_ID}
+          tabIndex={-1}
+          className="relative min-h-0 flex-1 overflow-auto outline-none"
+        >
+          {children}
+        </main>
       </ToolbarSlot>
       <FrameStatus />
       <Modal open={keysOpen} onClose={() => setKeysOpen(false)} title="keys" size="lg">
@@ -132,10 +142,44 @@ function Onboarding() {
   )
 }
 
-/** A route's filter row, drawn by the frame under the header while the route is mounted. */
+/**
+ * A route's filter row, drawn by the frame under the header while the route is mounted. It sits
+ * between the banner and the main content, so it is a landmark of its own: `editor tools`.
+ */
 export function FrameToolbar(props: ToolbarProps) {
   const slot = useContext(ToolbarSlot)
-  return slot === null ? null : createPortal(<Toolbar {...props} />, slot)
+  const label = props['aria-label']
+  return slot === null
+    ? null
+    : createPortal(
+        <section aria-label={label === undefined ? 'page tools' : `${label} tools`}>
+          <Toolbar {...props} />
+        </section>,
+        slot,
+      )
+}
+
+/** The main content's id: the skip link's target. */
+export const CONTENT_ID = 'content'
+
+/**
+ * The first Tab stop of every page (DESIGN_SYSTEM §8): above the window until focused, it moves
+ * focus past the ticker, the header, and the nav to the main content. It focuses the content
+ * itself and leaves the URL alone: a page's fragment can carry a shared bot or a replay.
+ */
+function SkipLink() {
+  return (
+    <a
+      href={`#${CONTENT_ID}`}
+      onClick={(event) => {
+        event.preventDefault()
+        document.getElementById(CONTENT_ID)?.focus()
+      }}
+      className="fixed top-1 left-1 z-modal -translate-y-12 rounded-sm border border-accent bg-panel px-2.5 py-1 text-nav text-accent-fg focus-visible:translate-y-0 focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
+    >
+      skip to content
+    </a>
+  )
 }
 
 /** `?`, `t`, `/`, and the `g` chords. */
@@ -253,12 +297,12 @@ function FrameStatus() {
       left={<NetworkStatus />}
       center={
         <a
-          href="https://maestro.sh"
+          href="https://runmaestro.ai"
           target="_blank"
           rel="noreferrer"
           className="rounded-sm focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
-          <Chip className="transition-colors duration-120 ease-out hover:text-accent">
+          <Chip className="transition-colors duration-120 ease-out hover:text-accent-fg">
             made with maestro
           </Chip>
         </a>

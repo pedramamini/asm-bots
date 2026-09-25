@@ -413,7 +413,9 @@ export function ArenaCanvas({
       tabIndex={0}
       data-renderer={renderer?.kind}
       className={cx(
-        'relative touch-none overflow-hidden bg-arena-bg select-none focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-accent data-[dragging=true]:cursor-grabbing data-[zoomed=true]:cursor-grab',
+        // The focus ring is a layer over the canvases: an outline inside the box would be under
+        // the WebGL canvas's own layer, and one outside it is cut off by the panel.
+        'relative touch-none overflow-hidden bg-arena-bg outline-none select-none after:pointer-events-none after:absolute after:inset-0 after:z-10 focus-visible:after:border focus-visible:after:border-accent data-[dragging=true]:cursor-grabbing data-[zoomed=true]:cursor-grab',
         className,
       )}
       data-isolated={isolatedBots}

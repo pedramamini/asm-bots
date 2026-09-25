@@ -72,7 +72,7 @@ function Keys() {
 const clients: ArenaClient[] = []
 
 /** What a test may add to the battle: the intro's run, the tour's mark. */
-type Extra = Partial<Pick<ArenaBattleProps, 'intro' | 'introHold' | 'coach'>>
+type Extra = Partial<Pick<ArenaBattleProps, 'intro' | 'introHold' | 'coach' | 'announceEvery'>>
 
 /** The battle of `fight` on `/arena`, loaded (at `speed`), with the app's key listener. */
 async function renderBattle(fight = fightOf(), extra: Extra = {}, speed?: Speed) {
@@ -243,6 +243,21 @@ describe('the battle', () => {
     } finally {
       play.mockRestore()
     }
+  })
+
+  it('says in a live region where the battle stands while it plays (DESIGN_SYSTEM §8)', async () => {
+    const { client, frames } = await renderBattle(fightOf(), { announceEvery: 20 })
+    const region = screen
+      .getAllByRole('status')
+      .find((el) => el.className === 'sr-only') as HTMLElement
+    expect(region.textContent).toBe('')
+    press(' ')
+    expect(client.store.getState().status).toBe('playing')
+    frames.tick()
+    await settle()
+    await waitFor(() =>
+      expect(region.textContent).toMatch(/^cycle 100; 2 bots alive; \w+ leads footprint$/),
+    )
   })
 
   it('leaves space to a focused button', async () => {

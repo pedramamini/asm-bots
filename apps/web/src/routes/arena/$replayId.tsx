@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { PageHeading } from '../../app/PageHeading'
 import { titleHead } from '../../app/title'
 import { ReplayPage } from '../../features/arena/ReplayPage'
 
@@ -10,5 +11,10 @@ export const Route = createFileRoute('/arena/$replayId')({
 
 function ReplayRoute() {
   const { replayId } = Route.useParams()
-  return <ReplayPage replayId={replayId} />
+  return (
+    <>
+      <PageHeading>arena replay</PageHeading>
+      <ReplayPage replayId={replayId} />
+    </>
+  )
 }

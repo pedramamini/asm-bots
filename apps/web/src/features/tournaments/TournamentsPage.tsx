@@ -290,7 +290,7 @@ function ServerTournamentCard({ card }: { card: ServerCard }) {
           <p className="flex min-w-0 items-center gap-2 text-data">
             <Identicon value={s.champion.name} size={20} />
             <span className="text-muted">champion</span>
-            <span className="truncate text-accent">{s.champion.name}</span>
+            <span className="truncate text-accent-fg">{s.champion.name}</span>
           </p>
         )}
       </Link>
@@ -317,7 +317,7 @@ function TournamentCard({ tournament: t }: { tournament: Tournament }) {
           <p className="flex min-w-0 items-center gap-2 text-data">
             <Identicon value={identiconValue(winner)} size={20} />
             <span className="text-muted">champion</span>
-            <span className="truncate text-accent">{winner.name}</span>
+            <span className="truncate text-accent-fg">{winner.name}</span>
           </p>
         )}
       </Link>

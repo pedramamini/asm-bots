@@ -47,7 +47,7 @@ describe('Toggle', () => {
     )
     fireEvent.click(toggle())
     expect(classes(toggle())).toEqual(
-      expect.arrayContaining(['border-accent', 'bg-accent-10', 'text-accent']),
+      expect.arrayContaining(['border-accent', 'bg-accent-10', 'text-accent-fg']),
     )
   })
 

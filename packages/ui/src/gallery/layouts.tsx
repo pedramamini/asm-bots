@@ -106,7 +106,7 @@ function Frame({ route, note, compare, ticker, stat, toolbar, status, children }
   return (
     <figure aria-labelledby={caption} className="flex flex-col gap-2">
       <figcaption id={caption} className="flex items-baseline gap-3 text-panel-status text-muted">
-        <span className="text-accent">{route}</span>
+        <span className="text-accent-fg">{route}</span>
         <span className="normal-case">{note}</span>
         <span className="ml-auto normal-case">{compare}</span>
       </figcaption>
@@ -317,7 +317,7 @@ function BotsTable() {
         sortValue: (bot) => bot.died ?? Number.POSITIVE_INFINITY,
         cell: (bot) =>
           bot.died === null ? (
-            <span className="text-accent">alive</span>
+            <span className="text-accent-fg">alive</span>
           ) : (
             <span className="text-danger">dead @ {grouped(bot.died)}</span>
           ),
@@ -531,7 +531,7 @@ function Outcome({ submission }: { submission: Submission }) {
   }
   if (change === 0) return <span>#{rank}</span>
   return (
-    <span className={change > 0 ? 'text-accent' : 'text-danger'}>
+    <span className={change > 0 ? 'text-accent-fg' : 'text-danger'}>
       {change > 0 ? '▲' : '▼'} {Math.abs(change)} → #{rank}
     </span>
   )
@@ -609,7 +609,7 @@ const HILL_COLUMNS: TableColumn<Entrant>[] = [
       trend === 0 ? (
         <span className="text-muted">·</span>
       ) : (
-        <span className={trend > 0 ? 'text-accent' : 'text-danger'}>
+        <span className={trend > 0 ? 'text-accent-fg' : 'text-danger'}>
           {trend > 0 ? '▲' : '▼'} {Math.abs(trend)}
         </span>
       ),
@@ -664,7 +664,7 @@ export function TournamentLayout() {
         <Panel className="col-span-12" aria-label="september championship">
           <div className="flex items-center gap-3">
             <div className="flex min-w-0 flex-col gap-1">
-              <h3 className="truncate text-modal-title text-accent">september championship</h3>
+              <h3 className="truncate text-modal-title text-accent-fg">september championship</h3>
               <p className="text-data text-muted">bringing standings online</p>
             </div>
             <div className="ml-auto flex items-center gap-2">

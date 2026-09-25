@@ -396,7 +396,7 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight, tour }: ArenaS
       </PanelGrid>
       {dragging && (
         <div className="pointer-events-none absolute inset-3 z-10 grid place-items-center rounded-md border border-dashed border-accent bg-accent-10">
-          <p className="text-nav text-accent">drop .asm files to add them</p>
+          <p className="text-nav text-accent-fg">drop .asm files to add them</p>
         </div>
       )}
       <Modal
@@ -514,7 +514,7 @@ function BotCard({
           {bot.author || 'anonymous'} · {broken ? '—' : `${bytes.length} B`}
         </p>
         {blurb !== '' && (
-          <p className="truncate text-data text-dim" title={blurb}>
+          <p className="truncate text-data text-muted" title={blurb}>
             {blurb}
           </p>
         )}
@@ -675,7 +675,7 @@ function Selection({
             className="flex min-w-0 items-center gap-2 border-b border-border py-1 last:border-b-0"
           >
             <HueSwatch hue={index} />
-            <span className="w-5 shrink-0 text-right text-data text-dim">{index + 1}</span>
+            <span className="w-5 shrink-0 text-right text-data text-muted">{index + 1}</span>
             <span className="min-w-0 flex-1 truncate text-bright">{name}</span>
             <SelectionState entry={entry} onErrors={onErrors} />
             {state === 'ready' && bot !== null && (

@@ -10,7 +10,7 @@ describe('StatusBar', () => {
     const { container } = render(
       <StatusBar
         left={<span>3 active · 2 major</span>}
-        center={<a href="https://maestro.sh">made with maestro</a>}
+        center={<a href="https://runmaestro.ai">made with maestro</a>}
         right={
           <>
             <span>2026.09.23a</span>

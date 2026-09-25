@@ -14,7 +14,7 @@ const FOCUS = 'focus-visible:outline-1 focus-visible:outline-offset-2 focus-visi
 
 // Underlined at rest: in a paragraph a link must not rely on its color alone (WCAG 1.4.1).
 const LINK = cx(
-  'text-accent underline decoration-accent-45 underline-offset-2 hover:decoration-accent',
+  'text-accent-fg underline decoration-accent-45 underline-offset-2 hover:decoration-accent',
   FOCUS,
 )
 
@@ -82,7 +82,11 @@ function PlainBlock({ text }: { text: string }) {
   }
   return (
     <div className="relative my-3 min-w-0">
-      <pre className="overflow-x-auto rounded-sm border border-border bg-panel-2 p-3 pr-20 text-code text-text">
+      <pre
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll box the keyboard reads.
+        tabIndex={0}
+        className="overflow-x-auto rounded-sm border border-border bg-panel-2 p-3 pr-20 text-code text-text focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-accent"
+      >
         <code className="whitespace-pre">{text}</code>
       </pre>
       {/* The kit's Button owns its `position`: the corner is a wrapper's. */}
@@ -115,7 +119,7 @@ export const MDX_COMPONENTS: MDXComponents = {
   h1: (props) => <h1 {...props} className="mb-4 text-modal-title text-bright" />,
   h2: heading(
     'h2',
-    'mt-6 mb-2 scroll-mt-3 border-b border-border pb-1 text-panel-title text-accent',
+    'mt-6 mb-2 scroll-mt-3 border-b border-border pb-1 text-panel-title text-accent-fg',
   ),
   h3: heading('h3', 'mt-4 mb-2 scroll-mt-3 text-nav text-text'),
   p: (props) => <p {...props} className="my-3 text-body text-text" />,

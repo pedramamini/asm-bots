@@ -175,7 +175,7 @@ describe('Segmented', () => {
         'border',
         'text-nav',
         'border-accent',
-        'text-accent',
+        'text-accent-fg',
       ]),
     )
     expect(pill('month').className.split(' ')).toEqual(

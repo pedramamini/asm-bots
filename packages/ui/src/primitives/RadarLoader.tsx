@@ -141,7 +141,7 @@ export function RadarLoader({
         ))}
       </svg>
       {hasContent(label) ? (
-        <div className="mt-3.5 text-panel-title text-accent">{label}</div>
+        <div className="mt-3.5 text-panel-title text-accent-fg">{label}</div>
       ) : (
         <span className="sr-only">loading</span>
       )}

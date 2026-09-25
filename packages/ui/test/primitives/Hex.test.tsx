@@ -71,8 +71,8 @@ describe('Hex', () => {
   })
 
   it('passes className and attributes through', () => {
-    render(<Hex value={1} className="text-accent" title="ip" />)
+    render(<Hex value={1} className="text-accent-fg" title="ip" />)
     const data = screen.getByTitle('ip')
-    expect(data.className.endsWith(' text-accent')).toBe(true)
+    expect(data.className.endsWith(' text-accent-fg')).toBe(true)
   })
 })

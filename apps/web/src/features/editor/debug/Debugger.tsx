@@ -174,9 +174,11 @@ function LoadBar({ model }: { model: DebuggerModel }) {
   }
   return (
     <section aria-label="debug setup" className="flex min-w-0 flex-wrap items-center gap-2">
-      <span className="text-panel-title text-accent">debug</span>
+      <span className="text-panel-title text-accent-fg">debug</span>
       <span className="text-data text-muted">vs</span>
-      {opponents.length === 0 && <span className="text-data text-dim">nobody: the bot alone</span>}
+      {opponents.length === 0 && (
+        <span className="text-data text-muted">nobody: the bot alone</span>
+      )}
       <ul aria-label="opponents" className="flex flex-wrap items-center gap-1">
         {opponents.map((o, i) => (
           <li
@@ -455,11 +457,11 @@ function StopLine({
     <p aria-live="polite" className="flex min-w-0 items-baseline gap-2 text-data">
       <span className="shrink-0 text-muted">cycle</span>
       <span className="shrink-0 text-bright tabular-nums">{count(state.cycle)}</span>
-      <span className="text-dim">·</span>
+      <span className="text-muted">·</span>
       <span
         className={cx(
           'min-w-0 truncate',
-          running !== null ? 'text-accent' : alarm ? 'text-warn' : 'text-text',
+          running !== null ? 'text-accent-fg' : alarm ? 'text-warn' : 'text-text',
         )}
       >
         {running !== null ? runText(running, model.names) : stopText(state, model)}

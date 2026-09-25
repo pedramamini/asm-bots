@@ -158,7 +158,13 @@ export function BotPage({ id }: { id: string }) {
         actions={record.visibility === 'public' ? <Chip>public</Chip> : undefined}
       >
         {text !== undefined ? (
-          <pre className="max-h-96 overflow-auto text-code">{text}</pre>
+          <pre
+            // biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll box the keyboard reads.
+            tabIndex={0}
+            className="max-h-96 overflow-auto text-code focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-accent"
+          >
+            {text}
+          </pre>
         ) : source.isPending && latest !== null ? (
           <Skeleton rows={6} />
         ) : (

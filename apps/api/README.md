@@ -92,7 +92,7 @@ Beside the session the API sets `signed_in=1`, a cookie the page can read that p
 
 In dev, sign in from a browser that keeps a Secure cookie on `http://localhost` (Chrome, Firefox).
 
-Test sign-in: with the var `DEV_FAKE_AUTH=1` (`wrangler dev --var DEV_FAKE_AUTH:1`), a request to localhost never goes to GitHub. `/api/auth/github` returns straight to the callback, which signs in `e2e-tester`, or the login `?as=` names. Any other host ignores the var. The web e2e (`apps/web/e2e/account.spec.ts`, `hills.spec.ts`) runs on it: Playwright starts `wrangler dev` on :8788 with its own storage in `.wrangler/e2e`, emptied, migrated, and seeded each start, and `RUNNER_ALARM_DELAY_MS=300`, so a spec can watch a submission's progress.
+Test sign-in: with the var `DEV_FAKE_AUTH=1` (`wrangler dev --var DEV_FAKE_AUTH:1`), a request to localhost never goes to GitHub. `/api/auth/github` returns straight to the callback, which signs in `e2e-tester`, or the login `?as=` names. Any other host ignores the var, and `wrangler dev` gives each request the production route's host (`asmbots.io`) unless it runs with `--local-upstream localhost:<port>`. The web e2e (`apps/web/e2e/account.spec.ts`, `hills.spec.ts`) runs on it: Playwright starts `wrangler dev` on :8788 with its own storage in `.wrangler/e2e`, emptied, migrated, and seeded each start, and `RUNNER_ALARM_DELAY_MS=300`, so a spec can watch a submission's progress.
 
 | Method and path | Answers |
 | --- | --- |

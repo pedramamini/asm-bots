@@ -68,7 +68,7 @@ describe('IconButton', () => {
     rerender(<IconButton icon={Volume2} label="sound" pressed />)
     expect(button().getAttribute('aria-pressed')).toBe('true')
     expect(button().className.split(' ')).toEqual(
-      expect.arrayContaining(['border-accent', 'bg-accent-10', 'text-accent']),
+      expect.arrayContaining(['border-accent', 'bg-accent-10', 'text-accent-fg']),
     )
     rerender(<IconButton icon={Volume2} label="sound" />)
     expect(button().getAttribute('aria-pressed')).toBeNull()

@@ -78,7 +78,7 @@ describe('Button', () => {
       ]),
     )
     expect(classes(button('fight'))).toEqual(
-      expect.arrayContaining(['border-accent', 'bg-accent-10', 'text-accent', 'text-nav']),
+      expect.arrayContaining(['border-accent', 'bg-accent-10', 'text-accent-fg', 'text-nav']),
     )
     // A ghost button is a calm lowercase control, as the reference's `clear`.
     expect(classes(button('clear'))).toEqual(

@@ -166,7 +166,7 @@ function Championship() {
           />
           {last?.champion != null && (
             <p className="text-data text-muted">
-              last: <span className="text-accent">{last.champion.name}</span> won{' '}
+              last: <span className="text-accent-fg">{last.champion.name}</span> won{' '}
               {last.tournament.name}
             </p>
           )}

@@ -54,7 +54,11 @@ function eventText(summary: HillEventSummary): ReactNode {
           <Bot summary={summary} /> entered at #{event.rank}{' '}
           <span
             className={
-              event.delta === null ? 'text-muted' : event.delta >= 0 ? 'text-accent' : 'text-danger'
+              event.delta === null
+                ? 'text-muted'
+                : event.delta >= 0
+                  ? 'text-accent-fg'
+                  : 'text-danger'
             }
           >
             {rankDelta(event.delta)}

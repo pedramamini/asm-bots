@@ -62,8 +62,11 @@ export interface TableProps<Row> extends Omit<ComponentProps<'table'>, 'children
 
 const ALIGN = { left: 'text-left', center: 'text-center', right: 'text-right' } as const
 
-/** Every cell: the row's height, 8 px apart, flush with the table's edges, cut off with an ellipsis. */
-const CELL = 'h-6 truncate px-2 first:pl-0 last:pr-0'
+/**
+ * Every cell: the row's height, 8 px apart, flush with the table's edges, cut off with an ellipsis
+ * that still lets a link's or a button's focus ring show past the cell's edge.
+ */
+const CELL = 'h-6 truncate-ring px-2 first:pl-0 last:pr-0'
 
 /** Natural order: `dwarf-v9` before `dwarf-v10`. */
 const COLLATOR = new Intl.Collator('en', { numeric: true })
@@ -232,7 +235,7 @@ function SortButton({ direction, right, onClick, children }: SortButtonProps) {
     >
       <span className="truncate">{children}</span>
       {direction !== undefined && (
-        <span aria-hidden="true" className="text-accent">
+        <span aria-hidden="true" className="text-accent-fg">
           {direction === 'asc' ? '↑' : '↓'}
         </span>
       )}

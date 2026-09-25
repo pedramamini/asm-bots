@@ -18,8 +18,8 @@ import { isNotFound } from '../../api/client'
 import { useReplay } from '../../api/queries'
 import { useMotionReduced } from '../../store/settings'
 import { ArenaCanvas } from '../arena/ArenaCanvas'
-import { readReplayFragment, readReplayValue, replayFight } from '../arena/battle/replay'
 import { matchOutcome, roundOutcome } from '../arena/battle/outcome'
+import { readReplayFragment, readReplayValue, replayFight } from '../arena/battle/replay'
 import { ROUND_PAUSE_MS } from '../arena/battle/view'
 import {
   type ArenaFight,
@@ -114,12 +114,12 @@ function EmbedFrame({ label, children }: { label: string; children: ReactNode })
   )
 }
 
-/** Why there is no battle, and the way to the arena. */
+/** Why there is no battle, and the way to the arena: on a panel, as paper's text needs. */
 function EmbedNote({ children }: { children: ReactNode }) {
   return (
     <EmbedFrame label="ASM BOTS embed">
       <div className="grid min-h-0 flex-1 place-items-center p-4 text-center text-body text-muted">
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-3 rounded-md border border-border bg-panel px-4 py-3">
           {children}
           <WatchLink />
         </div>
@@ -239,7 +239,7 @@ function Outcome({ client, names }: { client: ArenaClient; names: readonly strin
         aria-live="polite"
         className="max-w-full rounded-md border border-border-strong bg-panel px-3 py-1.5 text-center"
       >
-        <span className="text-panel-title text-accent uppercase">{outcome.headline}</span>
+        <span className="text-panel-title text-accent-fg uppercase">{outcome.headline}</span>
         <span className="text-data text-muted"> · {outcome.detail}</span>
       </p>
     </div>

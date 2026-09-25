@@ -123,7 +123,9 @@ export function MatchPanel({
               {entrant.seed !== undefined && (
                 <span className="text-muted">seed {entrant.seed}</span>
               )}
-              <span className={winner === e ? 'text-accent' : 'text-bright'}>{entrant.name}</span>
+              <span className={winner === e ? 'text-accent-fg' : 'text-bright'}>
+                {entrant.name}
+              </span>
               {result !== null && (
                 <span className="text-muted">
                   {result.points[e]} {result.points[e] === 1 ? 'point' : 'points'}

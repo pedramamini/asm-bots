@@ -16,7 +16,7 @@ export function Keys({ children }: { children?: ReactNode }) {
         <Fragment key={at}>
           {combo.split(/\+(?=.)/).map((key, k) => (
             <Fragment key={k}>
-              {k > 0 && <span className="text-dim">+</span>}
+              {k > 0 && <span className="text-muted">+</span>}
               <Kbd>{key}</Kbd>
             </Fragment>
           ))}
@@ -27,20 +27,22 @@ export function Keys({ children }: { children?: ReactNode }) {
 }
 
 const CALLOUT = {
-  note: { label: 'NOTE', rule: 'border-accent-45', text: 'text-accent' },
+  note: { label: 'NOTE', rule: 'border-accent-45', text: 'text-accent-fg' },
   warn: { label: 'WARN', rule: 'border-warn', text: 'text-warn' },
 } as const
 
 function Callout({ kind, children }: { kind: keyof typeof CALLOUT; children?: ReactNode }) {
   const { label, rule, text } = CALLOUT[kind]
   return (
-    <aside
+    // A note, not a landmark: a page with two would have two regions of one name.
+    <div
+      role="note"
       aria-label={kind === 'note' ? 'note' : 'warning'}
       className={cx('my-3 border-l-2 bg-panel-2 px-3 py-2 [&_p]:my-1', rule)}
     >
       <p className={cx('text-panel-status', text)}>{label}</p>
       {children}
-    </aside>
+    </div>
   )
 }
 

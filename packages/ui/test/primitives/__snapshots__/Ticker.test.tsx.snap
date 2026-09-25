@@ -52,7 +52,7 @@ exports[`Ticker draws the line with a · between items and the → link after it
     </div>
     <a
       aria-label="open the main hill"
-      class="shrink-0 text-text transition-colors duration-120 ease-out hover:text-accent focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      class="shrink-0 text-text transition-colors duration-120 ease-out hover:text-accent-fg focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
       href="/hills/main"
     >
       →
@@ -151,7 +151,7 @@ exports[`Ticker scrolls a line wider than the bar as a marquee, at 50 px/s with 
     </div>
     <a
       aria-label="open the main hill"
-      class="shrink-0 text-text transition-colors duration-120 ease-out hover:text-accent focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      class="shrink-0 text-text transition-colors duration-120 ease-out hover:text-accent-fg focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
       href="/hills/main"
     >
       →

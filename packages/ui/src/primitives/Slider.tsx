@@ -138,6 +138,8 @@ export function Slider({
       {showValue && (
         <span
           aria-hidden="true"
+          // Faded with the disabled slider: the text of an inactive control (WCAG 1.4.3 exempts it).
+          aria-disabled={rest.disabled === true || undefined}
           className="min-w-(--readout) text-right text-data text-muted"
           style={vars({ '--readout': `${readout}ch` })}
         >

@@ -292,7 +292,7 @@ describe('Menu', () => {
     renderMenu()
     clickOpen()
     expect(item('imp').className.split(' ')).toEqual(
-      expect.arrayContaining(['h-6', 'text-text', 'focus:bg-accent-10', 'focus:text-accent']),
+      expect.arrayContaining(['h-6', 'text-text', 'focus:bg-accent-10', 'focus:text-accent-fg']),
     )
     expect(item('delete').className.split(' ')).toEqual(
       expect.arrayContaining(['text-danger', 'focus:bg-danger/10']),

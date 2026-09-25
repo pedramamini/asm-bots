@@ -9,7 +9,9 @@ const DEV = 'http://localhost:5173'
  * production does, with `DEV_FAKE_AUTH` on: sign-in skips GitHub. Its own port and its own local
  * storage, emptied, migrated, and given the launch seed (the hills, the roster on them) at each
  * start, so `bun run dev` can run beside it. A `Runner` waits `RUNNER_ALARM_DELAY_MS` between its
- * matches, so a spec can watch a submission's progress.
+ * matches, so a spec can watch a submission's progress. `--local-upstream` keeps the Worker's
+ * request URLs on localhost: without it `wrangler dev` gives them the production route's host
+ * (`asmbots.io`), so fake sign-in (localhost only) and the same-origin check on writes refuse.
  */
 export const WORKER = 'http://localhost:8788'
 const WORKER_STATE = '.wrangler/e2e'
@@ -18,7 +20,7 @@ const WORKER_COMMAND = [
   `rm -rf ${WORKER_STATE}`,
   `bunx wrangler d1 migrations apply asmbots --local --persist-to ${WORKER_STATE}`,
   `bun run scripts/seed.ts --local --persist-to ${WORKER_STATE}`,
-  `bunx wrangler dev --port 8788 --inspector-port 9239 --persist-to ${WORKER_STATE} --var DEV_FAKE_AUTH:1 --var SESSION_SECRET:e2e-session-secret --var RUNNER_ALARM_DELAY_MS:300`,
+  `bunx wrangler dev --port 8788 --inspector-port 9239 --local-upstream localhost:8788 --persist-to ${WORKER_STATE} --var DEV_FAKE_AUTH:1 --var SESSION_SECRET:e2e-session-secret --var RUNNER_ALARM_DELAY_MS:300`,
 ].join(' && ')
 /** The frame-rate spec: it runs alone, since specs beside it on the same CPU slow the frames. */
 const PERF = /arena-perf\.spec\.ts$/

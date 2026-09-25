@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { PageHeading } from '../../app/PageHeading'
 import { titleHead } from '../../app/title'
 import { ArenaPage } from '../../features/arena/ArenaPage'
 import { validateArenaSearch } from '../../features/arena/setup/search'
@@ -11,5 +12,10 @@ export const Route = createFileRoute('/arena/')({
 })
 
 function ArenaRoute() {
-  return <ArenaPage />
+  return (
+    <>
+      <PageHeading>arena</PageHeading>
+      <ArenaPage />
+    </>
+  )
 }

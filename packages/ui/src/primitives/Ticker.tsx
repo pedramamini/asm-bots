@@ -108,7 +108,7 @@ function Arrow({ href, label, className, ...rest }: TickerLink) {
       aria-label={label}
       {...rest}
       className={cx(
-        'shrink-0 text-text transition-colors duration-120 ease-out hover:text-accent focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent',
+        'shrink-0 text-text transition-colors duration-120 ease-out hover:text-accent-fg focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent',
         className,
       )}
     >

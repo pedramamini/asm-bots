@@ -9,12 +9,6 @@ import { sharedFragment } from '../features/arena/setup/url'
 import { scanLine, TOKEN_COLORS } from '../features/editor/cm/x16c'
 import { testedId } from '../features/editor/test-vs'
 
-/**
- * The editor's colors, but for comments: `--text-dim` has no contrast floor (it is for
- * placeholders), and in the docs a comment is prose the reader needs, so it reads in `--text-muted`.
- */
-const COLORS = { ...TOKEN_COLORS, comment: '--text-muted' }
-
 /** A run of a line in one color: a kit CSS variable, or null for plain text and whitespace. */
 export interface Span {
   text: string
@@ -28,7 +22,7 @@ export function highlight(source: string): Span[][] {
     let at = 0
     for (const { from, to, type } of scanLine(line)) {
       if (from > at) spans.push({ text: line.slice(at, from), color: null })
-      spans.push({ text: line.slice(from, to), color: `var(${COLORS[type]})` })
+      spans.push({ text: line.slice(from, to), color: `var(${TOKEN_COLORS[type]})` })
       at = to
     }
     if (at < line.length) spans.push({ text: line.slice(at), color: null })

@@ -62,7 +62,8 @@ export function Stat({
           </>
         ) : (
           <>
-            <div className="truncate text-stat text-bright">{value}</div>
+            {/* A value can be a link: `truncate-ring` leaves room for its focus ring. */}
+            <div className="truncate-ring text-stat text-bright">{value}</div>
             {(changed || hasContent(note)) && (
               <div className="flex min-w-0 items-center gap-2 text-data">
                 {changed && <Delta delta={delta} invert={invert} format={formatDelta} />}
@@ -89,7 +90,10 @@ function Delta({ delta, invert, format }: DeltaProps) {
   const rise = delta > 0
   return (
     <span
-      className={cx('shrink-0 whitespace-nowrap', rise !== invert ? 'text-accent' : 'text-danger')}
+      className={cx(
+        'shrink-0 whitespace-nowrap',
+        rise !== invert ? 'text-accent-fg' : 'text-danger',
+      )}
     >
       <span aria-hidden="true">{rise ? '▲' : '▼'}</span>
       <span className="sr-only">{rise ? 'up' : 'down'}</span> {format(Math.abs(delta))}

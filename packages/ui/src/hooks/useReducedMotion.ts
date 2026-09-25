@@ -1,22 +1,11 @@
 import { useSyncExternalStore } from 'react'
-
-const QUERY = '(prefers-reduced-motion: reduce)'
+import { reducedMotion, subscribeMotion } from '../motion'
 
 /**
- * True while the system asks for reduced motion (DESIGN_SYSTEM §8), and it follows a change
- * without a reload. False where there is no `matchMedia`.
+ * True while motion should be reduced (DESIGN_SYSTEM §8): the app's override on
+ * `<html data-motion>` (`applyMotion`), else the system's `prefers-reduced-motion`. It follows a
+ * change of either without a reload. False where there is no DOM and no `matchMedia`.
  */
 export function useReducedMotion(): boolean {
-  return useSyncExternalStore(subscribe, reducedMotion, () => false)
-}
-
-function subscribe(onChange: () => void): () => void {
-  if (typeof matchMedia !== 'function') return () => {}
-  const query = matchMedia(QUERY)
-  query.addEventListener('change', onChange)
-  return () => query.removeEventListener('change', onChange)
-}
-
-function reducedMotion(): boolean {
-  return typeof matchMedia === 'function' && matchMedia(QUERY).matches
+  return useSyncExternalStore(subscribeMotion, reducedMotion, () => false)
 }

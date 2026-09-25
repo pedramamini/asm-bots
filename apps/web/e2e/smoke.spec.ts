@@ -75,7 +75,7 @@ test('frames each route: brand, nav, and status row', async ({ page }) => {
   await expect(page.getByRole('contentinfo')).toContainText('x16c v1')
   await expect(page.getByRole('link', { name: 'made with maestro' })).toHaveAttribute(
     'href',
-    'https://maestro.sh',
+    'https://runmaestro.ai',
   )
 })
 

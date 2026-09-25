@@ -58,7 +58,7 @@ describe('Header', () => {
   it('sets the brand in brand type and accent, the stat in muted data type', () => {
     render(<Header brand={brand} stat="8 bots" />)
     expect(screen.getByRole('link', { name: 'ASM BOTS // ARENA' }).parentElement?.className).toBe(
-      'shrink-0 text-brand text-accent',
+      'shrink-0 text-brand text-accent-fg',
     )
     expect(screen.getByText('8 bots').className).toBe('min-w-0 truncate text-data text-muted')
   })

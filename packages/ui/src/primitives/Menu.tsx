@@ -229,7 +229,7 @@ export function Menu({
                   'flex h-6 w-full items-center gap-2 rounded-sm px-2 text-left whitespace-nowrap outline-hidden disabled:cursor-not-allowed disabled:opacity-40',
                   entry.danger
                     ? 'text-danger focus:bg-danger/10'
-                    : 'text-text focus:bg-accent-10 focus:text-accent',
+                    : 'text-text focus:bg-accent-10 focus:text-accent-fg',
                 )}
               >
                 {drawIcon(entry.icon, 12)}

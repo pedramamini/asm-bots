@@ -176,7 +176,7 @@ describe('Table', () => {
     expect(procs.className).toContain('uppercase')
     const arrow = procs.lastElementChild as HTMLElement
     expect(arrow.getAttribute('aria-hidden')).toBe('true')
-    expect(arrow.className).toBe('text-accent')
+    expect(arrow.className).toBe('text-accent-fg')
     // The sorted header reads in --text; the others stay muted.
     expect(header('procs').className).toContain('text-text')
     expect(header('bot').className).toContain('text-muted')

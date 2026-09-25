@@ -7,7 +7,7 @@ exports[`NavButton draws the active and an idle route 1`] = `
   >
     <a
       aria-current="page"
-      class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none h-6 gap-1.5 px-2.5 text-nav focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent border-accent bg-accent-10 text-accent"
+      class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm border whitespace-nowrap transition-colors duration-120 ease-out select-none h-6 gap-1.5 px-2.5 text-nav focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent border-accent bg-accent-10 text-accent-fg"
       href="/arena"
     >
       <svg
@@ -45,7 +45,7 @@ exports[`NavButton draws the active and an idle route 1`] = `
     >
       <svg
         aria-hidden="true"
-        class="lucide lucide-code-xml lucide-code-2 shrink-0 text-accent"
+        class="lucide lucide-code-xml lucide-code-2 shrink-0 text-accent-fg"
         fill="none"
         height="12"
         stroke="currentColor"

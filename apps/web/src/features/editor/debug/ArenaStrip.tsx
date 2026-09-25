@@ -81,7 +81,7 @@ export function ArenaStrip({ session, state, open, onOpen, canvas, className }: 
       )}
     >
       <header className="flex h-8 shrink-0 items-center gap-3 border-b border-border px-2">
-        <h2 className="text-panel-title text-accent">arena</h2>
+        <h2 className="text-panel-title text-accent-fg">arena</h2>
         {state !== null && (
           <span className="text-panel-status text-muted">
             cycle {state.cycle.toLocaleString('en-US')} · {alive} alive

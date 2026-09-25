@@ -16,14 +16,17 @@ export interface EmptyStateAction {
 export interface EmptyStateProps extends ComponentProps<'div'> {
   /** One sentence, lowercase, that says what is missing: `no entrants yet.` */
   children: ReactNode
-  /** The one way on, in accent, after the sentence: `submit a bot →`. */
+  /**
+   * The one way on, in accent and underlined (a link in a sentence needs more than its color),
+   * after the sentence: `submit a bot →`.
+   */
   action: EmptyStateAction
   /** 12 px data type and 8 px of room, for a dense panel's list (the debugger's watches). */
   dense?: boolean | undefined
 }
 
 const ACTION = cx(
-  'inline cursor-pointer text-accent underline-offset-2 transition-colors duration-120 ease-out not-disabled:hover:underline disabled:cursor-not-allowed disabled:text-dim',
+  'inline cursor-pointer text-accent-fg underline decoration-accent-45 underline-offset-2 transition-colors duration-120 ease-out not-disabled:hover:decoration-current disabled:cursor-not-allowed disabled:text-dim disabled:no-underline',
   FOCUS_RING,
 )
 

@@ -23,13 +23,17 @@ export function Diagnostics({ source, diagnostics, max = 8 }: DiagnosticsProps) 
         return (
           <li key={`${d.line}:${d.col}:${d.code}`} className="flex min-w-0 flex-col gap-1">
             <p className="text-data">
-              <span className="text-dim">
+              <span className="text-muted">
                 {d.line}:{d.col}
               </span>{' '}
               <span className="text-danger">{d.severity}</span> {d.message}
             </p>
             {line !== undefined && line.trim() !== '' && (
-              <pre className="overflow-x-auto rounded-sm border border-border bg-panel-2 px-2 py-1 text-data text-muted">
+              <pre
+                // biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll box the keyboard reads.
+                tabIndex={0}
+                className="overflow-x-auto rounded-sm border border-border bg-panel-2 px-2 py-1 text-data text-muted focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-accent"
+              >
                 {line}
                 {'\n'}
                 <span className="text-danger">

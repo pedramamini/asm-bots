@@ -8,7 +8,7 @@ export type ButtonVariant = 'default' | 'primary' | 'ghost' | 'danger'
 
 const VARIANT: Readonly<Record<ButtonVariant, string>> = {
   default: cx('text-nav', IDLE),
-  primary: 'border-accent bg-accent-10 text-nav text-accent not-disabled:hover:bg-accent-25',
+  primary: 'border-accent bg-accent-10 text-nav text-accent-fg not-disabled:hover:bg-accent-25',
   ghost: 'border-transparent text-data text-muted not-disabled:hover:text-text',
   danger: 'border-danger text-nav text-danger not-disabled:hover:bg-danger/10',
 }

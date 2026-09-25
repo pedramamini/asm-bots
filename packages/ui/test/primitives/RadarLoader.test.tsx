@@ -28,7 +28,7 @@ describe('RadarLoader', () => {
 
   it('sets the label in accent panel title type and the detail muted, lowercase', () => {
     render(<RadarLoader label="loading demo" detail="4 bots" />)
-    expect(screen.getByText('loading demo').className).toContain('text-panel-title text-accent')
+    expect(screen.getByText('loading demo').className).toContain('text-panel-title text-accent-fg')
     expect(screen.getByText('4 bots').className.split(' ')).toEqual(
       expect.arrayContaining(['text-panel-status', 'text-muted', 'normal-case']),
     )

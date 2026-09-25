@@ -306,7 +306,7 @@ function NewTournamentForm({
                 aria-label={names[i]}
                 className="flex items-center gap-1 rounded-sm border border-border bg-panel-2 py-0.5 pr-0.5 pl-2 text-data"
               >
-                <span className="text-dim">{i + 1}</span>
+                <span className="text-muted">{i + 1}</span>
                 <span className="text-bright">{names[i]}</span>
                 <IconButton
                   icon={X}
@@ -370,7 +370,7 @@ function NewTournamentForm({
 
       {dragDepth > 0 && (
         <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-md border border-dashed border-accent bg-accent-10">
-          <p className="text-nav text-accent">drop .asm files to enter them</p>
+          <p className="text-nav text-accent-fg">drop .asm files to enter them</p>
         </div>
       )}
     </form>

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 import { TABBABLE, tabbables } from '../src/focus'
 import { graphicRole } from '../src/graphic'
-import { BOT_HUES, HUE_COUNT, hueColor, wrapsHue } from '../src/index'
+import { BOT_HUES, blend, contrastRatio, HUE_COUNT, hueColor, wrapsHue } from '../src/index'
 import { useDom } from './dom'
 
 useDom()
@@ -64,5 +64,15 @@ describe('tabbables', () => {
     const stops = tabbables(root).map((e) => e.textContent || e.getAttribute('aria-label'))
     expect(stops).toEqual(['arena', 'run', 'search', 'hill', 'source', 'splitter'])
     expect(root.querySelector('div[tabindex="-1"]')?.matches(TABBABLE)).toBe(false)
+  })
+})
+
+describe('blend', () => {
+  it('lays a share of a color over an opaque one, as a color-mix fill draws', () => {
+    // Sentinel's --accent-25 over its --panel.
+    expect(blend('#00FF88', '#111A11', 0.25)).toBe('#0D532F')
+    expect(blend('#00ff88', '#111a11', 0)).toBe('#111A11')
+    expect(blend('#00FF88', '#111A11', 1)).toBe('#00FF88')
+    expect(contrastRatio(blend('#FFFFFF', '#000000', 0.5), '#808080')).toBeCloseTo(1, 1)
   })
 })

@@ -53,7 +53,7 @@ describe('NavButton', () => {
       ]),
     )
     expect(classes(link('arena'))).toEqual(
-      expect.arrayContaining(['border-accent', 'bg-accent-10', 'text-accent']),
+      expect.arrayContaining(['border-accent', 'bg-accent-10', 'text-accent-fg']),
     )
     expect(classes(link('arena'))).not.toContain('border-border')
   })
@@ -64,9 +64,11 @@ describe('NavButton', () => {
     expect(idle.getAttribute('width')).toBe('12')
     expect(idle.getAttribute('stroke-width')).toBe('1.75')
     expect(idle.getAttribute('aria-hidden')).toBe('true')
-    expect(idle.getAttribute('class')).toContain('text-accent')
+    expect(idle.getAttribute('class')).toContain('text-accent-fg')
     // Active, the whole button is accent: the icon takes it from the text.
-    expect(link('arena').querySelector('svg')?.getAttribute('class')).not.toContain('text-accent')
+    expect(link('arena').querySelector('svg')?.getAttribute('class')).not.toContain(
+      'text-accent-fg',
+    )
   })
 
   it('lets a router take the click, and passes className, attributes, and ref through', () => {

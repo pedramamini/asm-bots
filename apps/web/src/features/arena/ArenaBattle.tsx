@@ -9,6 +9,7 @@ import { ShareMenu, type ShareTarget } from '../share/ShareMenu'
 import { embedTitle, embedUrl } from '../share/share'
 import { useArenaSound } from '../sound/arena'
 import { ArenaCanvas, type ArenaCanvasHandle } from './ArenaCanvas'
+import { Announcer } from './battle/Announcer'
 import { BotsPanel } from './battle/BotsPanel'
 import { EventsPanel } from './battle/EventsPanel'
 import { downloadBlob, replayName, screenshotName } from './battle/files'
@@ -16,13 +17,13 @@ import { HUD_BAND, Hud } from './battle/Hud'
 import { useFrameRate, useFullscreen } from './battle/hooks'
 import { useArenaKeys } from './battle/keys'
 import type { BattleLog } from './battle/log'
+import { roundOutcome } from './battle/outcome'
 import { ReplayChip } from './battle/ReplayChip'
 import { buildReplay, replayUrl } from './battle/replay'
 import { StandingsPanel } from './battle/StandingsPanel'
 import { captureArena } from './battle/screenshot'
 import { speedLabel } from './battle/speed'
 import { Transport } from './battle/Transport'
-import { roundOutcome } from './battle/outcome'
 import { RoundOver, Victory } from './battle/Victory'
 import type { ReplayCheck } from './battle/verify'
 import { ROUND_PAUSE_MS, useArenaView } from './battle/view'
@@ -70,6 +71,8 @@ export interface ArenaBattleProps {
   introHold?: number | undefined
   /** A coach mark to pin under the events log's title: the tour's last step. */
   coach?: ReactNode
+  /** How often the arena's live region speaks while it plays, ms. */
+  announceEvery?: number | undefined
 }
 
 const count = (n: number) => n.toLocaleString('en-US')
@@ -95,6 +98,7 @@ export function ArenaBattle({
   intro,
   introHold,
   coach,
+  announceEvery,
 }: ArenaBattleProps) {
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -282,6 +286,7 @@ export function ArenaBattle({
                   onScreenshot={() => void screenshot()}
                 />
               </ArenaCanvas>
+              <Announcer client={client} every={announceEvery} />
               {over && !between && !hidden && (
                 <Victory
                   result={result}

@@ -37,7 +37,7 @@ const BOT: TableColumn<HillStanding> = {
   header: 'bot',
   cell: (s) =>
     s.entry.rank === 1 ? (
-      <span className="text-accent">
+      <span className="text-accent-fg">
         <BotLink bot={s.bot} />
       </span>
     ) : (
@@ -119,7 +119,13 @@ export function HillStandingsTable({
             : FULL
           : [
               ...(compact ? COMPACT : FULL),
-              { id: 'action', header: '', cell: action, align: 'right', className: 'w-32' },
+              {
+                id: 'action',
+                header: <span className="sr-only">challenge</span>,
+                cell: action,
+                align: 'right',
+                className: 'w-32',
+              },
             ]
       }
       rows={standings ?? []}

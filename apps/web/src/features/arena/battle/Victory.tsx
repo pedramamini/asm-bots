@@ -79,7 +79,11 @@ export function Victory({
       >
         <header className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <h2 id={titleId} aria-live="polite" className="text-modal-title text-accent uppercase">
+            <h2
+              id={titleId}
+              aria-live="polite"
+              className="text-modal-title text-accent-fg uppercase"
+            >
               {outcome.headline}
             </h2>
             <p className="text-body text-muted">{outcome.detail}</p>
@@ -93,7 +97,7 @@ export function Victory({
         )}
         <div className="flex min-w-0 items-center gap-2">
           <p
-            className="min-w-0 truncate text-data text-dim"
+            className="min-w-0 truncate text-data text-muted"
             title="the result hash a replay checks (ISA §5.6)"
           >
             result {hash}
@@ -152,7 +156,7 @@ function BotCell({ bot, name, winner }: { bot: number; name: string; winner: boo
   return (
     <span className="inline-flex max-w-full items-center gap-2">
       <HueSwatch hue={bot} />
-      <span className={winner ? 'truncate text-accent' : 'truncate text-bright'}>{name}</span>
+      <span className={winner ? 'truncate text-accent-fg' : 'truncate text-bright'}>{name}</span>
     </span>
   )
 }
@@ -189,7 +193,7 @@ function RoundTable({
       className: 'w-40',
       cell: ({ result: bot }) =>
         bot.alive ? (
-          <span className="text-accent">standing</span>
+          <span className="text-accent-fg">standing</span>
         ) : (
           <span className="text-danger">
             dead @ {count(bot.deathCycle ?? 0)} · {reasonText(bot.deathReason ?? 'undefined')}
@@ -310,7 +314,7 @@ export function RoundOver({
       className="absolute bottom-10 left-1/2 z-20 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-3 rounded-md border border-border-strong bg-panel px-3 py-2"
     >
       <div className="min-w-0">
-        <p className="truncate text-panel-title text-accent uppercase">
+        <p className="truncate text-panel-title text-accent-fg uppercase">
           round {round + 1}/{rounds} · {outcome.headline}
         </p>
         <p className="truncate text-data text-muted">

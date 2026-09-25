@@ -55,7 +55,7 @@ describe('Stat', () => {
     const fall = screen.getByTestId('fall')
     expect(shownDelta(rise)).toBe('▲ 1,204')
     expect(shownDelta(fall)).toBe('▼ 2')
-    expect(rise.querySelector('.text-accent')?.textContent).toBe('▲up 1,204')
+    expect(rise.querySelector('.text-accent-fg')?.textContent).toBe('▲up 1,204')
     expect(fall.querySelector('.text-danger')?.textContent).toBe('▼down 2')
     expect(rise.querySelector('[aria-hidden]')?.textContent).toBe('▲')
     expect(rise.querySelector('.sr-only')?.textContent).toBe('up')
@@ -68,7 +68,9 @@ describe('Stat', () => {
         <Stat label="rank" value="#9" delta={4} invert data-testid="worse" />
       </>,
     )
-    expect(screen.getByTestId('better').querySelector('.text-accent')?.textContent).toBe('▼down 2')
+    expect(screen.getByTestId('better').querySelector('.text-accent-fg')?.textContent).toBe(
+      '▼down 2',
+    )
     expect(screen.getByTestId('worse').querySelector('.text-danger')?.textContent).toBe('▲up 4')
   })
 

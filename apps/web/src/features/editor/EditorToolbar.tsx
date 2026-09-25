@@ -272,7 +272,7 @@ function TestRecord({ test, testStale, watchHref, onWatch }: EditorToolbarProps)
           event.preventDefault()
           onWatch()
         }}
-        className="rounded-sm text-data text-accent underline-offset-2 hover:underline focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
+        className="rounded-sm text-data text-accent-fg underline-offset-2 hover:underline focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
       >
         watch
       </a>

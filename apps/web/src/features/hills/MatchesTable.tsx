@@ -59,7 +59,7 @@ const columns = (compact: boolean): TableColumn<MatchSummary>[] => [
   { id: 'points', header: 'points', cell: matchScore, align: 'right', className: 'w-16' },
   {
     id: 'verify',
-    header: '',
+    header: <span className="sr-only">verify</span>,
     cell: (m) =>
       verifiable(m) ? (
         <VerifyMatch id={m.match.id} label={matchTitle(m)} compact={compact} />
@@ -69,7 +69,7 @@ const columns = (compact: boolean): TableColumn<MatchSummary>[] => [
   },
   {
     id: 'watch',
-    header: '',
+    header: <span className="sr-only">watch</span>,
     cell: (m) =>
       m.match.replayKey === null ? null : (
         <Link to="/arena/$replayId" params={{ replayId: m.match.replayKey }} className={CELL_LINK}>

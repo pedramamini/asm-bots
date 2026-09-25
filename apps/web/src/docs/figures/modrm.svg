@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 344 104" width="344" height="104" font-family="var(--font-mono)" font-size="12">
   <title>The ModR/M byte: mod in bits 7 and 6, reg in bits 5 to 3, r/m in bits 2 to 0</title>
-  <g fill="var(--text-dim)" text-anchor="middle" font-size="10">
+  <g fill="var(--text-muted)" text-anchor="middle" font-size="10">
     <text x="32" y="14">7</text>
     <text x="72" y="14">6</text>
     <text x="112" y="14">5</text>
@@ -23,7 +23,7 @@
     <line x1="292" y1="22" x2="292" y2="54" />
   </g>
   <g text-anchor="middle">
-    <text x="52" y="43" fill="var(--accent)">mod</text>
+    <text x="52" y="43" fill="var(--accent-fg)">mod</text>
     <text x="152" y="43" fill="var(--text-bright)">reg</text>
     <text x="272" y="43" fill="var(--info)">r/m</text>
   </g>

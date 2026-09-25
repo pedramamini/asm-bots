@@ -93,8 +93,8 @@ export function RegistersPanel({ state, names, onEdit, className }: RegistersPan
                   className={cx(
                     'inline-flex size-5 shrink-0 items-center justify-center rounded-sm border text-data transition-colors duration-120 ease-out focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed',
                     on
-                      ? 'border-accent bg-accent-10 text-accent'
-                      : 'border-border text-dim not-disabled:hover:border-border-strong',
+                      ? 'border-accent bg-accent-10 text-accent-fg'
+                      : 'border-border text-muted not-disabled:hover:border-border-strong',
                     on !== was && 'ring-1 ring-accent-45 ring-offset-1 ring-offset-panel',
                     !writable && 'opacity-60',
                   )}
@@ -164,7 +164,7 @@ function WordField({ name, value, changed, disabled, onCommit }: WordFieldProps)
         onChange={(event) => setDraft(event.currentTarget.value)}
         onBlur={commit}
         onKeyDown={onKeyDown}
-        className={cx('w-16', changed && '[&_input]:text-accent')}
+        className={cx('w-16', changed && '[&_input]:text-accent-fg')}
         data-changed={changed || undefined}
       />
     </div>

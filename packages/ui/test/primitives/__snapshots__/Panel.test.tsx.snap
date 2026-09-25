@@ -10,7 +10,7 @@ exports[`Panel draws the title row over the body 1`] = `
       class="flex min-h-3.5 items-center gap-3 border-b border-border mb-3 pb-2"
     >
       <h2
-        class="min-w-0 truncate text-panel-title text-accent"
+        class="min-w-0 truncate text-panel-title text-accent-fg"
         id="id-1"
       >
         traffic distribution

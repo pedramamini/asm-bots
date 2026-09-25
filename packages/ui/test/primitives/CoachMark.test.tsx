@@ -113,7 +113,7 @@ describe('CoachMark', () => {
     expect(buttons).toEqual(['skip the tour', 'next'])
     const skip = screen.getByRole('button', { name: 'skip the tour' })
     const next = screen.getByRole('button', { name: 'next' })
-    expect(next.className).toContain('text-accent')
+    expect(next.className).toContain('text-accent-fg')
     expect(skip.className).not.toContain('border-accent')
     expect(screen.queryByRole('button', { name: 'got it' })).toBeNull()
     fireEvent.click(next)

@@ -61,7 +61,7 @@ export function EmptyEditor({ empty, onTemplate, onClose }: EmptyEditorProps) {
                 onClick={() => onTemplate(template.id)}
                 className={ROW}
               >
-                <span className="w-36 shrink-0 text-accent">{template.label}</span>
+                <span className="w-36 shrink-0 text-accent-fg">{template.label}</span>
                 <span id={`${id}-${template.id}`} className="min-w-0 truncate text-muted">
                   {template.detail}
                 </span>

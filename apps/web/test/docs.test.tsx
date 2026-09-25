@@ -177,7 +177,7 @@ describe('Asm', () => {
     const code = block.querySelector('code') as HTMLElement
     expect(code.textContent).toBe(IMP)
     const colored = [...code.querySelectorAll<HTMLElement>('span[style]')]
-    expect(colored.find((s) => s.textContent === 'movsw')?.style.color).toBe('var(--accent)')
+    expect(colored.find((s) => s.textContent === 'movsw')?.style.color).toBe('var(--accent-fg)')
     expect(colored.find((s) => s.textContent === '"Imp"')?.style.color).toBe('var(--info)')
 
     const editor = within(block).getByRole('link', { name: 'open in editor' })
@@ -351,17 +351,17 @@ describe('Encoding and Flags', () => {
     await renderDocs('/docs/p', { pages: { p: () => <Content components={MDX_COMPONENTS} /> } })
     const encoding = screen.getByRole('figure', { name: 'encoding of mov r/m16, imm16' })
     expect(encoding.textContent).toContain('C7 /0 iw · 4 to 6 bytes')
-    expect(within(encoding).getByText('000').className).toContain('text-accent')
+    expect(within(encoding).getByText('000').className).toContain('text-accent-fg')
 
     const [add, named] = screen.getAllByRole('table')
     const row = (table: HTMLElement | undefined) =>
       [...(table?.querySelectorAll('td') ?? [])].map((td) => td.textContent).join('')
     expect(row(add)).toBe('*---*****')
     expect(within(add as HTMLElement).getByRole('columnheader', { name: 'C' }).className).toContain(
-      'text-accent',
+      'text-accent-fg',
     )
     expect(within(add as HTMLElement).getByRole('columnheader', { name: 'D' }).className).toContain(
-      'text-dim',
+      'text-muted',
     )
     expect(row(named)).toBe('-----*--*')
   })
@@ -387,10 +387,10 @@ describe('Keys, Note, Warn, Fig', () => {
       'ctrl',
       'enter',
     ])
-    expect(screen.getByRole('complementary', { name: 'note' }).textContent).toBe('NOTEA remark.')
-    expect(screen.getByRole('complementary', { name: 'warning' }).textContent).toBe('WARNA trap.')
+    expect(screen.getByRole('note', { name: 'note' }).textContent).toBe('NOTEA remark.')
+    expect(screen.getByRole('note', { name: 'warning' }).textContent).toBe('WARNA trap.')
     const figure = screen.getByRole('img', { name: 'the ModR/M byte' })
-    expect(figure.querySelector('svg')?.innerHTML).toContain('var(--accent)')
+    expect(figure.querySelector('svg')?.innerHTML).toContain('var(--accent-fg)')
     expect(screen.getByText('mod, reg, r/m.').tagName).toBe('FIGCAPTION')
   })
 

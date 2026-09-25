@@ -178,7 +178,7 @@ function BreakpointRow({ bp, where, onSet, onRemove }: BreakpointRowProps) {
           onChange={(event) => onSet(bp.addr, { enabled: event.currentTarget.checked })}
           className="size-3 shrink-0 accent-(--danger)"
         />
-        <Hex value={bp.addr} className={cx('shrink-0', bp.enabled ? 'text-text' : 'text-dim')} />
+        <Hex value={bp.addr} className={cx('shrink-0', bp.enabled ? 'text-text' : 'text-muted')} />
         <span className="min-w-0 flex-1 truncate text-muted" title={where}>
           {where}
         </span>

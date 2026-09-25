@@ -8,7 +8,7 @@
     <text x="170" y="36" fill="var(--bot-0)">bot 0</text>
     <text x="400" y="36" fill="var(--bot-1)">bot 1</text>
   </g>
-  <g fill="var(--text-dim)" font-size="10">
+  <g fill="var(--text-muted)" font-size="10">
     <text x="12" y="88">0x0000</text>
     <text x="508" y="88" text-anchor="end">0xFFFF</text>
   </g>
@@ -16,7 +16,7 @@
     <path d="M190 100h190M190 95v10M380 95v10" />
     <path d="M420 100h88M12 100h138M150 95v10M420 95v10" />
   </g>
-  <g fill="var(--accent)" font-size="11" text-anchor="middle">
+  <g fill="var(--accent-fg)" font-size="11" text-anchor="middle">
     <text x="285" y="118">≥ 1,024 free bytes</text>
     <text x="81" y="118">≥ 1,024 free,</text>
     <text x="81" y="131">around the wrap</text>

@@ -2,7 +2,12 @@
  * Design tokens (DESIGN_SYSTEM §2): one block per theme, keyed on <html data-theme="…">. A
  * missing or unknown data-theme gets sentinel. tailwind.css maps the tokens to utilities,
  * themes.ts carries the bot hues and arena colors for the renderer (a test keeps the two equal),
- * and `bun run contrast` checks the text tokens on the three surfaces (DESIGN_SYSTEM §8).
+ * and `bun run contrast` checks the text tokens on the three surfaces and on the accent fills
+ * (DESIGN_SYSTEM §8).
+ *
+ * `--accent` draws borders, rings, and fills; `--accent-fg` is the accent as text. They are one
+ * color where the accent reads at 4.5:1 as small text. Pedurple's #9146FF does not on its panels,
+ * so its text is a lighter violet; paper's text is its darker green, which holds on the fills.
  */
 
 :root {
@@ -49,13 +54,14 @@
   --border: #1A2F1A;
   --border-strong: #2A4A2A;
   --text: #A0C0A0;
-  --text-muted: #6A8C6A;
+  --text-muted: #7D9B7D;
   --text-dim: #4A6A4A;
-  --text-bright: #D0F0D0;
+  --text-bright: #E0FFE0;
   --accent: #00FF88;
   --accent-2: #00C46A;
+  --accent-fg: #00FF88;
   --warn: #FB923C;
-  --danger: #FF4444;
+  --danger: #FF5959;
   --info: #FFAA00;
   --arena-bg: #000000;
   --arena-lattice: #0E160E;
@@ -85,13 +91,14 @@
   --border: #33260A;
   --border-strong: #4D3A10;
   --text: #D6B070;
-  --text-muted: #8F7A4A;
+  --text-muted: #9E8B62;
   --text-dim: #5E5030;
   --text-bright: #FFE0A0;
   --accent: #FFB000;
   --accent-2: #E09800;
+  --accent-fg: #FFB000;
   --warn: #FF6A00;
-  --danger: #FF3333;
+  --danger: #FF4949;
   --info: #FFD166;
   --arena-bg: #000000;
   --arena-lattice: #160F00;
@@ -121,11 +128,12 @@
   --border: #2A1F45;
   --border-strong: #3F2F66;
   --text: #B8A8D8;
-  --text-muted: #7A6C9A;
+  --text-muted: #8B7FA7;
   --text-dim: #4E4466;
   --text-bright: #E8DCFF;
   --accent: #9146FF;
-  --accent-2: #7A30E0;
+  --accent-2: #9F6AE9;
+  --accent-fg: #AD74FF;
   --warn: #FF4FA3;
   --danger: #FF3355;
   --info: #FFAA00;
@@ -157,11 +165,12 @@
   --border: #123040;
   --border-strong: #1C4A60;
   --text: #A0C8DC;
-  --text-muted: #5E8A9E;
+  --text-muted: #6B93A6;
   --text-dim: #3C5A6A;
   --text-bright: #D8F4FF;
   --accent: #00E5FF;
   --accent-2: #00B8CC;
+  --accent-fg: #00E5FF;
   --warn: #FFB74D;
   --danger: #FF5A5A;
   --info: #FFD166;
@@ -193,12 +202,13 @@
   --border: #D8D3C6;
   --border-strong: #B8B2A2;
   --text: #1F2A1F;
-  --text-muted: #5C665C;
+  --text-muted: #596359;
   --text-dim: #9AA39A;
   --text-bright: #000000;
   --accent: #0A7A4A;
   --accent-2: #08603A;
-  --warn: #B45309;
+  --accent-fg: #08603A;
+  --warn: #9D4808;
   --danger: #B91C1C;
   --info: #92400E;
   --arena-bg: #000000;

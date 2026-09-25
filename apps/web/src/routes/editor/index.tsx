@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { PageHeading } from '../../app/PageHeading'
 import { titleHead } from '../../app/title'
 import { EditorIndexRoute } from '../../features/editor/EditorRoutes'
 import { validateEditorSearch } from '../../features/editor/search'
@@ -12,5 +13,10 @@ export const Route = createFileRoute('/editor/')({
 })
 
 function EditorIndex() {
-  return <EditorIndexRoute />
+  return (
+    <>
+      <PageHeading>editor</PageHeading>
+      <EditorIndexRoute />
+    </>
+  )
 }

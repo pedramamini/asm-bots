@@ -1,4 +1,4 @@
-import { useReducedMotion } from '@asmbots/ui'
+import { applyMotion, useReducedMotion } from '@asmbots/ui'
 import {
   applyTheme,
   DEFAULT_THEME,
@@ -186,6 +186,14 @@ export const useSettings = create<SettingsState>()(
     },
   ),
 )
+
+// The motion setting reaches the kit through <html data-motion>: its `motion-reduce:` classes and
+// `useReducedMotion()` (the ticker, the coach marks, the dialogs) follow the setting, not only the
+// system's preference.
+applyMotion(useSettings.getState().motion)
+useSettings.subscribe((state, previous) => {
+  if (state.motion !== previous.motion) applyMotion(state.motion)
+})
 
 /** The well-formed fields of a stored settings object. */
 export function sanitizeSettings(stored: unknown): Partial<Settings> {

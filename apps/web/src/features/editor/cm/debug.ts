@@ -253,6 +253,9 @@ const debugTheme = EditorView.theme({
     backgroundColor: 'var(--accent-25)',
     boxShadow: 'inset 2px 0 0 var(--text-bright)',
   },
+  // White is now (DESIGN_SYSTEM §1): the IP line's code is `--text-bright`, the one color that
+  // holds its contrast on the accent fill in every theme (DESIGN_SYSTEM §8).
+  '.cm-line.cm-debug-ip, .cm-line.cm-debug-ip *': { color: 'var(--text-bright)' },
 })
 
 /**

@@ -285,11 +285,11 @@ describe('x16c: colors', () => {
 
   it('colors each class as the spec asks', () => {
     expect(TOKEN_COLORS).toMatchObject({
-      mnemonic: '--accent',
+      mnemonic: '--accent-fg',
       register: '--text-bright',
       number: '--info',
       label: '--warn',
-      comment: '--text-dim',
+      comment: '--text-muted',
       directive: '--accent-2',
     })
     for (const token of Object.keys(TOKEN_TAGS) as X16cToken[]) {

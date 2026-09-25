@@ -26,7 +26,7 @@ describe('EmptyState', () => {
     expect(sentence.parentElement?.className).toContain('text-muted')
     const link = screen.getByRole('link', { name: 'submit a bot' })
     expect(link.getAttribute('href')).toBe('/hills/main/submit')
-    expect(link.className).toContain('text-accent')
+    expect(link.className).toContain('text-accent-fg')
     expect(link.querySelector('[aria-hidden="true"]')?.textContent).toBe(' →')
   })
 

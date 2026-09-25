@@ -247,7 +247,7 @@ function VersionButton({
       onClick={onPick}
       className={cx(
         'flex w-full flex-col rounded-sm px-2 py-1 text-left text-data transition-colors duration-120 ease-out focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-accent',
-        picked ? 'bg-accent-10 text-accent' : 'text-text hover:bg-panel-2',
+        picked ? 'bg-accent-10 text-accent-fg' : 'text-text hover:bg-panel-2',
       )}
     >
       <span>{children}</span>
@@ -265,7 +265,11 @@ function DiffLine({ row }: { row: DiffRow }) {
     )
   }
   const tone =
-    row.op === '+' ? 'bg-accent-10 text-accent' : row.op === '-' ? 'bg-danger/10 text-danger' : ''
+    row.op === '+'
+      ? 'bg-accent-10 text-accent-fg'
+      : row.op === '-'
+        ? 'bg-danger/10 text-danger'
+        : ''
   return (
     <div className={cx('px-2 whitespace-pre', tone)}>
       <span aria-hidden="true" className="select-none text-muted">

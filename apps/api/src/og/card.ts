@@ -27,9 +27,9 @@ export const SENTINEL = {
   border: '#1A2F1A',
   borderStrong: '#2A4A2A',
   text: '#A0C0A0',
-  muted: '#6A8C6A',
+  muted: '#7D9B7D',
   dim: '#4A6A4A',
-  bright: '#D0F0D0',
+  bright: '#E0FFE0',
   accent: '#00FF88',
   arena: '#000000',
 } as const

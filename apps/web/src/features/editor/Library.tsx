@@ -77,14 +77,16 @@ export function Library({
       <div className="-mx-2 flex h-full min-h-0 flex-col gap-3 overflow-y-auto px-2">
         {lately.length > 0 && (
           <Section title="recent">
-            {lately.map((key) => {
-              const target = parseDocKey(key)
-              return target === null ? null : (
-                <Row key={key} current={false} onOpen={() => onOpen(target)}>
-                  {names.get(key)}
-                </Row>
-              )
-            })}
+            <Rows>
+              {lately.map((key) => {
+                const target = parseDocKey(key)
+                return target === null ? null : (
+                  <Row key={key} current={false} onOpen={() => onOpen(target)}>
+                    {names.get(key)}
+                  </Row>
+                )
+              })}
+            </Rows>
           </Section>
         )}
         <Section
@@ -106,19 +108,21 @@ export function Library({
               none saved in this browser yet.
             </EmptyState>
           ) : (
-            local.map((bot) => {
-              const target: DocTarget = { kind: 'local', id: bot.id }
-              return (
-                <Row
-                  key={bot.id}
-                  current={docKey(target) === current}
-                  onOpen={() => onOpen(target)}
-                >
-                  {bot.name}
-                  {bot.cloudId !== undefined && <span className="text-muted"> · synced</span>}
-                </Row>
-              )
-            })
+            <Rows>
+              {local.map((bot) => {
+                const target: DocTarget = { kind: 'local', id: bot.id }
+                return (
+                  <Row
+                    key={bot.id}
+                    current={docKey(target) === current}
+                    onOpen={() => onOpen(target)}
+                  >
+                    {bot.name}
+                    {bot.cloudId !== undefined && <span className="text-muted"> · synced</span>}
+                  </Row>
+                )
+              })}
+            </Rows>
           )}
         </Section>
         {(cloud !== undefined || cloudError) && onOpenCloud !== undefined && (
@@ -132,42 +136,46 @@ export function Library({
                 none in your account yet: a save, signed in, keeps it there too.
               </EmptyState>
             ) : (
-              cloud.map((mine) => (
-                <Row
-                  key={mine.bot.id}
-                  current={mine.bot.id === currentCloud}
-                  onOpen={() => onOpenCloud(mine)}
-                >
-                  {mine.bot.name}
-                  <span className="text-muted">
-                    {mine.latest === null ? '' : ` · v${mine.latest.version}`}
-                    {mine.bot.visibility === 'private' ? '' : ` · ${mine.bot.visibility}`}
-                  </span>
-                </Row>
-              ))
+              <Rows>
+                {cloud.map((mine) => (
+                  <Row
+                    key={mine.bot.id}
+                    current={mine.bot.id === currentCloud}
+                    onOpen={() => onOpenCloud(mine)}
+                  >
+                    {mine.bot.name}
+                    <span className="text-muted">
+                      {mine.latest === null ? '' : ` · v${mine.latest.version}`}
+                      {mine.bot.visibility === 'private' ? '' : ` · ${mine.bot.visibility}`}
+                    </span>
+                  </Row>
+                ))}
+              </Rows>
             )}
           </Section>
         )}
         <Section title="roster">
-          {roster.map((bot) => (
-            <Row
-              key={docKey(bot.ref)}
-              current={docKey(bot.ref) === current}
-              onOpen={() => onOpen(bot.ref)}
-              action={
-                <IconButton
-                  icon={GitFork}
-                  label={`fork ${bot.name}`}
-                  size="sm"
-                  tooltip="right"
-                  onClick={() => onFork(bot)}
-                />
-              }
-            >
-              <span className="text-muted">{bot.roster?.tier === 'test' ? 'test · ' : ''}</span>
-              {bot.name}
-            </Row>
-          ))}
+          <Rows>
+            {roster.map((bot) => (
+              <Row
+                key={docKey(bot.ref)}
+                current={docKey(bot.ref) === current}
+                onOpen={() => onOpen(bot.ref)}
+                action={
+                  <IconButton
+                    icon={GitFork}
+                    label={`fork ${bot.name}`}
+                    size="sm"
+                    tooltip="right"
+                    onClick={() => onFork(bot)}
+                  />
+                }
+              >
+                <span className="text-muted">{bot.roster?.tier === 'test' ? 'test · ' : ''}</span>
+                {bot.name}
+              </Row>
+            ))}
+          </Rows>
         </Section>
       </div>
     </Panel>
@@ -189,9 +197,14 @@ function Section({
         <h3 className="text-panel-status text-muted">{title}</h3>
         {action}
       </header>
-      <ul className="flex flex-col">{children}</ul>
+      {children}
     </section>
   )
+}
+
+/** A section's documents, a `Row` each; an empty or failed section says so without a list. */
+function Rows({ children }: { children: ReactNode }) {
+  return <ul className="flex flex-col">{children}</ul>
 }
 
 /** A document in the library: its name, which opens it, and an action at the right. */
@@ -214,7 +227,7 @@ function Row({
         onClick={onOpen}
         className={cx(
           'flex h-6 min-w-0 flex-1 items-center rounded-sm px-1 text-left text-data transition-colors duration-120 ease-out focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-accent',
-          current ? 'bg-accent-10 text-accent' : 'text-text hover:bg-panel-2',
+          current ? 'bg-accent-10 text-accent-fg' : 'text-text hover:bg-panel-2',
         )}
       >
         <span className="truncate">{children}</span>

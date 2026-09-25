@@ -83,7 +83,7 @@ type Row =
   | { readonly kind: 'played'; readonly summary: MatchSummary }
   | { readonly kind: 'fighting'; readonly opponent: BotLabel | null }
 
-const OUTCOME_CLASS = { won: 'text-accent', lost: 'text-danger', tie: 'text-muted' } as const
+const OUTCOME_CLASS = { won: 'text-accent-fg', lost: 'text-danger', tie: 'text-muted' } as const
 
 const COLUMNS: TableColumn<Row>[] = [
   {
@@ -107,7 +107,7 @@ const COLUMNS: TableColumn<Row>[] = [
   },
   {
     id: 'verify',
-    header: '',
+    header: <span className="sr-only">verify</span>,
     cell: (row) =>
       row.kind === 'played' &&
       verifiable(row.summary) && (
@@ -118,7 +118,7 @@ const COLUMNS: TableColumn<Row>[] = [
   },
   {
     id: 'watch',
-    header: '',
+    header: <span className="sr-only">watch</span>,
     cell: (row) => {
       const key = row.kind === 'played' ? row.summary.match.replayKey : null
       return (

@@ -90,7 +90,7 @@ export function LayoutSpecimens({ theme }: { theme: Theme }) {
               <div
                 // A cell of the sheet is known by its place.
                 key={`${r}:${c}`}
-                className={`${span} flex h-6 items-center justify-center rounded-sm border border-accent-25 bg-accent-10 text-panel-status text-accent`}
+                className={`${span} flex h-6 items-center justify-center rounded-sm border border-accent-25 bg-accent-10 text-panel-status text-accent-fg`}
               >
                 {span.slice('col-span-'.length)}
               </div>
@@ -250,7 +250,7 @@ export function LayoutSpecimens({ theme }: { theme: Theme }) {
 function Pane({ name, note }: { name: string; note: string }) {
   return (
     <div className="flex h-full flex-col justify-between rounded-sm bg-panel-2 p-2">
-      <span className="text-panel-title text-accent">{name}</span>
+      <span className="text-panel-title text-accent-fg">{name}</span>
       <span className="text-data text-muted">{note}</span>
     </div>
   )

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'bun:test'
 import { act, fireEvent, render, screen } from '@testing-library/react'
-import { Ticker } from '../../src/index'
+import { applyMotion, Ticker } from '../../src/index'
 import { html, stubLayout, useDom } from '../dom'
 
 useDom()
@@ -170,6 +170,22 @@ describe('Ticker', () => {
     expect(track().className).toBe('flex')
     expect(copy()).toBeNull()
     expect(track().querySelector('.truncate')?.textContent).toContain('12,480 cycles')
+  })
+
+  it("stays still under the app's reduce with no system preference, and moves under its full", () => {
+    widths(
+      () => 900,
+      () => 300,
+    )
+    applyMotion('reduce')
+    undo.push(() => applyMotion('system'))
+    const { unmount } = render(<Ticker items={items} link={link} />)
+    expect(track().className).toBe('flex')
+    unmount()
+    prefersReducedMotion()
+    applyMotion('full')
+    render(<Ticker items={items} link={link} />)
+    expect(track().className.split(' ')).toContain('animate-marquee')
   })
 
   it('starts and stops the marquee as the bar resizes', () => {

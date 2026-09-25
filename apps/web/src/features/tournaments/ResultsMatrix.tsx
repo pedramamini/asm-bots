@@ -1,7 +1,7 @@
 /**
  * A round robin's results matrix (PRODUCT_SPEC §4): the entrants down and across, each cell the
  * row bot's points against the column bot. A win takes the accent, deeper the wider the margin; a
- * tie stays plain; a loss dims. The diagonal is blank, and so is a match not played yet, but the
+ * tie stays plain; a loss is muted. The diagonal is blank, and so is a match not played yet, but the
  * one in flight pulses. A played cell's tooltip breaks the match down by round; a click selects
  * the match, as the cell across the diagonal does.
  */
@@ -46,10 +46,10 @@ export function resultsMatrix(t: Tournament): {
   return { cells, live: t.status === 'running' && next < schedule.length ? next : null }
 }
 
-/** The fill of a played cell: the accent by the margin of a win, none for a tie, dim for a loss. */
+/** The fill of a played cell: the accent by the margin of a win, none for a tie, muted for a loss. */
 export function cellTone(cell: MatrixCell): string {
   const { points, against } = cell
-  if (points < against) return 'text-dim'
+  if (points < against) return 'text-muted'
   if (points === against) return 'text-text'
   const share = points / (points + against)
   const fill = share >= 0.85 ? 'bg-accent-45' : share >= 0.67 ? 'bg-accent-25' : 'bg-accent-10'

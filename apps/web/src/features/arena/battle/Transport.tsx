@@ -94,7 +94,9 @@ export function Transport({
         onValueChange={setSpeed}
         format={(n) => `${count(n)}/f`}
         showValue
-        className={speed === 'max' ? 'w-40 shrink-0 opacity-60' : 'w-40 shrink-0'}
+        className="w-40 shrink-0"
+        // At max the count is not in effect: the track fades, its value stays readable.
+        style={speed === 'max' ? { opacity: 0.6 } : undefined}
       />
       <IconButton
         icon={FastForward}

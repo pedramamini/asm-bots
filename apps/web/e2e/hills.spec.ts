@@ -34,7 +34,8 @@ async function signIn(page: Page, slug: string, login: string): Promise<void> {
   await page.route('**/api/auth/github?*', (route) =>
     route.continue({ url: `${route.request().url()}&as=${login}` }),
   )
-  await page.getByRole('button', { name: 'sign in to submit' }).click()
+  // Exact: an empty feed offers `sign in to submit a bot` as well.
+  await page.getByRole('button', { name: 'sign in to submit', exact: true }).click()
   await expect(page).toHaveURL(`${WORKER}/hills/${slug}`)
   const pick = page.getByRole('dialog', { name: 'pick a handle' })
   await pick.getByRole('button', { name: 'continue' }).click()

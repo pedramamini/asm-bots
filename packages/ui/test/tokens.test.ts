@@ -21,7 +21,7 @@ function declared(theme: Theme): Record<string, string> {
 
 describe('tokens.css', () => {
   it('has the spec tables to check against', () => {
-    expect(Object.keys(SPEC_TOKENS.sentinel)).toHaveLength(20)
+    expect(Object.keys(SPEC_TOKENS.sentinel)).toHaveLength(21)
     expect(SPEC_HUES).toHaveLength(12)
   })
 

@@ -119,7 +119,7 @@ describe('ResultsMatrix', () => {
     expect(tone(3, 1)).toContain('bg-accent-25')
     expect(tone(3, 2)).toContain('bg-accent-10')
     expect(tone(2, 2)).toBe('text-text')
-    expect(tone(0, 3)).toBe('text-dim')
+    expect(tone(0, 3)).toBe('text-muted')
   })
 
   it('shows the round breakdown on hover', async () => {

@@ -8,7 +8,7 @@ export type ChipVariant = 'neutral' | 'accent' | 'warn' | 'danger' | 'info'
 
 const TEXT: Readonly<Record<ChipVariant, string>> = {
   neutral: 'text-muted',
-  accent: 'text-accent',
+  accent: 'text-accent-fg',
   warn: 'text-warn',
   danger: 'text-danger',
   info: 'text-info',

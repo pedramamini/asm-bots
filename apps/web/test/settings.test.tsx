@@ -117,6 +117,19 @@ describe('useSettings', () => {
     expect([true, false].map((system) => motionReduced('full', system))).toEqual([false, false])
   })
 
+  it('puts the motion setting on <html data-motion>, where the kit reads it', () => {
+    const root = document.documentElement
+    useSettings.getState().setMotion('reduce')
+    expect(root.getAttribute('data-motion')).toBe('reduce')
+    useSettings.getState().setMotion('full')
+    expect(root.getAttribute('data-motion')).toBe('full')
+    useSettings.getState().setMotion('system')
+    expect(root.hasAttribute('data-motion')).toBe(false)
+    useSettings.getState().setMotion('reduce')
+    useSettings.getState().reset()
+    expect(root.hasAttribute('data-motion')).toBe(false)
+  })
+
   it('cycles from the chosen theme, not a previewed one', () => {
     document.documentElement.dataset.theme = 'ice'
     useSettings.getState().cycleTheme()

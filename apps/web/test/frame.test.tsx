@@ -188,8 +188,32 @@ describe('Frame', () => {
     const footer = screen.getByRole('contentinfo')
     expect(within(footer).getByText('x16c v1')).toBeTruthy()
     expect(within(footer).getByText('made with maestro').closest('a')?.href).toBe(
-      'https://maestro.sh/',
+      'https://runmaestro.ai/',
     )
+  })
+
+  it('starts the Tab order with a skip link to the content, which leaves the URL alone', async () => {
+    const router = await renderAndWait()
+    await act(() => router.navigate({ to: '/', hash: 'src=keep-me' }))
+    const skip = screen.getByRole('link', { name: 'skip to content' })
+    const main = screen.getByRole('main')
+    // First in the document: before the ticker, the header, and the nav.
+    expect([...document.querySelectorAll<HTMLElement>('a[href], button')].indexOf(skip)).toBe(0)
+    expect(skip.getAttribute('href')).toBe('#content')
+    expect(main.id).toBe('content')
+    expect(main.tabIndex).toBe(-1)
+    act(() => void fireEvent.click(skip))
+    expect(document.activeElement).toBe(main)
+    // The fragment is a page's own (a shared bot, a replay): the skip keeps it.
+    expect(router.state.location.hash).toBe('src=keep-me')
+  })
+
+  it('puts every part of the chrome in a landmark: the ticker, the toolbar, the content', async () => {
+    await renderAndWait()
+    expect(screen.getByRole('complementary', { name: 'ticker' }).textContent).not.toBe('')
+    const tools = screen.getByRole('region', { name: 'filters tools' })
+    expect(within(tools).getByRole('toolbar', { name: 'filters' })).toBeTruthy()
+    expect(screen.getByRole('main').textContent).toContain('home')
   })
 
   it('links the intro, the guided demo, from the header', async () => {

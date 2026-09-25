@@ -24,6 +24,20 @@ export function contrastRatio(a: string, b: string): number {
   return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05)
 }
 
+/**
+ * `color` at `share` (0..1) over an opaque `under`, as `#RRGGBB`: what the page draws for a fill
+ * of `color-mix(in srgb, color share, transparent)` on `under` (the `--accent-10` … fills).
+ */
+export function blend(color: string, under: string, share: number): string {
+  const top = parseHex(color)
+  const bottom = parseHex(under)
+  const channel = (i: number) =>
+    Math.round((top[i] as number) * share + (bottom[i] as number) * (1 - share))
+      .toString(16)
+      .padStart(2, '0')
+  return `#${channel(0)}${channel(1)}${channel(2)}`.toUpperCase()
+}
+
 /** An sRGB channel, 0..255, as linear light, 0..1. */
 function linear(channel: number): number {
   const c = channel / 255

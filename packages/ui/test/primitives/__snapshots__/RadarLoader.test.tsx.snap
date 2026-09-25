@@ -312,7 +312,7 @@ exports[`RadarLoader draws the scope, the label, and the detail 1`] = `
       </g>
     </svg>
     <div
-      class="mt-3.5 text-panel-title text-accent"
+      class="mt-3.5 text-panel-title text-accent-fg"
     >
       loading dashboard
     </div>

@@ -16,7 +16,7 @@ exports[`StatusBar draws the left, center, and right chips 1`] = `
       class="flex items-center gap-2 *:pointer-events-auto"
     >
       <a
-        href="https://maestro.sh"
+        href="https://runmaestro.ai"
       >
         made with maestro
       </a>

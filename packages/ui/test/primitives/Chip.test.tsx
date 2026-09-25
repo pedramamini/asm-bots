@@ -8,7 +8,7 @@ useDom()
 
 const VARIANTS: readonly (readonly [ChipVariant, string])[] = [
   ['neutral', 'text-muted'],
-  ['accent', 'text-accent'],
+  ['accent', 'text-accent-fg'],
   ['warn', 'text-warn'],
   ['danger', 'text-danger'],
   ['info', 'text-info'],

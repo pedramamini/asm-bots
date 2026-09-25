@@ -161,7 +161,8 @@ export function Editor({
           Prec.low(keymap.of([{ key: SOURCE_KEYS.leave.cm, run: leaveEditor }])),
           x16c(),
           EditorState.readOnly.of(readOnly),
-          EditorView.contentAttributes.of({ 'aria-label': 'bot source' }),
+          // A Tab stop by its own right, read-only too: the source scrolls by keyboard.
+          EditorView.contentAttributes.of({ 'aria-label': 'bot source', tabindex: '0' }),
           EditorView.theme({ '&': { height: '100%' }, '.cm-scroller': { overflow: 'auto' } }),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) latest.current.onChange(update.state.doc.toString())

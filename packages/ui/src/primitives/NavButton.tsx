@@ -31,7 +31,7 @@ export function NavButton({ icon, active = false, className, children, ...rest }
         className,
       )}
     >
-      {drawIcon(icon, 12, active ? undefined : 'text-accent')}
+      {drawIcon(icon, 12, active ? undefined : 'text-accent-fg')}
       {children}
     </a>
   )

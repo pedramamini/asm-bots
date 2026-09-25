@@ -21,7 +21,7 @@
   </g>
   <path d="M96.3 29.0A116 116 0 0 1 163.7 29.0" fill="none" stroke="var(--accent)" />
   <path d="M163.7 29.0l-8 -5.5M163.7 29.0l-9.5 1.5" fill="none" stroke="var(--accent)" />
-  <text x="130" y="16" text-anchor="middle" fill="var(--accent)" font-size="11">0xFFFF + 1 = 0x0000</text>
+  <text x="130" y="16" text-anchor="middle" fill="var(--accent-fg)" font-size="11">0xFFFF + 1 = 0x0000</text>
   <g fill="var(--text-muted)" text-anchor="middle" font-size="11">
     <text x="130" y="80">0x0000</text>
     <text x="180" y="144">0x4000</text>

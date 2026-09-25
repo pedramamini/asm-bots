@@ -20,7 +20,8 @@ const LINES = ['--border', '--border-strong'] as const
 const TEXTS = [
   ['--text-bright', 4.5],
   ['--text', 4.5],
-  ['--text-muted', 3],
+  ['--text-muted', 4.5],
+  ['--accent-fg', 4.5],
   ['--text-dim', null],
 ] as const
 const SIGNALS = ['--accent', '--accent-2', '--warn', '--danger', '--info'] as const
@@ -64,9 +65,9 @@ const RADII = [
 /** Each type role (§3): its utility, its name, the color it takes, and a line in its voice. */
 const TYPE = [
   ['text-ticker', 'ticker', 'text-text', '▍LIVE · HILL "MAIN" · dwarf-v3 took #1 · 12,480 cycles'],
-  ['text-brand', 'brand', 'text-accent', 'asm bots // arena'],
+  ['text-brand', 'brand', 'text-accent-fg', 'asm bots // arena'],
   ['text-nav', 'nav button', 'text-muted', 'tournaments'],
-  ['text-panel-title', 'panel title', 'text-accent', 'traffic distribution'],
+  ['text-panel-title', 'panel title', 'text-accent-fg', 'traffic distribution'],
   ['text-panel-status', 'panel status', 'text-muted', 'loading'],
   ['text-body', 'body', 'text-text', 'Write 8086 assembly. Fight for 64 KB.'],
   ['text-data', 'data cell', 'text-text', '12,480   0x1A2F   7B   add bx, 4'],

@@ -29,6 +29,7 @@ const COLORS: readonly (readonly [string, string])[] = [
   ['bright', '--text-bright'],
   ['accent', '--accent'],
   ['accent-2', '--accent-2'],
+  ['accent-fg', '--accent-fg'],
   ['accent-10', '--accent-10'],
   ['accent-25', '--accent-25'],
   ['accent-45', '--accent-45'],
@@ -173,6 +174,29 @@ describe('tailwind.css', () => {
       animation: 'marquee var(--marquee-duration) linear infinite',
     })
     expect(css).toMatch(/@keyframes marquee \{\s*to \{\s*transform: translateX\(-50%\);\s*\}\s*\}/)
+  })
+
+  it("reduces motion for the app's override on <html data-motion> and for the system's", () => {
+    const css = build(['motion-reduce:animate-none', 'motion-safe:transition-colors'])
+    expect(rule(css, ':root[data-motion="reduce"] .motion-reduce\\:animate-none')).toEqual({
+      animation: 'none',
+    })
+    expect(css).toMatch(
+      /@media \(prefers-reduced-motion: reduce\) \{\s*:root:not\(\[data-motion="full"\]\) \.motion-reduce\\:animate-none \{\s*animation: none;/,
+    )
+    expect(css).toContain(':root[data-motion="full"] .motion-safe\\:transition-colors {')
+    expect(css).toMatch(
+      /@media \(prefers-reduced-motion: no-preference\) \{\s*:root:not\(\[data-motion="reduce"\]\) \.motion-safe\\:transition-colors \{/,
+    )
+  })
+
+  it('truncates with truncate-ring and clips 2 px out, where a focus ring reaches', () => {
+    expect(rule(build(['truncate-ring']), '.truncate-ring')).toEqual({
+      overflow: 'clip',
+      'overflow-clip-margin': '2px',
+      'text-overflow': 'ellipsis',
+      'white-space': 'nowrap',
+    })
   })
 
   it('pulses a skeleton block to half opacity and back every 1.6 s', () => {

@@ -14,9 +14,9 @@ const PALETTE_TOKENS: Readonly<Record<keyof BracketPalette, `--${string}`>> = {
   line: '--border-strong',
   text: '--text',
   muted: '--text-muted',
-  dim: '--text-dim',
   bright: '--text-bright',
   accent: '--accent',
+  accentText: '--accent-fg',
 }
 
 /**

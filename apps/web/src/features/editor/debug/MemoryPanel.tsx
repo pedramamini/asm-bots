@@ -249,23 +249,24 @@ export function MemoryPanel({
               </span>
             )}
           </span>
-          <span className="shrink-0 text-muted">{hexAddress(address)}</span>
+          {/* The IP's row is all `--text-bright` (white is now): no other color holds on its fill. */}
+          <span className={cx('shrink-0', !here && 'text-muted')}>{hexAddress(address)}</span>
           <span
-            className="flex w-[13ch] shrink-0 gap-0.5 overflow-hidden text-muted"
+            className={cx('flex w-[13ch] shrink-0 gap-0.5 overflow-hidden', !here && 'text-muted')}
             title={line.length > SHOWN_BYTES ? line.bytesHex : undefined}
           >
             {cells}
             {line.length > SHOWN_BYTES && <span>…</span>}
           </span>
-          <span className="w-[7ch] shrink-0 truncate text-warn" title={label}>
+          <span className={cx('w-[7ch] shrink-0 truncate', !here && 'text-warn')} title={label}>
             {label === undefined ? '' : `${shortLabel(label)}:`}
           </span>
           <span
             className={cx(
               'min-w-0 truncate',
-              line.kind === 'dat' && 'text-dim',
-              (line.kind === 'int3' || line.kind === 'hlt') && 'text-warn',
-              line.kind === 'undefined' && 'text-danger',
+              !here && line.kind === 'dat' && 'text-muted',
+              !here && (line.kind === 'int3' || line.kind === 'hlt') && 'text-warn',
+              !here && line.kind === 'undefined' && 'text-danger',
             )}
           >
             {line.text}

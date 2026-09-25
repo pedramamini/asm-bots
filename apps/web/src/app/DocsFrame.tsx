@@ -25,14 +25,23 @@ import { ROUTE_SEARCH } from './keys'
 const ITEM = cx(
   'block rounded-sm px-2 py-0.5 text-body text-muted transition-colors duration-120 ease-out hover:text-text',
   'focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent',
-  'data-[status=active]:bg-accent-10 data-[status=active]:text-accent',
+  'data-[status=active]:bg-accent-10 data-[status=active]:text-accent-fg',
 )
 
 /** A page of the tree: one line. */
 const LINK = cx(ITEM, 'truncate')
 
+/**
+ * A sticky sidebar's most height: the window less the frame's rows (ticker 24, header 40, status
+ * 22 and its 8 below) and the page's 12 px above and below, rounded up. Past it the sidebar scrolls
+ * itself, so Tab never lands on a link the window cannot show.
+ */
+const STICKY_HEIGHT = 'max-h-[calc(100dvh-7.5rem)] overflow-y-auto'
+/** The same from `md` up, where the pages' sidebar sticks. */
+const STICKY_HEIGHT_MD = 'md:max-h-[calc(100dvh-7.5rem)] md:overflow-y-auto'
+
 const TEXT_LINK = cx(
-  'text-accent underline-offset-2 hover:underline',
+  'text-accent-fg underline-offset-2 hover:underline',
   'focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent',
 )
 
@@ -52,7 +61,11 @@ export function DocsFrame({
 }) {
   return (
     <PanelGrid className="items-start p-3">
-      <Panel className="col-span-12 md:sticky md:top-3 md:col-span-3" title="docs" dense>
+      <Panel
+        className={cx('col-span-12 md:sticky md:top-3 md:col-span-3', STICKY_HEIGHT_MD)}
+        title="docs"
+        dense
+      >
         <DocsSidebar docs={docs} loadIndex={loadIndex} />
       </Panel>
       <div className="col-span-12 min-w-0 md:col-span-9">{children}</div>
@@ -113,7 +126,7 @@ function OnThisPage({ slug, article }: { slug: string; article: RefObject<HTMLEl
   }, [slug, article])
   if (entries.length < 2) return null
   return (
-    <div className="sticky top-3 hidden w-56 shrink-0 xl:block">
+    <div className={cx('sticky top-3 hidden w-56 shrink-0 xl:block', STICKY_HEIGHT)}>
       <Panel title="on this page" dense>
         <nav aria-label="page contents" className="flex flex-col gap-0.5">
           {entries.map(({ id, text, level }) => (
@@ -322,7 +335,7 @@ function SearchResults({
               {hit.anchor === '' ? page : `${page} › ${hit.heading}`}
             </span>
             {hit.text !== '' && (
-              <span className="block text-data text-dim">{excerpt(hit.text, query)}</span>
+              <span className="block text-data text-muted">{excerpt(hit.text, query)}</span>
             )}
           </Link>
         )

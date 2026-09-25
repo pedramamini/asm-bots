@@ -185,6 +185,16 @@ describe('Slider', () => {
     )
   })
 
+  it('marks the readout disabled with the slider, as the text of an inactive control', () => {
+    const { rerender } = render(
+      <Slider aria-label="volume" min={0} max={100} value={50} showValue />,
+    )
+    const readout = () => range().nextElementSibling as HTMLElement
+    expect(readout().hasAttribute('aria-disabled')).toBe(false)
+    rerender(<Slider aria-label="volume" min={0} max={100} value={50} showValue disabled />)
+    expect(readout().getAttribute('aria-disabled')).toBe('true')
+  })
+
   it('draws a 2 px track filled in accent to --fill and a 6 x 12 px accent thumb', () => {
     render(<Speed />)
     expect(range().className.split(' ')).toEqual(

@@ -147,7 +147,11 @@ export function Asm({ children, run, fragment = false }: AsmProps) {
           ))}
       </figcaption>
       {/* A long line scrolls the block sideways; it never wraps (a wrapped line reads as two). */}
-      <pre className="overflow-x-auto p-3 text-code text-text">
+      <pre
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll box the keyboard reads.
+        tabIndex={0}
+        className="overflow-x-auto p-3 text-code text-text focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-accent"
+      >
         <code className="whitespace-pre">
           {lines === null
             ? source

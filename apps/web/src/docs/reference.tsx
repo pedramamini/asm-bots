@@ -81,7 +81,7 @@ export function findForm(syntax: string): { syntax: string; encoding: string } {
 }
 
 const FIELD_COLOR: Readonly<Record<EncodingField['kind'], string>> = {
-  opcode: 'border-accent-45 text-accent',
+  opcode: 'border-accent-45 text-accent-fg',
   modrm: 'border-border-strong text-bright',
   disp: 'border-dashed border-border-strong text-muted',
   imm: 'border-border-strong text-info',
@@ -112,17 +112,17 @@ export function Encoding({ form }: { form: string }) {
             >
               {field.kind === 'modrm' ? (
                 <span className="flex gap-2">
-                  <span className="text-dim">mod</span>
-                  <span className={field.reg === 'reg' ? 'text-dim' : 'text-accent'}>
+                  <span className="text-muted">mod</span>
+                  <span className={field.reg === 'reg' ? 'text-muted' : 'text-accent-fg'}>
                     {field.reg}
                   </span>
-                  <span className="text-dim">r/m</span>
+                  <span className="text-muted">r/m</span>
                 </span>
               ) : (
                 field.value
               )}
             </div>
-            <span className="px-1.5 text-center whitespace-nowrap text-panel-status text-dim">
+            <span className="px-1.5 text-center whitespace-nowrap text-panel-status text-muted">
               {field.label}
             </span>
           </div>
@@ -179,7 +179,7 @@ export function Flags({ op, set }: { op?: string; set?: string }) {
                 title={FLAG_TITLES[flag]}
                 className={cx(
                   'w-8 border px-1 font-semibold',
-                  on ? 'border-accent-45 bg-accent-10 text-accent' : 'border-border text-dim',
+                  on ? 'border-accent-45 bg-accent-10 text-accent-fg' : 'border-border text-muted',
                 )}
               >
                 {flag}
@@ -196,7 +196,7 @@ export function Flags({ op, set }: { op?: string; set?: string }) {
               title={EFFECT[effect]}
               className={cx(
                 'border border-border px-1',
-                effect === '-' ? 'text-dim' : 'text-bright',
+                effect === '-' ? 'text-muted' : 'text-bright',
               )}
             >
               {effect}

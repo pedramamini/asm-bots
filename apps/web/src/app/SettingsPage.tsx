@@ -129,16 +129,16 @@ function ThemeSwatch({
           '--sw-border': colors['--border'] ?? 'var(--border)',
           '--sw-text': colors['--text'] ?? 'var(--text)',
           '--sw-muted': colors['--text-muted'] ?? 'var(--text-muted)',
-          '--sw-accent': colors['--accent'] ?? 'var(--accent)',
+          '--sw-accent-fg': colors['--accent-fg'] ?? 'var(--accent-fg)',
         })}
       >
-        <span className="text-panel-title text-(--sw-accent)">ASM BOTS</span>
+        <span className="text-panel-title text-(--sw-accent-fg)">ASM BOTS</span>
         <span className="flex flex-1 flex-col justify-center gap-1 rounded-sm border border-(--sw-border) bg-(--sw-panel) px-1.5">
           <span className="h-0.5 w-3/4 bg-(--sw-text)" />
           <span className="h-0.5 w-1/2 bg-(--sw-muted)" />
         </span>
       </span>
-      <span className={`text-nav ${chosen ? 'text-accent' : 'text-muted'}`}>{theme}</span>
+      <span className={`text-nav ${chosen ? 'text-accent-fg' : 'text-muted'}`}>{theme}</span>
     </button>
   )
 }
@@ -252,7 +252,7 @@ function AccountPanel() {
       {me ? (
         <div className="flex flex-col items-start gap-3">
           <p className="text-muted">
-            github: <span className="text-accent">linked</span>. signed in as{' '}
+            github: <span className="text-accent-fg">linked</span>. signed in as{' '}
             <UserLink handle={me.user.handle} />. local bots stay in this browser too.
           </p>
           <HandleForm key={me.user.handle} me={me} />

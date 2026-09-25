@@ -99,8 +99,8 @@ function drawText(
 ): void {
   const panel = token('--panel') || '#111A11'
   const border = token('--border') || '#1A2F1A'
-  const muted = token('--text-muted') || '#6A8C6A'
-  const accent = token('--accent') || '#00FF88'
+  const muted = token('--text-muted') || '#7D9B7D'
+  const accent = token('--accent-fg') || '#00FF88'
   ctx.textBaseline = 'middle'
   ctx.font = FONT
 

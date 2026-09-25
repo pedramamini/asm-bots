@@ -22,8 +22,15 @@ const WORKSPACE = ['asm', 'bots', 'codec', 'engine', 'protocol', 'tourney'] as c
 /** The weights of the first paint: body and data (400), ticker, brand, and nav (500). */
 const PRELOAD_WEIGHTS = [400, 500] as const
 
-/** The tokens of a theme swatch: its surfaces, a hairline, its text, and its accent. */
-const SWATCH_TOKENS = ['--bg', '--panel', '--border', '--text', '--text-muted', '--accent'] as const
+/** The tokens of a theme swatch: its surfaces, a hairline, its text, and its accent as text. */
+const SWATCH_TOKENS = [
+  '--bg',
+  '--panel',
+  '--border',
+  '--text',
+  '--text-muted',
+  '--accent-fg',
+] as const
 
 /**
  * `/api` goes to `wrangler dev` (`apps/api`, port 8787): the page calls its own origin. `ws`

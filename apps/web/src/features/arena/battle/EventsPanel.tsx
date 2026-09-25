@@ -31,7 +31,7 @@ const TONE: Readonly<Record<LogKind, string>> = {
   death: 'text-text',
   blood: 'text-warn',
   dead: 'text-danger',
-  end: 'text-accent',
+  end: 'text-accent-fg',
 }
 
 const count = (n: number) => n.toLocaleString('en-US')

@@ -26,14 +26,14 @@ export interface BracketPalette {
   /** The lines between matches. */
   readonly line: string
   readonly text: string
-  /** A loser, a seed, a round's title. */
+  /** A loser, a seed, a round's title, a bye, a slot not decided yet. */
   readonly muted: string
-  /** A bye, a slot not decided yet. */
-  readonly dim: string
   /** A winner. */
   readonly bright: string
-  /** A live match, the one selected, the champion. */
+  /** A live match's outline, the one selected, the champion's. */
   readonly accent: string
+  /** The champion's name: the accent as text (`--accent-fg`, DESIGN_SYSTEM §2). */
+  readonly accentText: string
 }
 
 /** The sentinel theme's tokens (DESIGN_SYSTEM §2): the CLI's colors. */
@@ -43,10 +43,10 @@ export const DEFAULT_BRACKET_PALETTE: BracketPalette = {
   border: '#2A4A2A',
   line: '#2A4A2A',
   text: '#A0C0A0',
-  muted: '#6A8C6A',
-  dim: '#4A6A4A',
-  bright: '#D0F0D0',
+  muted: '#7D9B7D',
+  bright: '#E0FFE0',
   accent: '#00FF88',
+  accentText: '#00FF88',
 }
 
 export interface BracketSvgOptions {
@@ -196,7 +196,7 @@ function slotRow(
   const e = slot.entrant
   let color = p.text
   let weight: string | undefined
-  if (slot.state !== 'filled') color = p.dim
+  if (slot.state !== 'filled') color = p.muted
   else if (m.status === 'done' || m.status === 'walkover') {
     if (e === m.winner) {
       color = p.bright
@@ -363,7 +363,7 @@ export function bracketSvg(bracket: Bracket, options: BracketSvgOptions = {}): s
     `<text${attrs({
       x: x + 10,
       y: y + CHAMPION_HEIGHT / 2 + 4,
-      fill: won === null ? p.dim : p.accent,
+      fill: won === null ? p.muted : p.accentText,
       'font-weight': won === null ? undefined : 'bold',
       'font-size': 12,
     })}>${escapeXml(name)}</text>`,

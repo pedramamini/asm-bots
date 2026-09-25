@@ -53,7 +53,11 @@ export function ErrorPage({ error, onReload = () => location.reload() }: ErrorPa
           </>
         }
       >
-        <pre className="max-h-[60dvh] overflow-auto whitespace-pre-wrap break-words text-code text-muted">
+        <pre
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll box the keyboard reads.
+          tabIndex={0}
+          className="max-h-[60dvh] overflow-auto whitespace-pre-wrap break-words text-code text-muted focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-accent"
+        >
           {text}
         </pre>
       </Panel>

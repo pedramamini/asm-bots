@@ -18,7 +18,7 @@ export const CONTROL_SIZE = { sm: 'h-5 gap-1 px-2', md: 'h-6 gap-1.5 px-2.5' } a
 export const IDLE = 'border-border text-muted not-disabled:hover:border-border-strong'
 
 /** On: accent border and text over the 10% accent fill (the active nav button). */
-export const ON = 'border-accent bg-accent-10 text-accent'
+export const ON = 'border-accent bg-accent-10 text-accent-fg'
 
 /** Keyboard focus on a button-like control: a 1 px accent outline, 1 px out (DESIGN_SYSTEM §8). */
 export const FOCUS_RING =

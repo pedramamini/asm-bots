@@ -14,14 +14,14 @@ const THEMES = ['sentinel', 'amber', 'pedurple', 'ice', 'paper'] as const
 
 /** A token of the dwarf, the text of its span, and the kit token its color must be. */
 const COLORED: [what: string, text: string, token: string][] = [
-  ['mnemonic', 'call', '--accent'],
+  ['mnemonic', 'call', '--accent-fg'],
   ['register', 'bx', '--text-bright'],
   ['number', '4', '--info'],
   ['string', '"Dwarf"', '--info'],
   ['label', 'lap', '--warn'],
   ['directive', '%name', '--accent-2'],
   ['size', 'word', '--text-muted'],
-  ['comment', '; bytes between bombs', '--text-dim'],
+  ['comment', '; bytes between bombs', '--text-muted'],
 ]
 
 /** The harness with its editor mounted. Returns the page's errors as they come. */

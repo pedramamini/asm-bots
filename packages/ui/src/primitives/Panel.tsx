@@ -48,7 +48,7 @@ export function Panel({
           )}
         >
           {titled && (
-            <h2 id={titleId} className="min-w-0 truncate text-panel-title text-accent">
+            <h2 id={titleId} className="min-w-0 truncate text-panel-title text-accent-fg">
               {title}
             </h2>
           )}

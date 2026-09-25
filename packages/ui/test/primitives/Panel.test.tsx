@@ -71,7 +71,7 @@ describe('Panel', () => {
       expect.arrayContaining(['bg-panel', 'border', 'border-border', 'rounded-md', 'p-3']),
     )
     expect(screen.getByRole('heading').className).toBe(
-      'min-w-0 truncate text-panel-title text-accent',
+      'min-w-0 truncate text-panel-title text-accent-fg',
     )
   })
 

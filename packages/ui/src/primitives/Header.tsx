@@ -36,7 +36,7 @@ export function Header({
         className,
       )}
     >
-      {hasContent(brand) && <div className="shrink-0 text-brand text-accent">{brand}</div>}
+      {hasContent(brand) && <div className="shrink-0 text-brand text-accent-fg">{brand}</div>}
       <div className="flex min-w-0 flex-1 justify-center">
         {hasContent(stat) && <div className="min-w-0 truncate text-data text-muted">{stat}</div>}
       </div>

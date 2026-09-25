@@ -11,7 +11,7 @@ exports[`Table draws the header row over the rows 1`] = `
       <thead>
         <tr>
           <th
-            class="h-6 truncate px-2 first:pl-0 last:pr-0 sticky top-0 z-1 border-b border-border bg-panel text-panel-status text-muted text-left"
+            class="h-6 truncate-ring px-2 first:pl-0 last:pr-0 sticky top-0 z-1 border-b border-border bg-panel text-panel-status text-muted text-left"
             scope="col"
           >
             <button
@@ -27,7 +27,7 @@ exports[`Table draws the header row over the rows 1`] = `
           </th>
           <th
             aria-sort="descending"
-            class="h-6 truncate px-2 first:pl-0 last:pr-0 sticky top-0 z-1 border-b border-border bg-panel text-panel-status text-text text-right w-16"
+            class="h-6 truncate-ring px-2 first:pl-0 last:pr-0 sticky top-0 z-1 border-b border-border bg-panel text-panel-status text-text text-right w-16"
             scope="col"
           >
             <button
@@ -41,14 +41,14 @@ exports[`Table draws the header row over the rows 1`] = `
               </span>
               <span
                 aria-hidden="true"
-                class="text-accent"
+                class="text-accent-fg"
               >
                 ↓
               </span>
             </button>
           </th>
           <th
-            class="h-6 truncate px-2 first:pl-0 last:pr-0 sticky top-0 z-1 border-b border-border bg-panel text-panel-status text-muted text-right"
+            class="h-6 truncate-ring px-2 first:pl-0 last:pr-0 sticky top-0 z-1 border-b border-border bg-panel text-panel-status text-muted text-right"
             scope="col"
           >
             footprint
@@ -60,17 +60,17 @@ exports[`Table draws the header row over the rows 1`] = `
           class="group/row transition-colors duration-120 ease-out hover:bg-panel-2 data-selected:bg-accent-10"
         >
           <td
-            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-left"
+            class="h-6 truncate-ring px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-left"
           >
             imp
           </td>
           <td
-            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right w-16"
+            class="h-6 truncate-ring px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right w-16"
           >
             41
           </td>
           <td
-            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right"
+            class="h-6 truncate-ring px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right"
           >
             2119 B
           </td>
@@ -79,17 +79,17 @@ exports[`Table draws the header row over the rows 1`] = `
           class="group/row transition-colors duration-120 ease-out hover:bg-panel-2 data-selected:bg-accent-10"
         >
           <td
-            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-left"
+            class="h-6 truncate-ring px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-left"
           >
             dwarf-v9
           </td>
           <td
-            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right w-16"
+            class="h-6 truncate-ring px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right w-16"
           >
             12
           </td>
           <td
-            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right"
+            class="h-6 truncate-ring px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right"
           >
             3471 B
           </td>
@@ -98,17 +98,17 @@ exports[`Table draws the header row over the rows 1`] = `
           class="group/row transition-colors duration-120 ease-out hover:bg-panel-2 data-selected:bg-accent-10"
         >
           <td
-            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-left"
+            class="h-6 truncate-ring px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-left"
           >
             stone
           </td>
           <td
-            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right w-16"
+            class="h-6 truncate-ring px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right w-16"
           >
             12
           </td>
           <td
-            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right"
+            class="h-6 truncate-ring px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right"
           >
             738 B
           </td>
@@ -117,17 +117,17 @@ exports[`Table draws the header row over the rows 1`] = `
           class="group/row transition-colors duration-120 ease-out hover:bg-panel-2 data-selected:bg-accent-10"
         >
           <td
-            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-left"
+            class="h-6 truncate-ring px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-left"
           >
             dwarf-v10
           </td>
           <td
-            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right w-16"
+            class="h-6 truncate-ring px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right w-16"
           >
             3
           </td>
           <td
-            class="h-6 truncate px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right"
+            class="h-6 truncate-ring px-2 first:pl-0 last:pr-0 border-b border-border group-last/row:border-b-0 text-right"
           >
             400 B
           </td>

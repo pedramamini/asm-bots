@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { PageHeading } from '../../app/PageHeading'
 import { titleHead } from '../../app/title'
 import { EditorBotRoute } from '../../features/editor/EditorRoutes'
 
@@ -9,5 +10,10 @@ export const Route = createFileRoute('/editor/$botId')({
 })
 
 function EditorDetail() {
-  return <EditorBotRoute />
+  return (
+    <>
+      <PageHeading>editor</PageHeading>
+      <EditorBotRoute />
+    </>
+  )
 }

@@ -37,6 +37,7 @@
   --color-bright: var(--text-bright);
   --color-accent: var(--accent);
   --color-accent-2: var(--accent-2);
+  --color-accent-fg: var(--accent-fg);
   --color-accent-10: var(--accent-10);
   --color-accent-25: var(--accent-25);
   --color-accent-45: var(--accent-45);
@@ -168,7 +169,45 @@
   text-transform: uppercase;
 }
 
+/*
+ * `truncate` for a box that holds a control: it clips 2 px out, not at its edge, so the focus ring
+ * (1 px, 1 px out) of a link or a button inside still shows (DESIGN_SYSTEM §8). `overflow: clip`
+ * makes no scroll container, so a flex item that truncates this way needs `min-w-0` as well.
+ */
+@utility truncate-ring {
+  overflow: clip;
+  overflow-clip-margin: 2px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Motion (DESIGN_SYSTEM §1.7, §8). */
+
+/*
+ * Reduced motion: the app's override on <html data-motion> (motion.ts, from the user's setting)
+ * before the system's prefers-reduced-motion, for the kit's classes and the app's alike.
+ */
+@custom-variant motion-reduce {
+  :root[data-motion="reduce"] & {
+    @slot;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :root:not([data-motion="full"]) & {
+      @slot;
+    }
+  }
+}
+
+@custom-variant motion-safe {
+  :root[data-motion="full"] & {
+    @slot;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    :root:not([data-motion="reduce"]) & {
+      @slot;
+    }
+  }
+}
 
 /*
  * The ticker's marquee. The track holds the line twice, each copy with its trailing gap, so -50%

@@ -14,7 +14,7 @@ exports[`Stat draws the label, the number, and the delta, and the loading tile 1
         cycles
       </div>
       <div
-        class="truncate text-stat text-bright"
+        class="truncate-ring text-stat text-bright"
       >
         12,480
       </div>
@@ -22,7 +22,7 @@ exports[`Stat draws the label, the number, and the delta, and the loading tile 1
         class="flex min-w-0 items-center gap-2 text-data"
       >
         <span
-          class="shrink-0 whitespace-nowrap text-accent"
+          class="shrink-0 whitespace-nowrap text-accent-fg"
         >
           <span
             aria-hidden="true"

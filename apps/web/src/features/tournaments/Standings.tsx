@@ -52,7 +52,9 @@ export function StandingsTable<Row extends CsvStanding>({
         id: 'bot',
         header: 'bot',
         cell: (s) => (
-          <span className={s.entrant === champion ? 'text-accent' : 'text-bright'}>{s.name}</span>
+          <span className={s.entrant === champion ? 'text-accent-fg' : 'text-bright'}>
+            {s.name}
+          </span>
         ),
         sortValue: (s) => s.name,
       },

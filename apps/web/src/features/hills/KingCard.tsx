@@ -25,7 +25,7 @@ export function KingCard({ king, className }: KingCardProps) {
           <div className="flex min-w-0 items-center gap-3">
             <Identicon value={king.bot.versionId} size={40} />
             <div className="flex min-w-0 flex-col">
-              <p className="truncate text-modal-title text-accent">
+              <p className="truncate-ring text-modal-title text-accent-fg">
                 <BotLink bot={king.bot} />
               </p>
               <p className="truncate text-data text-muted">

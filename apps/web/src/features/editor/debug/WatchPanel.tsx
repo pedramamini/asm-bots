@@ -144,7 +144,7 @@ export function WatchPanel({ state, battle, image, className }: WatchPanelProps)
                       <span
                         className={cx(
                           'w-12 shrink-0 text-right tabular-nums',
-                          changed ? 'text-accent' : 'text-bright',
+                          changed ? 'text-accent-fg' : 'text-bright',
                         )}
                         title={`${read.value} decimal`}
                       >

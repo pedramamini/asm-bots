@@ -17,7 +17,7 @@ initTheme() // the stored theme, else paper for a light system, else sentinel
 
 | Import | Holds |
 |---|---|
-| `@asmbots/ui` | The primitives, the theme functions, and the helpers: `cx`, `vars`, `hueColor`, `hexAddress`, `hexByte`, `maskHex`, `contrastRatio`, `useReducedMotion`. |
+| `@asmbots/ui` | The primitives, the theme functions, and the helpers: `cx`, `vars`, `hueColor`, `hexAddress`, `hexByte`, `maskHex`, `contrastRatio`, `blend`, `useReducedMotion`, `applyMotion`. |
 | `@asmbots/ui/tailwind.css` | Tailwind 4, the vendored JetBrains Mono, the tokens, and the utilities that read them. |
 | `@asmbots/ui/tokens.css` | The tokens alone: a `:root[data-theme="…"]` block for each theme. |
 | `@asmbots/ui/themes` | `THEMES`, `applyTheme`, `initTheme`, `getPaletteFloat32`, and the palettes, without React: for Workers, scripts, and the Playwright spec. |
@@ -38,13 +38,14 @@ Every primitive has a named export and typed props. `className`, the HTML attrib
 | `--border` | `border-border` | Every hairline. |
 | `--border-strong` | `border-border-strong` | A control under the pointer; the edge of a modal, menu, tooltip, or toast. |
 | `--text` | `text-text` | Body and data. At least 4.5:1 on each surface. |
-| `--text-muted` | `text-muted` | Labels, panel status, idle controls. At least 3:1. |
-| `--text-dim` | `text-dim` | The `>` prompt glyph only. No floor. |
-| `--text-bright` | `text-bright` | Names, numbers that matter, modal titles. At least 4.5:1. |
-| `--accent` | `text-accent`, `border-accent`, `bg-accent` | Panel titles, the brand, the active control. |
+| `--text-muted` | `text-muted` | Labels, panel status, idle controls. At least 4.5:1, on the `--accent-10` fill too. |
+| `--text-dim` | `text-dim`, `placeholder:text-dim`, `marker:text-dim` | The `>` prompt glyph, placeholders, list markers: never content. No floor. |
+| `--text-bright` | `text-bright` | Names, numbers that matter, modal titles, and any text on an `--accent-25` or `--accent-45` fill. At least 4.5:1 on all of them. |
+| `--accent` | `border-accent`, `outline-accent`, `bg-accent` | The focus ring (3:1 or more), the active control's border, the fills. Not text: see `--accent-fg`. |
+| `--accent-fg` | `text-accent-fg` | The accent as text: panel titles, the brand, the active control's label, links. The accent itself where that reads at 4.5:1; a lighter violet in pedurple, paper's darker green. |
 | `--accent-10`, `-25`, `-45`, `-80` | `bg-accent-10`, … | The accent as a fill: 10% under an active control. Mixed from `--accent`. |
-| `--accent-2` | `text-accent-2`, … | A second, darker accent. |
-| `--warn`, `--danger`, `--info` | `text-warn`, `text-danger`, `text-info`, … | Chip variants, toast stripes, deltas. |
+| `--accent-2` | `text-accent-2`, … | A second accent (the editor's directives). At least 4.5:1 as text. |
+| `--warn`, `--danger`, `--info` | `text-warn`, `text-danger`, `text-info`, … | Chip variants, toast stripes, deltas. At least 4.5:1 as text. |
 | `--arena-bg`, `--arena-lattice`, `--arena-ruler`, `--arena-ip`, `--arena-exec`, `--arena-write` | `bg-arena-bg`, `text-arena-ruler`, … | The arena, black in every theme. The renderer takes the same colors from `getPaletteFloat32(theme)`. |
 | `--bot-0` … `--bot-11` | `bg-bot-0`, …, or `hueColor(bot)` | The 12 bot hues, the same in every theme. Bot 12 and up wraps and is hatched. |
 
@@ -56,6 +57,8 @@ Every primitive has a named export and typed props. `className`, the HTML attrib
 | Type | The 10 roles of §3, each with its size, line, weight, tracking, and case | `text-ticker`, `text-brand`, `text-nav`, `text-panel-title`, `text-panel-status`, `text-body`, `text-data`, `text-code`, `text-stat`, `text-modal-title`. |
 
 Tailwind's own palette, font stacks, radii, and type sizes are off: a color, a radius, or a type size is a token or it does not exist.
+
+Two utilities of the kit's own besides the type roles and the animations: `truncate-ring`, a `truncate` that clips 2 px out so a focus ring inside still shows (a table cell, a line that holds a link; a flex item needs `min-w-0` too, since `overflow: clip` makes no scroll container), and the `motion-reduce:` and `motion-safe:` variants, which read the app's override on `<html data-motion>` (`applyMotion('reduce' | 'full' | 'system')`) before the system's `prefers-reduced-motion`, as `useReducedMotion()` does.
 
 ## Primitives
 

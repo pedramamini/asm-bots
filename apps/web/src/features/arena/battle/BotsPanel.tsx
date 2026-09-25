@@ -116,7 +116,7 @@ export function BotsPanel({ client, log, isolated, onIsolate, className }: BotsP
         className: 'w-28',
         cell: (bot) =>
           bot.death === null ? (
-            <span className="text-accent">alive</span>
+            <span className="text-accent-fg">alive</span>
           ) : (
             <span
               className="text-danger"

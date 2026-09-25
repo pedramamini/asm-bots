@@ -2,9 +2,12 @@
 import type { BotLabel, ReplayConfig } from '@asmbots/protocol'
 import { Link } from '@tanstack/react-router'
 
-/** A link inside running text or a table cell. */
+/**
+ * A link inside running text or a table cell: underlined, quietly, so it never leans on its color
+ * alone (`by system` in muted text); the pointer brings the accent.
+ */
 export const CELL_LINK =
-  'rounded-sm text-bright underline-offset-2 hover:text-accent hover:underline focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent'
+  'rounded-sm text-bright underline decoration-border-strong underline-offset-2 hover:text-accent-fg hover:decoration-current focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent'
 
 export function BotLink({ bot }: { bot: BotLabel }) {
   return (

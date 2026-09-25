@@ -9,7 +9,7 @@ exports[`EmptyState draws the sentence and the action 1`] = `
       no entrants yet.
        
       <a
-        class="inline cursor-pointer text-accent underline-offset-2 transition-colors duration-120 ease-out not-disabled:hover:underline disabled:cursor-not-allowed disabled:text-dim focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
+        class="inline cursor-pointer text-accent-fg underline decoration-accent-45 underline-offset-2 transition-colors duration-120 ease-out not-disabled:hover:decoration-current disabled:cursor-not-allowed disabled:text-dim disabled:no-underline focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
         href="/hills/main/submit"
       >
         submit a bot

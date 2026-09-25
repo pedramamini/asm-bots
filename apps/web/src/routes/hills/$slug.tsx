@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { PageHeading } from '../../app/PageHeading'
 import { titleHead } from '../../app/title'
 import { HillPage } from '../../features/hills/HillPage'
 import { validateHillSearch } from '../../features/hills/search'
@@ -13,5 +14,10 @@ export const Route = createFileRoute('/hills/$slug')({
 function HillsDetail() {
   const { slug } = Route.useParams()
   const { submission } = Route.useSearch()
-  return <HillPage slug={slug} submission={submission ?? null} />
+  return (
+    <>
+      <PageHeading>{`hill ${slug}`}</PageHeading>
+      <HillPage slug={slug} submission={submission ?? null} />
+    </>
+  )
 }
