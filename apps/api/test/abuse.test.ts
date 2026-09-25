@@ -70,6 +70,10 @@ describe('rate limits', () => {
   })
 
   it('counts a signed-in user by user, not by IP', async () => {
+    // The limit counts in fixed minutes: start clear of a minute's end, so the 21 requests below
+    // share one window.
+    const second = new Date().getUTCSeconds()
+    if (second >= 55) await new Promise((wake) => setTimeout(wake, (61 - second) * 1000))
     const ip = '10.9.9.9'
     const a = await signedIn('limit-a', ip)
     const b = await signedIn('limit-b', ip)
@@ -88,7 +92,7 @@ describe('rate limits', () => {
     const anon = await send(new Jar(ip), '/api/bots', { method: 'POST', body: {} })
     expect(anon.status).toBe(401)
     expect(anon.headers.get('X-RateLimit-Remaining')).toBe('19')
-  })
+  }, 15_000)
 
   it('holds replays to 10 a minute and sign-in to 10 requests a minute', async () => {
     const replay = await send(new Jar(), '/api/replays', { method: 'POST', body: {} })

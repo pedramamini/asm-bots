@@ -20,8 +20,8 @@ test('home: the name, a card for each part of the site, the art, the panels, the
   for (const name of ['how it works', 'main hill', 'recent matches', 'championship']) {
     await expect(page.getByRole('region', { name, exact: true })).toBeVisible()
   }
-  // Nothing on the page plays: no canvas, no demo.
-  await expect(page.locator('main canvas')).toHaveCount(0)
+  // Nothing on the page plays: no demo battle (the art's canvases draw once and stay still).
+  await expect(page.locator('[data-demo]')).toHaveCount(0)
   await expect(page.getByRole('navigation', { name: 'site' })).toBeAttached()
   await expect(page.getByRole('marquee')).toContainText('NEXT CHAMPIONSHIP')
   await parts.getByRole('link', { name: 'editor', exact: true }).click()
