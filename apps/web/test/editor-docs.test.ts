@@ -16,6 +16,7 @@ import {
   SCRATCH,
   targetOfParam,
 } from '../src/features/editor/doc'
+import { PRESETS } from '../src/features/editor/layout/tree'
 import { validateEditorSearch } from '../src/features/editor/search'
 import {
   DEFAULT_EDITOR_PREFS,
@@ -128,8 +129,8 @@ describe('editor prefs', () => {
     toggleListing()
     toggleLibrary()
     setLint(false)
-    const { listing, library, lint } = useEditorPrefs.getState()
-    expect([listing, library, lint]).toEqual([false, false, false])
+    const { listing, layout, lint } = useEditorPrefs.getState()
+    expect([listing, layout.hidden.includes('library'), lint]).toEqual([false, true, false])
   })
 
   it('keeps the documents opened lately, the latest first, each once', () => {
@@ -164,7 +165,8 @@ describe('editor prefs', () => {
         drafts: { ok: { source: 's', name: 'n', at: 2 }, bad: { source: 1 }, worse: 7 },
       }),
     ).toEqual({
-      library: false,
+      // A store from before layouts: its library switch hides the library.
+      layout: { ...PRESETS.default(), hidden: ['library'] },
       recent: ['a', 'b'],
       drafts: { ok: { source: 's', name: 'n', at: 2 } },
     })

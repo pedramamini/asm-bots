@@ -1,10 +1,10 @@
 # The debugger tour
 
-The debugger is the right half of [the editor](/editor). It runs the same engine as the arena, on the page, so it can stop between any two cycles, show every register and byte, and go back.
+The debugger is the right half of [the editor](/editor), until you [lay it out](#your-layout) your way. It runs the same engine as the arena, on the page, so it can stop between any two cycles, show every register and byte, and go back.
 
 ## Load a bot
 
-The debugger loads the editor's last assemble with no errors, and loads each new one by itself until you move. Alone, the bot runs until it dies or the cycle cap. To fight, add opponents from the roster next to **vs** in the debugger's top row, and set the **seed** for their placement. Once you have moved, an edit leaves the session alone and shows a **source changed** chip; **reload** loads the new text, breakpoints kept.
+The debugger loads the editor's last assemble with no errors, and loads each new one by itself until you move. Alone, the bot runs until it dies or the cycle cap. To fight, add opponents from the roster next to **vs** in the **debug** panel, and set the **seed** for their placement. Once you have moved, an edit leaves the session alone and shows a **source changed** chip; **reload** loads the new text, breakpoints kept.
 
 ## The panels
 
@@ -17,7 +17,22 @@ The debugger loads the editor's last assemble with no errors, and loads each new
 | **breakpoints** | An address or a label, with an optional condition on the registers, such as `ax == 0x10 && cx < 3`, and a count of its hits. |
 | **trace** | The last 200 instructions the followed process ran. |
 
-The **arena strip** below draws the debugger's battle with the arena's renderer. With its lock on, it stays zoomed on the followed process.
+The **arena strip** draws the debugger's battle with the arena's renderer. With its lock on, it stays zoomed on the followed process.
+
+## Your layout
+
+Each panel of the editor page (the source, problems, the library, the debug controls, the six panels above, and the arena strip) is a tile you can move, size, and hide. The page keeps your layout in this browser.
+
+| to | do this |
+|---|---|
+| move a panel | Drag it by its title row. Drop it near another panel's edge to put it on that side, in the middle to swap the two, or along the page's edge to dock it there. Esc drops the drag. |
+| move it with keys | The grip ⠿ at the end of its title row: **move left**, **right**, **up**, or **down** swaps it with the panel next to it. |
+| size two panels | Drag the divider between them, or focus it and use the arrow keys (Shift for bigger steps). |
+| hide a panel | The grip's **hide**. The source cannot hide. <Keys>b</Keys> hides or shows the library. |
+| show it again | **layout ▾** in the toolbar lists every panel. A hidden panel comes back where it was, and keeps what it held, such as its watches. |
+| start over | **layout ▾**: **default layout**; **writing layout** for the source alone; **debugging layout** for the machine wide. |
+
+The debug controls and the registers are as tall as their content in a column. When the window is too small for every panel, the page scrolls.
 
 ## Moving
 

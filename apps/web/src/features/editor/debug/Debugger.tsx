@@ -1,7 +1,8 @@
 /**
- * The debugger column of the editor page (PRODUCT_SPEC §3): what it loads (the bot in the editor,
- * the opponents, the seed), the transport, where it stopped, and the panels: Registers,
- * Processes, Memory, Watch, Breakpoints, and Trace.
+ * The debugger of the editor page (PRODUCT_SPEC §3): its controls (what it loads: the bot in the
+ * editor, the opponents, the seed; the transport; where it stopped) and its panels: Registers,
+ * Processes, Memory, Watch, Breakpoints, and Trace. The page's layout places each
+ * (`layout/Workspace.tsx`).
  */
 import {
   Button,
@@ -13,6 +14,7 @@ import {
   Input,
   Menu,
   type MenuEntry,
+  Panel,
   Slider,
 } from '@asmbots/ui'
 import {
@@ -49,11 +51,9 @@ import { TracePanel } from './TracePanel'
 import type { DebuggerModel } from './useDebugger'
 import { WatchPanel } from './WatchPanel'
 
-export interface DebuggerProps {
+export interface DebugControlsProps {
   model: DebuggerModel
   commands: DebugCommands
-  /** The editor's line of an address in the debugged bot, or null. */
-  lineOf: (addr: number) => number | null
   /** `run to cursor`: the address of the editor cursor's line, or why there is none. */
   cursorAddress: () => number | string
   /** Tells the user why a control did nothing. */
@@ -63,73 +63,101 @@ export interface DebuggerProps {
    * Inline: over the panels, its button would sit on their fields.
    */
   coach?: ReactNode | undefined
-  className?: string | undefined
 }
 
 const count = (n: number) => n.toLocaleString('en-US')
 
-export function Debugger({
+/** The debugger's controls: what it loads, the transport, and where it stopped. */
+export function DebugControls({
   model,
   commands,
-  lineOf,
   cursorAddress,
   notify,
   coach,
-  className,
-}: DebuggerProps) {
-  const { controller, snapshot, image, names } = model
-  const { session, state, running } = snapshot
-  const battle = session?.battle ?? null
+}: DebugControlsProps) {
+  const { snapshot } = model
   return (
-    <div className={cx('@container flex min-w-0 flex-col gap-3', className)}>
-      <LoadBar model={model} />
-      <Transport model={model} commands={commands} cursorAddress={cursorAddress} notify={notify} />
-      {coach}
-      <StopLine state={state} running={running} model={model} />
-      {snapshot.error !== null && (
-        <p role="alert" className="text-data text-danger">
-          {snapshot.error}
-        </p>
-      )}
-      {/* Two columns once the column has room: the memory beside the rest, the trace under both. */}
-      <div className="grid grid-cols-1 gap-3 @xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-        <div className="flex min-w-0 flex-col gap-3">
-          <RegistersPanel
-            state={state}
-            names={names}
-            onEdit={(edit) => controller.setRegisters(edit)}
-          />
-          <ProcessesPanel
-            state={state}
-            battle={battle}
-            names={names}
-            labels={image?.names}
-            onSelect={(bot, row) => controller.select(bot, row)}
-          />
-          <WatchPanel state={state} battle={battle} image={image} />
-          <BreakpointsPanel
-            state={state}
-            battle={battle}
-            image={image}
-            names={names}
-            lineOf={lineOf}
-            onSet={(addr, options) => controller.setBreakpoint(addr, options)}
-            onRemove={(addr) => controller.removeBreakpoint(addr)}
-            onBreakAtCursor={commands.toggleBreakpoint}
-          />
-        </div>
-        <MemoryPanel
-          state={state}
-          battle={battle}
-          image={image}
-          starts={model.starts}
-          onToggleBreakpoint={(addr) => controller.toggleBreakpoint(addr)}
-          className="self-start"
+    <Panel dense title="debug" aria-label="debug controls">
+      <div className="flex min-w-0 flex-col gap-3">
+        <LoadBar model={model} />
+        <Transport
+          model={model}
+          commands={commands}
+          cursorAddress={cursorAddress}
+          notify={notify}
         />
-        <TracePanel state={state} session={session} className="@xl:col-span-2" />
+        {coach}
+        <StopLine state={snapshot.state} running={snapshot.running} model={model} />
+        {snapshot.error !== null && (
+          <p role="alert" className="text-data text-danger">
+            {snapshot.error}
+          </p>
+        )}
       </div>
-    </div>
+    </Panel>
   )
+}
+
+export interface DebugPanelsProps {
+  model: DebuggerModel
+  commands: DebugCommands
+  /** The editor's line of an address in the debugged bot, or null. */
+  lineOf: (addr: number) => number | null
+}
+
+/** The debugger's panels, by their id in the page's layout. */
+export function debugPanels({
+  model,
+  commands,
+  lineOf,
+}: DebugPanelsProps): Record<
+  'registers' | 'processes' | 'watch' | 'breakpoints' | 'memory' | 'trace',
+  ReactNode
+> {
+  const { controller, snapshot, image, names } = model
+  const { session, state } = snapshot
+  const battle = session?.battle ?? null
+  return {
+    registers: (
+      <RegistersPanel
+        state={state}
+        names={names}
+        onEdit={(edit) => controller.setRegisters(edit)}
+      />
+    ),
+    processes: (
+      <ProcessesPanel
+        state={state}
+        battle={battle}
+        names={names}
+        labels={image?.names}
+        onSelect={(bot, row) => controller.select(bot, row)}
+      />
+    ),
+    watch: <WatchPanel state={state} battle={battle} image={image} />,
+    breakpoints: (
+      <BreakpointsPanel
+        state={state}
+        battle={battle}
+        image={image}
+        names={names}
+        lineOf={lineOf}
+        onSet={(addr, options) => controller.setBreakpoint(addr, options)}
+        onRemove={(addr) => controller.removeBreakpoint(addr)}
+        onBreakAtCursor={commands.toggleBreakpoint}
+      />
+    ),
+    memory: (
+      <MemoryPanel
+        state={state}
+        battle={battle}
+        image={image}
+        starts={model.starts}
+        onToggleBreakpoint={(addr) => controller.toggleBreakpoint(addr)}
+      />
+    ),
+    trace: <TracePanel state={state} session={session} />,
+  }
 }
 
 /** The opponents the load bar offers: the roster's fighters, the showcase first. */
@@ -172,7 +200,6 @@ function LoadBar({ model }: { model: DebuggerModel }) {
   }
   return (
     <section aria-label="debug setup" className="flex min-w-0 flex-wrap items-center gap-2">
-      <span className="text-panel-title text-accent-fg">debug</span>
       <span className="text-data text-muted">vs</span>
       {opponents.length === 0 && (
         <span className="text-data text-muted">nobody: the bot alone</span>

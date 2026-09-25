@@ -47,7 +47,7 @@ Keyboard: `space` play/pause, `.` step, `,` step back, `[`/`]` speed, `0` reset 
 
 ## 3. Editor and debugger `/editor`, `/editor/:botId`
 
-Split view, draggable: editor left, debugger right, arena strip bottom (collapsible).
+Tiled workspace, default: library and editor left, debugger right, arena strip and trace bottom. Every panel (source, problems, library, debug controls, registers, processes, memory, watch, breakpoints, trace, arena strip) is a tile: drag its title row to dock it beside another panel, swap with it, or dock it along the page's edge; drag or arrow-key the dividers to size; hide from its grip menu (the source stays); `layout ▾` shows hidden panels and offers presets (`default`, `writing`, `debugging`). The layout persists in `localStorage`; a moved or hidden panel keeps its state.
 
 **Editor**:
 - CodeMirror 6, x16c mode, theme-matched. Listing gutter (address, bytes) updated on every successful assemble. Diagnostics inline (squiggle + gutter mark + problems panel). Hover on a mnemonic: opcode doc card (encoding, flags, one example). Autocomplete for mnemonics, registers, labels, `%` directives.

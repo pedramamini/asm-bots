@@ -117,7 +117,7 @@ export function ProcessesPanel({
       {battle === null ? (
         <p className="text-data text-muted">load a bot to see its processes.</p>
       ) : (
-        <div className="-mx-2 flex max-h-56 flex-col gap-2 overflow-y-auto">
+        <div className="-mx-2 flex flex-col gap-2">
           {battle.bots.map((bot) => {
             const name = names[bot.index] ?? bot.name
             const list = (all[bot.index] ?? []).slice(0, MAX_LISTED)

@@ -35,6 +35,7 @@ import { AsmClient } from '../src/features/editor/asm/client'
 import { lineBytes } from '../src/features/editor/cm/debug'
 import { DebugSession } from '../src/features/editor/debug/session'
 import { EditorBotRoute, EditorIndexRoute } from '../src/features/editor/EditorRoutes'
+import { movePanel, PRESETS, panelsOf } from '../src/features/editor/layout/tree'
 import { validateEditorSearch } from '../src/features/editor/search'
 import { DEFAULT_EDITOR_PREFS, useEditorPrefs } from '../src/features/editor/store'
 import { templateSource } from '../src/features/editor/templates'
@@ -302,7 +303,8 @@ describe('the editor page', () => {
     expect(screen.queryByRole('region', { name: 'bot library' })).toBeNull()
     act(() => void fireEvent.keyDown(document.body, { key: 'l' }))
     expect(view.dom.querySelector('.cm-listing-gutter')).toBeNull()
-    expect(useEditorPrefs.getState()).toMatchObject({ library: false, listing: false })
+    expect(useEditorPrefs.getState().listing).toBe(false)
+    expect(useEditorPrefs.getState().layout.hidden).toEqual(['library'])
     fireEvent.click(toolbar().getByRole('button', { name: 'listing' }))
     expect(view.dom.querySelector('.cm-listing-gutter')).not.toBeNull()
   })
@@ -793,17 +795,98 @@ describe('the debugger', () => {
     expect(screen.queryByRole('note', { name: 'tip' })).toBeNull()
   })
 
-  it('folds the arena strip and opens it again, and the editor stays the same', async () => {
+  /** Opens the menu of panel `label` from its grip, and picks `item`. */
+  async function panelMenu(label: string, item: string) {
+    fireEvent.click(
+      screen.getByRole('button', { name: `${label}: drag to move, or open its menu` }),
+    )
+    fireEvent.click(await screen.findByRole('menuitem', { name: item }))
+  }
+
+  /** Opens the toolbar's layout menu, and picks `item`. */
+  async function layoutMenu(item: string) {
+    fireEvent.click(toolbar().getByRole('button', { name: 'layout ▾' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: item }))
+  }
+
+  it('hides the arena strip from its menu and shows it from the layout menu; the editor stays', async () => {
     const { view } = await dwarfVsImp()
     const strip = screen.getByRole('region', { name: 'arena strip' })
     expect(within(strip).getByRole('application', { name: 'debug arena' })).toBeTruthy()
-    fireEvent.click(within(strip).getByRole('button', { name: 'fold the arena strip' }))
-    await waitFor(() => expect(within(strip).queryByRole('application')).toBeNull())
-    expect(useEditorPrefs.getState().strip).toBe(false)
+    expect(screen.getByRole('separator', { name: 'arena strip height' })).toBeTruthy()
+    await panelMenu('arena strip', 'hide arena strip')
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'arena strip' })).toBeNull())
+    expect(useEditorPrefs.getState().layout.hidden).toEqual(['arena'])
     expect(screen.queryByRole('separator', { name: 'arena strip height' })).toBeNull()
     expect(await editorView()).toBe(view)
-    fireEvent.click(within(strip).getByRole('button', { name: 'open the arena strip' }))
-    await waitFor(() => expect(within(strip).getByRole('application')).toBeTruthy())
+    await layoutMenu('show arena strip')
+    await waitFor(() =>
+      expect(screen.getByRole('application', { name: 'debug arena' })).toBeTruthy(),
+    )
+    expect(useEditorPrefs.getState().layout.hidden).toEqual([])
     expect(await editorView()).toBe(view)
+  })
+
+  it('moves panels and keeps what each holds: the source, the watches', async () => {
+    const { view } = await dwarfVsImp()
+    type(view, '; mine\n')
+    const watch = screen.getByLabelText('watch an address')
+    fireEvent.change(watch, { target: { value: 'start' } })
+    fireEvent.keyDown(watch, { key: 'Enter' })
+    await screen.findByRole('list', { name: 'watches' })
+    // The source goes right of the memory, the watch panel hides and comes back.
+    const { layout, setLayout } = useEditorPrefs.getState()
+    act(() => setLayout({ ...layout, root: movePanel(layout.root, 'source', 'memory', 'right') }))
+    const order = panelsOf(useEditorPrefs.getState().layout.root)
+    expect(order.indexOf('source')).toBe(order.indexOf('memory') + 1)
+    expect(document.querySelector('[data-panel="source"] .cm-editor')).not.toBeNull()
+    await panelMenu('watch', 'hide watch')
+    await waitFor(() => expect(screen.queryByRole('list', { name: 'watches' })).toBeNull())
+    await layoutMenu('show watch')
+    expect((await screen.findByRole('list', { name: 'watches' })).textContent).toContain('start')
+    const moved = await editorView()
+    expect(moved).toBe(view)
+    expect(moved.state.doc.toString()).toContain('; mine')
+  })
+
+  it('moves a panel past its neighbor from its menu, and says when none is there', async () => {
+    await dwarfVsImp()
+    // jsdom lays nothing out: the registers sit left of the memory, and nothing is right of it.
+    const at = (id: string, left: number, right: number) => {
+      const slot = document.querySelector(`[data-panel="${id}"]`) as HTMLElement
+      slot.getBoundingClientRect = () => new window.DOMRect(left, 0, right - left, 100)
+    }
+    at('registers', 0, 100)
+    at('memory', 112, 300)
+    await panelMenu('registers', 'move right')
+    const order = () => panelsOf(useEditorPrefs.getState().layout.root)
+    expect(order().indexOf('memory')).toBeLessThan(order().indexOf('registers'))
+    at('memory', 0, 100)
+    at('registers', 112, 300)
+    await panelMenu('registers', 'move right')
+    expect(await screen.findByText('no panel right of registers.')).toBeTruthy()
+  })
+
+  it('sizes two panels with the divider between them, from the keys', async () => {
+    await renderEditor()
+    const divider = screen.getByRole('separator', { name: 'library width' })
+    const before = Number(divider.getAttribute('aria-valuenow'))
+    fireEvent.keyDown(divider, { key: 'ArrowRight' })
+    expect(Number(divider.getAttribute('aria-valuenow'))).toBeGreaterThan(before)
+    fireEvent.keyDown(divider, { key: 'Home' })
+    expect(divider.getAttribute('aria-valuenow')).toBe('5')
+  })
+
+  it('puts the panels as a preset has them', async () => {
+    await renderEditor()
+    await layoutMenu('writing layout')
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'memory' })).toBeNull())
+    expect(screen.getByRole('region', { name: 'bot library' })).toBeTruthy()
+    await layoutMenu('debugging layout')
+    await waitFor(() => expect(screen.getByRole('region', { name: 'memory' })).toBeTruthy())
+    expect(screen.queryByRole('region', { name: 'bot library' })).toBeNull()
+    await layoutMenu('default layout')
+    await waitFor(() => expect(screen.getByRole('region', { name: 'bot library' })).toBeTruthy())
+    expect(useEditorPrefs.getState().layout).toEqual(PRESETS.default())
   })
 })

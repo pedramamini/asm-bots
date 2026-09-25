@@ -84,7 +84,7 @@ export function TracePanel({ state, session, className }: TracePanelProps) {
             const node = event.currentTarget
             pinned.current = node.scrollTop + node.clientHeight >= node.scrollHeight - 4
           }}
-          className="-mx-2 max-h-48 overflow-auto px-2 focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-accent"
+          className="-mx-2 h-full min-h-12 overflow-auto px-2 focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-accent"
         >
           <pre className="w-max text-data text-muted">{TRACE_HEADER}</pre>
           {lines.map((line, i) => (

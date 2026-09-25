@@ -1,17 +1,16 @@
-import { cx, IconButton, Toggle } from '@asmbots/ui'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { Toggle } from '@asmbots/ui'
 import { type RefObject, useEffect, useState } from 'react'
 import { ArenaCanvas, type ArenaCanvasHandle } from '../../arena/ArenaCanvas'
 import { MAX_ZOOM } from '../../arena/render/camera'
+import { TileFrame } from '../layout/TileFrame'
 import type { DebugSession, DebugState } from './session'
 import { BattleSource } from './source'
 
 export interface ArenaStripProps {
   session: DebugSession | null
   state: DebugState | null
-  /** Whether the strip shows the arena, or only its title row. */
+  /** Whether the strip is on the page: hidden, it draws nothing. */
   open: boolean
-  onOpen: (open: boolean) => void
   /** The canvas's parts: the `0` key resets its zoom. */
   canvas: RefObject<ArenaCanvasHandle | null>
   className?: string | undefined
@@ -32,9 +31,9 @@ export function lockZoom(width: number, height: number): number {
 /**
  * The arena strip (PRODUCT_SPEC §3): the arena's renderer, small, drawing the debugger's battle
  * (`BattleSource`: no Worker). With the viewport lock on, the view stays on the followed process's
- * IP, zoomed in. Folded, it keeps only its title row, and draws nothing.
+ * IP, zoomed in. Hidden (the layout's), it draws nothing.
  */
-export function ArenaStrip({ session, state, open, onOpen, canvas, className }: ArenaStripProps) {
+export function ArenaStrip({ session, state, open, canvas, className }: ArenaStripProps) {
   const [lock, setLock] = useState(true)
   const [source, setSource] = useState<BattleSource | null>(null)
 
@@ -73,53 +72,33 @@ export function ArenaStrip({ session, state, open, onOpen, canvas, className }: 
 
   const alive = session === null ? 0 : session.battle.alive
   return (
-    <section
-      aria-label="arena strip"
-      className={cx(
-        'flex h-full min-h-0 flex-col rounded-md border border-border bg-panel',
-        className,
-      )}
+    <TileFrame
+      label="arena strip"
+      title="arena"
+      status={
+        state === null ? undefined : `cycle ${state.cycle.toLocaleString('en-US')} · ${alive} alive`
+      }
+      actions={
+        <Toggle
+          pressed={lock}
+          onPressedChange={setLock}
+          title="keep the view on the followed process's IP"
+        >
+          lock on ip
+        </Toggle>
+      }
+      className={className}
     >
-      <header className="flex h-8 shrink-0 items-center gap-3 border-b border-border px-2">
-        <h2 className="text-panel-title text-accent-fg">arena</h2>
-        {state !== null && (
-          <span className="text-panel-status text-muted">
-            cycle {state.cycle.toLocaleString('en-US')} · {alive} alive
-          </span>
-        )}
-        <div className="ml-auto flex items-center gap-1">
-          {open && (
-            <Toggle
-              pressed={lock}
-              onPressedChange={setLock}
-              title="keep the view on the followed process's IP"
-            >
-              lock on ip
-            </Toggle>
-          )}
-          <IconButton
-            icon={open ? ChevronDown : ChevronUp}
-            size="sm"
-            label={open ? 'fold the arena strip' : 'open the arena strip'}
-            pressed={open}
-            onClick={() => onOpen(!open)}
-          />
-        </div>
-      </header>
-      {open && (
-        <div className="relative min-h-0 flex-1">
-          {source === null ? (
-            <p className="p-2 text-data text-muted">load a bot to see the arena.</p>
-          ) : (
-            <ArenaCanvas
-              ref={canvas}
-              client={source}
-              label="debug arena"
-              className="size-full rounded-b-md"
-            />
-          )}
-        </div>
+      {!open ? null : source === null ? (
+        <p className="p-2 text-data text-muted">load a bot to see the arena.</p>
+      ) : (
+        <ArenaCanvas
+          ref={canvas}
+          client={source}
+          label="debug arena"
+          className="size-full rounded-b-md"
+        />
       )}
-    </section>
+    </TileFrame>
   )
 }

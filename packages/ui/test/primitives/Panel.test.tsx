@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 import { render, screen, within } from '@testing-library/react'
-import { Panel } from '../../src/index'
+import { Panel, PanelHost } from '../../src/index'
 import { html, useDom } from '../dom'
 
 useDom()
@@ -107,5 +107,36 @@ describe('Panel', () => {
   it('lets aria-label override the title as the name', () => {
     render(<Panel title="mem" aria-label="memory view" />)
     expect(screen.getByRole('region', { name: 'memory view' })).toBeTruthy()
+  })
+})
+
+describe('PanelHost', () => {
+  it('ends the title row with the host’s controls, and fills the host', () => {
+    render(
+      <PanelHost chrome={<button type="button">move</button>} fill>
+        <Panel title="memory" actions={<button type="button">goto</button>}>
+          <Panel title="inner">rows</Panel>
+        </Panel>
+      </PanelHost>,
+    )
+    const outer = screen.getByRole('region', { name: 'memory' })
+    const buttons = within(outer)
+      .getAllByRole('button')
+      .map((b) => b.textContent)
+    expect(buttons).toEqual(['goto', 'move'])
+    expect(outer.className).toContain('h-full')
+    // A panel inside the hosted one is not the host's.
+    const inner = screen.getByRole('region', { name: 'inner' })
+    expect(within(inner).queryByRole('button')).toBeNull()
+    expect(inner.className).not.toContain('h-full')
+  })
+
+  it('draws a title row for the host’s controls alone', () => {
+    render(
+      <PanelHost chrome={<button type="button">move</button>}>
+        <Panel>body</Panel>
+      </PanelHost>,
+    )
+    expect(screen.getByRole('button', { name: 'move' }).closest('header')).not.toBeNull()
   })
 })

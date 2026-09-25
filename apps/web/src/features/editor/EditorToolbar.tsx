@@ -3,9 +3,12 @@ import { Button, Chip, type ChipVariant, cx, IconButton, Input, Menu, Toggle } f
 import {
   AlignLeft,
   Binary,
+  Eye,
+  EyeOff,
   GitFork,
   Hammer,
   History,
+  LayoutDashboard,
   LayoutTemplate,
   Link,
   PanelLeft,
@@ -16,6 +19,15 @@ import type { ChangeEvent, MouseEvent } from 'react'
 import { type CatalogBot, rosterCatalog } from '../arena/setup/bots'
 import type { SharedBot } from '../arena/setup/url'
 import type { AsmResult } from './asm/protocol'
+import {
+  FIXED_PANELS,
+  PANEL_IDS,
+  PANEL_LABELS,
+  type PanelId,
+  PRESET_LABELS,
+  PRESETS,
+  type PresetId,
+} from './layout/tree'
 import { TEMPLATES, type TemplateId } from './templates'
 import { type Tally, TEST_ROUNDS } from './test-vs'
 
@@ -46,6 +58,10 @@ export interface EditorToolbarProps {
   pending: boolean
   library: boolean
   onLibrary: () => void
+  /** The panels the layout hides. */
+  hiddenPanels: readonly PanelId[]
+  onPanelHidden: (id: PanelId, hide: boolean) => void
+  onPreset: (preset: PresetId) => void
   listing: boolean
   onListing: () => void
   lint: boolean
@@ -183,6 +199,7 @@ export function EditorToolbar(props: EditorToolbarProps) {
             { label: 'base idiom', disabled: readOnly, onSelect: props.onBaseIdiom },
           ]}
         />
+        <LayoutMenu {...props} />
         <IconButton
           icon={Binary}
           label="listing"
@@ -192,6 +209,30 @@ export function EditorToolbar(props: EditorToolbarProps) {
         />
       </div>
     </>
+  )
+}
+
+/** The layout menu: each panel shown or hidden, and the preset layouts. */
+function LayoutMenu({ hiddenPanels, onPanelHidden, onPreset }: EditorToolbarProps) {
+  const toggles = PANEL_IDS.filter((id) => !FIXED_PANELS.has(id)).map((id) => {
+    const hidden = hiddenPanels.includes(id)
+    return {
+      label: `${hidden ? 'show' : 'hide'} ${PANEL_LABELS[id]}`,
+      icon: hidden ? EyeOff : Eye,
+      onSelect: () => onPanelHidden(id, !hidden),
+    }
+  })
+  const presets = (Object.keys(PRESETS) as PresetId[]).map((preset) => ({
+    label: `${PRESET_LABELS[preset]} layout`,
+    icon: LayoutDashboard,
+    onSelect: () => onPreset(preset),
+  }))
+  return (
+    <Menu
+      placement="bottom-end"
+      trigger={<Button icon={LayoutDashboard}>layout ▾</Button>}
+      items={[...toggles, 'separator', ...presets]}
+    />
   )
 }
 

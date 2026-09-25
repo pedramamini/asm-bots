@@ -1,12 +1,21 @@
 /**
  * What the editor keeps between visits, in `localStorage[EDITOR_STORAGE_KEY]`: its switches (the
- * listing gutter, the bot library, the lint warnings, the debugger's arena strip), the documents
+ * listing gutter, the lint warnings), the layout of its panels (`layout/tree.ts`), the documents
  * opened lately, and the text of each document not saved yet (a draft), so a reload never loses a
  * keystroke.
  */
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { isRecord, localStore } from '../../store/settings'
+import {
+  DEFAULT_LAYOUT,
+  type Layout,
+  type PanelId,
+  PRESETS,
+  type PresetId,
+  sanitizeLayout,
+  setHidden,
+} from './layout/tree'
 
 export const EDITOR_STORAGE_KEY = 'asmbots:editor'
 
@@ -29,12 +38,10 @@ export interface Draft {
 export interface EditorPrefs {
   /** The listing gutter shows (`l`). */
   listing: boolean
-  /** The bot library shows (`b`). */
-  library: boolean
   /** Lint warnings show beside the errors. */
   lint: boolean
-  /** The debugger's arena strip is open; folded, it shows only its title row. */
-  strip: boolean
+  /** Where each panel sits, its size, and which are hidden (the library: `b`). */
+  layout: Layout
   /** The keys of the documents opened lately (`docKey`), the latest first. */
   recent: string[]
   /** Unsaved text by document key. */
@@ -45,7 +52,11 @@ export interface EditorPrefsState extends EditorPrefs {
   toggleListing: () => void
   toggleLibrary: () => void
   setLint: (lint: boolean) => void
-  setStrip: (strip: boolean) => void
+  setLayout: (layout: Layout) => void
+  /** Hides or shows panel `id`, in its place. */
+  setPanelHidden: (id: PanelId, hide: boolean) => void
+  /** Puts the panels as the preset has them. */
+  applyPreset: (preset: PresetId) => void
   /** Puts `key` first in `recent`. */
   visit: (key: string) => void
   /** Keeps `draft` for `key`, or drops the draft with null. */
@@ -54,9 +65,8 @@ export interface EditorPrefsState extends EditorPrefs {
 
 export const DEFAULT_EDITOR_PREFS: Readonly<EditorPrefs> = Object.freeze({
   listing: true,
-  library: true,
   lint: true,
-  strip: true,
+  layout: DEFAULT_LAYOUT,
   recent: [],
   drafts: {},
 })
@@ -66,9 +76,14 @@ export const useEditorPrefs = create<EditorPrefsState>()(
     (set) => ({
       ...structuredClone(DEFAULT_EDITOR_PREFS as EditorPrefs),
       toggleListing: () => set((state) => ({ listing: !state.listing })),
-      toggleLibrary: () => set((state) => ({ library: !state.library })),
+      toggleLibrary: () =>
+        set(({ layout }) => ({
+          layout: setHidden(layout, 'library', !layout.hidden.includes('library')),
+        })),
       setLint: (lint) => set({ lint }),
-      setStrip: (strip) => set({ strip }),
+      setLayout: (layout) => set({ layout }),
+      setPanelHidden: (id, hide) => set(({ layout }) => ({ layout: setHidden(layout, id, hide) })),
+      applyPreset: (preset) => set({ layout: PRESETS[preset]() }),
       visit: (key) =>
         set((state) =>
           state.recent[0] === key
@@ -91,11 +106,10 @@ export const useEditorPrefs = create<EditorPrefsState>()(
       name: EDITOR_STORAGE_KEY,
       version: 1,
       storage: createJSONStorage(() => localStore),
-      partialize: ({ listing, library, lint, strip, recent, drafts }): EditorPrefs => ({
+      partialize: ({ listing, lint, layout, recent, drafts }): EditorPrefs => ({
         listing,
-        library,
         lint,
-        strip,
+        layout,
         recent,
         drafts,
       }),
@@ -116,9 +130,11 @@ function newestDrafts(drafts: Record<string, Draft>): Record<string, Draft> {
 export function sanitizeEditorPrefs(stored: unknown): Partial<EditorPrefs> {
   if (!isRecord(stored)) return {}
   const out: Partial<EditorPrefs> = {}
-  for (const key of ['listing', 'library', 'lint', 'strip'] as const) {
+  for (const key of ['listing', 'lint'] as const) {
     if (typeof stored[key] === 'boolean') out[key] = stored[key]
   }
+  const layout = sanitizeLayout(stored.layout) ?? legacyLayout(stored)
+  if (layout !== null) out.layout = layout
   if (Array.isArray(stored.recent)) {
     out.recent = [
       ...new Set(stored.recent.filter((k): k is string => typeof k === 'string')),
@@ -139,4 +155,16 @@ export function sanitizeEditorPrefs(stored: unknown): Partial<EditorPrefs> {
     out.drafts = newestDrafts(drafts)
   }
   return out
+}
+
+/** The layout of a store from before layouts: its `library` and `strip` switches, or null. */
+function legacyLayout(stored: Record<string, unknown>): Layout | null {
+  const off = (
+    [
+      ['library', 'library'],
+      ['strip', 'arena'],
+    ] as const
+  ).filter(([key]) => stored[key] === false)
+  if (off.length === 0) return null
+  return off.reduce((layout, [, id]) => setHidden(layout, id, true), PRESETS.default())
 }

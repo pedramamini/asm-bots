@@ -1,6 +1,7 @@
 /**
  * `/editor` and `/editor/$botId` (PRODUCT_SPEC §3): the toolbar, the bot library, the CodeMirror
- * editor and the problems panel beside the debugger, and the arena strip under both. The source
+ * editor and the problems panel beside the debugger, and the arena strip under both, each a panel
+ * the user can move, size, and hide (`layout/Workspace.tsx`). The source
  * assembles in the assembler Worker 300 ms after the last keystroke (`useAssembler`); each result
  * shows in the editor (squiggles, gutter marks, the listing gutter), in the panel, and in the
  * debugger, which loads it while its session has not moved (`debug/useDebugger.ts`). Unsaved text
@@ -10,16 +11,7 @@
  */
 import { formatSource } from '@asmbots/asm'
 import type { MyBot } from '@asmbots/protocol'
-import {
-  Chip,
-  CoachMark,
-  EmptyState,
-  hexAddress,
-  Kbd,
-  Skeleton,
-  SplitPane,
-  useToast,
-} from '@asmbots/ui'
+import { Chip, CoachMark, EmptyState, hexAddress, Kbd, Skeleton, useToast } from '@asmbots/ui'
 import { isolateHistory, undo } from '@codemirror/commands'
 import type { EditorView } from '@codemirror/view'
 import { useQueryClient } from '@tanstack/react-query'
@@ -55,7 +47,7 @@ import { SNIPPETS } from './cm/complete'
 import { lineOfAddress } from './cm/debug'
 import { type Problem, showResult } from './cm/diagnostics'
 import { ArenaStrip } from './debug/ArenaStrip'
-import { Debugger } from './debug/Debugger'
+import { DebugControls, debugPanels } from './debug/Debugger'
 import { inImage } from './debug/image'
 import { debugCommands, useDebugKeys } from './debug/keys'
 import { DEFAULT_DEBUG_SETUP, type DebugSetup, useDebugger } from './debug/useDebugger'
@@ -65,6 +57,8 @@ import { Editor, type EditorCommands } from './Editor'
 import { EditorToolbar, type SaveState, type TestState } from './EditorToolbar'
 import { EmptyEditor } from './EmptyEditor'
 import { Library } from './Library'
+import { TileFrame } from './layout/TileFrame'
+import { Workspace } from './layout/Workspace'
 import { Problems } from './Problems'
 import { useEditorPrefs } from './store'
 import { isBlankBot, TEMPLATES, type TemplateId, templateSource } from './templates'
@@ -265,12 +259,21 @@ function Workbench({
   const signedIn = Boolean(useMe().data)
   const myBots = useMyBots()
   const listingOn = useEditorPrefs((state) => state.listing)
-  const libraryOn = useEditorPrefs((state) => state.library)
   const lintOn = useEditorPrefs((state) => state.lint)
   const recent = useEditorPrefs((state) => state.recent)
-  const stripOn = useEditorPrefs((state) => state.strip)
-  const { toggleListing, toggleLibrary, setLint, setStrip, visit, setDraft } =
-    useEditorPrefs.getState()
+  const layout = useEditorPrefs((state) => state.layout)
+  const libraryOn = !layout.hidden.includes('library')
+  const stripOn = !layout.hidden.includes('arena')
+  const {
+    toggleListing,
+    toggleLibrary,
+    setLint,
+    setLayout,
+    setPanelHidden,
+    applyPreset,
+    visit,
+    setDraft,
+  } = useEditorPrefs.getState()
 
   const [view, setView] = useState<EditorView | null>(null)
   const [source, setSource] = useState(doc.initial)
@@ -732,6 +735,9 @@ function Workbench({
           pending={pending}
           library={libraryOn}
           onLibrary={toggleLibrary}
+          hiddenPanels={layout.hidden}
+          onPanelHidden={setPanelHidden}
+          onPreset={applyPreset}
           listing={listingOn}
           onListing={toggleListing}
           lint={lintOn}
@@ -760,20 +766,40 @@ function Workbench({
           onBaseIdiom={baseIdiom}
         />
       </FrameToolbar>
-      <SplitPane
-        direction="column"
-        label="arena strip height"
-        defaultRatio={0.76}
-        min={0.3}
-        max={0.9}
-        storageKey="editor-strip"
-        collapsed={!stripOn}
+      <Workspace
+        layout={layout}
+        onLayout={setLayout}
+        notify={notify}
         className="h-full p-3"
-      >
-        <div className="flex h-full min-h-0 gap-3">
-          {libraryOn && (
+        panels={{
+          source: (
+            <TileFrame label="source" title="source">
+              {emptyShown && (
+                <EmptyEditor
+                  empty={source.trim() === ''}
+                  onTemplate={emptyTemplate}
+                  onClose={closeEmpty}
+                />
+              )}
+              <Editor
+                className="h-full"
+                initial={doc.initial}
+                readOnly={doc.readOnly}
+                listing={listingOn}
+                selection={selection}
+                onChange={setSource}
+                onProblems={setProblems}
+                onView={setView}
+                commands={commands}
+              />
+              <OutsideChip debug={debug} />
+            </TileFrame>
+          ),
+          problems: (
+            <Problems problems={problems} result={result} pending={pending} onJump={jump} />
+          ),
+          library: (
             <Library
-              className="w-56 shrink-0"
               current={doc.key}
               local={localBots.data}
               cloud={signedIn ? myBots.data?.bots : undefined}
@@ -784,43 +810,11 @@ function Workbench({
               onOpenCloud={(bot) => void openCloud(bot)}
               onFork={(bot) => void fork(bot)}
             />
-          )}
-          <SplitPane
-            label="editor width"
-            defaultRatio={0.46}
-            min={0.25}
-            max={0.75}
-            storageKey="editor-debugger"
-            className="min-w-0 flex-1"
-          >
-            <div className="flex h-full min-w-0 flex-col gap-3">
-              <div className="relative min-h-0 flex-1 overflow-hidden rounded-md border border-border">
-                {emptyShown && (
-                  <EmptyEditor
-                    empty={source.trim() === ''}
-                    onTemplate={emptyTemplate}
-                    onClose={closeEmpty}
-                  />
-                )}
-                <Editor
-                  className="h-full"
-                  initial={doc.initial}
-                  readOnly={doc.readOnly}
-                  listing={listingOn}
-                  selection={selection}
-                  onChange={setSource}
-                  onProblems={setProblems}
-                  onView={setView}
-                  commands={commands}
-                />
-                <OutsideChip debug={debug} />
-              </div>
-              <Problems problems={problems} result={result} pending={pending} onJump={jump} />
-            </div>
-            <Debugger
+          ),
+          debug: (
+            <DebugControls
               model={debug}
               commands={debugActions}
-              lineOf={lineOf}
               cursorAddress={debug.cursorAddress}
               notify={notify}
               coach={
@@ -830,18 +824,19 @@ function Workbench({
                   </CoachMark>
                 )
               }
-              className="pr-1"
             />
-          </SplitPane>
-        </div>
-        <ArenaStrip
-          session={debug.snapshot.session}
-          state={debug.snapshot.state}
-          open={stripOn}
-          onOpen={setStrip}
-          canvas={stripCanvas}
-        />
-      </SplitPane>
+          ),
+          ...debugPanels({ model: debug, commands: debugActions, lineOf }),
+          arena: (
+            <ArenaStrip
+              session={debug.snapshot.session}
+              state={debug.snapshot.state}
+              open={stripOn}
+              canvas={stripCanvas}
+            />
+          ),
+        }}
+      />
       <VersionsModal
         open={versionsOpen}
         botId={doc.local?.id ?? null}

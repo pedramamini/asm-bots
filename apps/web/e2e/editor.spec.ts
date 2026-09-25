@@ -74,7 +74,7 @@ test('mov [bx], 0 shows the size error at its column', async ({ page }) => {
   await page.keyboard.press('Enter')
   await page.keyboard.type('mov     [bx], 0')
   const lineNo = DWARF.split('\n').findIndex((line) => line.includes('word [di], 0')) + 2
-  const row = problems(page).getByRole('button')
+  const row = problems(page).getByRole('list', { name: 'problems' }).getByRole('button')
   await expect(row).toHaveCount(1)
   await expect(row).toContainText(`error${lineNo}:17operation size not specified`)
   await expect(row).toContainText('size-not-specified')

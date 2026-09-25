@@ -29,12 +29,12 @@ const ROW = cx(
 export function EmptyEditor({ empty, onTemplate, onClose }: EmptyEditorProps) {
   const id = useId()
   return (
-    // Under the blank bot's five lines (with no text, in the middle); a press beside the panel
-    // reaches the editor.
+    // Right under the blank bot's five lines (with no text, in the middle): however short the
+    // source's tile, it covers none of them. A press beside the panel reaches the editor.
     <div
       className={cx(
-        'pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6 pb-3',
-        empty ? 'pt-3' : 'pt-28',
+        'pointer-events-none absolute inset-0 z-10 flex justify-center px-6 pb-3',
+        empty ? 'items-center pt-3' : 'items-start pt-28',
       )}
     >
       <Panel

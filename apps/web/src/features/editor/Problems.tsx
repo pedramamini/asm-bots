@@ -38,14 +38,14 @@ export function Problems({ problems, result, pending, onJump, className }: Probl
       title="problems"
       status={status}
       aria-busy={pending || undefined}
-      className={cx('max-h-44 shrink-0', className)}
+      className={className}
     >
       {problems.length === 0 ? (
         <p className="text-data text-muted">
           {result === null ? 'assembling…' : 'no problems: the bot assembles clean.'}
         </p>
       ) : (
-        <ol aria-label="problems" className="-mx-2 -mb-1 max-h-32 overflow-y-auto">
+        <ol aria-label="problems" className="-mx-2 -mb-1">
           {problems.map((problem) => (
             <li key={`${problem.from}:${problem.code}:${problem.message}`}>
               <button
