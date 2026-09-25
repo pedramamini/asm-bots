@@ -161,10 +161,38 @@ describe('/hills', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/hills/tiny'))
   })
 
-  it('says what went wrong when the read fails', async () => {
+  it('says what went wrong when the read fails, and reads it again on retry', async () => {
     server.use(refuse('/hills', 500, 'internal', 'internal error (request r-1)'))
     await renderAt('/hills', HillsPage)
     expect(await screen.findByText('could not load: internal error (request r-1)')).toBeTruthy()
+    // The second read answers when the test says.
+    let answerNow = () => {}
+    server.use(
+      http.get(
+        '*/api/hills',
+        () =>
+          new Promise<Response>((resolve) => {
+            answerNow = () => resolve(HttpResponse.json(HILLS))
+          }),
+      ),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'retry' }))
+    // On its way: the panel is loading again, and the failure is gone.
+    const panel = screen.getByRole('region', { name: 'hills' })
+    await waitFor(() => expect(within(panel).getByText('loading')).toBeTruthy())
+    expect(screen.queryByRole('button', { name: 'retry' })).toBeNull()
+    answerNow()
+    const table = await screen.findByRole('table', { name: 'hills' })
+    await waitFor(() => expect(cells(table)).toHaveLength(2))
+    expect(screen.queryByText(/could not load/)).toBeNull()
+  })
+
+  it('points an empty list at how hills work', async () => {
+    server.use(answer('/hills', { hills: [] }))
+    await renderAt('/hills', HillsPage)
+    expect(await screen.findByText('no hill is open yet.')).toBeTruthy()
+    const link = screen.getByRole('link', { name: 'see how hills work' })
+    expect(link.getAttribute('href')).toBe('/docs/tournaments/hills')
   })
 })
 
@@ -265,6 +293,47 @@ describe('/u/$handle', () => {
     await renderAt('/u/ghost', () => <ProfilePage handle="ghost" />)
     expect(await screen.findByText('there is no user ghost.')).toBeTruthy()
   })
+
+  it('gives each empty list its one way on, which the router takes', async () => {
+    server.use(answer('/users/new', { ...SYSTEM, bots: [], hills: [], championships: [] }))
+    const router = await renderAt('/u/new', () => <ProfilePage handle="new" />)
+    expect(await screen.findByText('no public bots yet.')).toBeTruthy()
+    const links = [
+      ['bots', 'write a bot', '/editor'],
+      ['best hill ranks', 'see the hills', '/hills'],
+      ['championship results', 'see the tournaments', '/tournaments'],
+    ] as const
+    for (const [table, name, href] of links) {
+      const link = within(screen.getByRole('table', { name: table })).getByRole('link', { name })
+      expect(link.getAttribute('href')).toBe(href)
+    }
+    fireEvent.click(screen.getByRole('link', { name: 'see the hills' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/hills'))
+    expect(await screen.findByText('page /hills')).toBeTruthy()
+  })
+
+  it('leaves a modified click to the browser', async () => {
+    server.use(answer('/users/new', { ...SYSTEM, bots: [] }))
+    const router = await renderAt('/u/new', () => <ProfilePage handle="new" />)
+    const link = await screen.findByRole('link', { name: 'write a bot' })
+    // A new tab: the page stays, and the browser gets the click.
+    const kept = fireEvent.click(link, { metaKey: true })
+    expect(kept).toBe(true)
+    expect(router.state.location.pathname).toBe('/u/new')
+  })
+
+  it('says each list failed with the profile, and one retry reads them all', async () => {
+    server.use(refuse('/users/system', 503, 'unavailable', 'try later'))
+    await renderAt('/u/system', () => <ProfilePage handle="system" />)
+    await waitFor(() => expect(screen.getAllByText('could not load: try later')).toHaveLength(4))
+    server.use(answer('/users/system', SYSTEM))
+    fireEvent.click(screen.getAllByRole('button', { name: 'retry' })[0] as HTMLElement)
+    expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe('system')
+    expect(screen.queryByText(/could not load/)).toBeNull()
+    expect(cells(screen.getByRole('table', { name: 'bots' }))).toEqual([
+      ['Dwarf', 'public', '2026-09-24'],
+    ])
+  })
 })
 
 describe('/ panels', () => {
@@ -344,5 +413,40 @@ describe('/ panels', () => {
     await renderAt('/', () => <HomePage demo={NeverLoads} />)
     const cup = screen.getByRole('region', { name: 'championship' })
     await waitFor(() => expect(cup.textContent).toContain('none scheduled'))
+  })
+
+  it('points an empty hill at submit, and no matches at the arena', async () => {
+    server.use(
+      answer('/hills/main', { ...MAIN_DETAIL, standings: [] }),
+      answer('/hills/main/matches', { matches: [] }),
+    )
+    await renderAt('/', () => <HomePage demo={NeverLoads} />)
+    const hill = screen.getByRole('region', { name: 'main hill' })
+    expect(await within(hill).findByText('no entrants yet.')).toBeTruthy()
+    expect(within(hill).getByRole('link', { name: 'submit a bot' }).getAttribute('href')).toBe(
+      '/hills/main',
+    )
+    const recent = screen.getByRole('region', { name: 'recent matches' })
+    expect(await within(recent).findByText('no matches played yet.')).toBeTruthy()
+    const arena = within(recent).getByRole('link', { name: 'fight one in the arena' })
+    expect(arena.getAttribute('href')).toBe('/arena')
+  })
+
+  it('retries each panel that failed, in place', async () => {
+    server.use(
+      refuse('/hills/main', 500, 'internal', 'hill down'),
+      refuse('/tournaments', 500, 'internal', 'cups down'),
+    )
+    await renderAt('/', () => <HomePage demo={NeverLoads} />)
+    const hill = screen.getByRole('region', { name: 'main hill' })
+    const cup = screen.getByRole('region', { name: 'championship' })
+    expect(await within(hill).findByText('could not load: hill down')).toBeTruthy()
+    expect(await within(cup).findByText('could not load: cups down')).toBeTruthy()
+    server.use(answer('/hills/main', MAIN_DETAIL))
+    fireEvent.click(within(hill).getByRole('button', { name: 'retry' }))
+    const top = await within(hill).findByRole('table', { name: 'main hill, top 10' })
+    await waitFor(() => expect(cells(top)).toHaveLength(3))
+    // The other panel keeps its own failure until its own retry.
+    expect(within(cup).getByText('could not load: cups down')).toBeTruthy()
   })
 })

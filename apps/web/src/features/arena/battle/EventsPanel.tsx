@@ -1,5 +1,5 @@
-import { cx, HueSwatch, Panel, Segmented, Table, type TableColumn } from '@asmbots/ui'
-import { useMemo } from 'react'
+import { cx, EmptyState, HueSwatch, Panel, Segmented, Table, type TableColumn } from '@asmbots/ui'
+import { type ReactNode, useMemo } from 'react'
 import type { ArenaClient } from '../worker/client'
 import { useLogTick } from './hooks'
 import { type BattleLog, describe, type LogEvent, type LogKind } from './log'
@@ -10,6 +10,11 @@ export interface EventsPanelProps {
   log: BattleLog
   filter: EventFilter
   onFilter: (filter: EventFilter) => void
+  /**
+   * A coach mark over the log, under the title, in the flow (`placement="inline"`), so the newest
+   * lines stay in view: the tour's last step, the intro's first blood.
+   */
+  coach?: ReactNode
   className?: string | undefined
 }
 
@@ -37,7 +42,7 @@ const count = (n: number) => n.toLocaleString('en-US')
  * keyboard) takes the battle to that cycle, just before the line happens: `.` then plays it. Lines
  * past the playhead, after a seek back, are dimmer.
  */
-export function EventsPanel({ client, log, filter, onFilter, className }: EventsPanelProps) {
+export function EventsPanel({ client, log, filter, onFilter, coach, className }: EventsPanelProps) {
   // Redraws with the log, a few times a second, not with every frame.
   const tick = useLogTick(log)
   // Read at each tick of the log, not each frame: the playhead too.
@@ -94,15 +99,24 @@ export function EventsPanel({ client, log, filter, onFilter, className }: Events
         <Segmented label="events shown" options={FILTERS} value={filter} onValueChange={onFilter} />
       }
     >
-      <Table
-        aria-label="events"
-        columns={columns}
-        rows={events}
-        rowKey={(event) => event.id}
-        rowClassName={(event) => (event.cycle > now ? 'opacity-45' : undefined)}
-        onRowClick={go}
-        className="h-full"
-      />
+      <div className="flex h-full min-h-0 flex-col">
+        {coach}
+        <Table
+          aria-label="events"
+          columns={columns}
+          rows={events}
+          rowKey={(event) => event.id}
+          rowClassName={(event) => (event.cycle > now ? 'opacity-45' : undefined)}
+          onRowClick={go}
+          className="min-h-0 flex-1"
+          empty={
+            // Every filter keeps the round's first line: only a round not loaded yet is empty.
+            <EmptyState dense action={{ label: 'play', onClick: () => client.play() }}>
+              no events yet.
+            </EmptyState>
+          }
+        />
+      </div>
     </Panel>
   )
 }

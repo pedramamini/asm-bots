@@ -19,6 +19,7 @@ import {
   RouterProvider,
 } from '@tanstack/react-router'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { HttpResponse, http } from 'msw'
 import { stubLayout, useDom, window } from '../../../packages/ui/test/dom'
 import {
   buildReplay,
@@ -345,10 +346,20 @@ describe('a stored replay', () => {
     expect(made).toHaveLength(clients)
   })
 
-  it('says why a stored replay does not load', async () => {
+  it('says why a stored replay does not load, and asks again on retry', async () => {
     const key = '12'.repeat(32)
-    server.use(answer(`/replays/${key}`, { isa: 'x16c-v1' }))
+    let asked = 0
+    server.use(
+      http.get(`*/api/replays/${key}`, () => {
+        asked++
+        return HttpResponse.json({ isa: 'x16c-v1' })
+      }),
+    )
     await renderAt(`/arena/${key}`)
+    expect(await screen.findByText(/^could not load this replay: /)).toBeTruthy()
+    expect(asked).toBe(1)
+    fireEvent.click(screen.getByRole('button', { name: 'retry' }))
+    await waitFor(() => expect(asked).toBe(2))
     expect(await screen.findByText(/^could not load this replay: /)).toBeTruthy()
   })
 })

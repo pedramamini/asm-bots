@@ -65,6 +65,32 @@ describe('EmptyState', () => {
     expect(went).toEqual(['/arena'])
   })
 
+  it('takes no click while its action is disabled', () => {
+    const clicks: string[] = []
+    render(
+      <EmptyState action={{ label: 'retrying…', disabled: true, onClick: () => clicks.push('x') }}>
+        could not load.
+      </EmptyState>,
+    )
+    const button = screen.getByRole('button', { name: 'retrying…' })
+    expect(button.hasAttribute('disabled')).toBe(true)
+    fireEvent.click(button)
+    expect(clicks).toEqual([])
+    expect(button.className).toContain('disabled:text-dim')
+  })
+
+  it('packs into a dense panel: data type and 8 px of room', () => {
+    const { container } = render(
+      <EmptyState dense action={{ label: 'watch ip', onClick: () => {} }}>
+        nothing watched yet.
+      </EmptyState>,
+    )
+    const box = (container.firstElementChild as HTMLElement).className.split(' ')
+    expect(box).toEqual(expect.arrayContaining(['px-1', 'py-2', 'text-data', 'text-muted']))
+    expect(box).not.toContain('py-6')
+    expect(box).not.toContain('text-body')
+  })
+
   it('centers in the space the list would fill; className and attributes pass through', () => {
     const { container } = render(
       <EmptyState action={{ label: 'new', href: '#' }} className="h-40" data-list="bots">

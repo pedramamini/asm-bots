@@ -2,7 +2,7 @@ import type { MatchResult } from '@asmbots/tourney'
 import { Button, Panel, PanelGrid, useToast } from '@asmbots/ui'
 import { useNavigate } from '@tanstack/react-router'
 import { Settings2, Trophy } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from 'zustand'
 import { useRouteStat } from '../../app/slots'
 import { useArenaSound } from '../sound/arena'
@@ -23,6 +23,7 @@ import { Transport } from './battle/Transport'
 import { RoundOver, roundOutcome, Victory } from './battle/Victory'
 import type { ReplayCheck } from './battle/verify'
 import { useArenaView } from './battle/view'
+import { type IntroRun, useIntroGuide } from './intro'
 import type { ArenaFight } from './setup/bots'
 import { searchFromSetup, sharedFragment } from './setup/url'
 import { copyLink, copyShareLink } from './share'
@@ -61,6 +62,12 @@ export interface ArenaBattleProps {
   replay?: ReplayView | undefined
   /** How long autoplay rests between rounds, ms. */
   roundPause?: number | undefined
+  /** The battle is the intro's: its guide's marks take the transport and the events log. */
+  intro?: IntroRun | undefined
+  /** How long the intro holds the placement before it plays, ms. */
+  introHold?: number | undefined
+  /** A coach mark to pin under the events log's title: the tour's last step. */
+  coach?: ReactNode
 }
 
 const count = (n: number) => n.toLocaleString('en-US')
@@ -71,7 +78,8 @@ const count = (n: number) => n.toLocaleString('en-US')
  * standings. When the match is over, the victory overlay; between rounds, the round's end and
  * `next round`. The arena's keys (`space . , [ ] 0 1-9 f s m`) live in the app's registry while it
  * shows, and its sound cues play while it shows (`sound/arena.ts`). A replay (`replay`) shows its
- * check beside the arena's title.
+ * check beside the arena's title. The intro's guide (`intro.tsx`) or the tour's last step
+ * (`tour.tsx`) pins its coach marks to the transport and the events log.
  */
 export function ArenaBattle({
   client,
@@ -82,6 +90,9 @@ export function ArenaBattle({
   onNewSeed,
   replay,
   roundPause = ROUND_PAUSE_MS,
+  intro,
+  introHold,
+  coach,
 }: ArenaBattleProps) {
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -203,6 +214,7 @@ export function ArenaBattle({
     onScreenshot: () => void screenshot(),
   })
   useArenaSound(client)
+  const guide = useIntroGuide(client, log, intro, introHold)
 
   const roundStatus =
     rounds > 1 ? `round ${round + 1}/${rounds} · seed ${roundSeed}` : `seed ${seed}`
@@ -292,6 +304,7 @@ export function ArenaBattle({
               autoplay={autoplay}
               onAutoplay={view.setAutoplay}
               onNextRound={nextRound}
+              coach={guide.transport}
             />
           </div>
         )}
@@ -309,6 +322,7 @@ export function ArenaBattle({
         log={log}
         filter={events}
         onFilter={view.setEvents}
+        coach={intro === undefined ? coach : guide.events}
       />
       {rounds > 1 && (
         <StandingsPanel className="col-span-12 lg:col-span-4" client={client} log={log} />

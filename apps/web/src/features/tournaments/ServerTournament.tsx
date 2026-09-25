@@ -81,7 +81,7 @@ export function ServerTournamentPage({ id, live, createArenaClient }: ServerTour
     ) : (
       <PanelGrid className="p-3">
         <Panel className="col-span-12" title="tournaments" status={id}>
-          <LoadFailure error={read.error} />
+          <LoadFailure read={read} />
         </Panel>
       </PanelGrid>
     )

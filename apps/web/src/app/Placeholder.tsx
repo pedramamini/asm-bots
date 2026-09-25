@@ -1,6 +1,6 @@
 import { EmptyState, Panel, PanelGrid } from '@asmbots/ui'
-import { useRouter } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
+import { useLinkAction } from './link-action'
 
 /** Where a placeholder's one action goes, and what it says: `open the arena`. */
 export interface PlaceholderAction {
@@ -35,22 +35,11 @@ export function Placeholder({
   action = GO_HOME,
   padded = true,
 }: PlaceholderProps) {
-  const router = useRouter()
+  const link = useLinkAction()
   return (
     <PanelGrid className={padded ? 'p-3' : undefined}>
       <Panel className="col-span-12" title={title} status={status}>
-        <EmptyState
-          action={{
-            label: action.label,
-            href: action.to,
-            onClick: (event) => {
-              event.preventDefault()
-              void router.navigate({ to: action.to })
-            },
-          }}
-        >
-          {children}
-        </EmptyState>
+        <EmptyState action={link(action.label, action.to)}>{children}</EmptyState>
       </Panel>
     </PanelGrid>
   )

@@ -1,6 +1,6 @@
 import { Button, Chip, hueColor, IconButton, Slider, Toggle, vars } from '@asmbots/ui'
 import { FastForward, Pause, Play, SkipForward, StepBack, StepForward } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { useStore } from 'zustand'
 import type { ArenaClient } from '../worker/client'
 import { MAX_CYCLES_PER_FRAME } from '../worker/protocol'
@@ -15,6 +15,8 @@ export interface TransportProps {
   onAutoplay: (on: boolean) => void
   /** Starts the match's next round: the first not played yet. */
   onNextRound: () => void
+  /** A coach mark to pin to the play button: the intro's first step. */
+  coach?: ReactNode
 }
 
 const count = (n: number) => n.toLocaleString('en-US')
@@ -24,7 +26,14 @@ const count = (n: number) => n.toLocaleString('en-US')
  * log slider from 1 to 10,000 cycles a frame, and `max`), the scrub bar, and the round with `next
  * round` between the rounds of a match.
  */
-export function Transport({ client, log, autoplay, onAutoplay, onNextRound }: TransportProps) {
+export function Transport({
+  client,
+  log,
+  autoplay,
+  onAutoplay,
+  onNextRound,
+  coach,
+}: TransportProps) {
   const status = useStore(client.store, (state) => state.status)
   const cycle = useStore(client.store, (state) => state.cycle)
   const speed = useStore(client.store, (state) => state.speed)
@@ -55,14 +64,17 @@ export function Transport({ client, log, autoplay, onAutoplay, onNextRound }: Tr
           client.seek(cycle - 1)
         }}
       />
-      <IconButton
-        icon={playing ? Pause : Play}
-        label={playing ? 'pause' : 'play'}
-        shortcut="space"
-        pressed={playing}
-        disabled={!ready || status === 'ended'}
-        onClick={() => (playing ? client.pause() : client.play())}
-      />
+      <span className="relative flex">
+        <IconButton
+          icon={playing ? Pause : Play}
+          label={playing ? 'pause' : 'play'}
+          shortcut="space"
+          pressed={playing}
+          disabled={!ready || status === 'ended'}
+          onClick={() => (playing ? client.pause() : client.play())}
+        />
+        {coach}
+      </span>
       <IconButton
         icon={StepForward}
         label="step"

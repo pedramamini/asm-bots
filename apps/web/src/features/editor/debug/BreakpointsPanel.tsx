@@ -1,5 +1,5 @@
 import type { Battle, ProcRow } from '@asmbots/engine'
-import { cx, Hex, IconButton, Input, Panel } from '@asmbots/ui'
+import { cx, EmptyState, Hex, IconButton, Input, Panel } from '@asmbots/ui'
 import { X } from 'lucide-react'
 import { type KeyboardEvent, useState } from 'react'
 import { compileCondition, compileValue, evaluateValue } from './condition'
@@ -15,6 +15,8 @@ export interface BreakpointsPanelProps {
   lineOf: (addr: number) => number | null
   onSet: (addr: number, options: { condition?: string; enabled?: boolean }) => void
   onRemove: (addr: number) => void
+  /** F9's work: a breakpoint on the editor cursor's line. */
+  onBreakAtCursor: () => void
   className?: string | undefined
 }
 
@@ -50,6 +52,7 @@ export function BreakpointsPanel({
   lineOf,
   onSet,
   onRemove,
+  onBreakAtCursor,
   className,
 }: BreakpointsPanelProps) {
   const [text, setText] = useState('')
@@ -107,9 +110,16 @@ export function BreakpointsPanel({
           </p>
         )}
         {breakpoints.length === 0 ? (
-          <p className="text-data text-muted">
-            no breakpoints: press the gutter left of a line, or F9 on it.
-          </p>
+          <EmptyState
+            dense
+            action={{
+              label: "break on the cursor's line",
+              disabled: state === null,
+              onClick: onBreakAtCursor,
+            }}
+          >
+            no breakpoints yet: press the gutter left of a line, F9, or
+          </EmptyState>
         ) : (
           <ul aria-label="breakpoints" className="-mx-2">
             {breakpoints.map((bp) => (

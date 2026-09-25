@@ -1,5 +1,5 @@
 import type { Battle, ProcRow } from '@asmbots/engine'
-import { cx, Hex, IconButton, Input, Panel, Segmented } from '@asmbots/ui'
+import { cx, EmptyState, Hex, IconButton, Input, Panel, Segmented } from '@asmbots/ui'
 import { X } from 'lucide-react'
 import { type KeyboardEvent, useRef, useState } from 'react'
 import { type CompiledValue, compileValue, evaluateValue } from './condition'
@@ -60,8 +60,9 @@ export function WatchPanel({ state, battle, image, className }: WatchPanelProps)
     previous: Map<number, number>
   }>({ at: '', current: new Map(), previous: new Map() })
 
-  const add = () => {
-    const compiled = compileValue(text)
+  /** Watches `expression` (the field's text unless given), or says why it does not read. */
+  const add = (expression = text) => {
+    const compiled = compileValue(expression)
     if (!compiled.ok) {
       setError(compiled.error.message)
       return
@@ -124,7 +125,9 @@ export function WatchPanel({ state, battle, image, className }: WatchPanelProps)
           </p>
         )}
         {watches.length === 0 ? (
-          <p className="text-data text-muted">type an address and press enter to watch it.</p>
+          <EmptyState dense action={{ label: 'watch ip', onClick: () => add('ip') }}>
+            nothing watched yet: type an address and press enter, or
+          </EmptyState>
         ) : (
           <ul aria-label="watches" className="-mx-2">
             {shown.map(({ watch, read }) => {

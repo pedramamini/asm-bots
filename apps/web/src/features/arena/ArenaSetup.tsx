@@ -3,6 +3,7 @@ import {
   Button,
   Chip,
   EmptyState,
+  type EmptyStateAction,
   HueSwatch,
   IconButton,
   Identicon,
@@ -13,23 +14,24 @@ import {
   Segmented,
   useToast,
 } from '@asmbots/ui'
-import { useRouter } from '@tanstack/react-router'
 import { FileUp, Link, Plus, Save, Swords, X } from 'lucide-react'
 import {
   type ChangeEvent,
   type DragEvent,
+  type ReactNode,
   useDeferredValue,
   useMemo,
   useRef,
   useState,
 } from 'react'
 import { ROUTE_SEARCH } from '../../app/keys'
+import { useLinkAction } from '../../app/link-action'
 import { useRouteStat } from '../../app/slots'
 import { type LocalBot, useLocalBotActions, useLocalBots } from '../../store/local-bots'
 import { useSettings } from '../../store/settings'
 import {
   type ArenaFight,
-  arenaBots,
+  arenaFight,
   assembleCached,
   type BotFile,
   type CatalogBot,
@@ -49,8 +51,8 @@ import {
 } from './setup/bots'
 import { ConfigForm } from './setup/ConfigForm'
 import {
-  battleConfig,
   MAX_ARENA_BOTS,
+  MIN_ARENA_BOTS,
   type PresetName,
   randomSeed,
   withConfig,
@@ -59,6 +61,7 @@ import {
 import { Diagnostics } from './setup/Diagnostics'
 import { type ArenaSetupSpec, type BotRef, formatRef } from './setup/url'
 import { copyShareLink } from './share'
+import { FightStep, RosterStep } from './tour'
 
 /** Where the picker's bots come from. */
 type Source = 'roster' | 'mine' | 'paste'
@@ -93,6 +96,8 @@ export interface ArenaSetupProps {
   shared: ReadonlyMap<string, string>
   /** The fight button: the bots, placed and ready, and the config. */
   onFight: (fight: ArenaFight) => void
+  /** The first-visit tour, while it is on: its button puts it away (`tour.tsx`). */
+  tour?: { readonly onDismiss: () => void } | undefined
 }
 
 /**
@@ -102,9 +107,9 @@ export interface ArenaSetupProps {
  * diagnostics in a modal. On the right: the bots picked, in hue order, the config, and the fight
  * button, which says what is missing until the setup can fight.
  */
-export function ArenaSetup({ spec, onSpecChange, shared, onFight }: ArenaSetupProps) {
-  const router = useRouter()
+export function ArenaSetup({ spec, onSpecChange, shared, onFight, tour }: ArenaSetupProps) {
   const { toast } = useToast()
+  const link = useLinkAction()
   const setLastArenaConfig = useSettings((state) => state.setLastArenaConfig)
   const localBots = useLocalBots()
   const { save } = useLocalBotActions()
@@ -128,6 +133,10 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight }: ArenaSetupPr
   )
   const status = fightStatus(selection, spec)
   const full = spec.bots.length >= MAX_ARENA_BOTS
+  // The tour's step: the roster until two bots are in, then the fight button.
+  const tourStep =
+    tour === undefined ? null : selection.length >= MIN_ARENA_BOTS ? 'fight' : 'roster'
+  const clearSearch = { label: 'clear the search', onClick: () => setQuery('') }
 
   useRouteStat(
     `${selection.length} ${selection.length === 1 ? 'bot' : 'bots'} · ${
@@ -209,14 +218,7 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight }: ArenaSetupPr
       return
     }
     setLastArenaConfig(spec.config)
-    onFight({
-      bots: arenaBots(selection),
-      config: battleConfig(spec.config, seed),
-      rounds,
-      spec,
-      sources: selection.map((s) => s.bot?.source ?? ''),
-      shared: sharedSources(selection),
-    })
+    onFight(arenaFight(selection, spec, seed))
   }
 
   const share = () => copyShareLink(spec, sharedSources(selection), toast)
@@ -297,7 +299,13 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight }: ArenaSetupPr
                 full={full}
                 onAdd={(bot) => add([bot.ref])}
                 onErrors={showErrors}
-                empty={`no roster bot matches "${query}".`}
+                empty={
+                  <EmptyState action={clearSearch}>no roster bot matches "{query}".</EmptyState>
+                }
+                coach={
+                  tour !== undefined &&
+                  tourStep === 'roster' && <RosterStep onDismiss={tour.onDismiss} />
+                }
               />
             )}
             {source === 'mine' && (
@@ -308,7 +316,8 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight }: ArenaSetupPr
                 full={full}
                 onAdd={(bot) => add([bot.ref])}
                 onErrors={showErrors}
-                onWrite={() => void router.navigate({ to: '/editor' })}
+                write={link('write a bot', '/editor')}
+                clearSearch={clearSearch}
               />
             )}
             {source === 'paste' && (
@@ -362,7 +371,8 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight }: ArenaSetupPr
               }
             />
           </Panel>
-          <div className="flex items-center gap-2">
+          <div className="relative flex items-center gap-2">
+            {tour !== undefined && tourStep === 'fight' && <FightStep onDismiss={tour.onDismiss} />}
             <Button
               name="fight"
               variant="primary"
@@ -440,15 +450,19 @@ function BotGrid({
   onAdd,
   onErrors,
   empty,
+  coach,
 }: GridProps & {
   bots: readonly CatalogBot[]
-  empty: string
+  /** What shows when no bot matches: an EmptyState. */
+  empty: ReactNode
+  /** A coach mark to pin to the first card's `+`: the tour's first step. */
+  coach?: ReactNode
 }) {
   const counts = pickCounts(picked)
-  if (bots.length === 0) return <p className="px-1 py-6 text-center text-muted">{empty}</p>
+  if (bots.length === 0) return empty
   return (
     <ul aria-label="bots to add" className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-      {bots.map((bot) => (
+      {bots.map((bot, index) => (
         <BotCard
           key={formatRef(bot.ref)}
           bot={bot}
@@ -456,6 +470,7 @@ function BotGrid({
           full={full}
           onAdd={() => onAdd(bot)}
           onErrors={() => onErrors(bot)}
+          coach={index === 0 ? coach : undefined}
         />
       ))}
     </ul>
@@ -472,12 +487,14 @@ function BotCard({
   full,
   onAdd,
   onErrors,
+  coach,
 }: {
   bot: CatalogBot
   count: number
   full: boolean
   onAdd: () => void
   onErrors: () => void
+  coach?: ReactNode
 }) {
   const { bytes } = bot.assembled
   const broken = errorsOf(bot).length > 0
@@ -512,14 +529,17 @@ function BotCard({
             <Chip variant="danger">errors</Chip>
           </button>
         ) : (
-          <IconButton
-            icon={Plus}
-            label={`add ${bot.name}`}
-            size="sm"
-            tooltip="left"
-            disabled={full}
-            onClick={onAdd}
-          />
+          <span className="relative flex">
+            <IconButton
+              icon={Plus}
+              label={`add ${bot.name}`}
+              size="sm"
+              tooltip="left"
+              disabled={full}
+              onClick={onAdd}
+            />
+            {coach}
+          </span>
         )}
         <Chip variant={bot.roster?.tier === 'showcase' ? 'accent' : 'neutral'}>
           {bot.roster?.tier ?? bot.origin}
@@ -533,33 +553,27 @@ function BotCard({
 function MineGrid({
   bots,
   query,
-  onWrite,
+  write,
+  clearSearch,
   ...grid
-}: GridProps & { bots: readonly LocalBot[] | undefined; query: string; onWrite: () => void }) {
+}: GridProps & {
+  bots: readonly LocalBot[] | undefined
+  query: string
+  /** The empty store's way on: the editor. */
+  write: EmptyStateAction
+  clearSearch: EmptyStateAction
+}) {
   const catalog = useMemo(() => (bots ?? []).map(localCatalog), [bots])
   if (bots === undefined)
     return <p className="px-1 py-6 text-center text-muted">reading my bots…</p>
   if (bots.length === 0) {
-    return (
-      <EmptyState
-        action={{
-          label: 'write a bot',
-          href: '/editor',
-          onClick: (event) => {
-            event.preventDefault()
-            onWrite()
-          },
-        }}
-      >
-        no bots in this browser yet.
-      </EmptyState>
-    )
+    return <EmptyState action={write}>no bots in this browser yet.</EmptyState>
   }
   return (
     <BotGrid
       {...grid}
       bots={catalog.filter((bot) => matchesQuery(bot, query))}
-      empty={`none of my bots matches "${query}".`}
+      empty={<EmptyState action={clearSearch}>none of my bots matches "{query}".</EmptyState>}
     />
   )
 }

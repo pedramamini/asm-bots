@@ -225,7 +225,8 @@ export interface SubmissionPanelProps {
 }
 
 export function SubmissionPanel({ hill, id, onClose, live, className }: SubmissionPanelProps) {
-  const { data, error } = useSubmission(hill.slug, id, live?.status !== 'live')
+  const read = useSubmission(hill.slug, id, live?.status !== 'live')
+  const { data, error } = read
   const client = useQueryClient()
   const reduced = useMotionReduced()
   const status = data?.submission.status
@@ -251,7 +252,7 @@ export function SubmissionPanel({ hill, id, onClose, live, className }: Submissi
         status={error === null ? 'loading' : 'error'}
         actions={close}
       >
-        {error === null ? <Skeleton rows={3} /> : <LoadFailure error={error} />}
+        {error === null ? <Skeleton rows={3} /> : <LoadFailure read={read} />}
       </Panel>
     )
   }

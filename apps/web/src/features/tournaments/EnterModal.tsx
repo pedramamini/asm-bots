@@ -4,16 +4,16 @@
  * for the version picked. A signed-out reader gets `sign in to enter`.
  */
 import type { BotLabel, Tournament } from '@asmbots/protocol'
-import { Button, Modal, Skeleton, useToast } from '@asmbots/ui'
+import { Button, EmptyState, Modal, Skeleton, useToast } from '@asmbots/ui'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
 import { LogIn } from 'lucide-react'
 import { useState } from 'react'
 import { useMe } from '../../api/queries'
 import { enterTournament } from '../../api/writes'
+import { LoadFailure } from '../../app/LoadFailure'
+import { useLinkAction } from '../../app/link-action'
 import { SignInButton } from '../account/AccountSlot'
 import { useVersionPick, VersionFields } from '../account/VersionPicker'
-import { CELL_LINK } from '../hills/links'
 import { takesEntries, utcTime } from './entry'
 
 export interface EnterModalProps {
@@ -31,6 +31,7 @@ export function EnterModal(props: EnterModalProps) {
 
 function EnterDialog({ open, tournament: t, mine, onClose }: EnterModalProps) {
   const { toast } = useToast()
+  const link = useLinkAction()
   const client = useQueryClient()
   const pick = useVersionPick()
   const { mine: bots, picked, version } = pick
@@ -76,15 +77,11 @@ function EnterDialog({ open, tournament: t, mine, onClose }: EnterModalProps) {
       {bots.isPending ? (
         <Skeleton rows={3} />
       ) : bots.error !== null ? (
-        <p className="text-data text-danger">could not load your bots: {bots.error.message}</p>
+        <LoadFailure read={bots} what="your bots" />
       ) : picked === undefined ? (
-        <p className="text-data">
-          a tournament takes bots kept in your account.{' '}
-          <Link to="/editor" className={CELL_LINK}>
-            open the editor
-          </Link>{' '}
-          and press save: a bot in your account can come here.
-        </p>
+        <EmptyState action={link('open the editor', '/editor')}>
+          no bots in your account yet: the editor&rsquo;s save, signed in, keeps one there.
+        </EmptyState>
       ) : (
         <div className="flex flex-col gap-3 text-data">
           <VersionFields

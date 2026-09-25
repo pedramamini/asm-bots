@@ -19,17 +19,21 @@ import {
   Outlet,
   RouterProvider,
 } from '@tanstack/react-router'
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react'
 import { stubLayout, useDom, window } from '../../../packages/ui/test/dom'
 import { useKeymapListener } from '../src/app/keys'
-import { ArenaBattle } from '../src/features/arena/ArenaBattle'
+import { ArenaBattle, type ArenaBattleProps } from '../src/features/arena/ArenaBattle'
+import { EventsPanel } from '../src/features/arena/battle/EventsPanel'
 import { BattleLog } from '../src/features/arena/battle/log'
 import { readReplayFragment } from '../src/features/arena/battle/replay'
 import { useArenaView } from '../src/features/arena/battle/view'
+import { INTRO_SPEED, introFight, useIntroGuide } from '../src/features/arena/intro'
 import type { ArenaFight } from '../src/features/arena/setup/bots'
 import { DEFAULT_ARENA_CONFIG } from '../src/features/arena/setup/config'
 import { validateArenaSearch } from '../src/features/arena/setup/search'
+import { WatchStep } from '../src/features/arena/tour'
 import type { ArenaClient } from '../src/features/arena/worker/client'
+import type { Speed } from '../src/features/arena/worker/protocol'
 import { appSound } from '../src/features/sound/engine'
 import { stringifySearch } from '../src/router'
 import { useSettings } from '../src/store/settings'
@@ -66,8 +70,11 @@ function Keys() {
 
 const clients: ArenaClient[] = []
 
-/** The battle of `fight` on `/arena`, loaded, with the app's key listener. */
-async function renderBattle(fight = fightOf()) {
+/** What a test may add to the battle: the intro's run, the tour's mark. */
+type Extra = Partial<Pick<ArenaBattleProps, 'intro' | 'introHold' | 'coach'>>
+
+/** The battle of `fight` on `/arena`, loaded (at `speed`), with the app's key listener. */
+async function renderBattle(fight = fightOf(), extra: Extra = {}, speed?: Speed) {
   const frames = manualSchedule()
   const { client } = sessionClient(frames.schedule)
   clients.push(client)
@@ -86,7 +93,14 @@ async function renderBattle(fight = fightOf()) {
     getParentRoute: () => root,
     path: 'arena',
     component: () => (
-      <ArenaBattle client={client} log={log} fight={fight} roundPause={10} {...actions} />
+      <ArenaBattle
+        client={client}
+        log={log}
+        fight={fight}
+        roundPause={10}
+        {...actions}
+        {...extra}
+      />
     ),
   })
   const editor = createRoute({
@@ -101,6 +115,7 @@ async function renderBattle(fight = fightOf()) {
     stringifySearch,
   })
   client.load(fight.bots, fight.config, fight.rounds)
+  if (speed !== undefined) client.speed(speed)
   render(
     <ToastProvider>
       <RouterProvider router={router} />
@@ -477,5 +492,136 @@ describe('a match', () => {
     expect(victory.textContent).toContain('2 rounds')
     expect(within(victory).getByRole('table', { name: 'standings at the end' })).toBeTruthy()
     expect(client.store.getState().match?.rounds).toHaveLength(2)
+  })
+})
+
+/** A coach mark by its `data-coach`, or null. */
+const mark = (name: string) => document.querySelector<HTMLElement>(`[data-coach="${name}"]`)
+
+describe('the intro', () => {
+  function introRun() {
+    return { run: 1, onPickBots: mock(() => {}) }
+  }
+
+  it('holds the placement, plays at 200 a frame, points at the log at first blood, then hands over', async () => {
+    const run = introRun()
+    const { client, frames } = await renderBattle(
+      introFight(),
+      { intro: run, introHold: 300 },
+      INTRO_SPEED,
+    )
+    // 1/3 over the play button, with `play now`, while the placement holds.
+    const bots = mark('intro-bots') as HTMLElement
+    expect(bots.textContent).toContain('intro 1/3')
+    expect(bots.textContent).toContain('Dwarf bombs every 4th byte')
+    expect(bots.parentElement?.contains(screen.getByRole('button', { name: 'play' }))).toBe(true)
+    expect(within(bots).getByRole('button', { name: 'play now' })).toBeTruthy()
+    expect(client.store.getState().status).toBe('paused')
+    // Then it plays by itself, at 200 cycles a frame: play asks for the first at once.
+    await waitFor(() => expect(client.store.getState().status).toBe('playing'))
+    await settle()
+    expect(client.store.getState().cycle).toBe(200)
+    frames.tick()
+    await settle()
+    expect(client.store.getState().cycle).toBe(400)
+    const playing = mark('intro-bots') as HTMLElement
+    expect(within(playing).queryByRole('button', { name: 'play now' })).toBeNull()
+    // First blood (the end, too): the guide moves to the events log.
+    client.seek(100_000)
+    await settle()
+    await waitFor(() => expect(mark('intro-blood')).not.toBeNull())
+    expect(mark('intro-bots')).toBeNull()
+    const blood = mark('intro-blood') as HTMLElement
+    expect(screen.getByRole('region', { name: 'events' }).contains(blood)).toBe(true)
+    expect(blood.textContent).toContain('first blood at cycle 55,602: Dwarf’s bomb hit Imp.')
+    // The log's own line, at its next redraw.
+    expect(await within(events()).findByText('first blood · Dwarf → Imp')).toBeTruthy()
+    // Next: your turn, and `pick bots` to the setup.
+    fireEvent.click(within(blood).getByRole('button', { name: 'next' }))
+    const yours = mark('intro-yours') as HTMLElement
+    expect(yours.textContent).toContain('your turn')
+    fireEvent.click(within(yours).getByRole('button', { name: 'pick bots' }))
+    expect(run.onPickBots).toHaveBeenCalledTimes(1)
+    fireEvent.click(within(yours).getByRole('button', { name: 'done' }))
+    expect(mark('intro-yours')).toBeNull()
+  })
+
+  it('plays at once on play now, and skip puts the guide away and leaves the battle be', async () => {
+    const run = introRun()
+    const { client } = await renderBattle(introFight(), { intro: run }, INTRO_SPEED)
+    const bots = mark('intro-bots') as HTMLElement
+    fireEvent.click(within(bots).getByRole('button', { name: 'play now' }))
+    expect(client.store.getState().status).toBe('playing')
+    fireEvent.click(within(bots).getByRole('button', { name: 'skip' }))
+    expect(mark('intro-bots')).toBeNull()
+    expect(client.store.getState().status).toBe('playing')
+    // Put away for this run: first blood does not bring it back.
+    client.seek(100_000)
+    await settle()
+    expect(mark('intro-blood')).toBeNull()
+    expect(run.onPickBots).not.toHaveBeenCalled()
+  })
+
+  it('holds only once: back at cycle 0 and paused, it waits for the player', async () => {
+    const { client } = await renderBattle(
+      introFight(),
+      { intro: introRun(), introHold: 30 },
+      INTRO_SPEED,
+    )
+    const bots = mark('intro-bots') as HTMLElement
+    fireEvent.click(within(bots).getByRole('button', { name: 'play now' }))
+    await settle()
+    client.pause()
+    client.seek(0)
+    await settle()
+    expect(client.store.getState()).toMatchObject({ status: 'paused', cycle: 0 })
+    await act(() => new Promise((resolve) => setTimeout(resolve, 120)))
+    expect(client.store.getState().status).toBe('paused')
+  })
+
+  it('does not take the battle before for its first blood when it starts over', async () => {
+    const { client } = sessionClient(manualSchedule().schedule)
+    clients.push(client)
+    const log = new BattleLog()
+    log.attach(client)
+    // A battle with first blood (Dwarf's, at 16,140), played to its end.
+    const before = fightOf()
+    client.load(before.bots, before.config, before.rounds)
+    await settle()
+    client.seek(100_000)
+    await settle()
+    expect(log.firstBlood()?.cycle).toBe(16_140)
+    // The intro loads over it: until its load lands, the log still holds that blood.
+    const intro = introFight()
+    client.load(intro.bots, intro.config, intro.rounds)
+    const { result } = renderHook(() => useIntroGuide(client, log, { run: 2, onPickBots() {} }))
+    expect(result.current.transport).not.toBeNull()
+    expect(result.current.events).toBeNull()
+    await settle()
+    expect(log.firstBlood()).toBeNull()
+    expect(result.current.events).toBeNull()
+  })
+
+  it('pins the tour’s last step under the events log, but not over the intro', async () => {
+    const dismiss = mock(() => {})
+    await renderBattle(fightOf(), { coach: <WatchStep onDismiss={dismiss} /> })
+    const watch = mark('arena-watch') as HTMLElement
+    expect(screen.getByRole('region', { name: 'events' }).contains(watch)).toBe(true)
+    expect(watch.textContent).toContain('3/3')
+    fireEvent.click(within(watch).getByRole('button', { name: 'got it' }))
+    expect(dismiss).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('the events log', () => {
+  it('says so before the round’s first line, and plays', async () => {
+    const { client } = sessionClient(manualSchedule().schedule)
+    clients.push(client)
+    const play = spyOn(client, 'play')
+    render(<EventsPanel client={client} log={new BattleLog()} filter="all" onFilter={() => {}} />)
+    const table = screen.getByRole('table', { name: 'events' })
+    expect(table.textContent).toContain('no events yet.')
+    fireEvent.click(within(table).getByRole('button', { name: 'play' }))
+    expect(play).toHaveBeenCalledTimes(1)
   })
 })

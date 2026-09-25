@@ -1,9 +1,10 @@
 import type { Bot, ChampionshipResult, HillBest } from '@asmbots/protocol'
-import { Panel, PanelGrid, Skeleton, Table, type TableColumn } from '@asmbots/ui'
+import { EmptyState, Panel, PanelGrid, Skeleton, Table, type TableColumn } from '@asmbots/ui'
 import { Link } from '@tanstack/react-router'
 import { isNotFound } from '../../api/client'
 import { useUser } from '../../api/queries'
 import { LoadFailure, readStatus } from '../../app/LoadFailure'
+import { useLinkAction } from '../../app/link-action'
 import { Placeholder } from '../../app/Placeholder'
 import { BotLink, CELL_LINK, count, day } from '../hills/links'
 
@@ -81,7 +82,9 @@ const CHAMPIONSHIP_COLUMNS: TableColumn<ChampionshipResult>[] = [
  * them for the user themself), their best place on each hill, and their championship results.
  */
 export function ProfilePage({ handle }: { handle: string }) {
-  const { data, error } = useUser(handle)
+  const read = useUser(handle)
+  const { data, error } = read
+  const link = useLinkAction()
   if (isNotFound(error)) {
     return (
       <Placeholder title="profile" status={handle}>
@@ -89,7 +92,13 @@ export function ProfilePage({ handle }: { handle: string }) {
       </Placeholder>
     )
   }
-  const loading = data === undefined ? <Skeleton rows={3} /> : null
+  // Until the read lands, each list waits on it; if it fails, each says so.
+  const loading =
+    data !== undefined ? null : error === null ? (
+      <Skeleton rows={3} />
+    ) : (
+      <LoadFailure read={read} dense />
+    )
   return (
     <PanelGrid className="p-3">
       <Panel
@@ -105,7 +114,7 @@ export function ProfilePage({ handle }: { handle: string }) {
             <h1 className="text-modal-title text-bright">{data.user.handle}</h1>
           </div>
         ) : error !== null ? (
-          <LoadFailure error={error} />
+          <LoadFailure read={read} />
         ) : (
           <Skeleton rows={2} />
         )}
@@ -124,7 +133,11 @@ export function ProfilePage({ handle }: { handle: string }) {
           columns={COLUMNS}
           rows={data?.bots ?? []}
           rowKey={(b) => b.id}
-          empty={loading ?? <p className="text-data text-muted">no public bots yet.</p>}
+          empty={
+            loading ?? (
+              <EmptyState action={link('write a bot', '/editor')}>no public bots yet.</EmptyState>
+            )
+          }
         />
       </Panel>
       <Panel
@@ -137,7 +150,11 @@ export function ProfilePage({ handle }: { handle: string }) {
           columns={HILL_COLUMNS}
           rows={data?.hills ?? []}
           rowKey={(h) => h.hill.slug}
-          empty={loading ?? <p className="text-data text-muted">on no hill yet.</p>}
+          empty={
+            loading ?? (
+              <EmptyState action={link('see the hills', '/hills')}>on no hill yet.</EmptyState>
+            )
+          }
         />
       </Panel>
       <Panel
@@ -150,7 +167,13 @@ export function ProfilePage({ handle }: { handle: string }) {
           columns={CHAMPIONSHIP_COLUMNS}
           rows={data?.championships ?? []}
           rowKey={(r) => `${r.tournament.id}:${r.bot.versionId}`}
-          empty={loading ?? <p className="text-data text-muted">no championships yet.</p>}
+          empty={
+            loading ?? (
+              <EmptyState action={link('see the tournaments', '/tournaments')}>
+                no championships yet.
+              </EmptyState>
+            )
+          }
         />
       </Panel>
     </PanelGrid>

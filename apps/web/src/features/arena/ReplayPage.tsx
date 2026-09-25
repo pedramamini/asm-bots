@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { isNotFound } from '../../api/client'
 import { useReplay } from '../../api/queries'
 import { storeReplay } from '../../api/writes'
+import { LoadFailure } from '../../app/LoadFailure'
 import { Placeholder } from '../../app/Placeholder'
 import { ArenaBattle } from './ArenaBattle'
 import { downloadBlob, replayName } from './battle/files'
@@ -110,13 +111,20 @@ export function ReplayPage({ replayId, createClient = () => new ArenaClient() }:
   )
 
   if (read.kind === 'none' && stored !== null) {
-    if (fetched.error !== null) {
+    if (isNotFound(fetched.error)) {
       return (
         <Placeholder title="replay" status={replayId} action={OPEN_ARENA}>
-          {isNotFound(fetched.error)
-            ? 'the server has no replay with this key.'
-            : `could not load this replay: ${fetched.error.message}`}
+          the server has no replay with this key.
         </Placeholder>
+      )
+    }
+    if (fetched.error !== null) {
+      return (
+        <PanelGrid className="p-3">
+          <Panel className="col-span-12" title="replay" status={replayId}>
+            <LoadFailure read={fetched} what="this replay" />
+          </Panel>
+        </PanelGrid>
       )
     }
     return (

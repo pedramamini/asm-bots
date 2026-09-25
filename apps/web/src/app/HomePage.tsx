@@ -1,5 +1,5 @@
 import type { Tournament, TournamentSummary } from '@asmbots/protocol'
-import { Button, Panel, PanelGrid, RadarLoader, Stat } from '@asmbots/ui'
+import { Button, EmptyState, Panel, PanelGrid, RadarLoader, Stat } from '@asmbots/ui'
 import { Link } from '@tanstack/react-router'
 import { CodeXml, Grid2x2 } from 'lucide-react'
 import { type ComponentType, lazy, Suspense, useState } from 'react'
@@ -11,6 +11,7 @@ import { MatchesTable } from '../features/hills/MatchesTable'
 import { EnterButton } from '../features/tournaments/EnterModal'
 import { NavLink } from './Frame'
 import { LoadFailure, readStatus } from './LoadFailure'
+import { useLinkAction } from './link-action'
 import { usePaintedAndIdle } from './paint'
 
 /** The rows the hill and match panels hold (PRODUCT_SPEC §1): a top 10, and the last 10. */
@@ -46,7 +47,9 @@ export function HomePage({ demo = HomeDemo }: HomePageProps) {
 }
 
 function MainHill() {
-  const { data, error } = useHill(MAIN_HILL)
+  const read = useHill(MAIN_HILL)
+  const { data, error } = read
+  const link = useLinkAction()
   return (
     <Panel
       className="col-span-12 xl:col-span-6"
@@ -54,13 +57,18 @@ function MainHill() {
       status={readStatus(data, error, (d) => `${d.standings.length} of ${d.hill.size}`)}
     >
       {error !== null && data === undefined ? (
-        <LoadFailure error={error} />
+        <LoadFailure read={read} />
       ) : (
         <HillStandingsTable
           aria-label="main hill, top 10"
           compact
           rows={ROWS}
           standings={data?.standings.slice(0, ROWS)}
+          empty={
+            <EmptyState action={link('submit a bot', `/hills/${MAIN_HILL}`)}>
+              no entrants yet.
+            </EmptyState>
+          }
         />
       )}
     </Panel>
@@ -68,7 +76,8 @@ function MainHill() {
 }
 
 function RecentMatches() {
-  const { data, error } = useHillMatches(MAIN_HILL, { limit: ROWS })
+  const read = useHillMatches(MAIN_HILL, { limit: ROWS })
+  const { data, error } = read
   return (
     <Panel
       className="col-span-12 md:col-span-6 xl:col-span-3"
@@ -76,7 +85,7 @@ function RecentMatches() {
       status={readStatus(data, error, () => MAIN_HILL)}
     >
       {error !== null && data === undefined ? (
-        <LoadFailure error={error} />
+        <LoadFailure read={read} />
       ) : (
         <MatchesTable aria-label="recent matches" compact rows={ROWS} matches={data?.matches} />
       )}
@@ -131,7 +140,7 @@ function Championship() {
       status={readStatus(list.data, list.error, () => next?.status ?? 'none')}
     >
       {list.error !== null && list.data === undefined ? (
-        <LoadFailure error={list.error} />
+        <LoadFailure read={list} />
       ) : (
         <div className="flex flex-1 flex-col gap-4">
           <Stat

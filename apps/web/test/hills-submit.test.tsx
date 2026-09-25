@@ -343,6 +343,40 @@ describe('submit', () => {
     expect(await within(dialog).findByRole('link', { name: 'open the editor' })).toBeTruthy()
   })
 
+  it('offers an empty hill’s standings and feed a way to submit: sign in first', async () => {
+    server.use(answer('/hills/main', { ...MAIN_DETAIL, standings: [] }))
+    await renderAt('/hills/main', Page, '/hills/$slug')
+    const standings = await screen.findByRole('table', { name: 'standings' })
+    expect(await within(standings).findByText('no entrants yet.')).toBeTruthy()
+    expect(
+      await within(standings).findByRole('button', { name: 'sign in to submit a bot' }),
+    ).toBeTruthy()
+    const feed = screen.getByRole('region', { name: 'recent submissions' })
+    expect(await within(feed).findByText(/^no submissions yet/)).toBeTruthy()
+    expect(within(feed).getByRole('button', { name: 'sign in to submit a bot' })).toBeTruthy()
+  })
+
+  it('opens the submit dialog from an empty hill’s standings, signed in', async () => {
+    signedIn(true)
+    server.use(answer('/hills/main', { ...MAIN_DETAIL, standings: [] }))
+    await renderAt('/hills/main', Page, '/hills/$slug')
+    const standings = await screen.findByRole('table', { name: 'standings' })
+    const action = await within(standings).findByRole('button', { name: 'submit a bot' })
+    await waitFor(() => expect(action.hasAttribute('disabled')).toBe(false))
+    fireEvent.click(action)
+    expect(await screen.findByRole('dialog', { name: 'submit to main' })).toBeTruthy()
+  })
+
+  it('points the melee hill’s empty standings at how hills score', async () => {
+    server.use(
+      answer('/hills/main', { ...MAIN_DETAIL, hill: { ...MAIN, scoring: 'melee' }, standings: [] }),
+    )
+    await renderAt('/hills/main', Page, '/hills/$slug')
+    const standings = await screen.findByRole('table', { name: 'standings' })
+    const link = await within(standings).findByRole('link', { name: 'see how hills score' })
+    expect(link.getAttribute('href')).toBe('/docs/tournaments/hills')
+  })
+
   it('picks a version under the cap, submits it, and follows the submission', async () => {
     signedIn(true)
     const seen: unknown[] = []
@@ -543,7 +577,8 @@ describe('the feed and the king', () => {
         ],
       }),
     )
-    await renderAt('/hills/main', () => <HillFeed slug="main" now={now} />)
+    const submit = { label: 'submit a bot', onClick: () => {} }
+    await renderAt('/hills/main', () => <HillFeed slug="main" emptyAction={submit} now={now} />)
     const list = await screen.findByRole('list', { name: 'recent submissions' })
     expect(
       within(list)

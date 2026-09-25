@@ -4,16 +4,16 @@
  * signed-out reader gets `sign in to submit`; the melee hill takes no submissions yet.
  */
 import type { Hill } from '@asmbots/protocol'
-import { Button, Modal, Skeleton, useToast } from '@asmbots/ui'
+import { Button, EmptyState, type EmptyStateAction, Modal, Skeleton, useToast } from '@asmbots/ui'
 import { useMutation } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
 import { Upload } from 'lucide-react'
-import { useState } from 'react'
 import { useMe } from '../../api/queries'
 import { submitToHill } from '../../api/writes'
-import { SignInButton } from '../account/AccountSlot'
+import { LoadFailure } from '../../app/LoadFailure'
+import { useLinkAction } from '../../app/link-action'
+import { SignInButton, signIn } from '../account/AccountSlot'
 import { useVersionPick, VersionFields } from '../account/VersionPicker'
-import { CELL_LINK, count, plural } from './links'
+import { count, plural } from './links'
 
 export interface SubmitModalProps {
   open: boolean
@@ -35,6 +35,7 @@ export function SubmitModal(props: SubmitModalProps) {
 
 function SubmitDialog({ open, hill, entrants, onClose, onSubmitted }: SubmitModalProps) {
   const { toast } = useToast()
+  const link = useLinkAction()
   const pick = useVersionPick()
   const { mine, picked, version } = pick
   const cap = hill.config.maxBotBytes
@@ -77,15 +78,11 @@ function SubmitDialog({ open, hill, entrants, onClose, onSubmitted }: SubmitModa
       {mine.isPending ? (
         <Skeleton rows={3} />
       ) : mine.error !== null ? (
-        <p className="text-data text-danger">could not load your bots: {mine.error.message}</p>
+        <LoadFailure read={mine} what="your bots" />
       ) : picked === undefined ? (
-        <p className="text-data">
-          the hill takes bots kept in your account.{' '}
-          <Link to="/editor" className={CELL_LINK}>
-            open the editor
-          </Link>{' '}
-          and press save: a bot in your account can come here.
-        </p>
+        <EmptyState action={link('open the editor', '/editor')}>
+          no bots in your account yet: the editor&rsquo;s save, signed in, keeps one there.
+        </EmptyState>
       ) : (
         <div className="flex flex-col gap-3 text-data">
           <VersionFields
@@ -113,12 +110,20 @@ export interface SubmitButtonProps {
   hill: Hill | undefined
   entrants: number
   onSubmitted: (submissionId: string) => void
+  /** The dialog is open: the page holds it, so its empty lists' `submit a bot` opens it too. */
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
 /** The standings panel's `submit`, or what stands in for it. */
-export function SubmitButton({ hill, entrants, onSubmitted }: SubmitButtonProps) {
+export function SubmitButton({
+  hill,
+  entrants,
+  onSubmitted,
+  open,
+  onOpenChange: setOpen,
+}: SubmitButtonProps) {
   const me = useMe()
-  const [open, setOpen] = useState(false)
   if (hill?.scoring === 'melee') {
     return (
       <Button size="sm" icon={Upload} disabled title="the melee hill takes no submissions yet">
@@ -152,4 +157,21 @@ export function SubmitButton({ hill, entrants, onSubmitted }: SubmitButtonProps)
       )}
     </>
   )
+}
+
+/**
+ * What a hill page's empty lists offer, as `submit` does: `submit a bot` opens the dialog
+ * (`onOpen`), a signed-out reader signs in first, and the melee hill, which takes none, shows how
+ * hills score.
+ */
+export function useSubmitAction(hill: Hill | undefined, onOpen: () => void): EmptyStateAction {
+  const me = useMe()
+  const link = useLinkAction()
+  if (hill?.scoring === 'melee') return link('see how hills score', '/docs/tournaments/hills')
+  if (me.data === null) return { label: 'sign in to submit a bot', onClick: signIn }
+  return {
+    label: 'submit a bot',
+    onClick: onOpen,
+    disabled: hill === undefined || me.data === undefined,
+  }
 }

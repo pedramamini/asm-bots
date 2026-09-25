@@ -1,8 +1,8 @@
 import { liveRoomName } from '@asmbots/protocol'
-import { Panel, PanelGrid } from '@asmbots/ui'
+import { EmptyState, Panel, PanelGrid } from '@asmbots/ui'
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { isNotFound } from '../../api/client'
 import { useHill, useHillMatches } from '../../api/queries'
 import { LoadFailure, readStatus } from '../../app/LoadFailure'
@@ -18,7 +18,7 @@ import { KingCard } from './KingCard'
 import { rules } from './links'
 import { MatchesTable } from './MatchesTable'
 import { SubmissionPanel } from './SubmissionPanel'
-import { SubmitButton } from './SubmitModal'
+import { SubmitButton, useSubmitAction } from './SubmitModal'
 
 /** The recent matches a hill page lists. */
 const RECENT = 20
@@ -46,6 +46,9 @@ export function HillPage({ slug, submission = null, live, createArenaClient }: H
   const navigate = useNavigate()
   const client = useQueryClient()
   const hillId = hill.data?.hill.id
+  // `submit`'s dialog, which the empty standings and feed open too.
+  const [submitting, setSubmitting] = useState(false)
+  const submitAction = useSubmitAction(hill.data?.hill, () => setSubmitting(true))
   const room = useLiveRoom(
     hillId === undefined ? null : liveRoomName({ kind: 'hill', id: hillId }),
     live,
@@ -79,11 +82,13 @@ export function HillPage({ slug, submission = null, live, createArenaClient }: H
             hill={detail?.hill}
             entrants={detail?.standings.length ?? 0}
             onSubmitted={follow}
+            open={submitting}
+            onOpenChange={setSubmitting}
           />
         }
       >
         {hill.error !== null && detail === undefined ? (
-          <LoadFailure error={hill.error} />
+          <LoadFailure read={hill} />
         ) : (
           <div className="flex min-h-0 flex-1 flex-col gap-2">
             {detail !== undefined && (
@@ -96,6 +101,7 @@ export function HillPage({ slug, submission = null, live, createArenaClient }: H
               aria-label="standings"
               standings={detail?.standings}
               action={detail && ((s) => <ChallengeMenu hill={detail.hill} standing={s} />)}
+              empty={<EmptyState action={submitAction}>no entrants yet.</EmptyState>}
             />
           </div>
         )}
@@ -111,13 +117,13 @@ export function HillPage({ slug, submission = null, live, createArenaClient }: H
           />
         )}
         <KingCard king={detail === undefined ? undefined : (detail.standings[0] ?? null)} />
-        <HillFeed slug={slug} />
+        <HillFeed slug={slug} emptyAction={submitAction} />
         <Panel
           title="recent matches"
           status={readStatus(matches.data, matches.error, (d) => `last ${d.matches.length}`)}
         >
           {matches.error !== null && matches.data === undefined ? (
-            <LoadFailure error={matches.error} />
+            <LoadFailure read={matches} />
           ) : (
             <MatchesTable aria-label="recent matches" matches={matches.data?.matches} />
           )}

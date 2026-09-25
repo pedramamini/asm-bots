@@ -71,13 +71,19 @@ function fakeClient() {
     play: mock(() => {}),
     pause: mock(() => {}),
     seek: mock((_cycle: number) => {}),
+    speed: mock((_speed: unknown) => {}),
     dispose: mock(() => {}),
     on: () => () => {},
   }
 }
 
 /** Renders `/arena` (with `path`'s query and fragment) the way the app routes it. */
-async function renderArena(path = '/arena', client = fakeClient()) {
+async function renderArena(
+  path = '/arena',
+  client = fakeClient(),
+  /** What shows once the page is up: the setup's config, unless the page starts in a battle. */
+  ready = () => screen.findByRole('region', { name: 'config' }),
+) {
   const root = createRootRoute({ component: Outlet })
   const arena = createRoute({
     getParentRoute: () => root,
@@ -105,7 +111,7 @@ async function renderArena(path = '/arena', client = fakeClient()) {
       </ToastProvider>
     </QueryClientProvider>,
   )
-  await screen.findByRole('region', { name: 'config' })
+  await ready()
   // The local store answers after a few ticks: let it, inside act, before the test goes on.
   await waitFor(() => expect(queryClient.getQueryState(LOCAL_BOTS_KEY)?.status).toBe('success'))
   return { router, client }
@@ -200,6 +206,13 @@ describe('arena setup', () => {
       target: { value: 'zzz' },
     })
     expect(screen.getByText('no roster bot matches "zzz".')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'clear the search' }))
+    expect((screen.getByRole('textbox', { name: 'search bots' }) as HTMLInputElement).value).toBe(
+      '',
+    )
+    expect(
+      within(screen.getByRole('list', { name: 'bots to add' })).getAllByRole('listitem').length,
+    ).toBeGreaterThan(10)
   })
 
   it('applies a preset, and lights its chip while the values are its own', async () => {
@@ -443,6 +456,119 @@ describe('the fight', () => {
     expect(screen.getByRole('region', { name: 'arena' }).textContent).toContain(
       `seed ${config.seed}`,
     )
+    await settle()
+  })
+})
+
+/** A coach mark by its `data-coach`, or null. */
+const markOf = (name: string) => document.querySelector<HTMLElement>(`[data-coach="${name}"]`)
+
+describe('the first visit’s tour', () => {
+  const cards = () =>
+    within(screen.getByRole('list', { name: 'bots to add' })).getAllByRole('listitem')
+
+  it('pins roster, then fight, then watch, each once the step before is done', async () => {
+    const { client } = await renderArena()
+    // 1/3 under the first roster card's +.
+    const roster = markOf('arena-roster') as HTMLElement
+    expect(roster.textContent).toContain('1/3')
+    expect(cards()[0]?.contains(roster)).toBe(true)
+    fireEvent.click(within(cards()[0] as HTMLElement).getByRole('button', { name: /^add / }))
+    expect(markOf('arena-roster')).not.toBeNull()
+    fireEvent.click(within(cards()[1] as HTMLElement).getByRole('button', { name: /^add / }))
+    // Two bots: 2/3 over the fight button.
+    expect(markOf('arena-roster')).toBeNull()
+    const fight = markOf('arena-fight') as HTMLElement
+    expect(fight.textContent).toContain('2/3')
+    expect(fight.parentElement?.contains(fightButton())).toBe(true)
+    // The battle: 3/3 under the events log. Leaving it ends the tour for good.
+    fireEvent.click(fightButton())
+    expect(client.load).toHaveBeenCalledTimes(1)
+    const watch = markOf('arena-watch') as HTMLElement
+    expect(screen.getByRole('region', { name: 'events' }).contains(watch)).toBe(true)
+    expect(useSettings.getState().coachMarksSeen).toEqual([])
+    const battle = screen.getByRole('region', { name: 'arena' })
+    fireEvent.click(within(battle).getByRole('button', { name: 'setup' }))
+    expect(useSettings.getState().coachMarksSeen).toEqual(['arena'])
+    expect(markOf('arena-fight')).toBeNull()
+    await settle()
+  })
+
+  it('goes for good with skip the tour, and a visit after has none', async () => {
+    await renderArena()
+    const roster = markOf('arena-roster') as HTMLElement
+    fireEvent.click(within(roster).getByRole('button', { name: 'skip the tour' }))
+    expect(markOf('arena-roster')).toBeNull()
+    expect(useSettings.getState().coachMarksSeen).toEqual(['arena'])
+    fireEvent.click(screen.getByRole('button', { name: /try dwarf vs paper/ }))
+    expect(markOf('arena-fight')).toBeNull()
+    await settle()
+  })
+
+  it('shows nothing to a visitor who put it away before', async () => {
+    useSettings.setState({ coachMarksSeen: ['arena'] })
+    const { client } = await renderArena('/arena?b=roster:dwarf,roster:paper')
+    expect(markOf('arena-roster')).toBeNull()
+    expect(markOf('arena-fight')).toBeNull()
+    fireEvent.click(fightButton())
+    expect(client.load).toHaveBeenCalledTimes(1)
+    expect(markOf('arena-watch')).toBeNull()
+    await settle()
+  })
+})
+
+describe('the intro', () => {
+  const inBattle = () => screen.findByRole('region', { name: 'arena' })
+
+  it('loads Dwarf vs Imp at its seed and speed, holds for its guide, and keeps the setup in the URL', async () => {
+    const { router, client } = await renderArena('/arena?intro=true', fakeClient(), inBattle)
+    expect(client.load).toHaveBeenCalledTimes(1)
+    const [bots, config, rounds] = client.load.mock.calls[0] as unknown as [
+      { name: string }[],
+      unknown,
+      number,
+    ]
+    expect(bots.map((bot) => bot.name)).toEqual(['Dwarf', 'Imp'])
+    expect(config).toEqual({ maxCycles: 100_000, maxProcesses: 64, minSpacing: 1024, seed: 263 })
+    expect(rounds).toBe(1)
+    expect(client.speed).toHaveBeenCalledWith(200)
+    // Its guide plays it, after the hold.
+    expect(client.play).not.toHaveBeenCalled()
+    expect(markOf('intro-bots')?.textContent).toContain('intro 1/3')
+    // The tour stays out of the intro.
+    expect(markOf('arena-watch')).toBeNull()
+    await waitFor(() =>
+      expect(search(router)).toBe(
+        '?b=roster:dwarf,roster:imp&seed=263&cycles=100000&rounds=1&procs=64&spacing=1024',
+      ),
+    )
+    // Skipped, the guide goes, and the tour does not come in its place.
+    fireEvent.click(
+      within(markOf('intro-bots') as HTMLElement).getByRole('button', { name: 'skip' }),
+    )
+    expect(markOf('intro-bots')).toBeNull()
+    expect(markOf('arena-watch')).toBeNull()
+    // The setup it leaves: the intro's bots, picked; leaving the intro does not end the tour.
+    const battle = screen.getByRole('region', { name: 'arena' })
+    fireEvent.click(within(battle).getByRole('button', { name: 'setup' }))
+    expect(picked()).toEqual(['Dwarf', 'Imp'])
+    expect(useSettings.getState().coachMarksSeen).toEqual([])
+    expect(markOf('arena-fight')).not.toBeNull()
+    await settle()
+  })
+
+  it('starts over when the link is followed again from a battle', async () => {
+    const { router, client } = await renderArena('/arena?b=roster:dwarf,roster:paper&seed=42')
+    fireEvent.click(fightButton())
+    expect(client.play).toHaveBeenCalledTimes(1)
+    await settle()
+    await act(() => router.navigate({ to: '/arena', search: { intro: true } }))
+    await waitFor(() => expect(client.load).toHaveBeenCalledTimes(2))
+    const [bots] = client.load.mock.calls[1] as unknown as [{ name: string }[]]
+    expect(bots.map((bot) => bot.name)).toEqual(['Dwarf', 'Imp'])
+    expect(client.speed).toHaveBeenCalledWith(200)
+    expect(client.play).toHaveBeenCalledTimes(1)
+    expect(markOf('intro-bots')).not.toBeNull()
     await settle()
   })
 })

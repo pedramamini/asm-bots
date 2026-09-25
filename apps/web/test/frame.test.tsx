@@ -192,6 +192,37 @@ describe('Frame', () => {
     )
   })
 
+  it('links the intro, the guided demo, from the header', async () => {
+    await renderAndWait()
+    const header = screen.getByRole('banner')
+    const intro = within(header).getByRole('link', { name: 'intro' })
+    expect(intro.getAttribute('href')).toBe('/arena?intro=true')
+    // Not a route of the nav: it is never the current page.
+    expect(
+      within(within(header).getByRole('navigation')).queryByRole('link', { name: 'intro' }),
+    ).toBeNull()
+    expect(intro.getAttribute('aria-current')).toBeNull()
+  })
+
+  it('says offline in the status bar, and what still works, until the network is back', async () => {
+    await renderAndWait()
+    const status = within(screen.getByRole('contentinfo')).getByRole('status')
+    expect(status.textContent).toBe('● local')
+    const onLine = Object.getOwnPropertyDescriptor(navigator, 'onLine')
+    let online = false
+    Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => online })
+    try {
+      act(() => void window.dispatchEvent(new window.Event('offline')))
+      expect(status.textContent).toBe('○ offlinearena, editor, and local tournaments still work')
+      online = true
+      act(() => void window.dispatchEvent(new window.Event('online')))
+      expect(status.textContent).toBe('● local')
+    } finally {
+      if (onLine === undefined) delete (navigator as { onLine?: boolean }).onLine
+      else Object.defineProperty(navigator, 'onLine', onLine)
+    }
+  })
+
   it('lists the global keys in the key help', async () => {
     await renderAndWait()
     key('?')

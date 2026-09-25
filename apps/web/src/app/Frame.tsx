@@ -18,6 +18,7 @@ import {
   BookOpen,
   Check,
   ChevronDown,
+  CirclePlay,
   CodeXml,
   Grid2x2,
   Keyboard,
@@ -47,6 +48,7 @@ import {
   useKeymapListener,
   useKeys,
 } from './keys'
+import { useOnline } from './online'
 import { useFps, useHeaderStat } from './slots'
 import { useTicker } from './ticker'
 import { BRAND, useRouteHead } from './title'
@@ -185,6 +187,10 @@ function HeaderActions({ onKeys }: { onKeys: () => void }) {
   const setTheme = useSettings((state) => state.setTheme)
   return (
     <>
+      {/* The guided demo (PRODUCT_SPEC §9): the arena plays Dwarf vs Imp and says what happens. */}
+      <NavLink to="/arena" search={{ intro: true }} icon={CirclePlay} className="mr-1">
+        intro
+      </NavLink>
       <IconButton icon={Palette} label={`theme: ${theme}`} shortcut="t" onClick={cycleTheme} />
       <Menu
         placement="bottom-end"
@@ -219,12 +225,32 @@ function FrameTicker() {
   )
 }
 
+/**
+ * The status bar's left end: `● local`, or offline, the banner that says what still works there.
+ * A live region, so a screen reader hears the network come and go.
+ */
+function NetworkStatus() {
+  const online = useOnline()
+  return (
+    <span role="status" className="flex min-w-0 items-center gap-2">
+      {online ? (
+        <Chip variant="accent">● local</Chip>
+      ) : (
+        <>
+          <Chip variant="warn">○ offline</Chip>
+          <span className="truncate">arena, editor, and local tournaments still work</span>
+        </>
+      )}
+    </span>
+  )
+}
+
 function FrameStatus() {
   const fps = useFps((state) => state.fps)
   return (
     <StatusBar
       className="mb-2"
-      left={<Chip variant="accent">● local</Chip>}
+      left={<NetworkStatus />}
       center={
         <a
           href="https://maestro.sh"

@@ -1,8 +1,9 @@
-import { Button, cx, Modal } from '@asmbots/ui'
+import { Button, cx, EmptyState, Modal } from '@asmbots/ui'
 import { useQuery } from '@tanstack/react-query'
 import { RotateCcw } from 'lucide-react'
 import { type ReactNode, useEffect, useState } from 'react'
 import { botQuery, useBotVersion } from '../../api/queries'
+import { LoadFailure } from '../../app/LoadFailure'
 import { useBotVersions } from '../../store/bot-versions'
 import { type DiffOp, diffSequences } from './diff'
 
@@ -25,6 +26,8 @@ export interface VersionsModalProps {
   onClose: () => void
   /** Puts a version's text in the editor. */
   onRestore: (version: RestoredText) => void
+  /** `save now`, when there are none yet: the editor's save, which keeps the first. */
+  onSave: () => void
 }
 
 /** The version picked: a save of this browser, or a version in the account, by number. */
@@ -86,6 +89,7 @@ export function VersionsModal({
   current,
   onClose,
   onRestore,
+  onSave,
 }: VersionsModalProps) {
   const versions = useBotVersions(open ? botId : null)
   const cloud = useQuery({ ...botQuery(cloudId ?? ''), enabled: open && cloudId !== null })
@@ -123,7 +127,8 @@ export function VersionsModal({
   const added = rows.filter((row) => row.op === '+').length
   const removed = rows.filter((row) => row.op === '-').length
   const empty = list.length === 0 && cloudList.length === 0
-  const reading = versions.isPending || (cloudId !== null && cloud.isPending)
+  // A read that is off (no bot saved, none in the account) waits on nothing.
+  const reading = (botId !== null && versions.isPending) || (cloudId !== null && cloud.isPending)
   return (
     <Modal
       open={open}
@@ -150,10 +155,17 @@ export function VersionsModal({
         </>
       }
     >
+      {cloud.error !== null && cloudList.length === 0 && (
+        <LoadFailure read={cloud} what="your account's versions" dense />
+      )}
       {empty ? (
-        <p className="text-muted">
-          {reading ? 'reading the saves…' : 'no saves yet: each save keeps a version.'}
-        </p>
+        reading ? (
+          <p className="text-muted">reading the saves…</p>
+        ) : (
+          <EmptyState action={{ label: 'save now', onClick: onSave }}>
+            no saves yet: each save keeps a version to compare and restore.
+          </EmptyState>
+        )
       ) : (
         <div className="flex max-h-[60vh] min-h-48 gap-3">
           <div className="flex w-40 shrink-0 flex-col gap-2 overflow-y-auto">

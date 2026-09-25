@@ -117,6 +117,7 @@ export function Debugger({
             lineOf={lineOf}
             onSet={(addr, options) => controller.setBreakpoint(addr, options)}
             onRemove={(addr) => controller.removeBreakpoint(addr)}
+            onBreakAtCursor={commands.toggleBreakpoint}
           />
         </div>
         <MemoryPanel

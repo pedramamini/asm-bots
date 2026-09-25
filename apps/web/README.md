@@ -117,6 +117,22 @@ a tournament's watch modal play by themselves and stay silent. The synth builds 
 the kit out of the entry. Tests: `test/sound.test.ts` on `test/fake-audio.ts`, and
 `e2e/sound.spec.ts`, which takes away the user activation Playwright's `goto` gives a page.
 
+### First visit and the intro
+
+A first visit to `/arena` gets a three-step tour (PRODUCT_SPEC §9, `tour.tsx`), one kit `CoachMark`
+at a time: `1/3` under the first roster card's `+` until two bots are picked, `2/3` over the fight
+button, `3/3` in the events log once the battle shows (`placement="inline"`, so the newest lines
+stay in view). Doing a step moves the tour on. `skip the tour` or `got it` puts it away for good,
+as does `setup` from the battle it ends on (`coachMarksSeen` holds `arena`, beside the editor's
+`editor`).
+
+The header's `intro` links to `/arena?intro=true`: `ArenaPage` loads Dwarf vs Imp at seed 263
+(`intro.tsx`; Dwarf's bomb lands on Imp's next word at cycle 55,602, first blood and the end),
+writes that setup to the URL, and sets 200 cycles a frame. Its guide (`useIntroGuide`, three marks)
+holds the placement 6 s (or until `play now`), plays, points at the events log at first blood,
+then offers `pick bots` (the setup, with the intro's bots in) and `done`. About 30 s in all. The
+tour stays out of the intro's battle, and picks up in the setup after it.
+
 ### Worker protocol
 
 The Worker (`worker/arena.worker.ts`) is an `ArenaSession` behind `postMessage`. It runs cycles
@@ -370,6 +386,38 @@ tournament is read only: it has no controls, nothing stores it, and one shared w
 Tests: `test/tournaments-*.test.ts(x)` (store and runner, form, list, bracket, views, share and
 detail page) and `e2e/tournaments.spec.ts` (a bracket and a round robin to the end, and the round
 robin's link opened in a fresh browser).
+
+## Empty and error states
+
+Every list says when it is empty with the kit's `EmptyState` (DESIGN_SYSTEM §4, §9): one muted
+sentence and one accent action. A link action goes through `app/link-action.ts`
+(`useLinkAction`), a real `href` the router takes over on a plain click.
+
+| List | It says | Its action |
+| --- | --- | --- |
+| Hills (`/hills`) | no hill is open yet. | see how hills work (`/docs/tournaments/hills`) |
+| A hill's standings, its feed; the home page's top 10 | no entrants yet. / no submissions yet | submit a bot: the hill's own `submit` dialog, `sign in to submit a bot` signed out; the home page links `/hills/main` |
+| Matches (hill, home) | no matches played yet. | fight one in the arena |
+| Tournaments | no tournaments yet (this browser, the server) / no tournament matches. | new tournament / clear the filters |
+| My bots: arena, library, profile, submit and enter dialogs | none saved in this browser yet. / no bots in your account yet | write a bot, save this bot, write a new bot, open the editor |
+| Roster and my bots, searched | no roster bot matches "x". | clear the search |
+| Versions (the editor's `versions`, open for any bot that can be saved) | no saves yet | save now |
+| Watch | nothing watched yet | watch ip |
+| Breakpoints | no breakpoints yet | break on the cursor's line (F9's work) |
+| Events | no events yet. (every filter keeps the round's first line, so only a round not loaded) | play |
+| A bot's hill placements; a profile's hills and championships | not on any hill yet. / on no hill yet. / no championships yet. | see the hills, see the tournaments |
+
+A read of the API that fails draws `app/LoadFailure.tsx` in its panel: `could not load: <the
+API's words>` and `retry`, which refetches. TanStack Query v5 clears the error of a read that has
+no data when it fetches again, so the panel shows its loading state until the answer.
+
+Offline (the browser's `offline` event), the status bar's left end trades `● local` for
+`○ offline` and `arena, editor, and local tournaments still work`, in a live region
+(`app/online.ts`), and a failed read says it will load once the network is back (TanStack
+refetches on reconnect). The limit: there is no service worker, so the arena and the editor work
+offline with the code the page has already loaded (the arena's Worker starts with its first fight,
+the assembler's with the editor). A route never opened needs the network; TanStack's lazy routes
+reload the page when a chunk does not come.
 
 ## Lighthouse
 

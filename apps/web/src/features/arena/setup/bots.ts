@@ -10,7 +10,7 @@ import { type BattleConfigInput, Pcg32, PlacementError, place } from '@asmbots/e
 import { roundOrder, roundSeed } from '@asmbots/tourney'
 import type { LocalBot } from '../../../store/local-bots'
 import type { ArenaBot } from '../worker/protocol'
-import { MIN_ARENA_BOTS, randomSeed } from './config'
+import { battleConfig, MIN_ARENA_BOTS, randomSeed } from './config'
 import { type ArenaSetupSpec, type BotRef, formatRef, type SharedBot } from './url'
 
 /** Where a bot comes from: the roster, this browser's store, or a share link. */
@@ -282,6 +282,22 @@ export function arenaBots(selection: readonly SetupBot[]): ArenaBot[] {
     const { author, strategy, version, bytes } = bot.assembled
     return { name, bytes, meta: { author, strategy, version } }
   })
+}
+
+/** The fight of a ready `selection` under `spec`, its first round placed with `seed`. */
+export function arenaFight(
+  selection: readonly SetupBot[],
+  spec: ArenaSetupSpec,
+  seed: number,
+): ArenaFight {
+  return {
+    bots: arenaBots(selection),
+    config: battleConfig(spec.config, seed),
+    rounds: spec.config.rounds,
+    spec,
+    sources: selection.map((s) => s.bot?.source ?? ''),
+    shared: sharedSources(selection),
+  }
 }
 
 /** The largest file the setup reads as a bot source. */

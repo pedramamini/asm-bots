@@ -4,7 +4,7 @@
  * what each pushed off.
  */
 import type { HillEventSummary } from '@asmbots/protocol'
-import { Panel, Skeleton } from '@asmbots/ui'
+import { EmptyState, type EmptyStateAction, Panel, Skeleton } from '@asmbots/ui'
 import type { ReactNode } from 'react'
 import { useHillHistory } from '../../api/queries'
 import { LoadFailure, readStatus } from '../../app/LoadFailure'
@@ -85,13 +85,16 @@ function eventText(summary: HillEventSummary): ReactNode {
 
 export interface HillFeedProps {
   slug: string
+  /** What an empty feed offers: the hill page's `submit a bot`. */
+  emptyAction: EmptyStateAction
   className?: string | undefined
   /** The clock `ago` reads; tests fix it. */
   now?: number | undefined
 }
 
-export function HillFeed({ slug, className, now }: HillFeedProps) {
-  const { data, error } = useHillHistory(slug, EVENTS)
+export function HillFeed({ slug, emptyAction, className, now }: HillFeedProps) {
+  const read = useHillHistory(slug, EVENTS)
+  const { data, error } = read
   const items = feedItems(data?.events ?? [])
   return (
     <Panel
@@ -100,11 +103,13 @@ export function HillFeed({ slug, className, now }: HillFeedProps) {
       status={readStatus(data, error, () => `last ${items.length}`)}
     >
       {error !== null && data === undefined ? (
-        <LoadFailure error={error} />
+        <LoadFailure read={read} />
       ) : data === undefined ? (
         <Skeleton rows={4} />
       ) : items.length === 0 ? (
-        <p className="text-data text-muted">no submission yet: the hill is as it was seeded.</p>
+        <EmptyState action={emptyAction}>
+          no submissions yet: the hill is as it was seeded.
+        </EmptyState>
       ) : (
         <ol aria-label="recent submissions" className="flex flex-col gap-1.5 text-data">
           {items.map((item) => {

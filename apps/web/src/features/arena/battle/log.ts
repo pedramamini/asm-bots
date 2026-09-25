@@ -190,6 +190,11 @@ export class BattleLog {
     return out
   }
 
+  /** The round's first blood, once a process has died of another bot's byte; null before. */
+  firstBlood(): LogEvent | null {
+    return this.major.find((event) => event.kind === 'blood') ?? null
+  }
+
   /** Each bot death the round has logged, the earliest first: the scrub bar's marks. */
   botDeathMarks(): { bot: number; cycle: number }[] {
     return this.major.flatMap((event) =>

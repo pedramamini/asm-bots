@@ -323,6 +323,11 @@ export function DataSpecimens() {
               no local bots.
             </EmptyState>
           </State>
+          <State label="dense">
+            <EmptyState dense action={{ label: 'watch ip', onClick: () => {} }}>
+              nothing watched yet.
+            </EmptyState>
+          </State>
         </States>
       </Specimen>
 
@@ -338,8 +343,9 @@ export function DataSpecimens() {
 }
 
 /**
- * The coach mark under an icon button and over a button, as the editor and the arena pin theirs.
- * `got it` puts one away; `show again` brings them back.
+ * The coach mark under an icon button and over a button, as the editor and the arena pin theirs:
+ * the editor's one mark, and a step of the arena's tour. `got it` or `skip the tour` puts one
+ * away; `show again` brings them back.
  */
 function CoachMarkSheet() {
   const [shown, setShown] = useState({ under: true, over: true })
@@ -365,8 +371,13 @@ function CoachMarkSheet() {
         <span className="relative flex">
           <Button icon={Swords}>fight</Button>
           {shown.over && (
-            <CoachMark placement="top-end" onDismiss={() => setShown({ ...shown, over: false })}>
-              then fight: the arena plays the battle.
+            <CoachMark
+              placement="top-end"
+              step="2/3"
+              dismissLabel="skip the tour"
+              onDismiss={() => setShown({ ...shown, over: false })}
+            >
+              fight loads the bots into one core and plays the battle.
             </CoachMark>
           )}
         </span>

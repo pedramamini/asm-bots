@@ -20,6 +20,7 @@ import { Link } from '@tanstack/react-router'
 import { Cloud, Plus, Trophy } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { useTournaments as useServerTournaments } from '../../api/queries'
+import { LoadFailure } from '../../app/LoadFailure'
 import { assembleCached, rosterCatalog } from '../arena/setup/bots'
 import { plural } from '../hills/links'
 import { takesEntries, utcTime } from './entry'
@@ -215,9 +216,7 @@ export function TournamentsPage({ onNew, runner = tournamentRunner() }: Tourname
             />
           </div>
           {server.error !== null && (
-            <p className="text-data text-muted">
-              the server&rsquo;s tournaments did not load: {server.error.message}
-            </p>
+            <LoadFailure read={server} what="the server's tournaments" dense />
           )}
           {reading && total === 0 ? (
             <p className="text-data text-muted">reading…</p>
@@ -226,7 +225,18 @@ export function TournamentsPage({ onNew, runner = tournamentRunner() }: Tourname
               no tournaments yet: pick some bots and run one here, in this browser.
             </EmptyState>
           ) : cards.length === 0 ? (
-            <p className="text-data text-muted">no tournament matches.</p>
+            <EmptyState
+              action={{
+                label: 'clear the filters',
+                onClick: () => {
+                  setKind('all')
+                  setStatus('all')
+                  setQuery('')
+                },
+              }}
+            >
+              no tournament matches.
+            </EmptyState>
           ) : (
             <ul
               aria-label="tournament list"

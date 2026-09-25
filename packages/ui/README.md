@@ -96,8 +96,8 @@ Tailwind's own palette, font stacks, radii, and type sizes are off: a color, a r
 | `Toast` | `const { toast } = useToast(); toast('link copied', { variant: 'accent' })`, under one `<ToastProvider>` at the root. |
 | `Skeleton` | `<Skeleton className="h-2.5 w-24" />`; `<Skeleton rows={5} />` holds a table's place. |
 | `RadarLoader` | `<RadarLoader framed label="loading dashboard" detail="6 sections remaining" />` |
-| `EmptyState` | `<EmptyState action={{ label: 'submit a bot', href: '/hills/main' }}>no entrants yet.</EmptyState>` |
-| `CoachMark` | `<span className="relative flex"><IconButton icon={Play} label="run" /><CoachMark onDismiss={dismiss}>press <Kbd>F5</Kbd> to debug.</CoachMark></span>`: a first-visit hint in its control's `relative` box, under it by default (`placement`: `bottom-start`, `bottom-end`, `top-start`, `top-end`); the page stores `got it`. |
+| `EmptyState` | `<EmptyState action={{ label: 'submit a bot', href: '/hills/main' }}>no entrants yet.</EmptyState>`; `dense` for a dense panel's list; a button action can be `disabled`. |
+| `CoachMark` | `<span className="relative flex"><IconButton icon={Play} label="run" /><CoachMark onDismiss={dismiss}>press <Kbd>F5</Kbd> to debug.</CoachMark></span>`: a first-visit hint in its control's `relative` box, under it by default (`placement`: `bottom-start`, `bottom-end`, `top-start`, `top-end`, or `inline`, in the flow under a panel's title); the page stores `got it`. A tour's step: `step="2/3"`, `dismissLabel="skip the tour"`, and an `action={{ label: 'next', onClick }}` beside it. |
 | `KeyHelp` | `<KeyHelp bindings={[{ keys: ['g', 'a'], description: 'go to arena', group: 'global' }]} />` |
 
 ## Themes

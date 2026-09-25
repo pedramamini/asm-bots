@@ -4,9 +4,10 @@
  * and checks it against the server's result (`VerifyMatch`).
  */
 import type { BotLabel, MatchSummary } from '@asmbots/protocol'
-import { Skeleton, Table, type TableColumn } from '@asmbots/ui'
+import { EmptyState, Skeleton, Table, type TableColumn } from '@asmbots/ui'
 import { Link, useNavigate } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
+import { useLinkAction } from '../../app/link-action'
 import { VerifyMatch } from '../verify/VerifyMatch'
 import { CELL_LINK } from './links'
 
@@ -89,6 +90,7 @@ export interface MatchesTableProps {
   /** A narrow panel's table: `verify` as an icon. */
   compact?: boolean | undefined
   rows?: number | undefined
+  /** What shows when there are none: by default, the arena's way to fight one. */
   empty?: ReactNode
   'aria-label': string
   className?: string | undefined
@@ -98,11 +100,12 @@ export function MatchesTable({
   matches,
   compact = false,
   rows = 10,
-  empty = <p className="text-data text-muted">no match played yet.</p>,
+  empty,
   'aria-label': label,
   className,
 }: MatchesTableProps) {
   const navigate = useNavigate()
+  const link = useLinkAction()
   return (
     <Table
       aria-label={label}
@@ -110,7 +113,17 @@ export function MatchesTable({
       rows={matches ?? []}
       rowKey={(m) => m.match.id}
       className={className}
-      empty={matches === undefined ? <Skeleton rows={rows} /> : empty}
+      empty={
+        matches === undefined ? (
+          <Skeleton rows={rows} />
+        ) : (
+          (empty ?? (
+            <EmptyState action={link('fight one in the arena', '/arena')}>
+              no matches played yet.
+            </EmptyState>
+          ))
+        )
+      }
       onRowClick={(m) => {
         const key = m.match.replayKey
         if (key !== null) void navigate({ to: '/arena/$replayId', params: { replayId: key } })

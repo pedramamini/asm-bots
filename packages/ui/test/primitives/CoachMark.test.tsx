@@ -71,6 +71,14 @@ describe('CoachMark', () => {
     expect(caret).toEqual(expect.arrayContaining(['-bottom-1', 'right-2', 'border-r', 'border-b']))
   })
 
+  it('takes its room in the flow when inline, as wide as its box, the caret pointing up', () => {
+    const { mark, caret } = classesOf('inline')
+    expect(mark).toEqual(expect.arrayContaining(['relative', 'w-full', 'mb-2']))
+    expect(mark).not.toContain('absolute')
+    expect(mark).not.toContain('w-64')
+    expect(caret).toEqual(expect.arrayContaining(['-top-1', 'left-2', 'border-t', 'border-l']))
+  })
+
   it('slides in, but not under reduced motion', () => {
     const { mark } = classesOf('top-start')
     expect(mark).toEqual(
@@ -80,6 +88,47 @@ describe('CoachMark', () => {
         'motion-reduce:transition-none',
       ]),
     )
+  })
+
+  it('shows a tour step, its own dismiss words, and an action beside them', () => {
+    const done: string[] = []
+    render(
+      <CoachMark
+        step="2/3"
+        dismissLabel="skip the tour"
+        action={{ label: 'next', onClick: () => done.push('next') }}
+        onDismiss={() => done.push('skip')}
+      >
+        first blood: the events log has it.
+      </CoachMark>,
+    )
+    const mark = screen.getByRole('note', { name: 'tip' })
+    const row = screen.getByText('2/3').parentElement as HTMLElement
+    expect(row.className.split(' ')).toEqual(expect.arrayContaining(['flex', 'justify-end']))
+    expect(screen.getByText('2/3').className.split(' ')).toEqual(
+      expect.arrayContaining(['mr-auto', 'text-muted']),
+    )
+    // The action is the accent button at the end; dismiss is the quiet one before it.
+    const buttons = [...mark.querySelectorAll('button')].map((button) => button.textContent)
+    expect(buttons).toEqual(['skip the tour', 'next'])
+    const skip = screen.getByRole('button', { name: 'skip the tour' })
+    const next = screen.getByRole('button', { name: 'next' })
+    expect(next.className).toContain('text-accent')
+    expect(skip.className).not.toContain('border-accent')
+    expect(screen.queryByRole('button', { name: 'got it' })).toBeNull()
+    fireEvent.click(next)
+    fireEvent.click(skip)
+    // Escape on either button dismisses.
+    fireEvent.keyDown(next, { key: 'Escape' })
+    expect(done).toEqual(['next', 'skip', 'skip'])
+  })
+
+  it('keeps got it alone, in accent, with no step and no action', () => {
+    render(<CoachMark onDismiss={() => {}}>a hint.</CoachMark>)
+    const mark = screen.getByRole('note', { name: 'tip' })
+    const button = screen.getByRole('button', { name: 'got it' })
+    expect(button.parentElement).toBe(mark)
+    expect(button.className).toContain('border-accent')
   })
 
   it('passes className and attributes through', () => {

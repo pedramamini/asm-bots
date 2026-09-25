@@ -439,7 +439,13 @@ describe('the tournament list', () => {
       <TournamentsPage runner={new TournamentRunner(() => idle)} />
     ))
     expect(await screen.findByRole('listitem', { name: 'offline cup' })).toBeTruthy()
-    expect(await screen.findByText(/the server.s tournaments did not load: down/)).toBeTruthy()
+    expect(await screen.findByText("could not load the server's tournaments: down")).toBeTruthy()
+    // The failure has its retry, which reads the list again.
+    server.use(answer('/tournaments', { tournaments: [] }))
+    fireEvent.click(screen.getByRole('button', { name: 'retry' }))
+    await waitFor(() => expect(screen.queryByRole('button', { name: /^retry/ })).toBeNull())
+    expect(screen.queryByText(/could not load/)).toBeNull()
+    expect(screen.getByRole('listitem', { name: 'offline cup' })).toBeTruthy()
   })
 })
 

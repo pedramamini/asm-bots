@@ -14,6 +14,8 @@ export interface ArenaSearch {
   readonly rounds?: number | undefined
   readonly procs?: number | undefined
   readonly spacing?: number | undefined
+  /** The guided demo: the header's `intro` link (`?intro=true`). The page drops it once it runs. */
+  readonly intro?: true | undefined
 }
 
 const COUNTS = ['seed', 'cycles', 'rounds', 'procs', 'spacing'] as const
@@ -26,6 +28,10 @@ const COUNTS = ['seed', 'cycles', 'rounds', 'procs', 'spacing'] as const
 export function validateArenaSearch(raw: Record<string, unknown>): ArenaSearch {
   const search: { -readonly [K in keyof ArenaSearch]: ArenaSearch[K] } = {}
   if (typeof raw.b === 'string' && raw.b !== '') search.b = raw.b
+  // `?intro=true` from the link; `?intro`, `?intro=1` typed by hand.
+  if (raw.intro === true || raw.intro === 1 || raw.intro === '' || raw.intro === '1') {
+    search.intro = true
+  }
   for (const key of COUNTS) {
     const value = raw[key]
     const n = typeof value === 'string' && /^\d{1,16}$/.test(value) ? Number(value) : value

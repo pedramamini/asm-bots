@@ -1,6 +1,7 @@
 import type { BotPlacement, BotVersion } from '@asmbots/protocol'
 import {
   Chip,
+  EmptyState,
   Identicon,
   Panel,
   PanelGrid,
@@ -13,6 +14,7 @@ import { Link } from '@tanstack/react-router'
 import { isNotFound } from '../../api/client'
 import { useBot, useBotVersion } from '../../api/queries'
 import { LoadFailure, readStatus } from '../../app/LoadFailure'
+import { useLinkAction } from '../../app/link-action'
 import { Placeholder } from '../../app/Placeholder'
 import { CELL_LINK, count, day, UserLink } from '../hills/links'
 import { BotActions } from './BotActions'
@@ -76,6 +78,7 @@ export function BotPage({ id }: { id: string }) {
   const bot = useBot(id)
   const latest = bot.data?.versions[0] ?? null
   const source = useBotVersion(id, latest?.version ?? null)
+  const link = useLinkAction()
   if (isNotFound(bot.error)) {
     return (
       <Placeholder title="bots" status={id}>
@@ -91,7 +94,7 @@ export function BotPage({ id }: { id: string }) {
           title="bot"
           status={readStatus(undefined, bot.error, () => '')}
         >
-          {bot.error === null ? <Skeleton rows={4} /> : <LoadFailure error={bot.error} />}
+          {bot.error === null ? <Skeleton rows={4} /> : <LoadFailure read={bot} />}
         </Panel>
       </PanelGrid>
     )
@@ -135,7 +138,9 @@ export function BotPage({ id }: { id: string }) {
           columns={PLACEMENT_COLUMNS}
           rows={placements}
           rowKey={(p) => `${p.hill.slug}:${p.entry.botVersionId}`}
-          empty={<p className="text-data text-muted">not on any hill.</p>}
+          empty={
+            <EmptyState action={link('see the hills', '/hills')}>not on any hill yet.</EmptyState>
+          }
         />
       </Panel>
       <Panel className="col-span-12 xl:col-span-4" title="versions" status={`${versions.length}`}>

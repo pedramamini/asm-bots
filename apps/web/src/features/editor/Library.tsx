@@ -1,7 +1,8 @@
 import type { MyBot } from '@asmbots/protocol'
-import { cx, IconButton, Panel } from '@asmbots/ui'
+import { cx, EmptyState, type EmptyStateAction, IconButton, Panel } from '@asmbots/ui'
 import { GitFork, Plus } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { LoadFailure, type RetryableRead } from '../../app/LoadFailure'
 import type { LocalBot } from '../../store/local-bots'
 import { type CatalogBot, rosterCatalog } from '../arena/setup/bots'
 import { type DocTarget, docKey, parseDocKey, SCRATCH } from './doc'
@@ -13,16 +14,19 @@ export interface LibraryProps {
   local: readonly LocalBot[] | undefined
   /**
    * The signed-in user's bots in the account, or undefined while they are read or nobody is
-   * signed in (`cloudError` says it failed).
+   * signed in (`cloudRead` says it failed, and reads them again).
    */
   cloud?: readonly MyBot[] | undefined
-  cloudError?: boolean | undefined
+  /** The read of the account's bots, for its failure and `retry`. */
+  cloudRead?: RetryableRead | undefined
   /** The keys of the documents opened lately, the latest first. */
   recent: readonly string[]
   onOpen: (target: DocTarget) => void
   onFork: (bot: CatalogBot) => void
   /** Opens an account bot: in the local bot linked to it, made from its latest version if none. */
   onOpenCloud?: ((bot: MyBot) => void) | undefined
+  /** Saves the open bot, when it can be saved: an empty list's way to its first. */
+  onSave?: (() => void) | undefined
   className?: string | undefined
 }
 
@@ -35,13 +39,20 @@ export function Library({
   current,
   local,
   cloud,
-  cloudError = false,
+  cloudRead,
   recent,
   onOpen,
   onFork,
   onOpenCloud,
+  onSave,
   className,
 }: LibraryProps) {
+  const cloudError = cloudRead?.error != null
+  // An empty list's one way on: save the bot open here, or start one.
+  const first: EmptyStateAction =
+    onSave === undefined
+      ? { label: 'write a new bot', onClick: () => onOpen(SCRATCH) }
+      : { label: 'save this bot', onClick: onSave }
   // The account bot a local bot is linked to shows as current while that bot is open.
   const currentCloud = (local ?? []).find(
     (bot) => docKey({ kind: 'local', id: bot.id }) === current,
@@ -91,7 +102,9 @@ export function Library({
           {local === undefined ? (
             <p className="px-1 text-data text-muted">reading…</p>
           ) : local.length === 0 ? (
-            <p className="px-1 text-data text-muted">none saved yet: save puts a bot here.</p>
+            <EmptyState dense action={first}>
+              none saved in this browser yet.
+            </EmptyState>
           ) : (
             local.map((bot) => {
               const target: DocTarget = { kind: 'local', id: bot.id }
@@ -111,9 +124,13 @@ export function Library({
         {(cloud !== undefined || cloudError) && onOpenCloud !== undefined && (
           <Section title="mine (cloud)">
             {cloud === undefined ? (
-              <p className="px-1 text-data text-muted">could not read your account's bots.</p>
+              cloudRead !== undefined && (
+                <LoadFailure read={cloudRead} what="your account's bots" dense />
+              )
             ) : cloud.length === 0 ? (
-              <p className="px-1 text-data text-muted">none yet: save while signed in.</p>
+              <EmptyState dense action={first}>
+                none in your account yet: a save, signed in, keeps it there too.
+              </EmptyState>
             ) : (
               cloud.map((mine) => (
                 <Row

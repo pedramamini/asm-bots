@@ -246,7 +246,9 @@ describe('the editor page', () => {
     )
     fireEvent.click(toolbar().getByRole('button', { name: 'versions' }))
     const dialog = await screen.findByRole('dialog', { name: 'versions' })
-    const saves = within(within(dialog).getByRole('list', { name: 'saves' })).getAllByRole('button')
+    // The saves are read as the dialog opens.
+    const list = await within(dialog).findByRole('list', { name: 'saves' })
+    const saves = within(list).getAllByRole('button')
     expect(saves).toHaveLength(2)
     fireEvent.click(saves[1] as HTMLElement)
     expect(within(dialog).getByLabelText('diff').textContent).toContain('+ ; more')

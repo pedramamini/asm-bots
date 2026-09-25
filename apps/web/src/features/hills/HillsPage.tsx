@@ -1,8 +1,9 @@
 import type { HillBest, HillSummary } from '@asmbots/protocol'
-import { Panel, PanelGrid, Skeleton, Table, type TableColumn } from '@asmbots/ui'
+import { EmptyState, Panel, PanelGrid, Skeleton, Table, type TableColumn } from '@asmbots/ui'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useHills, useMaybeUser, useMe } from '../../api/queries'
 import { LoadFailure, readStatus } from '../../app/LoadFailure'
+import { useLinkAction } from '../../app/link-action'
 import { BotLink, CELL_LINK, count, rules } from './links'
 
 const COLUMNS: TableColumn<HillSummary>[] = [
@@ -71,7 +72,9 @@ function bestColumn(best: ReadonlyMap<string, HillBest> | null): TableColumn<Hil
  * reader's best place there.
  */
 export function HillsPage() {
-  const { data, error } = useHills()
+  const read = useHills()
+  const { data, error } = read
+  const link = useLinkAction()
   const handle = useMe().data?.user.handle ?? null
   const profile = useMaybeUser(handle)
   const best = profile.data ? new Map(profile.data.hills.map((b) => [b.hill.slug, b])) : null
@@ -84,7 +87,7 @@ export function HillsPage() {
         status={readStatus(data, error, (d) => `${d.hills.length} hills`)}
       >
         {error !== null && data === undefined ? (
-          <LoadFailure error={error} />
+          <LoadFailure read={read} />
         ) : (
           <Table
             aria-label="hills"
@@ -95,7 +98,9 @@ export function HillsPage() {
               data === undefined ? (
                 <Skeleton rows={3} />
               ) : (
-                <p className="text-data text-muted">no hill is open yet.</p>
+                <EmptyState action={link('see how hills work', '/docs/tournaments/hills')}>
+                  no hill is open yet.
+                </EmptyState>
               )
             }
             onRowClick={({ hill }) =>

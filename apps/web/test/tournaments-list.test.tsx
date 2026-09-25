@@ -163,6 +163,16 @@ describe('the tournament list', () => {
       target: { value: 'zzz' },
     })
     expect(screen.getByText('no tournament matches.')).toBeTruthy()
+    // Its one way on: every filter off, the search too.
+    fireEvent.click(screen.getByRole('radio', { name: 'melee' }))
+    fireEvent.click(screen.getByRole('button', { name: 'clear the filters' }))
+    expect(names()).toHaveLength(3)
+    expect(screen.getByRole('radio', { name: 'all kinds' }).getAttribute('aria-checked')).toBe(
+      'true',
+    )
+    expect(
+      (screen.getByRole('searchbox', { name: 'search tournaments' }) as HTMLInputElement).value,
+    ).toBe('')
   })
 
   it('opens a tournament from its card', async () => {

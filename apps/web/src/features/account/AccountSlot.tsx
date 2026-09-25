@@ -8,11 +8,13 @@ import { useMe } from '../../api/queries'
 import { signInHref, signOut } from '../../api/writes'
 
 /** Sends the browser to GitHub's sign-in, and back to this page after. */
+export function signIn(): void {
+  const { pathname, search, hash } = window.location
+  window.location.assign(signInHref(`${pathname}${search}${hash}`))
+}
+
+/** `sign in with github`: `signIn`. */
 export function SignInButton({ children = 'sign in with github' }: { children?: string }) {
-  const signIn = () => {
-    const { pathname, search, hash } = window.location
-    window.location.assign(signInHref(`${pathname}${search}${hash}`))
-  }
   return (
     <Button size="sm" icon={LogIn} onClick={signIn}>
       {children}

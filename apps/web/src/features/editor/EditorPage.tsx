@@ -30,8 +30,9 @@ import { botVersionQuery, useMe, useMyBots } from '../../api/queries'
 import { FrameToolbar } from '../../app/Frame'
 import { EDITOR_KEYS } from '../../app/keymaps'
 import { type KeyCommand, useKeys } from '../../app/keys'
+import { useLinkAction } from '../../app/link-action'
 import { useRouteStat } from '../../app/slots'
-import { addVersion, useBotVersions, versionsKey } from '../../store/bot-versions'
+import { addVersion, versionsKey } from '../../store/bot-versions'
 import {
   LOCAL_BOTS_KEY,
   type LocalBot,
@@ -176,7 +177,7 @@ export function EditorPage({
   assembleDelay,
   debug = DEFAULT_DEBUG_SETUP,
 }: EditorPageProps) {
-  const navigate = useNavigate()
+  const link = useLinkAction()
   const localBots = useLocalBots()
   const [assembler, setAssembler] = useState<AsmClient | null>(null)
   // One Worker for the page; made in an effect, so a render that is thrown away makes none.
@@ -196,16 +197,7 @@ export function EditorPage({
   if (doc === 'missing') {
     return (
       <div className="p-3">
-        <EmptyState
-          action={{
-            label: 'write a new bot',
-            href: '/editor',
-            onClick: (event) => {
-              event.preventDefault()
-              void navigate({ to: '/editor' })
-            },
-          }}
-        >
+        <EmptyState action={link('write a new bot', '/editor')}>
           no bot with this id in this browser: it lives in another browser, or it was deleted.
         </EmptyState>
       </div>
@@ -313,7 +305,6 @@ function Workbench({
     [view],
   )
   const localId = doc.local?.id ?? (doc.target.kind === 'local' ? doc.target.id : null)
-  const versions = useBotVersions(doc.local === null ? null : doc.local.id)
   // Read from the list, not `doc`: the first cloud save links the bot after the document opened.
   const cloudId = localBots.data?.find((b) => b.id === localId)?.cloudId ?? null
   const [selection] = useState(() => {
@@ -748,7 +739,7 @@ function Workbench({
           onSave={() => void save()}
           onFork={() => doc.roster !== null && void fork(doc.roster)}
           onVersions={() => setVersionsOpen(true)}
-          canVersions={(versions.data?.length ?? 0) > 0 || cloudId !== null}
+          canVersions={!doc.readOnly || cloudId !== null}
           onShare={share}
           test={test}
           testStale={test.status === 'done' && test.tested.source !== source}
@@ -783,7 +774,8 @@ function Workbench({
               current={doc.key}
               local={localBots.data}
               cloud={signedIn ? myBots.data?.bots : undefined}
-              cloudError={myBots.isError}
+              cloudRead={myBots}
+              onSave={doc.readOnly ? undefined : () => void save()}
               recent={recent}
               onOpen={go}
               onOpenCloud={(bot) => void openCloud(bot)}
@@ -854,6 +846,7 @@ function Workbench({
         current={source}
         onClose={() => setVersionsOpen(false)}
         onRestore={restore}
+        onSave={() => void save()}
       />
     </>
   )
