@@ -20,10 +20,16 @@ const newClient = () => new ArenaClient({ store: createArenaStore() })
 
 const count = (n: number) => n.toLocaleString('en-US')
 
+/** The demo's root: all of the hero's grid, its columns shared. */
+const GRID = 'relative col-span-full row-start-1 grid grid-cols-subgrid grid-rows-1'
+/** The battle's cell: the hero's black box, the middle column from `xl` on. */
+const CELL = 'relative col-start-1 row-start-1 min-h-0 xl:col-start-2'
+
 /**
  * The home page's hero battle (PRODUCT_SPEC §1): the demo's four bots in the arena, over and
- * over (`demo.ts`), with no HUD and no controls, and a legend of the bots. It fills the box it is
- * in. It pauses while the tab is hidden or the demo is off screen. Under reduced motion it is a
+ * over (`demo.ts`), with no HUD and no controls, and a legend of the bots. It is a grid item that
+ * spans the hero's grid (`HomePage`) as a subgrid: the battle in the hero's black box, and from
+ * `xl` on the legend in the column right of it. It pauses while the tab is hidden or the demo is off screen. Under reduced motion it is a
  * still: one battle's owner map.
  */
 export function HomeDemo(props: HomeDemoProps) {
@@ -63,15 +69,17 @@ function DemoBattle({ onStatus, createClient = newClient }: HomeDemoProps) {
   }, [seen, client])
 
   return (
-    <div ref={box} className="absolute inset-0" data-demo="live">
+    <div ref={box} className={GRID} data-demo="live">
       {client !== null && (
-        <ArenaCanvas
-          client={client}
-          interactive={false}
-          minimap={false}
-          label={`demo battle: ${bots.map((bot) => bot.name).join(', ')}`}
-          className="size-full"
-        />
+        <div className={cx(CELL, 'overflow-hidden rounded-sm border border-transparent')}>
+          <ArenaCanvas
+            client={client}
+            interactive={false}
+            minimap={false}
+            label={`demo battle: ${bots.map((bot) => bot.name).join(', ')}`}
+            className="size-full"
+          />
+        </div>
       )}
       {client !== null && <LiveLegend client={client} bots={bots} />}
     </div>
@@ -115,16 +123,18 @@ function DemoStill({ onStatus, createClient = newClient }: HomeDemoProps) {
 
   const names = bots.map((bot) => bot.name).join(', ')
   return (
-    <div className="absolute inset-0 flex items-center justify-center" data-demo="still">
+    <div className={GRID} data-demo="still">
       {frame !== null && (
-        <canvas
-          ref={canvas}
-          width={SIDE}
-          height={SIDE}
-          role="img"
-          aria-label={`demo battle at cycle ${count(STILL_CYCLE)}: the core as ${names} own it`}
-          className="aspect-square h-full [image-rendering:pixelated]"
-        />
+        <div className={cx(CELL, 'flex items-center justify-center')}>
+          <canvas
+            ref={canvas}
+            width={SIDE}
+            height={SIDE}
+            role="img"
+            aria-label={`demo battle at cycle ${count(STILL_CYCLE)}: the core as ${names} own it`}
+            className="aspect-square h-full [image-rendering:pixelated]"
+          />
+        </div>
       )}
       {frame !== null && <Legend bots={bots} alive={aliveOf(frame.stats, bots.length)} />}
     </div>
@@ -147,12 +157,15 @@ function LiveLegend({ client, bots }: { client: ArenaClient; bots: readonly Aren
   return <Legend bots={bots} alive={[...key].map((c) => c === '1')} />
 }
 
-/** Each bot's hue and name, bottom right, on a panel: paper's text would vanish on black. */
+/**
+ * Each bot's hue and name, on a panel: paper's text would vanish on black. Over the battle's
+ * bottom right, and from `xl` on in the column right of it, at its foot.
+ */
 function Legend({ bots, alive }: { bots: readonly ArenaBot[]; alive: readonly boolean[] }) {
   return (
     <ul
       aria-label="the demo's bots"
-      className="pointer-events-none absolute right-3 bottom-3 hidden flex-col gap-0.5 rounded-md border border-border bg-panel px-2.5 py-2 sm:flex"
+      className="pointer-events-none absolute right-3 bottom-3 hidden flex-col gap-0.5 rounded-md border border-border bg-panel px-2.5 py-2 sm:flex xl:static xl:col-start-3 xl:row-start-1 xl:self-end xl:justify-self-start"
     >
       {bots.map((bot, i) => (
         <li

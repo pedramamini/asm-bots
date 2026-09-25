@@ -191,8 +191,10 @@ function Championship() {
 }
 
 /**
- * The demo battle on the arena's black, and over it the name, the one line, and the two ways in.
- * They sit on a panel: the arena is black in every theme, and paper's text is dark.
+ * The demo battle on the arena's black, and the name, the one line, and the two ways in. They sit
+ * on a panel: the arena is black in every theme, and paper's text is dark. Under `xl` the name
+ * card sits over the battle; from `xl` on the black box is only the map (the core's 20rem square
+ * and the row ruler's 44 px), with the card left of it and the demo's legend right of it.
  */
 function Hero({ demo: Demo }: { demo: ComponentType<HomeDemoProps> }) {
   const [status, setStatus] = useState('4 bots · loading')
@@ -206,7 +208,8 @@ function Hero({ demo: Demo }: { demo: ComponentType<HomeDemoProps> }) {
   )
   return (
     <Panel className="col-span-12" title="live demo" status={status}>
-      <div className="relative h-80 overflow-hidden rounded-sm border border-border bg-arena-bg">
+      <div className="relative grid h-80 grid-cols-1 grid-rows-1 xl:grid-cols-[minmax(0,1fr)_calc(20rem_+_44px)_minmax(0,1fr)] xl:gap-4">
+        <div className="col-start-1 row-start-1 rounded-sm border border-border bg-arena-bg xl:col-start-2" />
         {idle ? (
           <Suspense fallback={loader}>
             <Demo onStatus={setStatus} />
@@ -214,7 +217,7 @@ function Hero({ demo: Demo }: { demo: ComponentType<HomeDemoProps> }) {
         ) : (
           loader
         )}
-        <div className="absolute bottom-3 left-3 flex flex-col gap-2 rounded-md border border-border bg-panel p-4">
+        <div className="absolute bottom-3 left-3 flex flex-col gap-2 rounded-md border border-border bg-panel p-4 xl:static xl:col-start-1 xl:row-start-1 xl:self-end xl:justify-self-end">
           <h1 className="flex items-center gap-2 text-modal-title text-bright">
             <LogoMark size={24} />
             ASM BOTS
