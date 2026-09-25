@@ -3,26 +3,10 @@
  * replay links of `replay link` and of `/arena/$replayId`.
  */
 import type { ToastApi } from '@asmbots/ui'
+import { copyLink } from '../share/share'
 import { type ArenaSetupSpec, type SharedBot, shareUrl } from './setup/url'
 
-/**
- * Copies `url` and says `done` in a toast, or that it could not. Returns the link, or null when
- * the clipboard refused it.
- */
-export async function copyLink(
-  url: string,
-  toast: ToastApi['toast'],
-  done: string,
-): Promise<string | null> {
-  try {
-    await navigator.clipboard.writeText(url)
-    toast(done, { variant: 'accent' })
-    return url
-  } catch {
-    toast('could not copy the link.', { variant: 'danger' })
-    return null
-  }
-}
+export { copyLink }
 
 /**
  * Copies the link of `spec`, with the sources of `bots` in its fragment, and says so in a toast.

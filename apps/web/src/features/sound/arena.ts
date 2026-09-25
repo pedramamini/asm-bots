@@ -8,7 +8,7 @@
  */
 import { meleeStandings } from '@asmbots/tourney'
 import { useEffect } from 'react'
-import { matchOutcome, roundOutcome } from '../arena/battle/Victory'
+import { matchOutcome, roundOutcome } from '../arena/battle/outcome'
 import type { ArenaClient, ArenaState } from '../arena/worker/client'
 import { BOT_DEATH_FIELDS, DEATH_FIELDS, type EndedMessage } from '../arena/worker/protocol'
 import { appSound, type SoundEngine } from './engine'

@@ -4,6 +4,9 @@
  */
 import { create } from 'zustand'
 
+/** How long a match rests between rounds when autoplay is on, ms: time to read the round's end. */
+export const ROUND_PAUSE_MS = 1500
+
 /** What the events log shows: everything, no spawns, or the bots' fates alone. */
 export type EventFilter = 'all' | 'deaths' | 'bots'
 

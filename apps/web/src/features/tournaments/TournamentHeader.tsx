@@ -1,10 +1,13 @@
 /**
- * A tournament's header (PRODUCT_SPEC §4): its name, kind, and status, the live controls, `share`,
- * and the entrants as chips with their identicons, the champion's in accent. A shared tournament
- * (a link's snapshot, `share.ts`) has no controls: nothing runs it in this browser.
+ * A tournament's header (PRODUCT_SPEC §4): its name, kind, and status, the live controls,
+ * `share ▾`, and the entrants as chips with their identicons, the champion's in accent. A shared
+ * tournament (a link's snapshot, `share.ts`) has no controls: nothing runs it in this browser.
+ * `share ▾` copies the tournament's link (it carries the tournament) and saves a bracket as a PNG;
+ * a tournament of this browser has no card or stored match on the server to share.
  */
-import { Button, Chip, Identicon, Panel, useToast } from '@asmbots/ui'
-import { Link } from 'lucide-react'
+import { Chip, Identicon, Panel, useToast } from '@asmbots/ui'
+import { ShareMenu } from '../share/ShareMenu'
+import { downloadBracketPng } from './export'
 import { copyTournamentLink } from './share'
 import { KIND_LABELS, type Tournament } from './store'
 import { StatusChip, TournamentControls } from './TournamentControls'
@@ -24,10 +27,14 @@ export function TournamentHeader({
   createClient,
 }: TournamentHeaderProps) {
   const { toast } = useToast()
+  const savePng = async () => {
+    if (!(await downloadBracketPng(t))) toast('could not make the image.', { variant: 'danger' })
+  }
   const share = (
-    <Button size="sm" icon={Link} onClick={() => void copyTournamentLink(t, toast)}>
-      share
-    </Button>
+    <ShareMenu
+      link={() => void copyTournamentLink(t, toast)}
+      png={t.bracket === undefined ? undefined : () => void savePng()}
+    />
   )
   const n = t.entrants.length
   return (

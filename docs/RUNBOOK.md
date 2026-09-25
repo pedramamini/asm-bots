@@ -214,9 +214,13 @@ wrangler kv key delete "sess:example-session-id" --namespace-id 24af2453a5994d24
 wrangler kv key delete "usess:user-123:*" --namespace-id 24af2453a5994d24ace5f8f0900f04ca --path
 # Clear the ticker feed cache (it refreshes after 30 s automatically)
 wrangler kv key delete "ticker" --namespace-id 24af2453a5994d24ace5f8f0900f04ca
+# Redraw a replay's share card after a card design change (its SVG; PNGs are keyed by their SVG's hash)
+wrangler kv key delete "og:<replay key>" --namespace-id 24af2453a5994d24ace5f8f0900f04ca
 ```
 
-KV TTL: Sessions expire at 30 days (set on write); rate limits use 1-minute windows; caches use 1–24 hours.
+KV TTL: Sessions expire at 30 days (set on write); rate limits use 1-minute windows; caches use 1–24 hours. Share cards (`og:<replay key>` SVGs, `og:png:<sha-256 of the SVG>` PNGs) keep a day; a new card design reaches every card within a day, or at once after deleting the `og:` keys.
+
+**Never mark a binding `remote` in `apps/api/wrangler.jsonc`.** Until 2026-09-25 the D1 binding had `"remote": true`, and the API tests and `wrangler dev` wrote to production D1 (test bots on the hills, a fake championship). Before any production write: `wrangler d1 export asmbots --remote --output <file>` and note `wrangler d1 time-travel info asmbots` (restore with `wrangler d1 time-travel restore asmbots --bookmark <bookmark>`).
 
 ## R2 Lifecycle and Maintenance
 

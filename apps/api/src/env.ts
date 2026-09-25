@@ -17,6 +17,11 @@ export interface Env {
   MATCH_ANALYTICS?: AnalyticsEngineDataset
   ISA_VERSION: string
   APP_VERSION: string
+  /**
+   * The site's canonical origin, `https://asmbots.io`: what page heads link to and share cards
+   * sign, whichever host served them (a preview, `wrangler dev`).
+   */
+  SITE_URL: string
   /** The one origin CORS lets in. */
   APP_ORIGIN: string
   /**

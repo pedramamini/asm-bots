@@ -25,6 +25,8 @@ import { Route as HillsSlugRouteImport } from './routes/hills/$slug'
 import { Route as TournamentsIndexRouteImport } from './routes/tournaments/index'
 import { Route as TournamentsIdRouteImport } from './routes/tournaments/$id'
 import { Route as UHandleRouteImport } from './routes/u/$handle'
+import { Route as EmbedArenaIndexRouteImport } from './routes/embed/arena/index'
+import { Route as EmbedArenaReplayIdRouteImport } from './routes/embed/arena/$replayId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -106,6 +108,16 @@ const UHandleRoute = UHandleRouteImport.update({
   path: '/u/$handle',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EmbedArenaIndexRoute = EmbedArenaIndexRouteImport.update({
+  id: '/embed/arena/',
+  path: '/embed/arena/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmbedArenaReplayIdRoute = EmbedArenaReplayIdRouteImport.update({
+  id: '/embed/arena/$replayId',
+  path: '/embed/arena/$replayId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -124,6 +136,8 @@ export interface FileRoutesByFullPath {
   '/editor/': typeof EditorIndexRoute
   '/hills/': typeof HillsIndexRoute
   '/tournaments/': typeof TournamentsIndexRoute
+  '/embed/arena/$replayId': typeof EmbedArenaReplayIdRoute
+  '/embed/arena/': typeof EmbedArenaIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -141,6 +155,8 @@ export interface FileRoutesByTo {
   '/editor': typeof EditorIndexRoute
   '/hills': typeof HillsIndexRoute
   '/tournaments': typeof TournamentsIndexRoute
+  '/embed/arena/$replayId': typeof EmbedArenaReplayIdRoute
+  '/embed/arena': typeof EmbedArenaIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -160,6 +176,8 @@ export interface FileRoutesById {
   '/editor/': typeof EditorIndexRoute
   '/hills/': typeof HillsIndexRoute
   '/tournaments/': typeof TournamentsIndexRoute
+  '/embed/arena/$replayId': typeof EmbedArenaReplayIdRoute
+  '/embed/arena/': typeof EmbedArenaIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -180,6 +198,8 @@ export interface FileRouteTypes {
     | '/editor/'
     | '/hills/'
     | '/tournaments/'
+    | '/embed/arena/$replayId'
+    | '/embed/arena/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -197,6 +217,8 @@ export interface FileRouteTypes {
     | '/editor'
     | '/hills'
     | '/tournaments'
+    | '/embed/arena/$replayId'
+    | '/embed/arena'
   id:
     | '__root__'
     | '/'
@@ -215,6 +237,8 @@ export interface FileRouteTypes {
     | '/editor/'
     | '/hills/'
     | '/tournaments/'
+    | '/embed/arena/$replayId'
+    | '/embed/arena/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -232,6 +256,8 @@ export interface RootRouteChildren {
   EditorIndexRoute: typeof EditorIndexRoute
   HillsIndexRoute: typeof HillsIndexRoute
   TournamentsIndexRoute: typeof TournamentsIndexRoute
+  EmbedArenaReplayIdRoute: typeof EmbedArenaReplayIdRoute
+  EmbedArenaIndexRoute: typeof EmbedArenaIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -348,6 +374,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UHandleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/embed/arena/': {
+      id: '/embed/arena/'
+      path: '/embed/arena'
+      fullPath: '/embed/arena/'
+      preLoaderRoute: typeof EmbedArenaIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/embed/arena/$replayId': {
+      id: '/embed/arena/$replayId'
+      path: '/embed/arena/$replayId'
+      fullPath: '/embed/arena/$replayId'
+      preLoaderRoute: typeof EmbedArenaReplayIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -378,6 +418,8 @@ const rootRouteChildren: RootRouteChildren = {
   EditorIndexRoute: EditorIndexRoute,
   HillsIndexRoute: HillsIndexRoute,
   TournamentsIndexRoute: TournamentsIndexRoute,
+  EmbedArenaReplayIdRoute: EmbedArenaReplayIdRoute,
+  EmbedArenaIndexRoute: EmbedArenaIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

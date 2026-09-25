@@ -5,6 +5,8 @@ import { Settings2, Trophy } from 'lucide-react'
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from 'zustand'
 import { useRouteStat } from '../../app/slots'
+import { ShareMenu, type ShareTarget } from '../share/ShareMenu'
+import { embedTitle, embedUrl } from '../share/share'
 import { useArenaSound } from '../sound/arena'
 import { ArenaCanvas, type ArenaCanvasHandle } from './ArenaCanvas'
 import { BotsPanel } from './battle/BotsPanel'
@@ -20,18 +22,16 @@ import { StandingsPanel } from './battle/StandingsPanel'
 import { captureArena } from './battle/screenshot'
 import { speedLabel } from './battle/speed'
 import { Transport } from './battle/Transport'
-import { RoundOver, roundOutcome, Victory } from './battle/Victory'
+import { roundOutcome } from './battle/outcome'
+import { RoundOver, Victory } from './battle/Victory'
 import type { ReplayCheck } from './battle/verify'
-import { useArenaView } from './battle/view'
+import { ROUND_PAUSE_MS, useArenaView } from './battle/view'
 import { type IntroRun, useIntroGuide } from './intro'
 import type { ArenaFight } from './setup/bots'
-import { searchFromSetup, sharedFragment } from './setup/url'
+import { searchFromSetup, sharedFragment, shareUrl } from './setup/url'
 import { copyLink, copyShareLink } from './share'
 import type { ArenaClient } from './worker/client'
 import { STAT_FIELDS, STAT_PROCS } from './worker/protocol'
-
-/** How long a match rests between rounds when autoplay is on, ms: time to read the round's end. */
-export const ROUND_PAUSE_MS = 1500
 
 /** A replay in the arena (`/arena/$replayId`): its check, and its own `share` and download. */
 export interface ReplayView {
@@ -39,6 +39,8 @@ export interface ReplayView {
   readonly check: ReplayCheck
   /** Copies the replay's link. */
   readonly onShare: () => void
+  /** The replay's embed (`/embed/arena/…`), for `share ▾`'s `copy embed`. */
+  readonly embed: string
   /** Saves the replay file as it came. */
   readonly onDownload: () => void
 }
@@ -167,6 +169,16 @@ export function ArenaBattle({
 
   const share = () => void copyShareLink(fixed, fight.shared, toast)
 
+  /** `share ▾`, in the arena's title row and at the battle's end. */
+  const shareTarget: ShareTarget = {
+    link: replay?.onShare ?? share,
+    embed: {
+      url: replay?.embed ?? embedUrl(shareUrl(window.location.origin, fixed, fight.shared)),
+      title: embedTitle(names),
+    },
+    png: () => void screenshot(),
+  }
+
   const debug = () => {
     void navigate({
       to: '/editor',
@@ -234,6 +246,7 @@ export function ArenaBattle({
                 result
               </Button>
             )}
+            <ShareMenu {...shareTarget} />
             <Button icon={Settings2} size="sm" onClick={onExit}>
               setup
             </Button>
@@ -281,7 +294,7 @@ export function ArenaBattle({
                   onDismiss={() => setHidden(true)}
                   onRematch={onRematch}
                   onNewSeed={onNewSeed}
-                  onShare={replay?.onShare ?? share}
+                  share={shareTarget}
                   onDebug={replay === undefined ? debug : undefined}
                   onDownload={replay?.onDownload ?? (() => void download())}
                   onReplayLink={replay === undefined ? copyReplayLink : undefined}

@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./themes": "./src/themes.ts",
+    "./identicon": "./src/identicon.ts",
     "./gallery": "./src/gallery/Gallery.tsx",
     "./tailwind.css": "./src/tailwind.css",
     "./tokens.css": "./src/tokens.css",

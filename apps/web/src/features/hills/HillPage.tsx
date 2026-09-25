@@ -1,4 +1,4 @@
-import { liveRoomName } from '@asmbots/protocol'
+import { liveRoomName, type MatchSummary } from '@asmbots/protocol'
 import { EmptyState, Panel, PanelGrid } from '@asmbots/ui'
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -11,6 +11,8 @@ import type { ArenaClient } from '../arena/worker/client'
 import { LivePanel } from '../live/LivePanel'
 import type { LiveRoomOptions } from '../live/room'
 import { useLiveRoom } from '../live/useLiveRoom'
+import { ShareMenu, type ShareTarget } from '../share/ShareMenu'
+import { embedTitle, embedUrl } from '../share/share'
 import { ChallengeMenu } from './ChallengeMenu'
 import { HillFeed } from './HillFeed'
 import { HillStandingsTable } from './HillStandingsTable'
@@ -22,6 +24,30 @@ import { SubmitButton, useSubmitAction } from './SubmitModal'
 
 /** The recent matches a hill page lists. */
 const RECENT = 20
+
+/**
+ * What a hill page shares (PRODUCT_SPEC §10): its link, its standings card as a PNG, and an embed
+ * of its newest match that has a replay, when it has one.
+ */
+export function hillShare(
+  slug: string,
+  matches: readonly MatchSummary[],
+  origin: string,
+): ShareTarget {
+  const newest = matches.find(({ match }) => match.replayKey !== null)
+  const key = newest?.match.replayKey ?? null
+  return {
+    link: `${origin}/hills/${slug}`,
+    png: { path: `/hills/${slug}/og.png`, name: `asmbots-hill-${slug}.png` },
+    embed:
+      newest === undefined || key === null
+        ? undefined
+        : {
+            url: embedUrl(`${origin}/arena/${key}`),
+            title: embedTitle(newest.bots.map((bot) => bot?.name ?? 'a deleted bot')),
+          },
+  }
+}
 
 export interface HillPageProps {
   slug: string
@@ -78,13 +104,16 @@ export function HillPage({ slug, submission = null, live, createArenaClient }: H
         title={detail?.hill.name ?? slug}
         status={readStatus(detail, hill.error, (d) => rules(d.hill.rounds, d.hill.config))}
         actions={
-          <SubmitButton
-            hill={detail?.hill}
-            entrants={detail?.standings.length ?? 0}
-            onSubmitted={follow}
-            open={submitting}
-            onOpenChange={setSubmitting}
-          />
+          <div className="flex gap-1">
+            <ShareMenu {...hillShare(slug, matches.data?.matches ?? [], window.location.origin)} />
+            <SubmitButton
+              hill={detail?.hill}
+              entrants={detail?.standings.length ?? 0}
+              onSubmitted={follow}
+              open={submitting}
+              onOpenChange={setSubmitting}
+            />
+          </div>
         }
       >
         {hill.error !== null && detail === undefined ? (

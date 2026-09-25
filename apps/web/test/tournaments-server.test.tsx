@@ -12,6 +12,7 @@ import {
   type BotLabel,
   type BotVersion,
   buildReplay,
+  entrantNames,
   type LiveMessage,
   type Match,
   type Me,
@@ -39,7 +40,7 @@ import type { ArenaClient } from '../src/features/arena/worker/client'
 import { BracketView } from '../src/features/tournaments/BracketView'
 import { takesEntries } from '../src/features/tournaments/entry'
 import { type MatchExecutor, TournamentRunner } from '../src/features/tournaments/runner'
-import { entrantNames, fromServer } from '../src/features/tournaments/server'
+import { fromServer } from '../src/features/tournaments/server'
 import {
   createTournament,
   deleteTournament,

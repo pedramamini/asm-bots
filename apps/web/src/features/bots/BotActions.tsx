@@ -8,7 +8,15 @@ import { LOCAL_BOTS_KEY, type LocalBot, useLocalBots } from '../../store/local-b
 import type { ArenaConfig } from '../../store/settings'
 import { DEFAULT_ARENA_CONFIG } from '../arena/setup/config'
 import type { ArenaSearch } from '../arena/setup/search'
-import { type BotRef, type SharedBot, searchFromSetup, sharedFragment } from '../arena/setup/url'
+import {
+  type BotRef,
+  type SharedBot,
+  searchFromSetup,
+  sharedFragment,
+  shareUrl,
+} from '../arena/setup/url'
+import { ShareMenu, type ShareTarget } from '../share/ShareMenu'
+import { embedUrl } from '../share/share'
 import { forkIntoMyBots } from './cloud'
 
 /**
@@ -30,10 +38,43 @@ export function challengeLink(
   return { search, hash: sharedFragment(shared) }
 }
 
+/** The roster bot a bot's embed spars with: the classic bomber, on a fixed seed. */
+export const SPARRING_PARTNER = 'dwarf'
+const SPARRING_SEED = 1
+
+/**
+ * What the bot page shares (PRODUCT_SPEC §10): its link; its card as a PNG, unless it is private
+ * (a private bot has no card); and, once its source is known, an embed of it sparring with
+ * `SPARRING_PARTNER`, its source in the embed's fragment.
+ */
+export function botShare(bot: Bot, source: string | undefined, origin: string): ShareTarget {
+  const spar = {
+    bots: [
+      { kind: 'local', id: bot.id } as const,
+      { kind: 'roster', slug: SPARRING_PARTNER } as const,
+    ],
+    config: { ...DEFAULT_ARENA_CONFIG, seed: SPARRING_SEED },
+  }
+  return {
+    link: `${origin}/bots/${bot.id}`,
+    png:
+      bot.visibility === 'private'
+        ? undefined
+        : { path: `/bots/${bot.id}/og.png`, name: `asmbots-${bot.slug}.png` },
+    embed:
+      source === undefined
+        ? undefined
+        : {
+            url: embedUrl(shareUrl(origin, spar, [{ id: bot.id, source }])),
+            title: `ASM BOTS: ${bot.name} vs ${SPARRING_PARTNER}`,
+          },
+  }
+}
+
 /**
  * The bot page's actions (PRODUCT_SPEC §6): `fork` copies the bot into my bots (the account's too
  * when signed in) and opens it in the editor; `challenge ▾` picks one of my bots to fight it in
- * the arena. Both need the source, so both wait while it is not public.
+ * the arena. Both need the source, so both wait while it is not public. `share ▾` (`botShare`).
  */
 export function BotActions({ bot, source }: { bot: Bot; source: string | undefined }) {
   const navigate = useNavigate()
@@ -73,6 +114,7 @@ export function BotActions({ bot, source }: { bot: Bot; source: string | undefin
   const mine = local.filter((b) => b.cloudId !== bot.id)
   return (
     <div className="flex gap-1">
+      <ShareMenu {...botShare(bot, source, window.location.origin)} />
       <Button
         size="sm"
         icon={GitFork}

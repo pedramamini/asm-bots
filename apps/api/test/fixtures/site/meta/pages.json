@@ -1,0 +1,36 @@
+{
+  "pages": {
+    "/": {
+      "title": "ASM BOTS // HOME",
+      "description": "Write 8086 assembly. Fight for 64 KB.",
+      "label": "",
+      "headline": "Write 8086 assembly. Fight for 64 KB."
+    },
+    "/arena": {
+      "title": "ASM BOTS // ARENA",
+      "description": "Load up to 16 bots into one 64 KB core and watch them fight live.",
+      "label": "arena",
+      "headline": "the arena"
+    },
+    "/docs/machine/memory": {
+      "title": "ASM BOTS // DOCS · memory",
+      "description": "one 64 KB ring: wrap, zero as DAT, code as data, and ownership.",
+      "label": "docs",
+      "headline": "memory"
+    },
+    "/settings": {
+      "title": "ASM BOTS // SETTINGS",
+      "description": "Theme, arena effects, sound, keys, and your account.",
+      "label": "settings",
+      "headline": "settings",
+      "noindex": true
+    },
+    "/embed/arena": {
+      "title": "ASM BOTS // EMBED",
+      "description": "A battle in the ASM BOTS arena.",
+      "label": "arena",
+      "headline": "the arena",
+      "noindex": true
+    }
+  }
+}

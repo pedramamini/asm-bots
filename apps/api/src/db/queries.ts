@@ -429,6 +429,21 @@ export async function listBotsByOwner(
   return results.map(toBot)
 }
 
+/** The public bots the sitemap lists: each one's id and last change, the latest first. */
+export async function listPublicBotPages(
+  db: D1Database,
+  limit: number,
+): Promise<{ id: string; updatedAt: string }[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT id, updated_at FROM bots WHERE visibility = 'public' AND deleted_at IS NULL
+       ORDER BY updated_at DESC LIMIT ?`,
+    )
+    .bind(limit)
+    .all<{ id: string; updated_at: string }>()
+  return results.map((row) => ({ id: row.id, updatedAt: row.updated_at }))
+}
+
 /** How many bots `ownerId` has, not counting deleted ones: what `MAX_BOTS_PER_USER` holds. */
 export async function countBots(db: D1Database, ownerId: string): Promise<number> {
   const row = await db

@@ -6,21 +6,25 @@
   "name": "asmbots",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-15",
+  // The share cards' font (src/og/fonts): a `.ttf` import is its bytes, an ArrayBuffer.
+  "rules": [{ "type": "Data", "globs": ["**/*.ttf"], "fallthrough": true }],
   // Production domain: a Workers Custom Domain on the asmbots.io zone (same Cloudflare account).
   "routes": [{ "pattern": "asmbots.io", "custom_domain": true }],
   "assets": {
     "directory": "../web/dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    // Without this, a navigation to /api/... would get the SPA's index.html.
-    "run_worker_first": ["/api/*"]
+    // The Worker first for everything but the build's hashed files and pictures: /api/..., and each
+    // page, so it can write the page's own head for link previews (src/site/), and /sitemap.xml.
+    "run_worker_first": ["/*", "!/assets/*", "!/docs-shots/*", "!/favicon.svg"]
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "asmbots",
       "database_id": "5c8bd9ee-3bb7-4eea-8bfe-dee862bee2e3",
-      "remote": true,
+      // Not `remote`: `wrangler dev` and the API tests keep to local D1; deploys bind this id, and
+      // `--remote` on a d1 command reaches it.
       "migrations_dir": "src/db/migrations"
     }
   ],
@@ -41,6 +45,8 @@
   },
   "vars": {
     "ISA_VERSION": "x16c-v1",
+    // The canonical origin page heads and share cards name (the web build's SITE_URL agrees).
+    "SITE_URL": "https://asmbots.io",
     // The build stamps the real one: `wrangler deploy --var APP_VERSION:<bun run version>`.
     "APP_VERSION": "dev",
     // The one cross-origin caller: the Vite dev server. The deployed app is same-origin.

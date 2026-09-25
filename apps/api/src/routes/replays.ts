@@ -1,15 +1,32 @@
 import { parse, parseReplay, ReplayUpload, replayKey, type StoredReplay } from '@asmbots/protocol'
-import { Hono } from 'hono'
+import { type Context, Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 import { jsonBody, limitBody } from '../body'
 import type { AppEnv } from '../env'
-import { finalOwners, ogSvg } from '../og'
+import { finalOwners, replayCard } from '../og/replay'
+import { CARD_TTL, type CardFormat, cardHost, sendCard } from '../og/send'
 import { keyParam } from '../params'
 import { getReplay, IMMUTABLE, ogCacheKey, replayObjectKey } from '../storage'
 import { checkResult, checkWork, verifyReplay } from '../verify'
 
-/** How long an OG image stays cached, in KV and in the response, seconds: a day. */
-export const OG_TTL = 24 * 60 * 60
+/**
+ * The share card of the path's replay (`og/replay.ts`), as SVG, from KV for a day: drawing it runs
+ * the last round again. 404 for a replay the server does not have.
+ */
+async function replaySvg(c: Context<AppEnv>): Promise<string> {
+  const key = keyParam(c.req.param('key') ?? '', 'the replay key')
+  const kept = await c.env.KV.get(ogCacheKey(key))
+  if (kept !== null) return kept
+  const replay = await getReplay(c.env.REPLAYS, key)
+  if (replay === null) throw new HTTPException(404, { message: `no replay ${key}` })
+  const svg = replayCard(replay, finalOwners(replay), cardHost(c.env))
+  await c.env.KV.put(ogCacheKey(key), svg, { expirationTtl: CARD_TTL })
+  return svg
+}
+
+/** The replay's card in `format`: a replay never changes, so clients keep it a day. */
+const card = (format: CardFormat) => async (c: Context<AppEnv>) =>
+  sendCard(c, await replaySvg(c), format, CARD_TTL)
 
 /**
  * `GET /api/replays/:key`: the protocol `Replay` stored under its `replayKey`, as stored (the
@@ -17,7 +34,8 @@ export const OG_TTL = 24 * 60 * 60
  * `POST /api/replays` `{ replay }`: checks the replay by running its match again (at most 16
  * bots, 10 rounds, and 200,000 cycles a round, else 413; a result that differs is a 422), stores
  * it, and answers `{ key, url }`: 201 when new, 200 when the server had it.
- * `GET /api/replays/:key/og.svg`: the replay's Open Graph image (`og.ts`), cached a day in KV.
+ * `GET /api/replays/:key/og.svg` and `og.png`: the replay's share card (`og/replay.ts`), its link
+ * previews' image; KV keeps it a day.
  */
 export const replays = new Hono<AppEnv>()
   .get('/:key', async (c) => {
@@ -50,19 +68,5 @@ export const replays = new Hono<AppEnv>()
     })
     return c.json(answer, 201)
   })
-  .get('/:key/og.svg', async (c) => {
-    const key = keyParam(c.req.param('key'), 'the replay key')
-    let svg = await c.env.KV.get(ogCacheKey(key))
-    if (svg === null) {
-      const replay = await getReplay(c.env.REPLAYS, key)
-      if (replay === null) throw new HTTPException(404, { message: `no replay ${key}` })
-      svg = ogSvg(replay, finalOwners(replay))
-      await c.env.KV.put(ogCacheKey(key), svg, { expirationTtl: OG_TTL })
-    }
-    return c.body(svg, 200, {
-      'Content-Type': 'image/svg+xml; charset=utf-8',
-      'Cache-Control': `public, max-age=${OG_TTL}`,
-      // An SVG opened as a page runs no script and loads nothing.
-      'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'",
-    })
-  })
+  .get('/:key/og.svg', card('svg'))
+  .get('/:key/og.png', card('png'))

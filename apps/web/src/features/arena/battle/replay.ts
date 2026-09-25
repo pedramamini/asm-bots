@@ -21,8 +21,10 @@ import {
   parseReplay,
   type Replay,
   replayBots,
+  replayConfig,
 } from '@asmbots/protocol'
 import type { MatchResult, MatchRound } from '@asmbots/tourney'
+import type { ArenaFight } from '../setup/bots'
 import { CYCLES, MAX_ARENA_BOTS, MIN_ARENA_BOTS, PROCS, ROUNDS } from '../setup/config'
 import type { ArenaBot } from '../worker/protocol'
 
@@ -317,5 +319,22 @@ function parseRound(value: unknown, i: number, n: number): MatchRound {
     points: integers(r.points, `${what}'s points`, n),
     survivors: integers(r.survivors, `${what}'s survivors`, null, 0, n - 1),
     survival: integers(r.survival, `${what}'s survival`, n),
+  }
+}
+
+/** A replay as the arena fights it. Its bots are bytes, not refs: it has no setup to show. */
+export function replayFight(replay: Replay, bots: readonly ArenaBot[]): ArenaFight {
+  const config = replayConfig(replay)
+  const { maxCycles, maxProcesses, minSpacing, seed } = config
+  return {
+    bots,
+    config,
+    rounds: replay.rounds,
+    spec: {
+      bots: [],
+      config: { preset: null, rounds: replay.rounds, maxCycles, maxProcesses, minSpacing, seed },
+    },
+    sources: replay.bots.map((bot) => bot.source ?? ''),
+    shared: [],
   }
 }

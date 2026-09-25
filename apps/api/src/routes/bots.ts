@@ -38,6 +38,8 @@ import {
 } from '../db/queries'
 import type { AppEnv } from '../env'
 import { errorResponse } from '../middleware'
+import { botCard } from '../og/bot'
+import { type CardFormat, cardHost, LIVE_CARD_AGE, sendCard } from '../og/send'
 import { idParam, wholeParam } from '../params'
 import { botBytesKey } from '../storage'
 import { viewerId } from '../viewer'
@@ -301,6 +303,25 @@ async function importBots(c: Context<AppEnv>): Promise<Response> {
   return c.json({ results: filled } satisfies ImportBotsResult, 201)
 }
 
+/** `GET /api/bots/:id`'s body for `bot`: its owner, its versions, and its hill places. */
+async function botDetail(c: Context<AppEnv>, bot: Bot): Promise<BotDetail> {
+  const [owner, versions, placements] = await Promise.all([
+    getUser(c.env.DB, bot.ownerId),
+    listBotVersions(c.env.DB, bot.id),
+    listBotPlacements(c.env.DB, bot.id),
+  ])
+  if (owner === null) throw new Error(`bot ${bot.id} has no owner ${bot.ownerId}`)
+  return { bot, owner, versions, placements }
+}
+
+/** The path's bot's share card in `format`: a public or unlisted bot's, else a 404. */
+const card = (format: CardFormat) => async (c: Context<AppEnv>) => {
+  const id = c.req.param('id') ?? ''
+  const bot = await visibleBot(c, id)
+  if (bot.visibility === 'private') throw new HTTPException(404, { message: `no bot ${id}` })
+  return sendCard(c, botCard(await botDetail(c, bot), cardHost(c.env)), format, LIVE_CARD_AGE)
+}
+
 /** The most a request that carries one source may be: `MAX_SOURCE_TEXT` UTF-16 units as UTF-8. */
 const ONE_SOURCE_BODY = 256 * 1024
 
@@ -309,6 +330,8 @@ const ONE_SOURCE_BODY = 256 * 1024
  * sources), and its hill places. `GET /api/bots/:id/versions/:v`: one version, with its source
  * when the bot is public or the reader owns it. An unlisted bot shows to anyone with its link, but
  * not its source. A private or deleted bot is a 404, to its owner too once it is deleted.
+ * `GET /api/bots/:id/og.svg` and `og.png`: its share card (`og/bot.ts`), for a public or unlisted
+ * bot; a private one has none, for its owner too, since a card is for sharing.
  */
 export const bots = new Hono<AppEnv>()
   .post('/', requireUser, limitBody(ONE_SOURCE_BODY), createBot)
@@ -316,16 +339,9 @@ export const bots = new Hono<AppEnv>()
   .patch('/:id', requireUser, limitBody(1024), updateBot)
   .post('/:id/versions', requireUser, limitBody(ONE_SOURCE_BODY), addVersion)
   .delete('/:id', requireUser, deleteBot)
-  .get('/:id', async (c) => {
-    const bot = await visibleBot(c, c.req.param('id'))
-    const [owner, versions, placements] = await Promise.all([
-      getUser(c.env.DB, bot.ownerId),
-      listBotVersions(c.env.DB, bot.id),
-      listBotPlacements(c.env.DB, bot.id),
-    ])
-    if (owner === null) throw new Error(`bot ${bot.id} has no owner ${bot.ownerId}`)
-    return c.json({ bot, owner, versions, placements } satisfies BotDetail)
-  })
+  .get('/:id', async (c) => c.json(await botDetail(c, await visibleBot(c, c.req.param('id')))))
+  .get('/:id/og.svg', card('svg'))
+  .get('/:id/og.png', card('png'))
   .get('/:id/versions/:v', async (c) => {
     const bot = await visibleBot(c, c.req.param('id'))
     const v = wholeParam(c.req.param('v'), 'the version', 1, Number.MAX_SAFE_INTEGER, 0)

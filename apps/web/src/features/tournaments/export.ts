@@ -77,3 +77,46 @@ export function downloadBracket(t: Tournament): void {
   const svg = bracketSvg(t.bracket, { palette: themePalette(), title: t.name })
   downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), `${stem(t)}-bracket.svg`)
 }
+
+/** How many device pixels a PNG of the bracket gives each of its CSS pixels. */
+const PNG_SCALE = 2
+
+/**
+ * `svg` drawn into a PNG at `PNG_SCALE`, or null where the browser cannot. An SVG drawn as an
+ * image reaches no web font: its text takes the system's monospace.
+ */
+async function svgPng(svg: string): Promise<Blob | null> {
+  const width = Number(/ width="([\d.]+)"/.exec(svg)?.[1] ?? 0)
+  const height = Number(/ height="([\d.]+)"/.exec(svg)?.[1] ?? 0)
+  const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }))
+  try {
+    const image = new Image()
+    image.src = url
+    await image.decode()
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.ceil(width * PNG_SCALE)
+    canvas.height = Math.ceil(height * PNG_SCALE)
+    const ctx = canvas.getContext('2d')
+    if (ctx === null) return null
+    ctx.scale(PNG_SCALE, PNG_SCALE)
+    ctx.drawImage(image, 0, 0, width, height)
+    return await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
+  } catch {
+    return null
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
+/**
+ * Saves the bracket as drawn, in the page's theme, as a PNG: `share ▾`'s `download png` for a
+ * tournament of this browser, which has no card on the server. False when there is no bracket or
+ * the browser could not draw it.
+ */
+export async function downloadBracketPng(t: Tournament): Promise<boolean> {
+  if (t.bracket === undefined) return false
+  const png = await svgPng(bracketSvg(t.bracket, { palette: themePalette(), title: t.name }))
+  if (png === null) return false
+  downloadBlob(png, `${stem(t)}-bracket.png`)
+  return true
+}

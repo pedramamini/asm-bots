@@ -111,6 +111,9 @@ Theme (five swatches, live preview), arena effects (bloom, scanlines, vignette, 
 
 - Share links encode `isa, config, seed, bots` (by server id, or by inline bytes for local bots ≤ 512 B each, base64url in the fragment). OG image per replay rendered server-side as SVG: arena thumbnail (owner map at end state) + winner line.
 - `download replay` writes `*.asmreplay.json` (protocol schema, includes sources when the sharer allows).
+- Every page's head carries its title, description, canonical link, and Open Graph and Twitter (`summary_large_image`) tags, written by the Worker from the web build's manifest or from the page's data. Share cards (1200 × 630, sentinel theme) are drawn as SVG and rendered to PNG at the edge: a replay's owner map and winner, a bot's identicon card, a hill's standings, a tournament's bracket thumbnail (or points), and a card for every other page.
+- `share ▾` on the arena, replays, bots, hills, and tournaments: `copy link`, `copy embed` (an `<iframe>` of `/embed/arena…`: the arena alone, autoplaying, play/pause and restart, and a `watch on asmbots` chip), `download png`.
+- `robots.txt` and `sitemap.xml` (the app's pages, the docs, the hills, the public bots); the embeds and the settings say `noindex`.
 
 ## 11. Quality bars (release gates)
 

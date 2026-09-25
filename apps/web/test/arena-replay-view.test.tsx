@@ -34,6 +34,7 @@ import type { ArenaBot } from '../src/features/arena/worker/protocol'
 import { answer, answerPost, refuse, useApiServer, WithQueries } from './api-server'
 import { stubCanvas } from './fake-canvas'
 import { manualSchedule, type SessionWorker, sessionClient } from './session-worker'
+import { pickShare } from './share-menu'
 
 useDom()
 window.scrollTo = () => {}
@@ -161,7 +162,7 @@ describe('a replay link', () => {
     expect(chip().title).toBe('the result hash matches the recorded one')
     expect(within(victory).getByText('verified').dataset.check).toBe('verified')
     expect(victory.dataset.resultHash).toBe(replay.result.rounds[0]?.resultHash ?? '')
-    for (const name of ['rematch', 'share', 'download replay']) {
+    for (const name of ['rematch', 'share ▾', 'download replay']) {
       expect(within(victory).getByRole('button', { name })).toBeTruthy()
     }
     // A replay's seed is its own, it names no setup, and its link is `share`'s.
@@ -193,14 +194,14 @@ describe('a replay link', () => {
       client.seek(100_000)
       await settle()
       const victory = await screen.findByRole('region', { name: 'winner · Dwarf' })
-      fireEvent.click(within(victory).getByRole('button', { name: 'share' }))
+      await pickShare(victory, 'copy link')
       await screen.findByText('replay link copied.')
       expect(seen).toEqual([{ replay }])
       expect(writeText).toHaveBeenLastCalledWith(url)
 
       const refusal = { error: { code: 'unprocessable', message: 'no' } }
       server.use(answerPost('/replays', refusal, 422))
-      fireEvent.click(within(victory).getByRole('button', { name: 'share' }))
+      await pickShare(victory, 'copy link')
       await waitFor(() => expect(writeText).toHaveBeenCalledTimes(2))
       expect(writeText).toHaveBeenLastCalledWith(replayUrl('http://localhost', replay))
     } finally {
@@ -235,7 +236,7 @@ describe('a replay link', () => {
       client.seek(100_000)
       await settle()
       const victory = await screen.findByRole('region', { name: 'winner · Dwarf' })
-      fireEvent.click(within(victory).getByRole('button', { name: 'share' }))
+      await pickShare(victory, 'copy link')
       await screen.findByText('replay link copied.')
       expect(writeText).toHaveBeenCalledWith(replayUrl('http://localhost', replay))
       fireEvent.click(within(victory).getByRole('button', { name: 'download replay' }))
@@ -327,7 +328,7 @@ describe('a stored replay', () => {
       await settle()
       const victory = await screen.findByRole('region', { name: 'winner · Dwarf' })
       await waitFor(() => expect(chip().textContent).toBe('verified'))
-      fireEvent.click(within(victory).getByRole('button', { name: 'share' }))
+      await pickShare(victory, 'copy link')
       await screen.findByText('replay link copied.')
       expect(writeText).toHaveBeenCalledWith(`http://localhost/arena/${key}`)
     } finally {

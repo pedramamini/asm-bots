@@ -53,6 +53,14 @@ The editor also reads two queries: `?t=dwarf` starts a new bot from a template, 
 
 A browser that has no tournament by that id opens the link as a snapshot: the page rebuilds the standings, the bracket, and the champion from the matches, and runs nothing. A tournament that was running when it was shared reads as paused.
 
+## Embeds
+
+`share ▾` then `copy embed` copies an `<iframe>` of a battle, to paste into another site. Its address is the arena link under `/embed`: `/embed/arena?b=…#src=…` for a battle, `/embed/arena/<key>` for a stored replay. The embed shows the arena alone, plays as it loads, and links back with `watch on asmbots`. It makes no sound and takes no keys, so the page around it keeps its own.
+
+## Cards
+
+A link to a replay, a bot, a hill, a tournament, or a docs page shows a card where it is shared: a 1200 × 630 picture the server draws from the data (the core at a replay's end, a bot's identicon, a hill's standings, a bracket). `share ▾` then `download png` saves it.
+
 ## Size
 
 Links are long when they carry sources, and some chat apps cut long links. A share link holds up to 16 bots of 16 KB of source each, and a replay link up to about 1 MB. If a link opens with its bots missing, it was cut: share it another way, or share the `.asm` files.

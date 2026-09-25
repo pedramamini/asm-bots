@@ -4,12 +4,12 @@
  * `Runner` plays them; the page only reads them. Their entrants are bot versions, whose bytes come
  * with each match's replay (`replays`), so watching a round loads its replay.
  */
-import type {
-  BotLabel,
-  Match,
-  TournamentSummary as ServerSummary,
-  Tournament as ServerTournament,
-  TournamentDetail,
+import {
+  entrantNames,
+  type Match,
+  type TournamentSummary as ServerSummary,
+  type Tournament as ServerTournament,
+  type TournamentDetail,
 } from '@asmbots/protocol'
 import {
   type Bracket,
@@ -37,18 +37,6 @@ export const SERVER_STATUS: Readonly<Record<ServerTournament['status'], Tourname
   running: 'running',
   finished: 'finished',
   cancelled: 'cancelled',
-}
-
-/**
- * The entrants' names, one each: a bot's name, and its owner's handle after it when another
- * entrant has the same name (`Dwarf (alice)`, `Dwarf (bob)`).
- */
-export function entrantNames(labels: readonly BotLabel[]): string[] {
-  const seen = new Map<string, number>()
-  for (const label of labels) seen.set(label.name, (seen.get(label.name) ?? 0) + 1)
-  return labels.map((label) =>
-    (seen.get(label.name) ?? 0) > 1 ? `${label.name} (${label.owner})` : label.name,
-  )
 }
 
 /** `match` as the tourney has a played match, its bots named as `nameOf` names their versions. */

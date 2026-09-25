@@ -35,9 +35,14 @@ export function botBytesKey(sha256: string): string {
   return `bots/${sha256}.bin`
 }
 
-/** A replay's OG image, in KV, by the replay's key. */
+/** A replay's share card, as SVG, in KV, by the replay's key. */
 export function ogCacheKey(key: string): string {
   return `og:${key}`
+}
+
+/** A share card's PNG, in KV, by the SHA-256 of its SVG. */
+export function pngCacheKey(svgSha256: string): string {
+  return `og:png:${svgSha256}`
 }
 
 /** What a response for an object that never changes may be cached as. */

@@ -38,6 +38,8 @@ import {
 import { runnerOf } from '../do/runner'
 import type { AppEnv, Env } from '../env'
 import { errorResponse, log } from '../middleware'
+import { hillCard } from '../og/hill'
+import { type CardFormat, cardHost, LIVE_CARD_AGE, sendCard } from '../og/send'
 import { idParam, slugParam, wholeParam } from '../params'
 import { viewerId } from '../viewer'
 
@@ -47,6 +49,13 @@ async function hillOf(c: Context<AppEnv>): Promise<Hill> {
   const hill = await getHillBySlug(c.env.DB, slug)
   if (hill === null) throw new HTTPException(404, { message: `no hill ${slug}` })
   return hill
+}
+
+/** The path's hill's share card in `format`, its standings as they are now. */
+const card = (format: CardFormat) => async (c: Context<AppEnv>) => {
+  const hill = await hillOf(c)
+  const standings = await listHillStandings(c.env.DB, hill.id)
+  return sendCard(c, hillCard(hill, standings, cardHost(c.env)), format, LIVE_CARD_AGE)
 }
 
 /** The 409 of a user who has a submission on the hill already: one at a time. */
@@ -229,6 +238,8 @@ async function submission(c: Context<AppEnv>): Promise<Response> {
  * `GET /api/hills/:slug/history?limit=`: what its submissions did to its board (`HillEvent`s),
  * newest first; `limit` is 1..100, 20 when left out.
  * `POST /api/hills/:slug/submit` and `GET /api/hills/:slug/submissions/:id`: above.
+ * `GET /api/hills/:slug/og.svg` and `og.png`: its share card (`og/hill.ts`), the standings as they
+ * are.
  */
 export const hills = new Hono<AppEnv>()
   .get('/', async (c) => c.json({ hills: await listHillSummaries(c.env.DB) } satisfies HillList))
@@ -259,5 +270,7 @@ export const hills = new Hono<AppEnv>()
     const hill = await hillOf(c)
     return c.json({ events: await listHillHistory(c.env.DB, hill.id, limit) } satisfies HillHistory)
   })
+  .get('/:slug/og.svg', card('svg'))
+  .get('/:slug/og.png', card('png'))
   .post('/:slug/submit', requireUser, limitBody(1024), submit)
   .get('/:slug/submissions/:id', submission)

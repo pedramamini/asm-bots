@@ -4,6 +4,7 @@
  * another page, and the keys and the rail that isolate bots.
  */
 import { type BrowserContext, expect, type Page, test } from '@playwright/test'
+import { pickShare } from './share'
 
 const fightButton = (page: Page) => page.locator('button[name="fight"]')
 /** The victory overlay: it carries the result hash (ISA §5.6). */
@@ -51,7 +52,7 @@ test('dwarf vs imp at seed 1 plays at max to a winner, and share replays the sam
     'first blood · Dwarf → Imp',
   )
 
-  await victory(page).getByRole('button', { name: 'share' }).click()
+  await pickShare(page, victory(page), 'copy link')
   await expect(page.getByText('link copied.')).toBeVisible()
   const link = await page.evaluate(() => navigator.clipboard.readText())
   expect(link).toMatch(
@@ -68,7 +69,7 @@ test('dwarf vs imp at seed 1 plays at max to a winner, and share replays the sam
 test('a battle with a random seed shares the seed it drew', async ({ context }) => {
   const page = await sharer(context)
   const hash = await fightToTheEnd(page, '/arena?b=roster:dwarf,roster:imp')
-  await victory(page).getByRole('button', { name: 'share' }).click()
+  await pickShare(page, victory(page), 'copy link')
   const link = await page.evaluate(() => navigator.clipboard.readText())
   const seed = new URL(link).searchParams.get('seed')
   expect(seed).toMatch(/^\d+$/)

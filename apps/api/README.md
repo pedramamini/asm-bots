@@ -37,20 +37,21 @@ Copy `.dev.vars.example` to `.dev.vars` (git-ignored) for `wrangler dev`. Produc
 
 | Binding | Kind | Resource | Holds |
 | --- | --- | --- | --- |
-| `ASSETS` | Static assets | `../web/dist` | The SPA; unknown paths get `index.html`, except `/api/*` (`run_worker_first`) |
+| `ASSETS` | Static assets | `../web/dist` | The SPA; unknown paths get `index.html`. Everything but `/assets/*`, `/docs-shots/*`, and `/favicon.svg` reaches the Worker first (`run_worker_first`): `/api/*`, and each page, whose head it writes ([Pages and share cards](#pages-and-share-cards)) |
 | `DB` | D1 | `asmbots` | Users, bots, versions, hills, tournaments, matches (`src/db/migrations`) |
 | `REPLAYS` | R2 | `asmbots-replays` | Replays at `replays/<key>.json`, bot binaries; content-addressed |
-| `KV` | KV | `asmbots-kv` | Sessions (`sess:<id>`, 30 days, and `usess:<user>:<id>` beside each so a user's sessions list by prefix), rate-limit counters (`rl:<scope>:<client>:<window>`), OG image cache (`og:<key>`, 1 day), the ticker's feed (`ticker`, read again after 30 s) |
+| `KV` | KV | `asmbots-kv` | Sessions (`sess:<id>`, 30 days, and `usess:<user>:<id>` beside each so a user's sessions list by prefix), rate-limit counters (`rl:<scope>:<client>:<window>`), share cards (a replay's SVG at `og:<key>`, every card's PNG at `og:png:<SHA-256 of its SVG>`, 1 day each), the ticker's feed (`ticker`, read again after 30 s) |
 | `RUNNER` | Durable Object | `Runner` | One per job (`hill:<slug>:<submissionId>`, `tournament:<id>`): plays its matches, one an alarm, into D1 and R2, then settles the hill board or the tournament ([Runner](#runner)) |
 | `LIVE_ROOM` | Durable Object | `LiveRoom` | One per hill or tournament (`hill:<id>`, `tournament:<id>`): fans its Runners' events out to spectators' WebSockets and keeps the last 20 ([LiveRoom](#liveroom)) |
 | `MATCH_ANALYTICS` | Analytics Engine | `asmbots_matches` | A data point per match a Runner settles: count, duration, bots, kind ([Observability](#observability)) |
 | `ISA_VERSION` | var | `x16c-v1` | The ISA the hills run |
 | `APP_VERSION` | var | `dev` | Build stamp; deploy passes `--var APP_VERSION:<bun run version>` |
 | `APP_ORIGIN` | var | `http://localhost:5173` | The one origin CORS lets in (the Vite dev server) |
+| `SITE_URL` | var | `https://asmbots.io` | The canonical origin: page heads link to it and share cards sign with its host, whichever host served them. The web build's `SITE_URL` (`apps/web/src/app/pages.ts`) agrees |
 | `ADMIN_HANDLES` | var | empty | Who may read `GET /api/admin/stats`: handles, split on commas or spaces, any case. Empty: nobody. A handle is its user's pick, so name only handles their owners hold: a free one could be taken by anyone who signs up |
 | `RUNNER_ALARM_DELAY_MS` | var, unset | 0 | Ms between a Runner's alarms. The API tests set an hour and step the alarms by hand (`runDurableObjectAlarm`) |
 
-The cron, `0 18 * * 6`, starts and makes the weekly championship ([Cron](#cron)). The D1 and KV ids are placeholders that work locally; the deploy playbook fills in the real ones.
+The cron, `0 18 * * 6`, starts and makes the weekly championship ([Cron](#cron)). The D1 and KV ids are the production ones; `wrangler dev` and the tests keep to local storage. Never mark a binding `remote`: the tests (`@cloudflare/vitest-pool-workers` honors it; `vitest.config.ts` also sets `remoteBindings: false`) and `wrangler dev` would then read and write production data. `.ttf` imports are `Data` (the share cards' font).
 
 ## Migrations and seed
 
@@ -113,15 +114,18 @@ Test sign-in: with the var `DEV_FAKE_AUTH=1` (`wrangler dev --var DEV_FAKE_AUTH:
 | `POST /api/bots/import` | `{ bots: [{ name, source, visibility? }] }` (1..50), signed in: each source assembled here and made a bot at version 1 (private by default, bytes in R2) → 201 `{ results }`, one per bot in order: `{ ok: true, bot, version }`, or `{ ok: false, message, diagnostics }` for one that does not assemble. 409 past 200 bots an account |
 | `GET /api/bots/:id` | The bot, its owner, its versions (no sources), and its hill places; a private bot is 404 to others, a deleted one to all |
 | `GET /api/bots/:id/versions/:v` | One version, with its source when the bot is public or the reader's |
+| `GET /api/bots/:id/og.svg`, `og.png` | Its share card: identicon, name, owner, strategy, size, best place. A public or unlisted bot's; 404 for a private one, to its owner too ([Pages and share cards](#pages-and-share-cards)) |
 | `GET /api/hills` | Every hill, its entrant count, and its king |
 | `GET /api/hills/:slug` | The hill (with its `scoring`, `duel` or `melee`) and its standings, each with its rating's RD (null until a submission or the seed rated it) |
 | `GET /api/hills/:slug/matches?bot=&limit=` | Its finished matches, newest first |
+| `GET /api/hills/:slug/og.svg`, `og.png` | Its share card: name, rules, the top 7 of its standings |
 | `GET /api/hills/:slug/history?limit=` | `{ events }`, newest first (`limit` 1..100, 20 by default): what each submission did to the board. `entered` (its new rank, and `delta`: its bot's best rank before less the new one, null when the bot had none), `rejected`, `evicted` and `replaced` (the entry's rank before), each with the bot's label |
 | `POST /api/hills/:slug/submit` | `{ botVersionId }`, signed in: a version of one of your bots (404 when you may not see it, 403 when it is not yours), its bytes the ones assembled when it was saved. Refused: a `melee`-scored hill (409), a version over the hill's `maxBotBytes` (422), a version on the hill, bytes an entry has (it would take that entry's place and age), a second submission while one is queued or running on that hill (409; a partial unique index backs the check). Makes the `hill_submissions` row and its `hill.submit` audit row in one batch, starts its `Runner` → 201 `{ submissionId, liveRoom }`. A job the Runner refuses is marked `failed` → 409 with the reason |
 | `GET /api/hills/:slug/submissions/:id` | `{ submission, bot, progress, matches, events }`: the row (status, score, rank, `needed`: the field score of the lowest entry that stayed, when it did not), its bot version's label, the Runner's `{ done, of, next }` until it has finished (`next`: the bots of the match it is on), its matches in the order played (`<id>-<n>` rows), and its `hill_history` events |
 | `GET /api/live/:room` | A spectator's WebSocket to a room: `hill:<hill id>`, or `tournament:<id>` past its draft (404 otherwise). 400 without `Upgrade: websocket`, 403 from another page's `Origin`. Reads no session: anyone may watch |
 | `GET /api/tournaments` | `{ tournaments: [{ tournament, entrants, done, of, champion }] }`: running first, then by start time, each with its entrant count, the matches played of the ones its entrants make, and its champion's label once it has one. A tournament has `entry` (`invite` or `open`), `entryClosesAt`, `championId`, and `finishedAt`; its `config` may name a bracket's `seeding` (`given`, `rating`) and `thirdPlace` |
 | `GET /api/tournaments/:id` | The tournament, its entrants (in the order its matches index once it has started: by seed), and its matches (each with its `key`, the `matchHash`); a draft is 404 to all but its owner |
+| `GET /api/tournaments/:id/og.svg`, `og.png` | Its share card: name, kind, state, champion, and a bracket's drawing (`bracketSvg`) or the points so far; 404 for a draft |
 | `POST /api/tournaments` | `{ name, kind, entrants, config }`, signed in: `entrants` is `{ entry: 'invite', botVersionIds }` (2..32, a melee 16; your own versions or anyone's public ones, seeded in the list's order) or `{ entry: 'open', closesAt }` (a deadline within 30 days). 422 for more than 10 rounds a match, more than 200,000 cycles a round, a core other than 65,536, or a version over the config's `maxBotBytes`; 404/403 for a version you may not enter; 400 for one named twice. The tournament (`scheduled`), its invited entries, and its `tournament.create` audit row go in one batch → 201 `{ tournament }` |
 | `POST /api/tournaments/:id/enter` | `{ botVersionId }`, signed in: a version of one of your bots enters an open tournament until its deadline (409 after it, once it has started, and for an invite or a full one; 422 over its cap). One entry a user: the first is 201, another replaces it → 200 `{ tournamentId, botVersionId, replaced }`. With a `tournament.enter` audit row |
 | `POST /api/tournaments/:id/start` | Its owner starts a scheduled tournament once its entries have closed, with 2 bots or more (403 to others and for a championship, 409 otherwise); its `Runner` plays it, and its live room is `tournament:<id>` → 200 `{ tournamentId, liveRoom }`. A job the Runner refuses cancels the tournament: 409 with the reason |
@@ -132,9 +136,23 @@ Test sign-in: with the var `DEV_FAKE_AUTH=1` (`wrangler dev --var DEV_FAKE_AUTH:
 | `GET /api/users/:handle` | 404 for `deleted`. The user (any case) and their public bots (all of them for the user themself), their best place on each hill, and their results in finished championships (W/T/L, and `champion`: the champion the Runner wrote, else the winner of the last match) |
 | `POST /api/replays` | `{ replay }`: re-simulated (≤ 16 bots, ≤ 10 rounds, ≤ 200k cycles, else 413), result hash checked (422 on a mismatch), stored in R2 → `{ key, url }` |
 | `GET /api/replays/:key` | The stored protocol `Replay` |
-| `GET /api/replays/:key/og.svg` | The replay's Open Graph image (SVG), cached a day in KV |
+| `GET /api/replays/:key/og.svg`, `og.png` | The replay's share card: the core's owner map at the end of its last round beside who won; KV keeps the SVG a day (drawing it runs the round again) |
+| `GET /api/pages/og.svg?path=`, `og.png` | The share card of a page the web build describes (`/meta/pages.json`): `/`, `/arena`, a docs page; 404 for any other path |
 | any other `/api/*` | 404 `not_found` |
-| anything else | The SPA from `ASSETS` |
+| `GET /sitemap.xml` | The build's sitemap with each hill and each public bot added (`lastmod` its last change), an hour's cache |
+| anything else | The SPA from `ASSETS`; a page's HTML with its own head ([Pages and share cards](#pages-and-share-cards)) |
+
+## Pages and share cards
+
+The web app draws in the browser, so a crawler or a link preview that runs no script sees only `index.html`. The Worker writes each page's head into it on the way out (`src/site/`, `HTMLRewriter`): `<title>` (the one the route's `head` writes, so the tab does not change as the app starts), the description, the canonical link, `robots: noindex` for the embeds, a draft, an unlisted bot, and the settings, and the Open Graph and Twitter (`summary_large_image`) tags. The ETag goes, since the body is no longer the file's.
+
+- A page with no data of its own (`/`, `/arena`, `/editor`, `/docs/...`) takes the web build's words from `/meta/pages.json` (`apps/web/src/app/pages.ts`), read once an isolate. An arena link that names bots (`/arena?b=roster:dwarf,roster:imp&seed=7`) says which fight; a bot a browser carries in the fragment reads as `a local bot`.
+- A page of data takes its words from D1 or R2: a stored replay (`/arena/<key>`: who won, the bots, the rounds, the seed), a bot (name, owner, strategy, best place), a hill (its king), a tournament (kind, state, champion), a profile. A private bot or a draft says nothing of itself. A lookup that finds nothing, fails, or takes past 1 s gives the route's title and the home page's words.
+- Every URL is on `SITE_URL`. The image is the page's card.
+
+Cards (`src/og/`) are SVG strings at 1200 × 630 in the sentinel theme, drawn to PNG at the edge by resvg compiled to WebAssembly (`@resvg/resvg-wasm`, started on the first card an isolate draws) with JetBrains Mono (the kit's Latin subset as TrueType, `src/og/fonts`, OFL) as the only font. KV keeps a PNG a day under the hash of its SVG, so a card whose data changed is drawn again and alike cards share one. A replay's card never changes (a day's HTTP cache); the others change with their data (an hour's). The Worker bundle is about 3.1 MiB, 1.1 MiB gzipped, most of it the renderer; it starts in about 30 ms (`wrangler check startup`).
+
+Who may frame what: an embed (`/embed/*`) answers `Content-Security-Policy: frame-ancestors *`, for other sites' `<iframe>`s; every other page `frame-ancestors 'self'`. The API keeps its own policy.
 
 ## Runner
 

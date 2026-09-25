@@ -22,7 +22,7 @@ import {
 import { buildReplay } from '../src/features/arena/battle/replay'
 import { runningStandings } from '../src/features/arena/battle/StandingsPanel'
 import { faster, SPEED_STEPS, slower, speedLabel } from '../src/features/arena/battle/speed'
-import { matchOutcome, roundOutcome } from '../src/features/arena/battle/Victory'
+import { matchOutcome, roundOutcome } from '../src/features/arena/battle/outcome'
 import { useArenaView } from '../src/features/arena/battle/view'
 import { ArenaScene, NOT_SEEN } from '../src/features/arena/render/scene'
 import { fightSeed, fits } from '../src/features/arena/setup/bots'

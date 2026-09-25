@@ -1,4 +1,4 @@
-import { bytesProblem, type Replay, replayConfig, SHA256 } from '@asmbots/protocol'
+import { bytesProblem, replayConfig, SHA256 } from '@asmbots/protocol'
 import { Panel, PanelGrid, RadarLoader, useToast } from '@asmbots/ui'
 import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -7,16 +7,21 @@ import { useReplay } from '../../api/queries'
 import { storeReplay } from '../../api/writes'
 import { LoadFailure } from '../../app/LoadFailure'
 import { Placeholder } from '../../app/Placeholder'
+import { embedUrl } from '../share/share'
 import { ArenaBattle } from './ArenaBattle'
 import { downloadBlob, replayName } from './battle/files'
 import { BattleLog } from './battle/log'
-import { type ReplayRead, readReplayFragment, readReplayValue, replayUrl } from './battle/replay'
+import {
+  type ReplayRead,
+  readReplayFragment,
+  readReplayValue,
+  replayFight,
+  replayUrl,
+} from './battle/replay'
 import { type BytesCheck, checkReplay, NO_RUN, type ReplayRun } from './battle/verify'
 import { useArenaView } from './battle/view'
-import type { ArenaFight } from './setup/bots'
 import { copyLink } from './share'
 import { ArenaClient, INITIAL_ARENA_STATE } from './worker/client'
-import type { ArenaBot } from './worker/protocol'
 
 export interface ReplayPageProps {
   /** The route's id. A replay link names its replay by the match key. */
@@ -193,25 +198,14 @@ export function ReplayPage({ replayId, createClient = () => new ArenaClient() }:
       replay={{
         check: checkReplay(loaded, run, bytes),
         onShare: () => void share(),
+        // A stored replay's embed loads it from the server; a linked one carries it along.
+        embed: embedUrl(
+          stored === null
+            ? replayUrl(window.location.origin, loaded)
+            : `${window.location.origin}/arena/${stored}`,
+        ),
         onDownload: download,
       }}
     />
   )
-}
-
-/** A replay as the arena fights it. Its bots are bytes, not refs: it has no setup to show. */
-function replayFight(replay: Replay, bots: readonly ArenaBot[]): ArenaFight {
-  const config = replayConfig(replay)
-  const { maxCycles, maxProcesses, minSpacing, seed } = config
-  return {
-    bots,
-    config,
-    rounds: replay.rounds,
-    spec: {
-      bots: [],
-      config: { preset: null, rounds: replay.rounds, maxCycles, maxProcesses, minSpacing, seed },
-    },
-    sources: replay.bots.map((bot) => bot.source ?? ''),
-    shared: [],
-  }
 }

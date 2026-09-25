@@ -6,9 +6,11 @@ import tailwindcss from '@tailwindcss/vite'
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin } from 'vite'
+import { PAGES_MANIFEST } from '../../packages/protocol/src/pages'
 // The token parser alone: the kit's index would pull React into the config.
 import { parseTokenRules, themeTokens } from '../../packages/ui/src/css-tokens'
 import { getVersion } from '../../scripts/version'
+import { defaultHeadTags, pageManifest, robotsTxt, SITE_URL, sitemap } from './src/app/pages'
 import { themeBootScript } from './src/app/theme-boot'
 import { REMARK_PLUGINS } from './src/docs/remark'
 
@@ -40,6 +42,7 @@ export default defineConfig({
     preloadFonts(),
     inlineStylesheet(),
     textImport(),
+    sitePages(),
   ],
   define: {
     __APP_VERSION__: JSON.stringify(getVersion()),
@@ -214,6 +217,28 @@ function inlineStylesheet(): Plugin {
         if (inlined === html) throw new Error('index.html links no stylesheet to inline')
         return inlined
       },
+    },
+  }
+}
+
+/**
+ * The site as crawlers and link previews read it (`src/app/pages.ts`): the pages manifest the
+ * Worker writes each page's head from (`/meta/pages.json`), the sitemap, and `robots.txt`, all
+ * written at build; and the home page's head tags in index.html, for a host that serves it as it
+ * is. The Worker swaps those for each page's own.
+ */
+function sitePages(): Plugin {
+  const manifest = pageManifest()
+  return {
+    name: 'asmbots:site-pages',
+    transformIndexHtml: (html) =>
+      html.replace('</head>', `${defaultHeadTags(SITE_URL, manifest)}\n  </head>`),
+    generateBundle() {
+      const emit = (fileName: string, source: string) =>
+        this.emitFile({ type: 'asset', fileName, source })
+      emit(PAGES_MANIFEST.slice(1), `${JSON.stringify(manifest)}\n`)
+      emit('sitemap.xml', sitemap(SITE_URL, manifest))
+      emit('robots.txt', robotsTxt(SITE_URL))
     },
   }
 }

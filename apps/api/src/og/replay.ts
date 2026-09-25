@@ -1,40 +1,27 @@
 /**
- * A replay's Open Graph image, as SVG (PRODUCT_SPEC §10): the core's owner map at the end of the
- * last round, one pixel a byte (the 64 KB core is 256 × 256), beside who won, in the sentinel
- * theme. Each row's runs of one owner are one `<rect>`, grouped by owner under its hue.
+ * A replay's share card (PRODUCT_SPEC §10): the core's owner map at the end of the last round,
+ * one pixel a byte (the 64 KB core is 256 × 256) at twice the size, beside who won and the bots
+ * with their points. Each row's runs of one owner are one `<rect>`, grouped by owner under its hue.
  */
 import { Battle, CORE_SIZE } from '@asmbots/engine'
-import { type Replay, replayBots, replayConfig } from '@asmbots/protocol'
-import { escapeXml, roundOrder, roundSeed } from '@asmbots/tourney'
-import { BOT_HUES } from '@asmbots/ui/themes'
+import { CARD_HEIGHT, CARD_WIDTH, type Replay, replayBots, replayConfig } from '@asmbots/protocol'
+import { roundOrder, roundSeed } from '@asmbots/tourney'
+import { brand, card, clip, hue, MARGIN, SENTINEL, text } from './card'
 
-/** The image: Open Graph's 1.91:1. */
-const WIDTH = 1200
-const HEIGHT = 630
 /** The owner map's side, in bytes: 256 rows of 256. */
 const SIDE = 256
 /** Screen pixels a byte. */
 const SCALE = 2
-const MAP_X = 48
-const MAP_Y = (HEIGHT - SIDE * SCALE) / 2
+const MAP_X = MARGIN
+const MAP_Y = (CARD_HEIGHT - SIDE * SCALE) / 2
 /** Where the text column starts. */
-const TEXT_X = MAP_X + SIDE * SCALE + 48
-const TEXT_RIGHT = WIDTH - 48
+const TEXT_X = MAP_X + SIDE * SCALE + MARGIN
+const TEXT_RIGHT = CARD_WIDTH - MARGIN
 /** The most bots the list names; the rest are a count. */
 const LISTED = 8
-
-/** Sentinel's surface and text colors: `--bg`, `--border-strong`, `--text`, … in tokens.css. */
-const SENTINEL = {
-  bg: '#0A0F0A',
-  border: '#2A4A2A',
-  text: '#A0C0A0',
-  muted: '#6A8C6A',
-  bright: '#D0F0D0',
-  accent: '#00FF88',
-  arena: '#000000',
-} as const
-const HUES = BOT_HUES.sentinel
-const FONT = `'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace`
+/** The list's first line and the space between lines. */
+const LIST_Y = 318
+const LIST_STEP = 32
 
 /**
  * The owner of each core byte at the end of `replay`'s last round, by address: entrant index + 1,
@@ -60,14 +47,14 @@ export function finalOwners(replay: Replay): Uint8Array {
   return owners
 }
 
-/** The SVG of `replay`, whose core ended as `owners` (`finalOwners`). */
-export function ogSvg(replay: Replay, owners: Uint8Array): string {
+/** The card of `replay`, whose core ended as `owners` (`finalOwners`); `host` signs it. */
+export function replayCard(replay: Replay, owners: Uint8Array, host: string): string {
   const { points } = replay.result
   const n = replay.bots.length
   const listed = replay.bots.slice(0, LISTED)
   const rounds = `${replay.rounds} ${replay.rounds === 1 ? 'round' : 'rounds'}`
   const rows = listed.map((bot, i) => {
-    const y = 330 + i * 34
+    const y = LIST_Y + i * LIST_STEP
     return [
       `<rect x="${TEXT_X}" y="${y - 15}" width="16" height="16" fill="${hue(i)}"/>`,
       `<text x="${TEXT_X + 28}" y="${y}" fill="${SENTINEL.text}">${text(clip(bot.name, 28))}</text>`,
@@ -76,23 +63,20 @@ export function ogSvg(replay: Replay, owners: Uint8Array): string {
   })
   if (n > LISTED) {
     rows.push(
-      `<text x="${TEXT_X}" y="${330 + LISTED * 34}" fill="${SENTINEL.muted}">+ ${n - LISTED} more</text>`,
+      `<text x="${TEXT_X}" y="${LIST_Y + LISTED * LIST_STEP}" fill="${SENTINEL.muted}">+ ${n - LISTED} more</text>`,
     )
   }
-  return [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}" font-family="${FONT}">`,
-    `<title>${text(`ASM Bots: ${winnerLine(replay)}`)}</title>`,
-    `<rect width="${WIDTH}" height="${HEIGHT}" fill="${SENTINEL.bg}"/>`,
-    `<rect x="${MAP_X - 1}" y="${MAP_Y - 1}" width="${SIDE * SCALE + 2}" height="${SIDE * SCALE + 2}" fill="${SENTINEL.arena}" stroke="${SENTINEL.border}" stroke-width="2"/>`,
+  return card(`ASM BOTS: ${winnerLine(replay)}`, [
+    `<rect x="${MAP_X - 1}" y="${MAP_Y - 1}" width="${SIDE * SCALE + 2}" height="${SIDE * SCALE + 2}" fill="${SENTINEL.arena}" stroke="${SENTINEL.borderStrong}" stroke-width="2"/>`,
     `<g transform="translate(${MAP_X} ${MAP_Y}) scale(${SCALE})" shape-rendering="crispEdges">`,
     ...ownerRuns(owners),
     '</g>',
-    `<text x="${TEXT_X}" y="120" fill="${SENTINEL.accent}" font-size="28" font-weight="700" letter-spacing="4">ASM BOTS</text>`,
-    `<text x="${TEXT_X}" y="210" fill="${SENTINEL.bright}" font-size="48" font-weight="700">${text(clip(winnerLine(replay), 18))}</text>`,
-    `<text x="${TEXT_X}" y="258" fill="${SENTINEL.muted}" font-size="22">${n} bots · ${rounds} · seed ${replay.seed}</text>`,
+    brand(TEXT_X, 112, 'replay'),
+    `<text x="${TEXT_X}" y="202" fill="${SENTINEL.bright}" font-size="48" font-weight="700">${text(clip(winnerLine(replay), 18))}</text>`,
+    `<text x="${TEXT_X}" y="250" fill="${SENTINEL.muted}" font-size="22">${n} bots · ${rounds} · seed ${replay.seed}</text>`,
     `<g font-size="22">${rows.join('')}</g>`,
-    '</svg>',
-  ].join('\n')
+    `<text x="${TEXT_RIGHT}" y="${MAP_Y + SIDE * SCALE}" fill="${SENTINEL.dim}" font-size="20" text-anchor="end">${text(host)}</text>`,
+  ])
 }
 
 /** Who won: the bot with the most match points, the bots that share them, or no one. */
@@ -126,25 +110,4 @@ function ownerRuns(owners: Uint8Array): string[] {
   return [...runs.entries()]
     .sort(([a], [b]) => a - b)
     .map(([owner, rects]) => `<g fill="${hue(owner - 1)}">${rects.join('')}</g>`)
-}
-
-/** Entrant `i`'s hue; 12 and up wrap. */
-function hue(i: number): string {
-  return HUES[i % HUES.length] as string
-}
-
-/** `name` cut to `most` characters, with an ellipsis when cut. */
-function clip(name: string, most: number): string {
-  const chars = [...name]
-  return chars.length > most ? `${chars.slice(0, most - 1).join('')}…` : name
-}
-
-/** What XML 1.0 does not allow: C0 controls but tab, LF, CR; U+FFFE, U+FFFF; lone surrogates. */
-const NOT_XML =
-  // biome-ignore lint/suspicious/noControlCharactersInRegex: the control characters are the point.
-  /[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g
-
-/** `value` as XML character data: escaped, and what XML does not allow replaced with U+FFFD. */
-function text(value: string): string {
-  return escapeXml(value.replace(NOT_XML, '�'))
 }

@@ -4,6 +4,7 @@
  * link whose recorded result was changed ends in `mismatch`; a link with no replay says so.
  */
 import { type BrowserContext, expect, type Page, test } from '@playwright/test'
+import { pickShare } from './share'
 
 /** The victory overlay: it carries the result hash (ISA §5.6). */
 const victory = (page: Page) => page.locator('section[data-result-hash]')
@@ -75,7 +76,7 @@ test('a replay link plays the duel again to the same result, verified', async ({
   await expect(victory(page).locator('[data-check="verified"]')).toBeVisible()
 
   // `share` on a replay copies the replay's own link.
-  await victory(page).getByRole('button', { name: 'share' }).click()
+  await pickShare(page, victory(page), 'copy link')
   await expect(page.getByText('replay link copied.')).toBeVisible()
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(link)
   expect(errors).toEqual([])

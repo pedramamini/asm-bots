@@ -7,25 +7,27 @@
  * closed, a running tournament is read again every few seconds.
  */
 import {
+  entrantNames,
   liveRoomName,
   type Tournament as ServerRecord,
   type TournamentDetail,
 } from '@asmbots/protocol'
 import { Button, Chip, Identicon, Panel, PanelGrid, useToast } from '@asmbots/ui'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Cloud, Link as LinkIcon, Play, Trophy } from 'lucide-react'
+import { Cloud, Play, Trophy } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
 import { isNotFound } from '../../api/client'
 import { useMe, useTournament } from '../../api/queries'
 import { startTournament } from '../../api/writes'
 import { LoadFailure } from '../../app/LoadFailure'
 import { Placeholder } from '../../app/Placeholder'
-import { copyLink } from '../arena/share'
 import type { ArenaClient } from '../arena/worker/client'
 import { plural } from '../hills/links'
 import { LivePanel } from '../live/LivePanel'
 import type { LiveRoomOptions } from '../live/room'
 import { useLiveRoom } from '../live/useLiveRoom'
+import { ShareMenu, type ShareTarget } from '../share/ShareMenu'
+import { embedTitle, embedUrl } from '../share/share'
 import { BracketView } from './BracketView'
 import { EnterButton } from './EnterModal'
 import { takesEntries, utcTime } from './entry'
@@ -125,6 +127,34 @@ function entryNote(t: ServerRecord): string {
   return `entries closed ${closes}${start}.`
 }
 
+/**
+ * What a server tournament's page shares (PRODUCT_SPEC §10): its link, its card as a PNG (a draft
+ * has none), and an embed of the match it finished last, when one has a replay.
+ */
+export function serverShare(detail: TournamentDetail, origin: string): ShareTarget {
+  const record = detail.tournament
+  const names = entrantNames(detail.entrants)
+  const nameOf = new Map(detail.entrants.map((label, e) => [label.versionId, names[e]]))
+  let last: { key: string; at: string; bots: readonly string[] } | null = null
+  for (const match of detail.matches) {
+    if (match.replayKey === null || match.finishedAt === null) continue
+    if (last !== null && match.finishedAt <= last.at) continue
+    const bots = match.participants.map((id) => nameOf.get(id) ?? 'a deleted bot')
+    last = { key: match.replayKey, at: match.finishedAt, bots }
+  }
+  return {
+    link: `${origin}/tournaments/${record.id}`,
+    png:
+      record.status === 'draft'
+        ? undefined
+        : { path: `/tournaments/${record.id}/og.png`, name: `asmbots-${record.slug}.png` },
+    embed:
+      last === null
+        ? undefined
+        : { url: embedUrl(`${origin}/arena/${last.key}`), title: embedTitle(last.bots) },
+  }
+}
+
 function ServerHeader({
   detail,
   tournament: t,
@@ -132,21 +162,10 @@ function ServerHeader({
   detail: TournamentDetail
   tournament: Tournament
 }) {
-  const { toast } = useToast()
   const record = detail.tournament
   const scheduled = record.status === 'scheduled' || record.status === 'draft'
   const n = t.entrants.length
-  const share = (
-    <Button
-      size="sm"
-      icon={LinkIcon}
-      onClick={() =>
-        void copyLink(`${window.location.origin}/tournaments/${record.id}`, toast, 'link copied.')
-      }
-    >
-      share
-    </Button>
-  )
+  const share = <ShareMenu {...serverShare(detail, window.location.origin)} />
   return (
     <Panel title={t.name} status={plural(n, 'bot')} actions={share}>
       <div className="flex flex-col gap-3">

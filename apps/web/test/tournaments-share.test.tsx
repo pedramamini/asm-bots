@@ -20,7 +20,7 @@ import {
   Outlet,
   RouterProvider,
 } from '@tanstack/react-router'
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import { deflateSync, strToU8 } from 'fflate'
 import { useDom, window } from '../../../packages/ui/test/dom'
 import {
@@ -46,6 +46,7 @@ import {
 import { TournamentPage } from '../src/features/tournaments/TournamentPage'
 import { watchTarget } from '../src/features/tournaments/watch'
 import { refuse, testQueryClient, useApiServer } from './api-server'
+import { pickShare } from './share-menu'
 
 useDom()
 // The server has no tournament by the id this browser has none of either.
@@ -348,7 +349,7 @@ describe('the tournament page', () => {
     expect(within(entrants).getByTitle('champion').textContent).toBe(champion as string)
     expect(screen.getByRole('table', { name: 'results matrix' })).toBeTruthy()
 
-    fireEvent.click(within(header).getByRole('button', { name: 'share' }))
+    await pickShare(header, 'copy link')
     await screen.findByText('link copied.')
     const url = writeText.mock.calls[0]?.[0] as string
     expect(url).toStartWith('http://localhost/tournaments/rr#t=')
@@ -391,7 +392,7 @@ describe('the tournament page', () => {
   it('tells the sharer which local bots the link leaves out', async () => {
     await saveTournament(withJunk())
     await renderPage('/tournaments/junk')
-    fireEvent.click(await screen.findByRole('button', { name: 'share' }))
+    await pickShare(await screen.findByRole('region', { name: 'junk cup' }), 'copy link')
     expect(
       await screen.findByText(
         'link copied without the machine code of Junk: its rounds cannot be watched from it.',

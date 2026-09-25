@@ -39,6 +39,7 @@ import { stringifySearch } from '../src/router'
 import { useSettings } from '../src/store/settings'
 import { stubCanvas } from './fake-canvas'
 import { manualSchedule, sessionClient } from './session-worker'
+import { pickShare } from './share-menu'
 
 useDom()
 window.scrollTo = () => {}
@@ -394,7 +395,7 @@ describe('the end', () => {
       client.seek(100_000)
       await settle()
       const victory = await screen.findByRole('region', { name: 'winner · Dwarf' })
-      fireEvent.click(within(victory).getByRole('button', { name: 'share' }))
+      await pickShare(victory, 'copy link')
       await screen.findByText('link copied.')
       expect(writeText).toHaveBeenCalledWith(
         'http://localhost/arena?b=roster:dwarf,roster:imp&seed=1&cycles=100000&rounds=1&procs=64&spacing=1024',

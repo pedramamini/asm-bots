@@ -38,14 +38,26 @@ export const appCors: MiddlewareHandler<AppEnv> = (c, next) =>
     maxAge: 600,
   })(c, next)
 
-/** Security headers: HSTS, CSP. */
+/** Whether `path` is the API's: `/api` and under it. */
+export function isApi(path: string): boolean {
+  return path === '/api' || path.startsWith('/api/')
+}
+
+/** The API's content policy. */
+const API_CSP =
+  "default-src 'self'; img-src 'self' data: https://avatars.githubusercontent.com; connect-src 'self' wss:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'"
+
+/**
+ * Security headers: HSTS on everything; the API's content policy on its answers; on the web app's
+ * files, who may frame them: the site itself, and anyone for an embed (`/embed/*`, made for other
+ * sites' `<iframe>`s).
+ */
 export const securityHeaders: MiddlewareHandler<AppEnv> = async (c, next) => {
   await next()
   c.header('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload')
-  c.header(
-    'Content-Security-Policy',
-    "default-src 'self'; img-src 'self' data: https://avatars.githubusercontent.com; connect-src 'self' wss:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'",
-  )
+  const path = c.req.path
+  const frame = path === '/embed' || path.startsWith('/embed/') ? '*' : "'self'"
+  c.header('Content-Security-Policy', isApi(path) ? API_CSP : `frame-ancestors ${frame}`)
 }
 
 /** The code for an HTTP status, when the protocol has one. */

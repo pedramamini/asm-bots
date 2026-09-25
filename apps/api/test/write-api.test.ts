@@ -7,6 +7,8 @@ import { assembleOrThrow } from '@asmbots/asm'
 import {
   AssembleResult,
   buildReplay,
+  CARD_HEIGHT,
+  CARD_WIDTH,
   MAX_SOURCE_TEXT,
   parse,
   type Replay,
@@ -16,10 +18,10 @@ import {
   toBase64,
 } from '@asmbots/protocol'
 import { runMatch } from '@asmbots/tourney'
-import { SaxesParser } from 'saxes'
 import { describe, expect, it } from 'vitest'
-import { finalOwners, winnerLine } from '../src/og'
-import { ogCacheKey, replayObjectKey } from '../src/storage'
+import { finalOwners, winnerLine } from '../src/og/replay'
+import { ogCacheKey, pngCacheKey, replayObjectKey } from '../src/storage'
+import { pngSize, wellFormed } from './xml'
 
 const worker = exports.default
 
@@ -80,17 +82,6 @@ async function replayOf(
   const config = { maxCycles, seed: 7 }
   const match = runMatch(bots, config, rounds)
   return buildReplay({ bots, config, rounds, match, createdAt: new Date('2026-09-24T12:00:00Z') })
-}
-
-/** Parses `xml` strictly: throws at the first thing that is not well formed. Returns the root. */
-function wellFormed(xml: string): string {
-  const parser = new SaxesParser()
-  let root = ''
-  parser.on('opentag', (tag) => {
-    if (root === '') root = tag.name
-  })
-  parser.write(xml).close()
-  return root
 }
 
 describe('POST /api/assemble', () => {
@@ -267,6 +258,43 @@ describe('GET /api/replays/:key/og.svg', () => {
   it('answers 404 for a key it does not have, and 400 for one that is not a key', async () => {
     expect((await get(`/api/replays/${'0'.repeat(64)}/og.svg`)).status).toBe(404)
     expect((await get('/api/replays/nope/og.svg')).status).toBe(400)
+  })
+})
+
+describe('GET /api/replays/:key/og.png', () => {
+  it('draws the card as a PNG at the edge, 1200 × 630, and keeps it in KV by its SVG', async () => {
+    // Its own match: the SVG test above leaves a stand-in SVG in KV for its replay.
+    const replay = await replayOf([DWARF, SPIN], { rounds: 3, maxCycles: 40_000 })
+    const { key } = (await (await post('/api/replays', { replay })).json()) as StoredReplay
+    const res = await get(`/api/replays/${key}/og.png`)
+    expect(res.status).toBe(200)
+    expect(res.headers.get('Content-Type')).toBe('image/png')
+    expect(res.headers.get('Cache-Control')).toBe('public, max-age=86400')
+    const png = new Uint8Array(await res.arrayBuffer())
+    expect(pngSize(png)).toEqual({ width: CARD_WIDTH, height: CARD_HEIGHT })
+    // A card of an owner map and six lines of text, not a blank page.
+    expect(png.length).toBeGreaterThan(8_000)
+
+    // KV keeps it under the hash of the card's SVG, which KV keeps too.
+    const svg = (await env.KV.get(ogCacheKey(key))) ?? ''
+    expect(svg).toContain(`${winnerLine(replay)}</text>`)
+    const kept = await env.KV.get(
+      pngCacheKey(await sha256Hex(new TextEncoder().encode(svg))),
+      'arrayBuffer',
+    )
+    expect(new Uint8Array(kept ?? new ArrayBuffer(0))).toEqual(png)
+
+    // The next request is the kept PNG.
+    const marker = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3])
+    await env.KV.put(pngCacheKey(await sha256Hex(new TextEncoder().encode(svg))), marker)
+    expect(new Uint8Array(await (await get(`/api/replays/${key}/og.png`)).arrayBuffer())).toEqual(
+      marker,
+    )
+  })
+
+  it('answers 404 for a key it does not have, and 400 for one that is not a key', async () => {
+    expect((await get(`/api/replays/${'0'.repeat(64)}/og.png`)).status).toBe(404)
+    expect((await get('/api/replays/nope/og.png')).status).toBe(400)
   })
 })
 

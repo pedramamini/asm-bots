@@ -1,85 +1,23 @@
 import type { BotResult, Result } from '@asmbots/engine'
 import { type MatchResult, type MeleeStanding, meleeStandings } from '@asmbots/tourney'
 import { Button, HueSwatch, IconButton, Table, type TableColumn, Toggle } from '@asmbots/ui'
-import { Bug, Dices, Download, Film, Link, RotateCcw, SkipForward, X } from 'lucide-react'
+import { Bug, Dices, Download, Film, RotateCcw, SkipForward, X } from 'lucide-react'
 import { useId, useMemo } from 'react'
+import { ShareMenu, type ShareTarget } from '../../share/ShareMenu'
 import { botResults } from '../worker/protocol'
 import { reasonText } from './log'
+import { matchOutcome, type Outcome, roundOutcome } from './outcome'
 import { ReplayChip } from './ReplayChip'
 import type { ReplayCheck } from './verify'
 
 const count = (n: number) => n.toLocaleString('en-US')
 
-/** How a round or a match came out, in the overlay's words (PRODUCT_SPEC §2). */
-export interface Outcome {
-  /** A sole winner, a draw between the best, or nobody left. */
-  readonly kind: 'winner' | 'draw' | 'none'
-  /** The winners: one, the bots that share first place, or none. */
-  readonly winners: readonly number[]
-  /** `WINNER · Dwarf`, `DRAW · Dwarf, Imp`, `NO WINNER`. */
-  readonly headline: string
-  /** `last bot standing · cycle 41,203`. */
-  readonly detail: string
-}
-
-function joinNames(bots: readonly number[], names: readonly string[]): string {
-  return bots.map((bot) => names[bot] ?? `bot ${bot + 1}`).join(', ')
-}
-
-/** A round's outcome: the bots standing at its end (ISA §5.5). */
-export function roundOutcome(
-  result: Result,
-  order: readonly number[],
-  names: readonly string[],
-): Outcome {
-  const standing = botResults(result, order).flatMap((bot, index) => (bot.alive ? [index] : []))
-  const at = `cycle ${count(result.cycles)}`
-  if (standing.length === 1) {
-    return {
-      kind: 'winner',
-      winners: standing,
-      headline: `winner · ${joinNames(standing, names)}`,
-      detail: `last bot standing · ${at}`,
-    }
-  }
-  if (standing.length === 0) {
-    return { kind: 'none', winners: [], headline: 'no winner', detail: `no bot standing · ${at}` }
-  }
-  return {
-    kind: 'draw',
-    winners: standing,
-    headline: `draw · ${joinNames(standing, names)}`,
-    detail: `time ran out · ${standing.length} bots standing · ${at}`,
-  }
-}
-
-/** A match's outcome: the most pMARS points over its rounds (ISA §5.5). */
-export function matchOutcome(match: MatchResult, standings: readonly MeleeStanding[]): Outcome {
-  const top = Math.max(...match.points)
-  const winners = standings.filter((s) => s.points === top).map((s) => s.entrant)
-  const rounds = `${match.rounds.length} ${match.rounds.length === 1 ? 'round' : 'rounds'}`
-  if (winners.length === 1) {
-    const wins = standings.find((s) => s.entrant === winners[0])?.wins ?? 0
-    return {
-      kind: 'winner',
-      winners,
-      headline: `winner · ${joinNames(winners, match.names)}`,
-      detail: `${count(top)} points · won ${wins} of ${rounds}`,
-    }
-  }
-  return {
-    kind: top > 0 ? 'draw' : 'none',
-    winners: top > 0 ? winners : [],
-    headline: top > 0 ? `draw · ${joinNames(winners, match.names)}` : 'no winner',
-    detail: top > 0 ? `${count(top)} points each · ${rounds}` : `no points · ${rounds}`,
-  }
-}
-
 /** What the overlay offers. An action left out has no button: a replay's seeds are its own. */
 export interface VictoryActions {
   onRematch: () => void
   onNewSeed?: (() => void) | undefined
-  onShare: () => void
+  /** `share ▾`: the battle's link, its embed, and its screenshot. */
+  share: ShareTarget
   onDebug?: (() => void) | undefined
   onDownload: () => void
   /** Copies the link that replays the match and checks it: `/arena/$replayId`. */
@@ -110,7 +48,7 @@ interface RoundRow {
 
 /**
  * The end of a battle (PRODUCT_SPEC §2): `WINNER · dwarf-v3 · last bot standing · cycle 41,203`
- * over the arena, the bots' numbers, and what to do next: `rematch`, `new seed`, `share`, `open
+ * over the arena, the bots' numbers, and what to do next: `rematch`, `new seed`, `share ▾`, `open
  * in debugger`, `download replay`, `replay link`. A match of more rounds shows its standings. The
  * result hash is the one a replay checks (ISA §5.6); on a replay, the check's chip stands beside it.
  */
@@ -173,7 +111,7 @@ export function Victory({
 function Actions({
   onRematch,
   onNewSeed,
-  onShare,
+  share,
   onDebug,
   onDownload,
   onReplayLink,
@@ -188,9 +126,7 @@ function Actions({
           new seed
         </Button>
       )}
-      <Button icon={Link} onClick={onShare}>
-        share
-      </Button>
+      <ShareMenu {...share} size="md" placement="bottom-start" />
       {onDebug !== undefined && (
         <Button icon={Bug} onClick={onDebug}>
           open in debugger

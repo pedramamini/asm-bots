@@ -34,6 +34,8 @@ import {
 import { runnerOf } from '../do/runner'
 import type { AppEnv } from '../env'
 import { errorResponse, log } from '../middleware'
+import { type CardFormat, cardHost, LIVE_CARD_AGE, sendCard } from '../og/send'
+import { tournamentCard } from '../og/tournament'
 import { idParam } from '../params'
 import { viewerId } from '../viewer'
 import { slugStem } from './bots'
@@ -61,6 +63,29 @@ async function tournamentOf(c: Context<AppEnv>): Promise<Tournament> {
     throw new HTTPException(404, { message: `no tournament ${id}` })
   }
   return tournament
+}
+
+/** `GET /api/tournaments/:id`'s body for `tournament`: its entrants and its matches. */
+async function tournamentDetail(
+  c: Context<AppEnv>,
+  tournament: Tournament,
+): Promise<TournamentDetail> {
+  const [entrants, matches] = await Promise.all([
+    listTournamentEntrants(c.env.DB, tournament.id),
+    listTournamentMatches(c.env.DB, tournament.id),
+  ])
+  return { tournament, entrants, matches }
+}
+
+/** The path's tournament's share card in `format`: none for a draft, which is not shared yet. */
+const card = (format: CardFormat) => async (c: Context<AppEnv>) => {
+  const tournament = await tournamentOf(c)
+  if (tournament.status === 'draft') {
+    throw new HTTPException(404, { message: `no tournament ${tournament.id}` })
+  }
+  const { entrants, matches } = await tournamentDetail(c, tournament)
+  const svg = tournamentCard(tournament, entrants, matches, cardHost(c.env))
+  return sendCard(c, svg, format, LIVE_CARD_AGE)
 }
 
 /**
@@ -318,7 +343,8 @@ async function start(c: Context<AppEnv>): Promise<Response> {
  * `GET /api/tournaments/:id`: the tournament, its entrants (in the order its matches index once it
  * has started), and its matches. A draft is its owner's: 404 to anyone else.
  * `POST /api/tournaments`, `POST /api/tournaments/:id/enter`, `POST /api/tournaments/:id/start`:
- * above.
+ * above. `GET /api/tournaments/:id/og.svg` and `og.png`: its share card (`og/tournament.ts`); a
+ * draft has none, for its owner too.
  */
 export const tournaments = new Hono<AppEnv>()
   .get('/', async (c) =>
@@ -327,13 +353,8 @@ export const tournaments = new Hono<AppEnv>()
     } satisfies TournamentList),
   )
   .post('/', requireUser, limitBody(16 * 1024), create)
-  .get('/:id', async (c) => {
-    const tournament = await tournamentOf(c)
-    const [entrants, matches] = await Promise.all([
-      listTournamentEntrants(c.env.DB, tournament.id),
-      listTournamentMatches(c.env.DB, tournament.id),
-    ])
-    return c.json({ tournament, entrants, matches } satisfies TournamentDetail)
-  })
+  .get('/:id', async (c) => c.json(await tournamentDetail(c, await tournamentOf(c))))
+  .get('/:id/og.svg', card('svg'))
+  .get('/:id/og.png', card('png'))
   .post('/:id/enter', requireUser, limitBody(1024), enter)
   .post('/:id/start', requireUser, limitBody(1024), start)

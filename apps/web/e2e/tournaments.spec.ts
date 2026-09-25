@@ -7,6 +7,7 @@
  * a browser that has no tournaments. The server's list is stubbed empty: these are this browser's.
  */
 import { expect, type Page, test } from '@playwright/test'
+import { pickShare } from './share'
 
 // This browser's tournaments: the server's list (tournaments-server.spec.ts) is empty here.
 test.beforeEach(async ({ context }) => {
@@ -112,7 +113,7 @@ test('a round robin of four roster bots fills its matrix', async ({ page, browse
   })
   const header = page.getByRole('region', { name: 'league' })
   await expect(header.getByRole('list', { name: 'entrants' }).getByRole('listitem')).toHaveCount(4)
-  await header.getByRole('button', { name: 'share' }).click()
+  await pickShare(page, header, 'copy link')
   await expect(page.getByText('link copied.')).toBeVisible()
   const link = await page.evaluate(() => (window as unknown as { copied: string }).copied)
   expect(link).toMatch(/\/tournaments\/[\w-]+#t=[\w-]+$/)

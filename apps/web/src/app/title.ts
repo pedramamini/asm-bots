@@ -1,19 +1,13 @@
+import { BRAND, routeTitle } from '@asmbots/protocol'
 import { useRouterState } from '@tanstack/react-router'
 
-/** The brand, as the header and the tab show it. */
-export const BRAND = 'ASM BOTS'
+export { BRAND, routeTitle }
 
 /** The label of a path no route owns. */
 export const NOT_FOUND_LABEL = '0x404'
 
 /** The `head` meta entry that carries a route's label to the header's brand. */
 const LABEL_META = 'asmbots:route'
-
-/** The tab title of a route: `ASM BOTS // ARENA`, and any detail after it: `… · replay 1a2b`. */
-export function routeTitle(label: string, detail?: string): string {
-  const title = `${BRAND} // ${label.toUpperCase()}`
-  return detail === undefined ? title : `${title} · ${detail}`
-}
 
 /** A route's `head`: the title, and the label the header's brand shows. */
 export function titleHead(label: string, detail?: string) {

@@ -1,6 +1,8 @@
 /**
  * The Worker: `/api/*` in Hono, everything else from the web app's static assets (ARCHITECTURE
- * §7). No Node built-ins here or in anything it imports: the engine and tourney run unchanged.
+ * §7), each page with its own head (`site/`), and `/sitemap.xml`. The hashed assets (`/assets/*`)
+ * never reach it (`run_worker_first` in wrangler.jsonc). No Node built-ins here or in anything it
+ * imports: the engine and tourney run unchanged.
  */
 import { Hono } from 'hono'
 import { requestId } from 'hono/request-id'
@@ -8,7 +10,7 @@ import { auth } from './auth/github'
 import { loadSession, sameOrigin } from './auth/session'
 import { scheduled } from './cron'
 import type { AppEnv, Env } from './env'
-import { appCors, errorResponse, onError, requestLog, securityHeaders } from './middleware'
+import { appCors, errorResponse, isApi, onError, requestLog, securityHeaders } from './middleware'
 import {
   ASSEMBLE_LIMIT,
   AUTH_LIMIT,
@@ -28,11 +30,14 @@ import { hills } from './routes/hills'
 import { live } from './routes/live'
 import { matches } from './routes/matches'
 import { me } from './routes/me'
+import { pages } from './routes/pages'
 import { replays } from './routes/replays'
 import { ticker } from './routes/ticker'
 import { tournaments } from './routes/tournaments'
 import { users } from './routes/users'
 import { version } from './routes/version'
+import { servePage } from './site/page'
+import { sitemap } from './site/sitemap'
 
 const app = new Hono<AppEnv>()
 
@@ -63,16 +68,20 @@ app.route('/api/championships', championships)
 app.route('/api/hills', hills)
 app.route('/api/live', live)
 app.route('/api/matches', matches)
+app.route('/api/pages', pages)
 app.route('/api/replays', replays)
 app.route('/api/ticker', ticker)
 app.route('/api/tournaments', tournaments)
 app.route('/api/users', users)
 
+app.get('/sitemap.xml', sitemap)
+
 app.onError(onError)
+// The rest is the web app's: each page with its own head for link previews (`site/`).
 app.notFound((c) =>
-  c.req.path === '/api' || c.req.path.startsWith('/api/')
+  isApi(c.req.path)
     ? errorResponse(c, 'not_found', `no route for ${c.req.method} ${c.req.path}`)
-    : c.env.ASSETS.fetch(c.req.raw),
+    : servePage(c),
 )
 
 export { LiveRoom } from './do/live-room'
