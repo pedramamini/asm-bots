@@ -255,7 +255,7 @@ A nightly GitHub Action (`backup.yml`) exports the production D1 database and up
 
 ### Backup status
 
-The workflow appears in [GitHub Actions](https://github.com/anthropics/asm-bots/actions) under "Backup D1 to R2". Check the latest run:
+The workflow appears in [GitHub Actions](https://github.com/pedramamini/asm-bots/actions) under "Backup D1 to R2". Check the latest run:
 
 ```bash
 # From the repo
@@ -310,7 +310,7 @@ Daily or when on call:
 ### Emergency contacts
 
 - **Cloudflare support**: [Cloudflare Dashboard](https://dash.cloudflare.com) → Support (paid plan required for priority)
-- **GitHub Actions issues**: Check [workflow runs](https://github.com/anthropics/asm-bots/actions)
+- **GitHub Actions issues**: Check [workflow runs](https://github.com/pedramamini/asm-bots/actions)
 - **Database locked or very slow**: Query D1 performance metrics; consider rollback if a recent deploy changed queries
 
 ### Common issues

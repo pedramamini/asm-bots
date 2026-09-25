@@ -1,0 +1,51 @@
+name: Bug
+description: Something in the app, the API, the CLI, or the engine does the wrong thing.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: A security problem goes by email, not here. See SECURITY.md.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you saw, and what you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to see it again
+      description: Steps, or a link that shows it. A share link or a replay link (`/arena/...#r=...`) holds the whole battle.
+      placeholder: |
+        1. Open ...
+        2. Click ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The version chip at the bottom right of the app (`2026.09.25a`), or the commit.
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options:
+        - asmbots.io
+        - A local build (bun run dev)
+        - The CLI
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and OS
+      placeholder: Chrome 141, macOS 26
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console output or screenshots
+      render: text

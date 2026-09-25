@@ -193,6 +193,7 @@ asmbots golden [--update]
 ## 10. Release and deploy
 
 - `main` deploys to production via `wrangler deploy` in GitHub Actions on push after CI passes. Preview deploys per PR via `wrangler versions upload`.
+- Branch protection on `main` (GitHub settings): require the `CI` workflow's `check` job to pass before a merge, and dismiss stale approvals on a new push.
 - Version stamp: `YYYY.MM.DD[letter]`, generated at build from the git date, shown bottom-right in the app (a v1 habit worth keeping).
 - Migrations: `wrangler d1 migrations apply` in the deploy job.
 - Secrets: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `SESSION_SECRET` via `wrangler secret put`.

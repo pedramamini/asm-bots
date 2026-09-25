@@ -457,3 +457,13 @@ Everything else that is implemented behaves exactly like an 8086, including the 
 ## 10. Versioning
 
 `x16c v1`. Battles, replays, and hill results record the ISA version. Any semantic change (even a flag fix) is `v2` with a changelog entry and, if needed, a re-run of hill standings.
+
+## 11. Changes since freeze
+
+None. The text above is x16c v1 as frozen on 2026-09-21. A change to it adds an entry here: the date, the section, what changed, the commit, and the golden update that goes with it (`bun run golden --update`, `packages/bots/goldens/results.json`), or why the goldens stay the same.
+
+### Errata
+
+Errors in the text that the implementation never followed. The text stays as frozen; the implementation and the tests follow the correction.
+
+1. **§8, `spl bx`.** The vector prints `62 03`. By §2.2, `62 03` is `spl word [bp+di]` (mod 00, rm 011), and `spl bx` is `62 C3` (mod 11, rm 011). The codec, the assembler, and the tests use `62 C3`. ndisasm also reads `62 03` as a memory form (`bound ax, [bp+di]`). The goldens were always made with `62 C3`, so none change. Tests: `packages/codec/test/decode.test.ts` (the erratum test), `packages/asm/test/assemble.test.ts`.

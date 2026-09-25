@@ -37,20 +37,20 @@ start:  jmp     start
 `
 
 const SCANNER = `; A scanner skeleton: step down through the core, look at each word, and bomb the first one
-; that is not zero. The TODOs are where a real scanner makes its choices.
+; that is not zero. The TUNE and TRY notes are where a real scanner makes its choices.
 
 %name     "my scanner"
 %author   "anonymous"
 %strategy "Scan for code, bomb what I find"
 
-STEP    equ     8                       ; TODO: bytes between two looks
+STEP    equ     8                       ; TUNE: bytes between two looks
 SIZE    equ     end - start
 
 ; Setup: the base idiom puts our base address in bx.
 start:  call    .here
 .here:  pop     bx
         sub     bx, .here
-        mov     si, bx                  ; TODO: where the scan starts
+        mov     si, bx                  ; TUNE: where the scan starts
 
 ; Scan: step down until a word is not zero.
 scan:   sub     si, STEP
@@ -62,7 +62,7 @@ scan:   sub     si, STEP
         sub     ax, bx                  ; ax = hit - base
         cmp     ax, SIZE
         jb      scan
-        mov     word [si], 0            ; TODO: a carpet with rep stosw hits more
+        mov     word [si], 0            ; TRY: a carpet with rep stosw hits more
         jmp     scan
 
 end:
@@ -75,7 +75,7 @@ const REPLICATOR = `; A replicator skeleton: copy the body STEP bytes on with re
 %author   "anonymous"
 %strategy "Copy myself and start every copy"
 
-STEP    equ     0x0800                  ; TODO: bytes from one copy to the next
+STEP    equ     0x0800                  ; TUNE: bytes from one copy to the next
 SIZE    equ     end - start
 WORDS   equ     (SIZE + 1) / 2          ; words in a copy
 
@@ -92,7 +92,7 @@ copy:   add     dx, STEP
         mov     cx, WORDS
         rep     movsw
         spl     dx
-        jmp     copy                    ; TODO: bomb between copies
+        jmp     copy                    ; TRY: bomb between copies
 
 end:
 `

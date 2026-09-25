@@ -87,7 +87,7 @@ beside the arena's title says `verifying`, `verified 1/3`, `verified` in accent,
 danger with the reason in its title and on the victory. A link is held to what the arena runs (2
 to 16 bots, 10 rounds, 1M cycles, 256 processes a bot) before anything loads. On a replay, `share ▾`
 copies its link, `download replay` saves it as it came, and `setup` goes to `/arena`. A link with
-no `#r=` will load the replay from the API (TODO(EXEC 3.1) in `ReplayPage.tsx`).
+no `#r=` loads the replay from the API (`GET /api/replays/:key`).
 
 The home page's hero is `demo/HomeDemo.tsx`, driven by `demo/demo.ts`: Spiral and LCG painters,
 Dwarf, and Paper in the duel config, 400 cycles a frame, a new random seed that places them each

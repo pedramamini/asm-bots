@@ -1,0 +1,37 @@
+name: Bot showcase
+description: Show a bot you wrote, how it fights, and what it beats.
+title: "[showcase] "
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Bot name
+      description: Its `%name`.
+    validations:
+      required: true
+  - type: textarea
+    id: strategy
+    attributes:
+      label: How it fights
+      description: The tactic in a few sentences, and the family it comes from (imp, dwarf, stone, paper, scanner, vampire, painter, or a new one).
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Source
+      description: The `.asm` file, or a link to the bot's page on asmbots.io.
+      render: nasm
+    validations:
+      required: true
+  - type: textarea
+    id: results
+    attributes:
+      label: Results
+      description: "Its hill rank, or its record against roster bots (`vs imp.asm, seeds 1..20: 14 W / 6 T / 0 L`). A replay link is welcome."
+  - type: checkboxes
+    id: roster
+    attributes:
+      label: Roster
+      options:
+        - label: I would like it in the roster, under the MIT license.

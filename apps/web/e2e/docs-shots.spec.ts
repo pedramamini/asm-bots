@@ -1,6 +1,7 @@
 /**
  * The start page's tour screenshots (EXEC 2.6 task 3), taken from the production build:
- * `public/docs-shots/tour-*.webp`, 1280 × 800 in the default theme. It runs only when asked, since
+ * `public/docs-shots/tour-*.webp`, 1280 × 800 in the default theme, and the root README's hero,
+ * `docs/hero.webp`, 1600 × 960. It runs only when asked, since
  * each run rewrites the files:
  *
  *   DOCS_SHOTS=1 bunx playwright test e2e/docs-shots.spec.ts
@@ -24,12 +25,12 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('theme', 'sentinel'))
 })
 
-/** Saves the page as `public/docs-shots/<name>.webp`. */
-async function shoot(page: Page, name: string) {
+/** Saves the page as `public/docs-shots/<name>.webp`, or in `out` when given. */
+async function shoot(page: Page, name: string, out = OUT) {
   const png = join(TMP, `${name}.png`)
   await page.mouse.move(0, 0)
   await page.screenshot({ path: png, animations: 'disabled' })
-  execFileSync('cwebp', ['-quiet', '-q', '80', png, '-o', `${OUT}${name}.webp`])
+  execFileSync('cwebp', ['-quiet', '-q', '80', png, '-o', `${out}${name}.webp`])
 }
 
 /** The arena's cycle, from its HUD chip `cycle 12,480 / 100,000`. */
@@ -51,6 +52,39 @@ test('the arena mid-battle', async ({ page }) => {
     .toBeGreaterThan(12_000)
   await page.getByRole('button', { name: 'pause' }).click()
   await shoot(page, 'tour-arena')
+})
+
+test.describe('the root README', () => {
+  // Wide enough that the bots panel shows whole names.
+  test.use({ viewport: { width: 1600, height: 960 } })
+
+  test('the hero: an eight-bot melee mid-battle', async ({ page }) => {
+    const bots = [
+      'imp-ring',
+      'dwarf',
+      'stone',
+      'paper',
+      'scanner',
+      'silk',
+      'vampire',
+      'painter-spiral',
+    ]
+    // The arena's tour seen: its coach mark would stand over the events log.
+    await page.addInitScript(() =>
+      localStorage.setItem(
+        'asmbots:settings',
+        JSON.stringify({ state: { coachMarksSeen: ['arena'] }, version: 1 }),
+      ),
+    )
+    await page.goto(`/arena?b=${bots.map((b) => `roster:${b}`).join(',')}&seed=6`)
+    await page.locator('button[name="fight"]').click()
+    await expect(page.getByRole('application', { name: 'arena' })).toBeVisible()
+    await expect
+      .poll(() => cycle(page), { timeout: 30_000, intervals: [100] })
+      .toBeGreaterThan(12_000)
+    await page.getByRole('button', { name: 'pause' }).click()
+    await shoot(page, 'hero', new URL('../../../docs/', import.meta.url).pathname)
+  })
 })
 
 test('the editor and the debugger on the imp', async ({ page }) => {

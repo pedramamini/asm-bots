@@ -1,0 +1,27 @@
+name: ISA question
+description: A question about x16c, the instruction set, or how the engine runs an instruction.
+labels: [question]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The spec is [docs/ISA_SPEC.md](https://github.com/pedramamini/asm-bots/blob/v3/docs/ISA_SPEC.md), and the docs have a page for each instruction. x16c v1 is frozen: a change is x16c v2.
+  - type: input
+    id: section
+    attributes:
+      label: ISA section
+      description: The part of the spec it is about.
+      placeholder: §5.3 Fetch, decode, execute
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What you expected and why, with the 8086 behavior if you know it.
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Example
+      description: Source, bytes, or a debugger link that shows it.
+      render: nasm

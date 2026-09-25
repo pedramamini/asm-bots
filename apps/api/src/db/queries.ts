@@ -330,13 +330,6 @@ export async function getUserByHandle(db: D1Database, handle: string): Promise<U
   return row && toUser(row)
 }
 
-export async function getUserRowByGithubId(
-  db: D1Database,
-  githubId: number,
-): Promise<UserRow | null> {
-  return db.prepare('SELECT * FROM users WHERE github_id = ?').bind(githubId).first<UserRow>()
-}
-
 /** Whether `handle` is someone's, in any case. */
 export async function isHandleTaken(db: D1Database, handle: string): Promise<boolean> {
   const row = await db.prepare('SELECT 1 FROM users WHERE handle = ?').bind(handle).first()

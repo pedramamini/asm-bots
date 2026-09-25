@@ -1,6 +1,7 @@
 {
   "name": "asmbots",
   "private": true,
+  "license": "MIT",
   "workspaces": [
     "packages/*",
     "apps/*"
