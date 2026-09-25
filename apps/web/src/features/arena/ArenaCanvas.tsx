@@ -41,7 +41,16 @@ export interface ArenaCanvasHandle {
   readonly canvas: HTMLCanvasElement | null
   /** The canvas of the rulers and the hover crosshair, over it. */
   readonly overlay: HTMLCanvasElement | null
+  /**
+   * Calls `listener` each display frame, just after the arena draws, in the same task: a video
+   * copies the canvases then. While a listener is on, the arena draws every frame, changed or not.
+   * Returns what takes it off.
+   */
+  onDraw(listener: DrawListener): () => void
 }
+
+/** A copy of the arena each display frame: its canvas, and the rulers' over it. */
+export type DrawListener = (canvas: HTMLCanvasElement, overlay: HTMLCanvasElement | null) => void
 
 /** What the arena's children (the HUD) read of it. */
 export interface ArenaCanvasParts {
@@ -124,6 +133,7 @@ export function ArenaCanvas({
   const [renderer, setRenderer] = useState<ArenaRenderer | null>(null)
   const [overlay, setOverlay] = useState<RulerOverlay | null>(null)
   const [hover, setHover] = useState<Hover | null>(null)
+  const [draws] = useState(() => new Set<DrawListener>())
   const theme = useSettings((state) => state.theme)
   const effects = useSettings((state) => state.effects)
   const reduced = useMotionReduced()
@@ -133,8 +143,18 @@ export function ArenaCanvas({
 
   useImperativeHandle(
     ref,
-    () => ({ scene, camera, renderer, canvas: canvasRef.current, overlay: overlayRef.current }),
-    [scene, camera, renderer],
+    () => ({
+      scene,
+      camera,
+      renderer,
+      canvas: canvasRef.current,
+      overlay: overlayRef.current,
+      onDraw: (listener: DrawListener) => {
+        draws.add(listener)
+        return () => draws.delete(listener)
+      },
+    }),
+    [scene, camera, renderer, draws],
   )
 
   // The renderer, made again on the new canvas when WebGL2 fails and the arena falls back to 2D.
@@ -234,8 +254,10 @@ export function ArenaCanvas({
     let id = 0
     const tick = (now: number) => {
       if ((window.devicePixelRatio || 1) !== ratio) measure()
-      renderer.render(now)
+      renderer.render(now, draws.size > 0)
       overlay.render()
+      const canvas = canvasRef.current
+      if (canvas !== null) for (const draw of draws) draw(canvas, overlayRef.current)
       id = requestAnimationFrame(tick)
     }
     id = requestAnimationFrame(tick)
@@ -243,7 +265,7 @@ export function ArenaCanvas({
       cancelAnimationFrame(id)
       observer?.disconnect()
     }
-  }, [renderer, overlay, camera])
+  }, [renderer, overlay, camera, draws])
 
   // The wheel: a native listener, since React's is passive and cannot keep the page from scrolling.
   useEffect(() => {

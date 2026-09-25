@@ -1,7 +1,7 @@
 import { act, fireEvent, screen, within } from '@testing-library/react'
 
 /** What `share ▾` offers (`src/features/share/ShareMenu.tsx`). */
-export type ShareItem = 'copy link' | 'copy embed' | 'download png'
+export type ShareItem = 'copy link' | 'copy embed' | 'download png' | 'export video'
 
 /**
  * Opens the `share ▾` inside `container` and picks `item`, and lets what it starts (a clipboard

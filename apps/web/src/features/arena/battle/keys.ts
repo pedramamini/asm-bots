@@ -1,7 +1,7 @@
 /**
  * The arena's keys (PRODUCT_SPEC §2), in the app's key registry while a battle shows: `space`
  * play and pause, `.` step, `,` step back, `[` and `]` speed, `0` reset the zoom, `1`..`9`
- * isolate a bot, `f` fullscreen, `s` screenshot, `m` sound on or off. `?` lists them.
+ * isolate a bot, `f` fullscreen, `s` screenshot, `v` video, `m` sound on or off. `?` lists them.
  */
 import { type RefObject, useMemo } from 'react'
 import { ARENA_KEYS, DIGIT_BOTS, isolateKey } from '../../../app/keymaps'
@@ -29,6 +29,8 @@ export interface ArenaKeysOptions {
   bots: number
   onFullscreen: () => void
   onScreenshot: () => void
+  /** Starts or stops the video. None where the browser cannot record. */
+  onRecord?: (() => void) | undefined
 }
 
 /** Registers the arena's keys while the calling component is mounted. */
@@ -38,6 +40,7 @@ export function useArenaKeys({
   bots,
   onFullscreen,
   onScreenshot,
+  onRecord,
 }: ArenaKeysOptions): void {
   const commands = useMemo<KeyCommand[]>(() => {
     const { store } = client
@@ -82,8 +85,9 @@ export function useArenaKeys({
       })),
       { ...ARENA_KEYS.fullscreen, run: onFullscreen },
       { ...ARENA_KEYS.screenshot, run: onScreenshot },
+      ...(onRecord === undefined ? [] : [{ ...ARENA_KEYS.record, run: onRecord }]),
       { ...ARENA_KEYS.mute, run: toggleSound },
     ]
-  }, [client, canvas, bots, onFullscreen, onScreenshot])
+  }, [client, canvas, bots, onFullscreen, onScreenshot, onRecord])
   useKeys(commands)
 }

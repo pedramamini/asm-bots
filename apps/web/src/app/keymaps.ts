@@ -32,6 +32,7 @@ export const ARENA_KEYS = {
   zoom: { keys: ['0'], description: 'reset the zoom', group: 'arena' },
   fullscreen: { keys: ['f'], description: 'fullscreen', group: 'arena' },
   screenshot: { keys: ['s'], description: 'screenshot', group: 'arena' },
+  record: { keys: ['v'], description: 'record a video, or stop and save it', group: 'arena' },
   mute: { keys: ['m'], description: 'sound on or off', group: 'arena' },
 } as const satisfies Bindings
 

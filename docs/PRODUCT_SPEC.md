@@ -33,7 +33,7 @@ The soul. Layout: arena panel 8/12 columns, right rail 4/12.
 - `fight` button self-narrates: "add 1 more bot" → "fight · 4 bots · 1 round".
 
 **Battle state**:
-- Arena canvas (DESIGN_SYSTEM §5). Overlay HUD top-left: `cycle 12,480 / 100,000`, speed, fps. Top-right: zoom, minimap toggle, fullscreen (`f`), screenshot (`s`, saves PNG with theme and HUD, and a footer stamp: bots, seed, cycle, site URL).
+- Arena canvas (DESIGN_SYSTEM §5). Overlay HUD top-left: `cycle 12,480 / 100,000`, speed, fps. Top-right: zoom, minimap toggle, fullscreen (`f`), screenshot (`s`, saves PNG with theme and HUD, and a footer stamp: bots, seed, cycle, site URL), video (`v`, records the same frame to MP4/WebM in real time until `v` again or the match ends; `share ▾` → `export video` records the round from cycle 0).
 - Transport bar under the canvas: `⏮ step-back · ▶/⏸ · step ▶| · speed slider (1 cycle/frame … max) · scrub bar with death markers in bot hues · round N/K`.
 - Right rail:
   - **Bots** table: hue swatch, name, procs (live count with sparkline), footprint (bytes owned), writes, status (`alive` / `dead @ cycle`). Click a row to isolate that bot's territory (others dim); shift-click to add.
@@ -43,7 +43,7 @@ The soul. Layout: arena panel 8/12 columns, right rail 4/12.
 
 **Replay** `/arena/:replayId`: same UI, bots and seed loaded from the server (or from a `#` URL fragment for local shares). Shows a `verified` chip after the local simulation matches the recorded result hash.
 
-Keyboard: `space` play/pause, `.` step, `,` step back, `[`/`]` speed, `0` reset zoom, `1..9` isolate bot N, `f` fullscreen, `s` screenshot, `?` key help.
+Keyboard: `space` play/pause, `.` step, `,` step back, `[`/`]` speed, `0` reset zoom, `1..9` isolate bot N, `f` fullscreen, `s` screenshot, `v` video, `?` key help.
 
 ## 3. Editor and debugger `/editor`, `/editor/:botId`
 

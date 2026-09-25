@@ -5,7 +5,7 @@ import type { Locator, Page } from '@playwright/test'
 export async function pickShare(
   page: Page,
   within: Locator,
-  item: 'copy link' | 'copy embed' | 'download png',
+  item: 'copy link' | 'copy embed' | 'download png' | 'export video',
 ): Promise<void> {
   await within.getByRole('button', { name: 'share ▾' }).click()
   await page.getByRole('menuitem', { name: item }).click()

@@ -5,7 +5,17 @@
  * of a match, and the victory overlay's actions. The canvas has a fake 2D context: the pixels are
  * `e2e/arena-render.spec.ts`'s, the battle in Chromium `e2e/arena.spec.ts`'s.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it, mock, spyOn } from 'bun:test'
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
 import { fighter } from '@asmbots/bots'
 import { Battle, type LoadedBot, NullSink } from '@asmbots/engine'
 import { replayConfig, replayMatch } from '@asmbots/protocol'
@@ -38,6 +48,7 @@ import { appSound } from '../src/features/sound/engine'
 import { stringifySearch } from '../src/router'
 import { useSettings } from '../src/store/settings'
 import { stubCanvas } from './fake-canvas'
+import { stubRecorder } from './fake-recorder'
 import { manualSchedule, sessionClient } from './session-worker'
 import { pickShare } from './share-menu'
 
@@ -433,6 +444,97 @@ describe('the end', () => {
       if (clipboard === undefined) Reflect.deleteProperty(globalThis.navigator, 'clipboard')
       else Object.defineProperty(globalThis.navigator, 'clipboard', clipboard)
     }
+  })
+})
+
+describe('the video', () => {
+  const saved: string[] = []
+  const created: Blob[] = []
+  let undo: (() => void)[] = []
+  beforeEach(() => {
+    saved.length = 0
+    created.length = 0
+    const url = { create: URL.createObjectURL, revoke: URL.revokeObjectURL }
+    URL.createObjectURL = (blob: Blob) => {
+      created.push(blob)
+      return 'blob:video'
+    }
+    URL.revokeObjectURL = () => {}
+    const click = window.HTMLAnchorElement.prototype.click
+    window.HTMLAnchorElement.prototype.click = function (this: HTMLAnchorElement) {
+      saved.push(this.download)
+    }
+    undo = [
+      stubRecorder(window),
+      () => {
+        URL.createObjectURL = url.create
+        URL.revokeObjectURL = url.revoke
+        window.HTMLAnchorElement.prototype.click = click
+      },
+    ]
+  })
+  afterEach(() => {
+    for (const restore of undo) restore()
+  })
+
+  const rec = () => screen.queryByRole('status', { name: 'recording video' })
+
+  it('records with v and the HUD’s button, counting in a rec chip, and saves an MP4', async () => {
+    await renderBattle()
+    const hud = screen.getByRole('toolbar', { name: 'arena view' })
+    expect(
+      within(hud).getByRole('button', { name: 'record video' }).getAttribute('aria-pressed'),
+    ).toBe('false')
+    press('v')
+    expect(rec()?.textContent).toBe('● rec 0:00')
+    const stop = within(hud).getByRole('button', { name: 'stop and save the video' })
+    expect(stop.getAttribute('aria-pressed')).toBe('true')
+    await act(async () => {
+      fireEvent.click(stop)
+    })
+    await waitFor(() => expect(saved).toEqual(['asmbots-dwarf-imp-1.mp4']))
+    expect(created[0]?.type).toBe('video/mp4')
+    expect(rec()).toBeNull()
+  })
+
+  it('exports the round from cycle 0 to its end with share ▾', async () => {
+    const { client } = await renderBattle()
+    client.seek(100_000)
+    await settle()
+    const victory = await screen.findByRole('region', { name: 'winner · Dwarf' })
+    await pickShare(victory, 'export video')
+    await settle()
+    // Back to cycle 0, playing (its first frame of 100 cycles in), and recording.
+    expect(client.store.getState().status).toBe('playing')
+    expect(client.store.getState().cycle).toBeLessThanOrEqual(100)
+    expect(rec()).not.toBeNull()
+    client.seek(100_000)
+    await settle()
+    // A moment on the end, then the file.
+    expect(saved).toEqual([])
+    await waitFor(() => expect(saved).toEqual(['asmbots-dwarf-imp-1.mp4']), { timeout: 3000 })
+    expect(rec()).toBeNull()
+  })
+
+  it('records a match on past the end of a round, to the end of the match', async () => {
+    const { client } = await renderBattle(fightOf(2))
+    useArenaView.getState().setAutoplay(true)
+    press('v')
+    client.seek(100_000)
+    await settle()
+    await waitFor(() => expect(client.store.getState().round).toBe(1))
+    expect(rec()).not.toBeNull()
+    client.seek(100_000)
+    await settle()
+    await waitFor(() => expect(saved).toEqual(['asmbots-dwarf-imp-1.mp4']), { timeout: 3000 })
+  })
+
+  it('shows no record button where the browser cannot record', async () => {
+    for (const restore of undo.splice(0, 1)) restore()
+    await renderBattle()
+    expect(screen.queryByRole('button', { name: 'record video' })).toBeNull()
+    press('v')
+    expect(rec()).toBeNull()
   })
 })
 

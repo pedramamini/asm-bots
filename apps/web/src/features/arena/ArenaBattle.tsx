@@ -13,7 +13,7 @@ import { ArenaCanvas, type ArenaCanvasHandle } from './ArenaCanvas'
 import { Announcer } from './battle/Announcer'
 import { BotsPanel } from './battle/BotsPanel'
 import { EventsPanel } from './battle/EventsPanel'
-import { downloadBlob, replayName, screenshotName } from './battle/files'
+import { downloadBlob, replayName, screenshotName, videoName } from './battle/files'
 import { HUD_BAND, Hud } from './battle/Hud'
 import { useFrameRate, useFullscreen } from './battle/hooks'
 import { useArenaKeys } from './battle/keys'
@@ -22,11 +22,12 @@ import { roundOutcome } from './battle/outcome'
 import { ReplayChip } from './battle/ReplayChip'
 import { buildReplay, replayUrl } from './battle/replay'
 import { StandingsPanel } from './battle/StandingsPanel'
-import { captureArena, footerStamp } from './battle/screenshot'
+import { captureArena, footerStamp, type ScreenshotText } from './battle/screenshot'
 import { speedLabel } from './battle/speed'
 import { Transport } from './battle/Transport'
 import { RoundOver, Victory } from './battle/Victory'
 import type { ReplayCheck } from './battle/verify'
+import { canRecordVideo, useArenaVideo } from './battle/video'
 import { ROUND_PAUSE_MS, useArenaView } from './battle/view'
 import { type IntroRun, useIntroGuide } from './intro'
 import { type ArenaFight, replaySources } from './setup/bots'
@@ -144,15 +145,14 @@ export function ArenaBattle({
     return () => clearTimeout(timer)
   }, [between, autoplay, nextRound, roundPause])
 
-  const screenshot = useCallback(async () => {
-    const handle = canvas.current
-    if (handle === null) return
+  /** The words on a screenshot or a video's frame: the battle as it stands now. */
+  const shotText = useCallback((): ScreenshotText => {
     const state = client.store.getState()
     const roundSeed = state.config?.seed ?? seed
     const title = `asm bots · seed ${roundSeed}${
       state.rounds > 1 ? ` · round ${state.round + 1}/${state.rounds}` : ''
     }`
-    const blob = await captureArena(handle, {
+    return {
       chips: [
         `cycle ${count(state.cycle)} / ${count(state.config?.maxCycles ?? 0)}`,
         speedLabel(state.speed),
@@ -161,13 +161,29 @@ export function ArenaBattle({
       bots: names,
       stamp: footerStamp(names, roundSeed, state.cycle),
       site: SITE_HOST,
-    })
+    }
+  }, [client, names, seed])
+
+  const screenshot = useCallback(async () => {
+    const handle = canvas.current
+    if (handle === null) return
+    const cycle = client.store.getState().cycle
+    const blob = await captureArena(handle, shotText())
     if (blob === null) {
       toast('could not take the screenshot.', { variant: 'danger' })
       return
     }
-    downloadBlob(blob, screenshotName(names, seed, state.cycle))
-  }, [client, names, seed, toast])
+    downloadBlob(blob, screenshotName(names, seed, cycle))
+  }, [client, names, seed, toast, shotText])
+
+  const [recordable] = useState(canRecordVideo)
+  const video = useArenaVideo({
+    client,
+    canvas,
+    text: shotText,
+    fileName: (extension) => videoName(names, seed, extension),
+    onFail: (message) => toast(message, { variant: 'danger' }),
+  })
 
   /** The setup of this fight with its seed written in: the same battle anywhere. */
   const fixed = useMemo(
@@ -185,6 +201,7 @@ export function ArenaBattle({
       title: embedTitle(names),
     },
     png: () => void screenshot(),
+    video: recordable ? video.exportRound : undefined,
   }
 
   const debug = () => {
@@ -233,6 +250,7 @@ export function ArenaBattle({
     bots: meta.length,
     onFullscreen: toggleFullscreen,
     onScreenshot: () => void screenshot(),
+    onRecord: recordable ? video.toggle : undefined,
   })
   useArenaSound(client)
   const guide = useIntroGuide(client, log, intro, introHold)
@@ -289,6 +307,8 @@ export function ArenaBattle({
                   fullscreen={fullscreen}
                   onFullscreen={toggleFullscreen}
                   onScreenshot={() => void screenshot()}
+                  recording={video.since}
+                  onRecord={recordable ? video.toggle : undefined}
                 />
               </ArenaCanvas>
               <Announcer client={client} every={announceEvery} />

@@ -57,6 +57,12 @@ A browser that has no tournament by that id opens the link as a snapshot: the pa
 
 `share ▾` then `copy embed` copies an `<iframe>` of a battle, to paste into another site. Its address is the arena link under `/embed`: `/embed/arena?b=…#src=…` for a battle, `/embed/arena/<key>` for a stored replay. The embed shows the arena alone, plays as it loads, and links back with `watch on asmbots`. It makes no sound and takes no keys, so the page around it keeps its own.
 
+## Videos
+
+`v` in the arena, or the HUD's video button, records the arena as it plays; `v` again stops and saves the file. A red `rec` chip counts while it records. `share ▾` then `export video` records the round from cycle 0 to its end on its own. A recording also stops a moment after the match ends.
+
+The video is what the screenshot (`s`) shows, frame by frame: the arena in its theme, the cycle and the speed, the bots' legend, and a footer stamp. It is an MP4 (H.264), or a WebM where the browser records no MP4, at most 1920 px wide, with no sound. It records in real time at the speed the arena plays: set the speed with `[` and `]` before or while it records, and a long battle makes a short video.
+
 ## Cards
 
 A link to a replay, a bot, a hill, a tournament, or a docs page shows a card where it is shared: a 1200 × 630 picture the server draws from the data (the core at a replay's end, a bot's identicon, a hill's standings, a bracket). `share ▾` then `download png` saves it.

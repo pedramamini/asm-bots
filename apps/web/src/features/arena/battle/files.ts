@@ -1,6 +1,6 @@
 /**
- * The files the battle saves: a screenshot, `asmbots-dwarf-imp-1-3527.png`, and a replay,
- * `asmbots-dwarf-imp-1.asmreplay.json`. Their names say the bots, the seed, and the cycle.
+ * The files the battle saves: a screenshot, `asmbots-dwarf-imp-1-3527.png`, a video,
+ * `asmbots-dwarf-imp-1.mp4`, and a replay, `asmbots-dwarf-imp-1.asmreplay.json`. Their names say the bots, the seed, and the cycle.
  */
 
 /** Past this many bots, a file names them by count: `asmbots-8-bots-7`. */
@@ -26,6 +26,11 @@ export function fileStem(names: readonly string[], seed: number): string {
 /** The screenshot's name (`s`): `asmbots-<bots>-<seed>-<cycle>.png`. */
 export function screenshotName(names: readonly string[], seed: number, cycle: number): string {
   return `${fileStem(names, seed)}-${cycle}.png`
+}
+
+/** The video's name (`v`): `asmbots-<bots>-<seed>.mp4`, or `.webm`, as the browser records. */
+export function videoName(names: readonly string[], seed: number, extension: string): string {
+  return `${fileStem(names, seed)}.${extension}`
 }
 
 /** The replay's name (`download replay`): `asmbots-<bots>-<seed>.asmreplay.json`. */

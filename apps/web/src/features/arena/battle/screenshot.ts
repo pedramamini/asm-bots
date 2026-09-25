@@ -54,6 +54,30 @@ function token(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 }
 
+/** The theme's colors a shot draws in: the tokens on the page, or sentinel's without them. */
+export interface ShotPalette {
+  readonly bg: string
+  readonly panel: string
+  readonly border: string
+  readonly muted: string
+  readonly accent: string
+  /** The bots' hues, `--bot-0` to `--bot-11`. */
+  readonly bots: readonly string[]
+}
+
+/** The theme's colors as the page has them now. */
+export function readPalette(): ShotPalette {
+  const muted = token('--text-muted') || '#7D9B7D'
+  return {
+    bg: token('--arena-bg') || '#000',
+    panel: token('--panel') || '#111A11',
+    border: token('--border') || '#1A2F1A',
+    muted,
+    accent: token('--accent-fg') || '#00FF88',
+    bots: Array.from({ length: 12 }, (_, bot) => token(`--bot-${bot}`) || muted),
+  }
+}
+
 interface LegendChip {
   readonly name: string
   readonly bot: number
@@ -80,6 +104,97 @@ function legendRows(
   return rows
 }
 
+/** The size of a canvas's backing store, and of its box, CSS px. */
+type Sized = Pick<HTMLCanvasElement, 'width' | 'height' | 'clientWidth'>
+
+/** Where a shot's parts go: the arena, the legend under it, and the footer under that. */
+export interface ShotLayout {
+  /** The arena in the shot, CSS px. */
+  readonly width: number
+  readonly height: number
+  /** Shot px per CSS px. */
+  readonly ratio: number
+  readonly rows: readonly (readonly LegendChip[])[]
+  /** The shot, px. */
+  readonly pixelWidth: number
+  readonly pixelHeight: number
+}
+
+export interface ShotLayoutOptions {
+  /** The widest the shot may be, px: past it, the shot is scaled down. */
+  readonly maxWidth?: number | undefined
+  /** Whether the shot's sides are even px, as a video encoder wants them. */
+  readonly even?: boolean | undefined
+}
+
+/**
+ * The layout of a shot of `canvas` with the legend of `bots`, measured on `ctx` in the shot's
+ * font: at the canvas's own resolution, or scaled down to `maxWidth`.
+ */
+export function shotLayout(
+  ctx: CanvasRenderingContext2D,
+  canvas: Sized,
+  bots: readonly string[],
+  { maxWidth = Number.POSITIVE_INFINITY, even = false }: ShotLayoutOptions = {},
+): ShotLayout {
+  const own = canvas.clientWidth > 0 ? canvas.width / canvas.clientWidth : 1
+  const width = canvas.width / own
+  const height = canvas.height / own
+  const ratio = own * Math.min(1, maxWidth / Math.max(1, canvas.width))
+  ctx.font = FONT
+  const rows = legendRows(ctx, bots, width)
+  const side = (css: number) => {
+    const px = Math.round(css * ratio)
+    return even ? px + (px % 2) : px
+  }
+  return {
+    width,
+    height,
+    ratio,
+    rows,
+    pixelWidth: side(width),
+    pixelHeight: side(height + rows.length * (CHIP_HEIGHT + GAP) + INSET + FOOTER),
+  }
+}
+
+/**
+ * Paints a shot on `ctx`, `layout`'s size: `canvas` and `overlay` as they are now, fitted to the
+ * arena's box, then `text` on and under them. A WebGL canvas holds its image only in the task that
+ * drew it: paint in that task.
+ */
+export function paintShot(
+  ctx: CanvasRenderingContext2D,
+  layout: ShotLayout,
+  canvas: HTMLCanvasElement,
+  overlay: HTMLCanvasElement | null,
+  text: ScreenshotText,
+  palette: ShotPalette,
+): void {
+  const { width, height, ratio } = layout
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
+  ctx.fillStyle = palette.bg
+  ctx.fillRect(0, 0, layout.pixelWidth, layout.pixelHeight)
+  drawFitted(ctx, canvas, width * ratio, height * ratio)
+  if (overlay !== null) drawFitted(ctx, overlay, width * ratio, height * ratio)
+  ctx.scale(ratio, ratio)
+  drawText(ctx, text, layout.rows, width, height, palette)
+  drawStamp(ctx, text, width, layout.pixelHeight / ratio - FOOTER, palette)
+}
+
+/** `image` in a box `width` x `height` px at the top left, whole and centered: a resize mid-video. */
+function drawFitted(
+  ctx: CanvasRenderingContext2D,
+  image: HTMLCanvasElement,
+  width: number,
+  height: number,
+): void {
+  if (image.width === 0 || image.height === 0) return
+  const scale = Math.min(width / image.width, height / image.height)
+  const w = image.width * scale
+  const h = image.height * scale
+  ctx.drawImage(image, (width - w) / 2, (height - h) / 2, w, h)
+}
+
 /**
  * The arena of `handle` drawn now, with `text` on it, as a PNG: null where the canvas cannot make
  * one. The renderer draws and the image is copied in the same task, since a WebGL canvas keeps no
@@ -91,27 +206,16 @@ export function captureArena(
 ): Promise<Blob | null> {
   const { canvas, overlay, renderer } = handle
   if (canvas === null || renderer === null) return Promise.resolve(null)
-  const ratio = canvas.clientWidth > 0 ? canvas.width / canvas.clientWidth : 1
-  const width = canvas.width / ratio
-  const height = canvas.height / ratio
   const shot = document.createElement('canvas')
   const probe = shot.getContext('2d')
   if (probe === null) return Promise.resolve(null)
-  probe.font = FONT
-  const rows = legendRows(probe, text.bots, width)
-  shot.width = canvas.width
-  shot.height =
-    canvas.height + Math.round((rows.length * (CHIP_HEIGHT + GAP) + INSET + FOOTER) * ratio)
+  const layout = shotLayout(probe, canvas, text.bots)
+  shot.width = layout.pixelWidth
+  shot.height = layout.pixelHeight
   // A new size resets the context: the transform, the font, all of it.
   const ctx = shot.getContext('2d') as CanvasRenderingContext2D
-  ctx.fillStyle = token('--arena-bg') || '#000'
-  ctx.fillRect(0, 0, shot.width, shot.height)
   renderer.render(performance.now(), true)
-  ctx.drawImage(canvas, 0, 0)
-  if (overlay !== null) ctx.drawImage(overlay, 0, 0)
-  ctx.scale(ratio, ratio)
-  drawText(ctx, text, rows, width, height)
-  drawStamp(ctx, text, width, shot.height / ratio - FOOTER)
+  paintShot(ctx, layout, canvas, overlay, text, readPalette())
   return new Promise((resolve) => shot.toBlob(resolve, 'image/png'))
 }
 
@@ -125,21 +229,22 @@ function drawStamp(
   text: ScreenshotText,
   width: number,
   top: number,
+  palette: ShotPalette,
 ) {
-  ctx.fillStyle = token('--panel') || '#111A11'
+  ctx.fillStyle = palette.panel
   ctx.fillRect(0, top, width, FOOTER)
-  ctx.fillStyle = token('--border') || '#1A2F1A'
+  ctx.fillStyle = palette.border
   ctx.fillRect(0, top, width, 1)
   ctx.font = FONT
   ctx.textBaseline = 'middle'
   const y = top + FOOTER / 2 + 0.5
   const siteWidth = ctx.measureText(text.site).width
-  ctx.fillStyle = token('--accent-fg') || '#00FF88'
+  ctx.fillStyle = palette.accent
   ctx.fillText(text.site, width - INSET - siteWidth, y)
   const room = width - INSET - siteWidth - 2 * PAD_X - LEFT
   const full = text.stamp.full.toUpperCase()
   const words = ctx.measureText(full).width <= room ? full : text.stamp.short.toUpperCase()
-  ctx.fillStyle = token('--text-muted') || '#7D9B7D'
+  ctx.fillStyle = palette.muted
   ctx.fillText(words, LEFT, y)
 }
 
@@ -150,11 +255,8 @@ function drawText(
   rows: readonly (readonly LegendChip[])[],
   width: number,
   height: number,
+  { panel, border, muted, accent, bots }: ShotPalette,
 ): void {
-  const panel = token('--panel') || '#111A11'
-  const border = token('--border') || '#1A2F1A'
-  const muted = token('--text-muted') || '#7D9B7D'
-  const accent = token('--accent-fg') || '#00FF88'
   ctx.textBaseline = 'middle'
   ctx.font = FONT
 
@@ -188,7 +290,7 @@ function drawText(
     const y = height + r * (CHIP_HEIGHT + GAP)
     let at = LEFT
     for (const { name, bot } of row) {
-      at += chip(at, y, name, muted, token(`--bot-${bot % 12}`) || muted) + GAP
+      at += chip(at, y, name, muted, bots[bot % 12] ?? muted) + GAP
     }
   })
 }

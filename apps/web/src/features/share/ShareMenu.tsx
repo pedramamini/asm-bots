@@ -6,7 +6,7 @@ import {
   type MenuProps,
   useToast,
 } from '@asmbots/ui'
-import { Code2, ImageDown, Link } from 'lucide-react'
+import { Code2, Film, ImageDown, Link } from 'lucide-react'
 import { copyLink, copyText, downloadCard, embedSnippet } from './share'
 
 /** What a page shares. */
@@ -23,6 +23,8 @@ export interface ShareTarget {
    * page's own picture (the arena's screenshot). Left out where the page has neither.
    */
   readonly png?: { readonly path: string; readonly name: string } | (() => void) | undefined
+  /** `export video`: records the battle from its start to its end. Left out where there is none. */
+  readonly video?: (() => void) | undefined
 }
 
 export interface ShareMenuProps extends ShareTarget {
@@ -33,12 +35,13 @@ export interface ShareMenuProps extends ShareTarget {
 
 /**
  * `share ▾` (PRODUCT_SPEC §10): copy the page's link, copy an `<iframe>` of its battle for another
- * site, or save its share card as a PNG. Each copy says so in a toast.
+ * site, save its share card as a PNG, or record the battle to a video. Each copy says so in a toast.
  */
 export function ShareMenu({
   link,
   embed,
   png,
+  video,
   size = 'sm',
   variant,
   placement = 'bottom-end',
@@ -73,6 +76,7 @@ export function ShareMenu({
         typeof png === 'function' ? png() : void downloadCard(png.path, png.name, toast),
     })
   }
+  if (video !== undefined) items.push({ label: 'export video', icon: Film, onSelect: video })
   return (
     <Menu
       placement={placement}

@@ -19,7 +19,7 @@ import {
 
 /** Every binding, by group: what the key help shows on each route, all at once. */
 export function allBindings(): KeyBinding[] {
-  const { fullscreen, screenshot, ...arena } = ARENA_KEYS
+  const { fullscreen, screenshot, record, ...arena } = ARENA_KEYS
   const binding = ({ keys, description, group }: KeyBinding): KeyBinding => ({
     keys,
     description,
@@ -32,6 +32,7 @@ export function allBindings(): KeyBinding[] {
     { keys: [`1..${DIGIT_BOTS}`], description: 'isolate bot n', group: 'arena' },
     fullscreen,
     screenshot,
+    record,
     ...Object.values(EDITOR_KEYS),
     ...Object.values(SOURCE_KEYS).map(binding),
     ...DEBUG_FUNCTION_KEYS.map(functionKey),
