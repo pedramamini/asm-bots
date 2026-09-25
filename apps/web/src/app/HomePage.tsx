@@ -217,7 +217,7 @@ function Hero({ demo: Demo }: { demo: ComponentType<HomeDemoProps> }) {
         ) : (
           loader
         )}
-        <div className="absolute bottom-3 left-3 flex flex-col gap-2 rounded-md border border-border bg-panel p-4 xl:static xl:col-start-1 xl:row-start-1 xl:self-end xl:justify-self-end">
+        <div className="absolute bottom-3 left-3 flex flex-col gap-2 rounded-md border border-border bg-panel p-4 xl:relative xl:col-start-1 xl:row-start-1 xl:self-end xl:justify-self-end">
           <h1 className="flex items-center gap-2 text-modal-title text-bright">
             <LogoMark size={24} />
             ASM BOTS
