@@ -323,6 +323,20 @@ A release is a tag, `v<stamp>`, on a commit whose `CHANGELOG.md` names it (the c
 | `robots.txt` allows indexing | `Allow: /` and no `Disallow: /` for `*` | |
 | Error rate < 0.1%, last hour | Workers Analytics GraphQL: errors / requests | |
 
+### Launch record: 2026.09.25a "imp gate"
+
+Deployed 2026-09-25 09:5x UTC by hand (Worker version `d2b7e23d`), migration `0009_fights_reign` applied. Before it: a D1 export in `asmbots-backups/backup-2026-09-25-prerelease.sql` and the time-travel bookmark `00000015-00000000-000050f1-aa4542c28ef439c8d164714414bf1f1b`. The build before it was `2026.09.24a`, which predated the page heads (no share cards).
+
+| Item | Result |
+| --- | --- |
+| Production smoke | ✅ 10 of 10 |
+| Backups | ⚠️ passes on the pre-release export only. `backup.yml` has never run (see **Deploy**): no nightly backup exists |
+| Championship cron | ✅ `0 18 * * 6` on the Worker |
+| OAuth | ✅ redirect to GitHub with the production OAuth App's client id; callback live (400 without a code). A real sign-in is the release sign-off's |
+| OG cards | ✅ `/`, `/arena`, `/hills/main` as Slackbot and Twitterbot: large cards, 1200 × 630 PNGs. Slack and X pastes are the sign-off's |
+| `robots.txt` | ✅ `Allow: /` |
+| Error rate | ✅ 0 errors in 27 requests, the hour after the deploy (too little traffic to mean much) |
+
 ## On-Call Checklist
 
 Daily or when on call:
