@@ -877,6 +877,29 @@ describe('the debugger', () => {
     expect(divider.getAttribute('aria-valuenow')).toBe('5')
   })
 
+  it('shows a narrow window the phone layout, and keeps the stored one for a wide window', async () => {
+    const stored = useEditorPrefs.getState().layout
+    const previous = Object.getOwnPropertyDescriptor(globalThis, 'matchMedia')
+    Object.defineProperty(globalThis, 'matchMedia', {
+      configurable: true,
+      value: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }),
+    })
+    try {
+      await renderEditor()
+      const shown = [...document.querySelectorAll<HTMLElement>('[data-panel]')].map(
+        (slot) => slot.dataset.panel,
+      )
+      expect(shown).toEqual(['source', 'problems'])
+      expect(screen.queryByRole('region', { name: 'bot library' })).toBeNull()
+      await layoutMenu('show memory')
+      await waitFor(() => expect(screen.getByRole('region', { name: 'memory' })).toBeTruthy())
+      expect(useEditorPrefs.getState().layout).toBe(stored)
+    } finally {
+      if (previous === undefined) Reflect.deleteProperty(globalThis, 'matchMedia')
+      else Object.defineProperty(globalThis, 'matchMedia', previous)
+    }
+  })
+
   it('puts the panels as a preset has them', async () => {
     await renderEditor()
     await layoutMenu('writing layout')

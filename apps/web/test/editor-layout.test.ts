@@ -61,6 +61,18 @@ describe('the presets', () => {
     expect(panelsOf(nodeAt(root, [0, 0]) as LayoutNode)).toEqual(['library'])
     expect(panelsOf(nodeAt(root, [0, 1]) as LayoutNode)).toEqual(['source', 'problems'])
   })
+
+  it('put a phone in one column: the source over its problems, the rest hidden', () => {
+    const { root, hidden } = PRESETS.phone()
+    expect(root.kind === 'split' && root.dir).toBe('column')
+    expect(root.kind === 'split' && root.children.every((child) => child.kind === 'panel')).toBe(
+      true,
+    )
+    expect(panelsOf(root).slice(0, 2)).toEqual(['source', 'problems'])
+    expect(sorted(hidden)).toEqual(
+      sorted(PANEL_IDS.filter((id) => id !== 'source' && id !== 'problems')),
+    )
+  })
 })
 
 describe('moves', () => {

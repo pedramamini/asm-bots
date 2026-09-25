@@ -160,6 +160,20 @@ export const PRESETS = {
     ),
     hidden: ['library'],
   }),
+  /**
+   * A phone's: one column, the source over its problems; the rest hidden under them, so a panel
+   * shown again takes a share of the column.
+   */
+  phone: (): Layout => ({
+    root: column(
+      [panel('source'), 0.8],
+      [panel('problems'), 0.2],
+      ...PANEL_IDS.filter((id) => id !== 'source' && id !== 'problems').map(
+        (id) => [panel(id), 0.3] as const,
+      ),
+    ),
+    hidden: PANEL_IDS.filter((id) => id !== 'source' && id !== 'problems'),
+  }),
 } as const satisfies Record<string, () => Layout>
 
 export type PresetId = keyof typeof PRESETS
@@ -168,6 +182,7 @@ export const PRESET_LABELS: Readonly<Record<PresetId, string>> = {
   default: 'default',
   writing: 'writing',
   debugging: 'debugging',
+  phone: 'phone',
 }
 
 export const DEFAULT_LAYOUT: Layout = PRESETS.default()

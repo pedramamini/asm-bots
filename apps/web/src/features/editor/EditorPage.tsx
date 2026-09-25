@@ -11,7 +11,17 @@
  */
 import { formatSource } from '@asmbots/asm'
 import type { MyBot } from '@asmbots/protocol'
-import { Chip, CoachMark, EmptyState, hexAddress, Kbd, Skeleton, useToast } from '@asmbots/ui'
+import {
+  Chip,
+  CoachMark,
+  EmptyState,
+  hexAddress,
+  Kbd,
+  Skeleton,
+  useMediaQuery,
+  useToast,
+  WIDE,
+} from '@asmbots/ui'
 import { isolateHistory, undo } from '@codemirror/commands'
 import type { EditorView } from '@codemirror/view'
 import { useQueryClient } from '@tanstack/react-query'
@@ -58,6 +68,7 @@ import { EditorToolbar, type SaveState, type TestState } from './EditorToolbar'
 import { EmptyEditor } from './EmptyEditor'
 import { Library } from './Library'
 import { TileFrame } from './layout/TileFrame'
+import { type Layout, type PanelId, PRESETS, type PresetId, setHidden } from './layout/tree'
 import { Workspace } from './layout/Workspace'
 import { Problems } from './Problems'
 import { useEditorPrefs } from './store'
@@ -261,19 +272,28 @@ function Workbench({
   const listingOn = useEditorPrefs((state) => state.listing)
   const lintOn = useEditorPrefs((state) => state.lint)
   const recent = useEditorPrefs((state) => state.recent)
-  const layout = useEditorPrefs((state) => state.layout)
+  const stored = useEditorPrefs((state) => state.layout)
+  const { toggleListing, setLint, visit, setDraft } = useEditorPrefs.getState()
+  // Under `md` the tiles do not fit side by side: the page shows the phone preset for the
+  // session, and the layout the user keeps waits, as it was, for a wide window.
+  const wide = useMediaQuery(WIDE)
+  const [phone, setPhone] = useState<Layout>(PRESETS.phone)
+  const layout = wide ? stored : phone
+  const { toggleLibrary, setLayout, setPanelHidden, applyPreset } = useMemo(
+    () =>
+      wide
+        ? useEditorPrefs.getState()
+        : {
+            toggleLibrary: () =>
+              setPhone((l) => setHidden(l, 'library', !l.hidden.includes('library'))),
+            setLayout: setPhone,
+            setPanelHidden: (id: PanelId, hide: boolean) => setPhone((l) => setHidden(l, id, hide)),
+            applyPreset: (preset: PresetId) => setPhone(PRESETS[preset]()),
+          },
+    [wide],
+  )
   const libraryOn = !layout.hidden.includes('library')
   const stripOn = !layout.hidden.includes('arena')
-  const {
-    toggleListing,
-    toggleLibrary,
-    setLint,
-    setLayout,
-    setPanelHidden,
-    applyPreset,
-    visit,
-    setDraft,
-  } = useEditorPrefs.getState()
 
   const [view, setView] = useState<EditorView | null>(null)
   const [source, setSource] = useState(doc.initial)
