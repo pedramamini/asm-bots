@@ -1,6 +1,6 @@
 /**
  * More dither scenes (DESIGN_SYSTEM §10): the banners at the right of a page's intro, one a
- * section, and the plates of the profile, the docs home, and the arena's victory. A banner is
+ * section, and the plates of the profile and the docs home. A banner is
  * wide, 3:1 or wider, and keeps its subject at the right end, where the intro's text is not.
  */
 import { aspect, BRIGHT, clamp01, type Grid, noise, type Scene, smoothstep } from './dither'

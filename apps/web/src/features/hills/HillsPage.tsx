@@ -2,6 +2,7 @@ import type { HillBest, HillSummary } from '@asmbots/protocol'
 import { EmptyState, Panel, PanelGrid, Skeleton, Table, type TableColumn } from '@asmbots/ui'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useHills, useMaybeUser, useMe } from '../../api/queries'
+import { IntroArt } from '../../app/IntroArt'
 import { HILLS_ABOUT } from '../../app/intros/hills'
 import { LoadFailure, readStatus } from '../../app/LoadFailure'
 import { useLinkAction } from '../../app/link-action'
@@ -83,7 +84,7 @@ export function HillsPage() {
   const navigate = useNavigate()
   return (
     <PanelGrid className="p-3">
-      <PageIntro about={HILLS_ABOUT} art="summit" />
+      <PageIntro about={HILLS_ABOUT} art={<IntroArt name="summit" />} />
       <Panel
         className="col-span-12"
         title="hills"

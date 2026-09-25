@@ -18,7 +18,9 @@ import { FileUp, Link, Plus, Save, Swords, X } from 'lucide-react'
 import {
   type ChangeEvent,
   type DragEvent,
+  lazy,
   type ReactNode,
+  Suspense,
   useDeferredValue,
   useMemo,
   useRef,
@@ -63,6 +65,12 @@ import { Diagnostics } from './setup/Diagnostics'
 import { type ArenaSetupSpec, type BotRef, formatRef } from './setup/url'
 import { copyShareLink } from './share'
 import { FightStep, RosterStep } from './tour'
+
+/**
+ * The intro's banner, loaded after the page: the setup sits at the edge of its budget. Its box is
+ * held by a placeholder of `IntroArt`'s size, so the intro's text does not reflow.
+ */
+const IntroArt = lazy(() => import('../../app/IntroArt').then((m) => ({ default: m.IntroArt })))
 
 /** Where the picker's bots come from. */
 type Source = 'roster' | 'mine' | 'paste'
@@ -280,7 +288,16 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight, tour }: ArenaS
       onDrop={onDrop}
     >
       <PanelGrid>
-        <PageIntro about={ARENA_ABOUT} art="arena" />
+        <PageIntro
+          about={ARENA_ABOUT}
+          art={
+            <Suspense
+              fallback={<div className="-my-2 hidden w-80 shrink-0 self-stretch md:block" />}
+            >
+              <IntroArt name="arena" />
+            </Suspense>
+          }
+        />
         <Panel
           className="col-span-12 lg:col-span-8"
           title={SOURCES.find((s) => s.value === source)?.label}

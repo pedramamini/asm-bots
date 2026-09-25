@@ -138,7 +138,7 @@ The site's pictures are drawn by code from the machine's own parts, in the theme
 
 | Style | What it is | Where |
 |---|---|---|
-| Dither plate | 1-bit ordered (Bayer 4 × 4) scenes: the accent, `--text-bright` for a flag or a gleam, 3 px cells (2 px on small plates) with a 1 px gap. Scenes: `footer` (the hills, a flag each for `tiny`, `main`, `melee`), `climb`, `trophy`, `chip`; the section banners `summit` (hills), `bracket` (tournaments), `disk` (bots), `arena` (the arena's setup); `terminal` (a profile), `manual` (the docs home). | The footer, the home page, the championship panel, each section's intro, a profile, the docs home, the arena's victory card |
+| Dither plate | 1-bit ordered (Bayer 4 × 4) scenes: the accent, `--text-bright` for a flag or a gleam, 3 px cells (2 px on small plates) with a 1 px gap. Scenes: `footer` (the hills, a flag each for `tiny`, `main`, `melee`), `climb`, `trophy`, `chip`; the section banners `summit` (hills), `bracket` (tournaments), `disk` (bots), `arena` (the arena's setup); `terminal` (a profile), `manual` (the docs home). | The footer, the home page, the championship panel, each section's intro, a profile, the docs home |
 | Schematic | Hairline technical drawings of the VM: boxes, a bus, a dimension line, UPPER callouts, a drawing number. | Home `the core`; docs |
 | Scope trace | Bots' process counts as phosphor traces on a graticule, on the arena's black, in the bots' hues. | Home `fight` |
 | Hex band | A core dump whose lit bytes, the imp's `A5 90`, spell a word in a 5 × 7 face among the empty core's zeros. | Home, over the tour |
@@ -149,6 +149,6 @@ Rules:
 - **Nothing moves.** A plate draws once, and again only on a resize or a theme change.
 - **After the paint.** The art is one chunk (`src/art`), loaded once the page has painted and gone idle; its box holds the space before, so nothing shifts.
 - **Screenshots** on the home page are the docs' (`public/docs-shots`), small, framed as a window with its `ASM BOTS // PAGE` bar, lazy, and each opens its page.
-- **A section's banner** sits at the right end of its page intro (`PageIntro`'s `art`), from `md` on, 320 × 80 px, fading in from the text's side. One scene a section: every page of the section shows the same one.
+- **A section's banner** sits at the right end of its page intro (`PageIntro`'s `art`, an `IntroArt`), from `md` on, 320 × 80 px, fading in from the text's side. One scene a section: every page of the section shows the same one. The arena's setup loads its banner after the page, behind a placeholder of the same box: `/arena` is at the edge of its budget.
 - **The footer** ends every page that scrolls; the arena, the editor, and embeds fill the screen and have none.
 - Empty states stay text (§4): no art there.

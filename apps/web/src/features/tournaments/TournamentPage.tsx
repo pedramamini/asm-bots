@@ -8,6 +8,7 @@
 import { PanelGrid } from '@asmbots/ui'
 import { useLocation } from '@tanstack/react-router'
 import { useMemo } from 'react'
+import { IntroArt } from '../../app/IntroArt'
 import { TOURNAMENTS_ABOUT } from '../../app/intros/tournaments'
 import { PageIntro } from '../../app/PageIntro'
 import { Placeholder } from '../../app/Placeholder'
@@ -72,7 +73,7 @@ function TournamentDetail({ tournament, shared }: { tournament: Tournament; shar
   const View = VIEWS[tournament.kind]
   return (
     <PanelGrid className="p-3">
-      <PageIntro about={TOURNAMENTS_ABOUT} art="bracket" />
+      <PageIntro about={TOURNAMENTS_ABOUT} art={<IntroArt name="bracket" />} />
       <div className="col-span-12 flex flex-col gap-3">
         <TournamentHeader tournament={tournament} shared={shared} />
         <View tournament={tournament} />

@@ -5,6 +5,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { isNotFound } from '../../api/client'
 import { useHill, useHillMatches } from '../../api/queries'
+import { IntroArt } from '../../app/IntroArt'
 import { HILLS_ABOUT } from '../../app/intros/hills'
 import { LoadFailure, readStatus } from '../../app/LoadFailure'
 import { PageIntro } from '../../app/PageIntro'
@@ -101,7 +102,7 @@ export function HillPage({ slug, submission = null, live, createArenaClient }: H
     })
   return (
     <PanelGrid className="p-3">
-      <PageIntro about={HILLS_ABOUT} art="summit" />
+      <PageIntro about={HILLS_ABOUT} art={<IntroArt name="summit" />} />
       <Panel
         className="col-span-12 xl:col-span-8"
         title={detail?.hill.name ?? slug}

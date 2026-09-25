@@ -6,7 +6,7 @@ import { useUser } from '../../api/queries'
 import { LoadFailure, readStatus } from '../../app/LoadFailure'
 import { useLinkAction } from '../../app/link-action'
 import { Placeholder } from '../../app/Placeholder'
-import { Plate } from '../../art/lazy'
+import { Plate } from '../../art/Plate'
 import { preconnectAvatars } from '../account/avatars'
 import { BotLink, CELL_LINK, count, day } from '../hills/links'
 

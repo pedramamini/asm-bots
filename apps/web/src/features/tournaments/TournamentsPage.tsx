@@ -20,6 +20,7 @@ import { Link } from '@tanstack/react-router'
 import { Cloud, Plus, Trophy } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { useTournaments as useServerTournaments } from '../../api/queries'
+import { IntroArt } from '../../app/IntroArt'
 import { TOURNAMENTS_ABOUT } from '../../app/intros/tournaments'
 import { LoadFailure } from '../../app/LoadFailure'
 import { PageIntro } from '../../app/PageIntro'
@@ -183,7 +184,7 @@ export function TournamentsPage({ onNew, runner = tournamentRunner() }: Tourname
   )
   return (
     <PanelGrid className="p-3">
-      <PageIntro about={TOURNAMENTS_ABOUT} art="bracket" />
+      <PageIntro about={TOURNAMENTS_ABOUT} art={<IntroArt name="bracket" />} />
       <Panel
         className="col-span-12"
         title="tournaments"

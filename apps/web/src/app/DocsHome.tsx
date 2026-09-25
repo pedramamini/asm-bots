@@ -10,7 +10,7 @@ import {
   Search,
   Swords,
 } from 'lucide-react'
-import { Plate } from '../art/lazy'
+import { Plate } from '../art/Plate'
 import { DOCS, type DocSection, docEntries } from '../docs'
 import { sectionAnchor, sectionMeta } from '../docs/sections'
 import { focusRouteSearch } from './keys'
