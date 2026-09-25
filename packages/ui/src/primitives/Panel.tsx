@@ -55,7 +55,7 @@ export function Panel({
   const titleId = useId()
   const { chrome, fill = false } = usePanelHost()
   const titled = hasContent(title)
-  const right = hasContent(status) || hasContent(actions) || hasContent(chrome)
+  const tools = hasContent(actions) || hasContent(chrome)
   return (
     <section
       aria-labelledby={titled && rest['aria-label'] === undefined ? titleId : undefined}
@@ -67,30 +67,34 @@ export function Panel({
         className,
       )}
     >
-      {(titled || right) && (
+      {(titled || hasContent(status) || tools) && (
         <header
           className={cx(
-            'flex min-h-3.5 items-center gap-3 border-b border-border',
+            'flex min-h-3.5 items-center gap-3 border-b border-border max-md:flex-wrap',
             dense ? 'mb-2 pb-1' : 'mb-3 pb-2',
             fill && 'shrink-0',
           )}
         >
-          {titled && (
-            <h2 id={titleId} className="min-w-0 truncate text-panel-title text-accent-fg">
-              {title}
-            </h2>
-          )}
-          {right && (
-            <div className="ml-auto flex shrink-0 items-center gap-3">
-              {hasContent(status) && <span className="text-panel-status text-muted">{status}</span>}
-              {/* Controls overhang the 14 px row, so a panel with actions keeps its hairline level
-                  with the panels beside it. */}
-              {(hasContent(actions) || hasContent(chrome)) && (
-                <div className="-my-1.5 flex items-center gap-1">
-                  {actions}
-                  {chrome}
-                </div>
+          {/* The title and its status stay on one line; under md, actions that do not fit beside
+              them wrap to a line of their own, right-aligned. */}
+          {(titled || hasContent(status)) && (
+            <div className="flex min-w-0 flex-auto items-center gap-3">
+              {titled && (
+                <h2 id={titleId} className="min-w-0 truncate text-panel-title text-accent-fg">
+                  {title}
+                </h2>
               )}
+              {hasContent(status) && (
+                <span className="ml-auto shrink-0 text-panel-status text-muted">{status}</span>
+              )}
+            </div>
+          )}
+          {/* Controls overhang the 14 px row, so a panel with actions keeps its hairline level
+              with the panels beside it. */}
+          {tools && (
+            <div className="-my-1.5 ml-auto flex shrink-0 items-center gap-1">
+              {actions}
+              {chrome}
             </div>
           )}
         </header>

@@ -36,17 +36,41 @@ describe('Panel', () => {
     render(
       <Panel title="hills" status="3 active" actions={<button type="button">refresh</button>} />,
     )
-    const row = screen.getByRole('heading').parentElement as HTMLElement
+    const row = screen.getByRole('heading').closest('header') as HTMLElement
     expect(row.className.split(' ')).toEqual(
       expect.arrayContaining(['border-b', 'border-border', 'pb-2', 'mb-3']),
     )
-    const right = row.lastElementChild as HTMLElement
-    expect(right.className).toContain('ml-auto')
-    expect(right.textContent).toBe('3 activerefresh')
-    expect(screen.getByText('3 active').className).toBe('text-panel-status text-muted')
-    expect(screen.getByRole('button', { name: 'refresh' }).parentElement?.className).toContain(
-      '-my-1.5',
+    expect(row.textContent).toBe('hills3 activerefresh')
+    expect(screen.getByText('3 active').className).toBe(
+      'ml-auto shrink-0 text-panel-status text-muted',
     )
+    const tools = screen.getByRole('button', { name: 'refresh' }).parentElement as HTMLElement
+    expect(tools.parentElement).toBe(row)
+    expect(tools.className.split(' ')).toEqual(expect.arrayContaining(['-my-1.5', 'ml-auto']))
+  })
+
+  it('wraps the actions to a line of their own on a phone, and keeps the status by the title', () => {
+    render(
+      <Panel
+        title="hill main"
+        status="14 of 32"
+        actions={<button type="button">sign in to submit</button>}
+      />,
+    )
+    const heading = screen.getByRole('heading', { level: 2 })
+    const row = heading.closest('header') as HTMLElement
+    expect(row.className.split(' ')).toContain('max-md:flex-wrap')
+    // The title and status share one flex item, so a wrap never parts them.
+    const titleLine = heading.parentElement as HTMLElement
+    expect(titleLine.parentElement).toBe(row)
+    expect(titleLine.contains(screen.getByText('14 of 32'))).toBe(true)
+    expect(titleLine.className.split(' ')).toEqual(expect.arrayContaining(['min-w-0', 'flex-auto']))
+    expect(heading.className.split(' ')).toContain('truncate')
+    // The actions are the row's other item, right-aligned on whichever line they land.
+    const tools = screen.getByRole('button').parentElement as HTMLElement
+    expect(tools.parentElement).toBe(row)
+    expect(tools.className.split(' ')).toEqual(expect.arrayContaining(['ml-auto', 'shrink-0']))
+    expect(screen.getByRole('region', { name: 'hill main' })).toBeTruthy()
   })
 
   it('draws the status and actions without a title', () => {
@@ -80,7 +104,7 @@ describe('Panel', () => {
     const panel = screen.getByRole('region')
     expect(panel.className).toContain('p-2')
     expect(panel.className).not.toContain('p-3')
-    const row = screen.getByRole('heading').parentElement as HTMLElement
+    const row = screen.getByRole('heading').closest('header') as HTMLElement
     expect(row.className.split(' ')).toEqual(expect.arrayContaining(['pb-1', 'mb-2']))
   })
 

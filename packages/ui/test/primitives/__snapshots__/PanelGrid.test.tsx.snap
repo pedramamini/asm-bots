@@ -10,14 +10,18 @@ exports[`PanelGrid lays panels on 12 columns 1`] = `
       class="flex min-w-0 flex-col rounded-md border border-border bg-panel text-body text-text p-3 col-span-8"
     >
       <header
-        class="flex min-h-3.5 items-center gap-3 border-b border-border mb-3 pb-2"
+        class="flex min-h-3.5 items-center gap-3 border-b border-border max-md:flex-wrap mb-3 pb-2"
       >
-        <h2
-          class="min-w-0 truncate text-panel-title text-accent-fg"
-          id="id-1"
+        <div
+          class="flex min-w-0 flex-auto items-center gap-3"
         >
-          arena
-        </h2>
+          <h2
+            class="min-w-0 truncate text-panel-title text-accent-fg"
+            id="id-1"
+          >
+            arena
+          </h2>
+        </div>
       </header>
       <div
         class="min-h-0 flex-1"
@@ -28,14 +32,18 @@ exports[`PanelGrid lays panels on 12 columns 1`] = `
       class="flex min-w-0 flex-col rounded-md border border-border bg-panel text-body text-text p-3 col-span-4"
     >
       <header
-        class="flex min-h-3.5 items-center gap-3 border-b border-border mb-3 pb-2"
+        class="flex min-h-3.5 items-center gap-3 border-b border-border max-md:flex-wrap mb-3 pb-2"
       >
-        <h2
-          class="min-w-0 truncate text-panel-title text-accent-fg"
-          id="id-2"
+        <div
+          class="flex min-w-0 flex-auto items-center gap-3"
         >
-          roster
-        </h2>
+          <h2
+            class="min-w-0 truncate text-panel-title text-accent-fg"
+            id="id-2"
+          >
+            roster
+          </h2>
+        </div>
       </header>
       <div
         class="min-h-0 flex-1"
