@@ -280,7 +280,7 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight, tour }: ArenaS
       onDrop={onDrop}
     >
       <PanelGrid>
-        <PageIntro about={ARENA_ABOUT} />
+        <PageIntro about={ARENA_ABOUT} art="arena" />
         <Panel
           className="col-span-12 lg:col-span-8"
           title={SOURCES.find((s) => s.value === source)?.label}

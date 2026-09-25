@@ -183,7 +183,7 @@ export function TournamentsPage({ onNew, runner = tournamentRunner() }: Tourname
   )
   return (
     <PanelGrid className="p-3">
-      <PageIntro about={TOURNAMENTS_ABOUT} />
+      <PageIntro about={TOURNAMENTS_ABOUT} art="bracket" />
       <Panel
         className="col-span-12"
         title="tournaments"

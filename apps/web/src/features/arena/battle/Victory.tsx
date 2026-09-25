@@ -3,6 +3,7 @@ import { type MatchResult, type MeleeStanding, meleeStandings } from '@asmbots/t
 import { Button, HueSwatch, IconButton, Table, type TableColumn, Toggle } from '@asmbots/ui'
 import { Bug, Dices, Download, Film, RotateCcw, SkipForward, X } from 'lucide-react'
 import { useId, useMemo } from 'react'
+import { Plate } from '../../../art/lazy'
 import { ShareMenu, type ShareTarget } from '../../share/ShareMenu'
 import { botResults } from '../worker/protocol'
 import { reasonText } from './log'
@@ -78,6 +79,12 @@ export function Victory({
         }}
       >
         <header className="flex items-start gap-3">
+          {outcome.winners.length > 0 && (
+            // Art: the cup, for a fight someone won.
+            <div className="size-16 shrink-0 overflow-hidden rounded-sm border border-border bg-panel-2">
+              <Plate name="trophy" cell={2} />
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <h2
               id={titleId}

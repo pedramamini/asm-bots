@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 import { hasFooter } from '../src/app/Frame'
+import { arenaFloor, bracket, disk, manual, summit, terminal } from '../src/art/banners'
 import { BRIGHT, ditherCells, LIT, OFF, ON, type Scene } from '../src/art/dither'
 import { litCells } from '../src/art/HexBand'
 import { tracePoints } from '../src/art/ScopeTrace'
@@ -45,6 +46,13 @@ describe('the scenes', () => {
       [climbRange, 160, 100],
       [trophy, 100, 100],
       [chip, 160, 100],
+      // The intro banners, 320 × 80 px in 2 px cells, and the profile's and the docs' plates.
+      [summit, 160, 40],
+      [bracket, 160, 40],
+      [disk, 160, 40],
+      [arenaFloor, 160, 40],
+      [manual, 112, 72],
+      [terminal, 180, 80],
     ] as const) {
       const share = coverage(scene, cols, rows)
       expect(share).toBeGreaterThan(0.08)
@@ -62,6 +70,27 @@ describe('the scenes', () => {
     }
     const cells = ditherCells(footerRange, { cols: 480, rows: 42 })
     expect(cells.includes(LIT)).toBe(true)
+  })
+})
+
+describe('the banners', () => {
+  it('keep their subject at the right end, clear of the intro text', () => {
+    for (const scene of [summit, bracket, disk, arenaFloor]) {
+      const cells = ditherCells(scene, { cols: 160, rows: 40 })
+      let left = 0
+      let right = 0
+      cells.forEach((cell, i) => {
+        if (cell === OFF) return
+        if (i % 160 < 48) left++
+        else if (i % 160 >= 112) right++
+      })
+      expect(right).toBeGreaterThan(left)
+    }
+  })
+
+  it("light the champion's path to the cup in the bracket", () => {
+    const cells = ditherCells(bracket, { cols: 160, rows: 40 })
+    expect(cells.filter((cell) => cell === LIT).length).toBeGreaterThan(40)
   })
 })
 

@@ -106,7 +106,7 @@ export function BotPage({ id }: { id: string }) {
   const text = source.data?.version.source
   return (
     <PanelGrid className="p-3">
-      <PageIntro about={BOT_ABOUT} />
+      <PageIntro about={BOT_ABOUT} art="disk" />
       <Panel
         className="col-span-12 xl:col-span-4"
         title="bot"

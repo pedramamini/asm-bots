@@ -83,7 +83,7 @@ export function HillsPage() {
   const navigate = useNavigate()
   return (
     <PanelGrid className="p-3">
-      <PageIntro about={HILLS_ABOUT} />
+      <PageIntro about={HILLS_ABOUT} art="summit" />
       <Panel
         className="col-span-12"
         title="hills"

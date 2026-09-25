@@ -2,6 +2,8 @@ import { Button, cx, IconButton, Modal } from '@asmbots/ui'
 import { Link } from '@tanstack/react-router'
 import { BookOpen, Info } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
+import type { PlateName } from '../art'
+import { Plate } from '../art/lazy'
 import { NavLink } from './Frame'
 
 /** What a page says about itself: a line at its top, and more behind the `ⓘ`. */
@@ -22,6 +24,8 @@ const INTRO_LINK =
 
 export interface PageIntroProps {
   about: PageAbout
+  /** A dither plate at the right end, the section's banner (DESIGN_SYSTEM §10); from `md` on. */
+  art?: PlateName | undefined
   /** More classes for the box, which spans the page's 12 columns. */
   className?: string | undefined
 }
@@ -30,16 +34,23 @@ export interface PageIntroProps {
  * The top of a page that explains itself: the page's `lead` beside an `ⓘ`, which opens a dialog
  * with its `details` and a link to its docs. It sits in the page's `PanelGrid`.
  */
-export function PageIntro({ about, className }: PageIntroProps) {
+export function PageIntro({ about, art, className }: PageIntroProps) {
   return (
     <section
       aria-label={`about ${about.name}`}
       className={cx(
         'col-span-12 flex items-start gap-3 rounded-md border border-border bg-panel px-3 py-2',
+        art !== undefined && 'md:min-h-20',
         className,
       )}
     >
       <p className="min-w-0 flex-1 text-body text-muted">{about.lead}</p>
+      {art !== undefined && (
+        // The plate runs the box's height and fades in from the text's side.
+        <div className="-my-2 hidden w-80 shrink-0 self-stretch [mask-image:linear-gradient(to_right,transparent,black_35%)] md:block">
+          <Plate name={art} cell={2} />
+        </div>
+      )}
       <AboutButton about={about} />
     </section>
   )

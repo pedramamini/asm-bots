@@ -59,15 +59,21 @@ export function DitherPlate({ scene, cell = 3, className }: DitherPlateProps) {
       if (frame === 0) frame = requestAnimationFrame(draw)
     }
     draw()
-    const resize = new ResizeObserver(later)
-    resize.observe(node)
+    // A DOM without the observers (a test's): the one drawing stays.
+    const resize = typeof ResizeObserver === 'function' ? new ResizeObserver(later) : null
+    resize?.observe(node)
     const theme = new MutationObserver(later)
     theme.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
     return () => {
       cancelAnimationFrame(frame)
-      resize.disconnect()
+      resize?.disconnect()
       theme.disconnect()
     }
   }, [scene, cell])
-  return <canvas ref={canvas} aria-hidden className={cx('block size-full', className)} />
+  // Out of the flow: the box sets the size, and the canvas's own 150 px default never stretches it.
+  return (
+    <div className={cx('relative size-full', className)}>
+      <canvas ref={canvas} aria-hidden className="absolute inset-0 size-full" />
+    </div>
+  )
 }

@@ -101,7 +101,7 @@ export function HillPage({ slug, submission = null, live, createArenaClient }: H
     })
   return (
     <PanelGrid className="p-3">
-      <PageIntro about={HILLS_ABOUT} />
+      <PageIntro about={HILLS_ABOUT} art="summit" />
       <Panel
         className="col-span-12 xl:col-span-8"
         title={detail?.hill.name ?? slug}

@@ -18,7 +18,7 @@ function AfterPaint({ children }: { children: ReactNode }) {
   return idle ? <Suspense fallback={null}>{children}</Suspense> : null
 }
 
-/** A dither plate by name: `footer`, `climb`, `trophy`, `chip`. It fills its box. */
+/** A dither plate by name (`./index` lists them). It fills its box. */
 export function Plate(props: { name: PlateName; cell?: number; className?: string }) {
   return (
     <AfterPaint>

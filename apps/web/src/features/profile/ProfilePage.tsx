@@ -1,19 +1,12 @@
 import type { Bot, ChampionshipResult, HillBest, UserDetail } from '@asmbots/protocol'
-import {
-  EmptyState,
-  Panel,
-  PanelGrid,
-  Skeleton,
-  Stat,
-  Table,
-  type TableColumn,
-} from '@asmbots/ui'
+import { EmptyState, Panel, PanelGrid, Skeleton, Stat, Table, type TableColumn } from '@asmbots/ui'
 import { Link } from '@tanstack/react-router'
 import { isNotFound } from '../../api/client'
 import { useUser } from '../../api/queries'
 import { LoadFailure, readStatus } from '../../app/LoadFailure'
 import { useLinkAction } from '../../app/link-action'
 import { Placeholder } from '../../app/Placeholder'
+import { Plate } from '../../art/lazy'
 import { preconnectAvatars } from '../account/avatars'
 import { BotLink, CELL_LINK, count, day } from '../hills/links'
 
@@ -107,7 +100,11 @@ function ProfileStats({ data }: { data: UserDetail }) {
       <Stat
         label="championships"
         value={count(won)}
-        note={data.championships.length === 0 ? 'none entered' : `won of ${count(data.championships.length)} entered`}
+        note={
+          data.championships.length === 0
+            ? 'none entered'
+            : `won of ${count(data.championships.length)} entered`
+        }
       />
     </div>
   )
@@ -153,6 +150,10 @@ export function ProfilePage({ handle }: { handle: string }) {
               <h1 className="text-modal-title text-bright">{data.user.handle}</h1>
             </div>
             <ProfileStats data={data} />
+            {/* Art: the player's terminal. Its box holds the space while it loads. */}
+            <div className="hidden h-40 overflow-hidden rounded-sm border border-border bg-panel-2 xl:block">
+              <Plate name="terminal" cell={2} />
+            </div>
           </div>
         ) : error !== null ? (
           <LoadFailure read={read} />

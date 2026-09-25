@@ -94,7 +94,7 @@ export function ServerTournamentPage({ id, live, createArenaClient }: ServerTour
   const ended = t.status === 'finished' || t.status === 'cancelled'
   return (
     <PanelGrid className="p-3">
-      <PageIntro about={TOURNAMENTS_ABOUT} />
+      <PageIntro about={TOURNAMENTS_ABOUT} art="bracket" />
       <div className="col-span-12 flex min-w-0 flex-col gap-3 xl:col-span-8">
         <ServerHeader detail={detail} tournament={t} />
       </div>
