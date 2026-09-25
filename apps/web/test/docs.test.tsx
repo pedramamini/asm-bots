@@ -24,6 +24,7 @@ import type { ReactNode } from 'react'
 import * as runtime from 'react/jsx-runtime'
 import { useDom, window } from '../../../packages/ui/test/dom'
 import { DocsArticle, DocsFrame } from '../src/app/DocsFrame'
+import { DocsHome } from '../src/app/DocsHome'
 import { focusRouteSearch } from '../src/app/keys'
 import {
   DOCS,
@@ -32,6 +33,7 @@ import {
   docEntries,
   docFile,
   docNeighbors,
+  docPlace,
   docSource,
   findDoc,
 } from '../src/docs'
@@ -40,6 +42,7 @@ import { MDX_COMPONENTS, metaAttributes } from '../src/docs/components'
 import { encodingFields, findForm } from '../src/docs/reference'
 import { REMARK_PLUGINS } from '../src/docs/remark'
 import { buildSearchIndex, type SearchIndex } from '../src/docs/search'
+import { SECTION_META, sectionAnchor } from '../src/docs/sections'
 import { headingId } from '../src/docs/text'
 import { parseRefs, sharedBots } from '../src/features/arena/setup/url'
 
@@ -95,7 +98,7 @@ async function renderDocs(
   const contents = createRoute({
     getParentRoute: () => frame,
     path: '/',
-    component: () => <p>contents</p>,
+    component: () => <DocsHome docs={docs} />,
   })
   const page = createRoute({
     getParentRoute: () => frame,
@@ -480,19 +483,69 @@ describe('the docs tree', () => {
 })
 
 describe('DocsFrame', () => {
-  it('lists the sections with pages, and hides the empty ones', async () => {
+  it('lists the sections with pages, hides the empty ones, and opens the one on screen', async () => {
     await renderDocs('/docs/start-here', { docs: TEST_DOCS })
     const nav = screen.getByRole('navigation', { name: 'docs pages' })
-    expect(
-      within(nav)
-        .getAllByRole('heading')
-        .map((h) => h.textContent),
-    ).toEqual(['start here', 'strategy guide'])
-    expect(
+    const toggles = within(nav)
+      .getAllByRole('heading')
+      .map((h) => within(h).getByRole('button'))
+    expect(toggles.map((b) => [b.textContent, b.getAttribute('aria-expanded')])).toEqual([
+      ['start here1', 'true'],
+      ['strategy guide2', 'false'],
+    ])
+    const visible = () =>
       within(nav)
         .getAllByRole('link')
+        .filter((a) => a.closest('[hidden]') === null)
+        .map((a) => a.textContent)
+    expect(visible()).toEqual(['overview', 'start here'])
+
+    // The reader opens another section, and closes the page's own.
+    fireEvent.click(toggles[1] as HTMLElement)
+    expect(visible()).toEqual(['overview', 'start here', 'imp', 'paper'])
+    fireEvent.click(toggles[0] as HTMLElement)
+    expect(visible()).toEqual(['overview', 'imp', 'paper'])
+    expect(toggles[0]?.getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it("opens a page's section when the reader goes there", async () => {
+    const router = await renderDocs('/docs/start-here', { docs: TEST_DOCS })
+    const nav = screen.getByRole('navigation', { name: 'docs pages' })
+    const strategy = within(nav).getByRole('button', { name: /^strategy guide/ })
+    expect(strategy.getAttribute('aria-expanded')).toBe('false')
+    await act(() => router.navigate({ to: '/docs/$', params: { _splat: 'strategy/paper' } }))
+    expect(strategy.getAttribute('aria-expanded')).toBe('true')
+    expect(within(nav).getByRole('link', { name: 'paper' }).getAttribute('data-status')).toBe(
+      'active',
+    )
+  })
+
+  it('heads a page with its trail and its place in the section', async () => {
+    await renderDocs('/docs/strategy/paper', { docs: TEST_DOCS })
+    const trail = screen.getByRole('navigation', { name: 'breadcrumb' })
+    expect(
+      within(trail)
+        .getAllByRole('listitem')
+        .map((li) => li.textContent)
+        .filter((t) => t !== '/'),
+    ).toEqual(['docs', 'strategy guide', 'paper'])
+    expect(within(trail).getByRole('link', { name: 'strategy guide' }).getAttribute('href')).toBe(
+      '/docs#strategy-guide',
+    )
+    expect(screen.getByText('2 / 2').textContent).toBe('2 / 2 in strategy guide')
+    expect(docPlace('strategy/imp', TEST_DOCS)).toMatchObject({ at: 0, of: 2 })
+    expect(docPlace('nope', TEST_DOCS)).toBeUndefined()
+  })
+
+  it('names no page twice in the trail of a section of one page', async () => {
+    await renderDocs('/docs/start-here', { docs: TEST_DOCS })
+    const trail = screen.getByRole('navigation', { name: 'breadcrumb' })
+    expect(
+      within(trail)
+        .getAllByRole('link')
         .map((a) => a.textContent),
-    ).toEqual(['contents', 'start here', 'imp', 'paper'])
+    ).toEqual(['docs', 'start here'])
+    expect(screen.queryByText(/^1 \/ 1/)).toBeNull()
   })
 
   it('takes /, searches the sections as it is typed, and opens the best at its heading', async () => {
@@ -583,10 +636,12 @@ describe('DocsFrame', () => {
     expect(docNeighbors('nope', TEST_DOCS)).toEqual({ prev: undefined, next: undefined })
     await renderDocs('/docs/strategy/imp', { docs: TEST_DOCS })
     const nav = screen.getByRole('navigation', { name: 'previous and next pages' })
-    expect(within(nav).getByRole('link', { name: '← start here' }).getAttribute('href')).toBe(
-      '/docs/start-here',
-    )
-    expect(within(nav).getByRole('link', { name: 'paper →' }).getAttribute('rel')).toBe('next')
+    const prev = within(nav).getByRole('link', { name: 'previous: start here' })
+    expect(prev.getAttribute('href')).toBe('/docs/start-here')
+    expect(prev.textContent).toBe('previous · start herestart here')
+    const next = within(nav).getByRole('link', { name: 'next: paper' })
+    expect(next.getAttribute('rel')).toBe('next')
+    expect(next.textContent).toBe('next · strategy guidepaper')
   })
 
   it("lists the page's headings beside it", async () => {
@@ -605,6 +660,68 @@ describe('DocsFrame', () => {
       ['One a', '#one-a'],
       ['Two', '#two'],
     ])
+    const current = () => toc.querySelector('[aria-current="location"]')?.textContent
+    expect(current()).toBe('One')
+
+    // Scrolled: the last heading above the reading line is the one being read.
+    const tops: Record<string, number> = { one: -300, 'one-a': 40, two: 500 }
+    for (const h of document.querySelectorAll<HTMLElement>('article h2, article h3')) {
+      h.getBoundingClientRect = () => ({ top: tops[h.id] ?? 0 }) as DOMRect
+    }
+    await act(async () => {
+      document.dispatchEvent(new window.Event('scroll'))
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    })
+    expect(current()).toBe('One a')
+  })
+})
+
+describe('the docs home', () => {
+  it('has a card for each section with pages, at its anchor, listing each page', async () => {
+    await renderDocs('/docs', { docs: TEST_DOCS })
+    const home = screen.getByRole('region', { name: 'docs home' })
+    expect(within(home).getByRole('heading', { level: 1 }).textContent).toBe(
+      'Learn the machine. Write a bot. Take the hill.',
+    )
+    expect(within(home).getByText(/^3 pages in 2 sections\./)).toBeTruthy()
+    // The home's own name, in sight: the only <h1> of the page.
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+    const card = within(home).getByRole('region', { name: 'strategy guide' })
+    expect(card.id).toBe('strategy-guide')
+    expect(within(card).getByText('2 pages')).toBeTruthy()
+    expect(
+      within(card)
+        .getAllByRole('link')
+        .map((a) => [a.getAttribute('href'), a.textContent]),
+    ).toEqual([
+      ['/docs/strategy/imp', '01impcopy yourself one word ahead.'],
+      ['/docs/strategy/paper', '02papercopy the whole bot.'],
+    ])
+    expect(within(home).queryByRole('region', { name: 'tools' })).toBeNull()
+  })
+
+  it("points its ways in at real pages, and its search button at the sidebar's field", async () => {
+    await renderDocs('/docs')
+    const home = screen.getByRole('region', { name: 'docs home' })
+    const ways = within(home)
+      .getAllByRole('link')
+      .filter((a) => a.closest('section[aria-labelledby="where-to-start"]') !== null)
+    expect(ways).toHaveLength(4)
+    for (const way of ways) {
+      const slug = way.getAttribute('href')?.replace(/^\/docs\//, '')
+      expect(findDoc(slug)).toBeDefined()
+    }
+    await act(async () => {
+      fireEvent.click(within(home).getByRole('button', { name: 'search the docs' }))
+    })
+    expect(document.activeElement).toBe(screen.getByRole('searchbox', { name: 'search the docs' }))
+  })
+
+  it('knows every section: an icon, a sentence, and an anchor of its own', () => {
+    expect(Object.keys(SECTION_META).sort()).toEqual(DOCS.map(({ title }) => title).sort())
+    for (const meta of Object.values(SECTION_META)) expect(meta.summary).toEndWith('.')
+    const anchors = DOCS.map(({ title }) => sectionAnchor(title))
+    expect(new Set(anchors).size).toBe(anchors.length)
   })
 })
 

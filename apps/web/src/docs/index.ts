@@ -19,6 +19,24 @@ export function findDoc(slug: string | undefined, docs = DOCS): DocPage | undefi
   return docEntries(docs).find(({ page }) => page.slug === slug)?.page
 }
 
+/** Where a page sits: its section, and its place in it (from 0) of the section's pages. */
+export interface DocPlace {
+  section: DocSection
+  page: DocPage
+  at: number
+  of: number
+}
+
+/** The section and place of the page at `slug`, or undefined. */
+export function docPlace(slug: string | undefined, docs = DOCS): DocPlace | undefined {
+  for (const section of docs) {
+    const at = section.pages.findIndex((page) => page.slug === slug)
+    const page = section.pages[at]
+    if (page !== undefined) return { section, page, at, of: section.pages.length }
+  }
+  return undefined
+}
+
 /** The pages before and after `slug` in reading order, across sections: the page's prev/next. */
 export function docNeighbors(
   slug: string,

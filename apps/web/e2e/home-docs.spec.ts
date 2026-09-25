@@ -16,7 +16,7 @@ test('home: the hero, its two ways in, and the three panels', async ({ page }) =
 
 test('docs: the sidebar search takes /, and Enter opens the MDX page', async ({ page }) => {
   await page.goto('/docs')
-  await expect(page.getByRole('region', { name: 'contents' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'docs home' })).toBeVisible()
   await page.keyboard.press('/')
   const search = page.getByRole('searchbox', { name: 'search the docs' })
   await expect(search).toBeFocused()

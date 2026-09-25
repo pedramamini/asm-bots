@@ -21,7 +21,6 @@ const PAGES: readonly (readonly [path: string, heading: string])[] = [
   ['/tournaments/t-7', 'tournament'],
   ['/hills', 'hills'],
   ['/hills/main', 'hill main'],
-  ['/docs', 'docs'],
   ['/settings', 'settings'],
   ['/no/such/address', '0x404'],
 ]

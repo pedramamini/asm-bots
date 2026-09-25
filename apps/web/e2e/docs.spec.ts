@@ -44,7 +44,7 @@ test('a code block: open in arena sets it against its roster opponent', async ({
 
 test('search: a section hit opens the page at its heading', async ({ page }) => {
   await page.goto('/docs')
-  await expect(page.getByRole('region', { name: 'contents' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'docs home' })).toBeVisible()
   await page.keyboard.press('/')
   const search = page.getByRole('searchbox', { name: 'search the docs' })
   await expect(search).toBeFocused()
@@ -104,10 +104,13 @@ test('the strategy, tournament, and tools pages load with no errors', async ({ p
   const errors = watch(page)
   await page.goto('/docs')
   const links = page
-    .getByRole('navigation', { name: 'docs pages' })
-    .locator('a[href^="/docs/strategy/"], a[href^="/docs/tournaments/"], a[href^="/docs/tools/"]')
+    .getByRole('region', { name: 'docs home' })
+    .locator(
+      'ol a[href^="/docs/strategy/"], ol a[href^="/docs/tournaments/"], ol a[href^="/docs/tools/"]',
+    )
+  // The home is a lazy route: wait for its cards before reading them.
+  await expect(links).toHaveCount(21)
   const hrefs = await links.evaluateAll((as) => as.map((a) => a.getAttribute('href') as string))
-  expect(hrefs).toHaveLength(21)
   for (const href of [...hrefs, '/docs/changelog', '/docs/isa-versions']) {
     await page.goto(href)
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
