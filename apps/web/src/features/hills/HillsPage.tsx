@@ -4,6 +4,8 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { useHills, useMaybeUser, useMe } from '../../api/queries'
 import { LoadFailure, readStatus } from '../../app/LoadFailure'
 import { useLinkAction } from '../../app/link-action'
+import { PageIntro } from '../../app/PageIntro'
+import { HILLS_ABOUT } from '../../app/page-intros'
 import { BotLink, CELL_LINK, count, rules } from './links'
 
 const COLUMNS: TableColumn<HillSummary>[] = [
@@ -81,6 +83,7 @@ export function HillsPage() {
   const navigate = useNavigate()
   return (
     <PanelGrid className="p-3">
+      <PageIntro about={HILLS_ABOUT} />
       <Panel
         className="col-span-12"
         title="hills"

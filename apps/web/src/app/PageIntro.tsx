@@ -1,0 +1,80 @@
+import { Button, cx, IconButton, Modal } from '@asmbots/ui'
+import { Link } from '@tanstack/react-router'
+import { BookOpen, Info } from 'lucide-react'
+import { type ReactNode, useState } from 'react'
+import { NavLink } from './Frame'
+
+/** What a page says about itself: a line at its top, and more behind the `ⓘ`. */
+export interface PageAbout {
+  /** The page's name, as the `ⓘ` and its dialog say it: `hills`. */
+  readonly name: string
+  /** The line at the top of the page: what the page is, in a sentence or two. */
+  readonly lead: ReactNode
+  /** The dialog's body: how the page works. */
+  readonly details: ReactNode
+  /** The docs page that says it all, under `/docs/`: `tournaments/hills`. */
+  readonly docs: string
+}
+
+/** A link inside an intro's text. */
+const INTRO_LINK =
+  'rounded-sm text-accent-fg underline-offset-2 hover:underline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent'
+
+export interface PageIntroProps {
+  about: PageAbout
+  /** More classes for the box, which spans the page's 12 columns. */
+  className?: string | undefined
+}
+
+/**
+ * The top of a page that explains itself: the page's `lead` beside an `ⓘ`, which opens a dialog
+ * with its `details` and a link to its docs. It sits in the page's `PanelGrid`.
+ */
+export function PageIntro({ about, className }: PageIntroProps) {
+  const [open, setOpen] = useState(false)
+  const close = () => setOpen(false)
+  return (
+    <section
+      aria-label={`about ${about.name}`}
+      className={cx(
+        'col-span-12 flex items-start gap-3 rounded-md border border-border bg-panel px-3 py-2',
+        className,
+      )}
+    >
+      <p className="min-w-0 flex-1 text-body text-muted">{about.lead}</p>
+      <IconButton
+        icon={Info}
+        label={`about ${about.name}`}
+        tooltip="left"
+        onClick={() => setOpen(true)}
+      />
+      <Modal
+        open={open}
+        onClose={close}
+        title={`about ${about.name}`}
+        size="lg"
+        actions={
+          <>
+            <Button variant="ghost" onClick={close}>
+              close
+            </Button>
+            <NavLink to="/docs/$" params={{ _splat: about.docs }} icon={BookOpen}>
+              read the docs
+            </NavLink>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-3 text-body text-text">{about.details}</div>
+      </Modal>
+    </section>
+  )
+}
+
+/** A link to a docs page inside an intro's details. */
+export function DocsLink({ to, children }: { to: string; children: ReactNode }) {
+  return (
+    <Link to="/docs/$" params={{ _splat: to }} className={INTRO_LINK}>
+      {children}
+    </Link>
+  )
+}

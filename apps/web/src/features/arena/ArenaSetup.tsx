@@ -26,6 +26,8 @@ import {
 } from 'react'
 import { ROUTE_SEARCH } from '../../app/keys'
 import { useLinkAction } from '../../app/link-action'
+import { PageIntro } from '../../app/PageIntro'
+import { ARENA_ABOUT } from '../../app/page-intros'
 import { useRouteStat } from '../../app/slots'
 import { type LocalBot, useLocalBotActions, useLocalBots } from '../../store/local-bots'
 import { useSettings } from '../../store/settings'
@@ -278,6 +280,7 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight, tour }: ArenaS
       onDrop={onDrop}
     >
       <PanelGrid>
+        <PageIntro about={ARENA_ABOUT} />
         <Panel
           className="col-span-12 lg:col-span-8"
           title={SOURCES.find((s) => s.value === source)?.label}

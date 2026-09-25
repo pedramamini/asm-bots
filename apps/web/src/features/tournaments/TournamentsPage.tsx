@@ -21,6 +21,8 @@ import { Cloud, Plus, Trophy } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { useTournaments as useServerTournaments } from '../../api/queries'
 import { LoadFailure } from '../../app/LoadFailure'
+import { PageIntro } from '../../app/PageIntro'
+import { TOURNAMENTS_ABOUT } from '../../app/page-intros'
 import { assembleCached } from '../arena/setup/assembly'
 import { rosterCatalog } from '../arena/setup/bots'
 import { plural } from '../hills/links'
@@ -181,6 +183,7 @@ export function TournamentsPage({ onNew, runner = tournamentRunner() }: Tourname
   )
   return (
     <PanelGrid className="p-3">
+      <PageIntro about={TOURNAMENTS_ABOUT} />
       <Panel
         className="col-span-12"
         title="tournaments"
