@@ -59,31 +59,14 @@ export type {
   MatchRound,
   RunMatchOptions,
 } from './match'
-export {
-  iterateMatch,
-  matchHash,
-  newMatch,
-  roundOrder,
-  roundSeed,
-  runMatch,
-  withRound,
-} from './match'
-export type {
-  IterateMeleeOptions,
-  MeleeOptions,
-  MeleeProgress,
-  MeleeResult,
-  MeleeStanding,
-} from './melee'
-export {
-  DEFAULT_SURVIVAL_BINS,
-  iterateMelee,
-  MAX_MELEE_ENTRANTS,
-  melee,
-  meleeStandings,
-} from './melee'
+export { iterateMatch, matchHash, newMatch, runMatch, withRound } from './match'
+export type { IterateMeleeOptions, MeleeOptions, MeleeProgress, MeleeResult } from './melee'
+export { iterateMelee, melee } from './melee'
+export type { MeleeStanding } from './melee-standings'
+export { DEFAULT_SURVIVAL_BINS, MAX_MELEE_ENTRANTS, meleeStandings } from './melee-standings'
 export type { TournamentFormat } from './plan'
 export { plannedMatches, playsThirdPlace } from './plan'
+export { roundOrder, roundSeed } from './rotation'
 export type { RoundResult } from './round'
 export { roundResult, runRound } from './round'
 export type {

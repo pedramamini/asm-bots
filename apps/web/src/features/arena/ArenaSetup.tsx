@@ -29,20 +29,19 @@ import { useLinkAction } from '../../app/link-action'
 import { useRouteStat } from '../../app/slots'
 import { type LocalBot, useLocalBotActions, useLocalBots } from '../../store/local-bots'
 import { useSettings } from '../../store/settings'
+import { loadAssembly, useAssemble } from './setup/assembler'
+import type { BotFile } from './setup/assembly'
 import {
   type ArenaFight,
+  type Assemble,
   arenaFight,
-  assembleCached,
-  type BotFile,
   type CatalogBot,
   carriesFiles,
   errorsOf,
   fightSeed,
   fightStatus,
-  fileAssembles,
   localCatalog,
   matchesQuery,
-  readBotFiles,
   resolveSelection,
   rosterCatalog,
   type SetupBot,
@@ -127,9 +126,12 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight, tour }: ArenaS
     if (localBots.isError) return new Map<string, LocalBot>()
     return localBots.data === undefined ? null : new Map(localBots.data.map((b) => [b.id, b]))
   }, [localBots.data, localBots.isError])
+  // The roster comes prebuilt: the assembler loads for my bots, the paste box, and a local or
+  // shared bot picked.
+  const assemble = useAssemble(source !== 'roster' || spec.bots.some((ref) => ref.kind === 'local'))
   const selection = useMemo(
-    () => resolveSelection(spec.bots, { local, shared }),
-    [spec.bots, local, shared],
+    () => resolveSelection(spec.bots, { local, shared, assemble }),
+    [spec.bots, local, shared, assemble],
   )
   const status = fightStatus(selection, spec)
   const full = spec.bots.length >= MAX_ARENA_BOTS
@@ -173,6 +175,16 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight, tour }: ArenaS
 
   const addFiles = async (files: readonly File[]) => {
     if (files.length === 0) return
+    let assembly: Awaited<ReturnType<typeof loadAssembly>>
+    try {
+      assembly = await loadAssembly()
+    } catch {
+      toast('could not load the assembler: check the network and drop them again.', {
+        variant: 'danger',
+      })
+      return
+    }
+    const { fileAssembles, readBotFiles } = assembly
     const read = await readBotFiles(files)
     const good = read.filter(fileAssembles)
     const bad = read.filter((file) => !fileAssembles(file))
@@ -207,7 +219,9 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight, tour }: ArenaS
   const showErrors = (bot: CatalogBot) =>
     setProblems({
       title: `${bot.name} does not assemble`,
-      list: [{ name: bot.name, source: bot.source, reason: null, diagnostics: errorsOf(bot) }],
+      list: [
+        { name: bot.name, source: bot.source ?? '', reason: null, diagnostics: errorsOf(bot) },
+      ],
     })
 
   const fight = () => {
@@ -225,7 +239,7 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight, tour }: ArenaS
 
   const saveShared = async (index: number) => {
     const bot = selection[index]?.bot
-    if (bot?.origin !== 'shared' || bot.ref.kind !== 'local') return
+    if (bot?.origin !== 'shared' || bot.ref.kind !== 'local' || bot.source === null) return
     await save.mutateAsync({ id: bot.ref.id, name: bot.name, source: bot.source })
     toast(`saved ${bot.name} to my bots.`, { variant: 'accent' })
   }
@@ -311,6 +325,7 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight, tour }: ArenaS
             {source === 'mine' && (
               <MineGrid
                 bots={localBots.data}
+                assemble={assemble}
                 query={query}
                 picked={spec.bots}
                 full={full}
@@ -323,6 +338,7 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight, tour }: ArenaS
             {source === 'paste' && (
               <PasteBox
                 full={full}
+                assemble={assemble}
                 onAdd={async (assembledName, text) => {
                   const refs = await saveSources([{ name: assembledName, source: text }])
                   add(refs)
@@ -504,7 +520,7 @@ function BotCard({
       aria-label={bot.name}
       className="flex min-w-0 items-start gap-3 rounded-md border border-border bg-panel-2 p-2 transition-colors duration-120 ease-out hover:border-border-strong"
     >
-      <Identicon value={bytes.length > 0 ? bytes : bot.source} size={32} />
+      <Identicon value={bytes.length > 0 ? bytes : (bot.source ?? '')} size={32} />
       <div className="flex min-w-0 flex-1 flex-col">
         <p className="flex min-w-0 items-center gap-2">
           <span className="truncate text-bright">{bot.name}</span>
@@ -552,19 +568,25 @@ function BotCard({
 /** The local bots as cards, or the one sentence that says there are none. */
 function MineGrid({
   bots,
+  assemble,
   query,
   write,
   clearSearch,
   ...grid
 }: GridProps & {
   bots: readonly LocalBot[] | undefined
+  /** Null while the assembler loads. */
+  assemble: Assemble | null
   query: string
   /** The empty store's way on: the editor. */
   write: EmptyStateAction
   clearSearch: EmptyStateAction
 }) {
-  const catalog = useMemo(() => (bots ?? []).map(localCatalog), [bots])
-  if (bots === undefined)
+  const catalog = useMemo(
+    () => (assemble === null ? null : (bots ?? []).map((bot) => localCatalog(bot, assemble))),
+    [bots, assemble],
+  )
+  if (bots === undefined || (catalog === null && bots.length > 0))
     return <p className="px-1 py-6 text-center text-muted">reading my bots…</p>
   if (bots.length === 0) {
     return <EmptyState action={write}>no bots in this browser yet.</EmptyState>
@@ -572,7 +594,7 @@ function MineGrid({
   return (
     <BotGrid
       {...grid}
-      bots={catalog.filter((bot) => matchesQuery(bot, query))}
+      bots={(catalog ?? []).filter((bot) => matchesQuery(bot, query))}
       empty={<EmptyState action={clearSearch}>none of my bots matches "{query}".</EmptyState>}
     />
   )
@@ -584,15 +606,19 @@ function MineGrid({
  */
 function PasteBox({
   full,
+  assemble,
   onAdd,
 }: {
   full: boolean
+  /** Null while the assembler loads. */
+  assemble: Assemble | null
   onAdd: (name: string, source: string) => Promise<void>
 }) {
   const [text, setText] = useState('')
   const [adding, setAdding] = useState(false)
   const deferred = useDeferredValue(text)
-  const assembled = deferred.trim() === '' ? null : assembleCached(deferred)
+  const blank = deferred.trim() === ''
+  const assembled = blank || assemble === null ? null : assemble(deferred)
   const errors = assembled?.diagnostics.filter((d) => d.severity === 'error') ?? []
   const ok = assembled !== null && errors.length === 0 && deferred === text
   return (
@@ -609,7 +635,9 @@ function PasteBox({
       <div className="flex items-center gap-3">
         <p className="min-w-0 flex-1 truncate text-data text-muted">
           {assembled === null
-            ? 'paste x16c source: a %name line, then the code.'
+            ? blank
+              ? 'paste x16c source: a %name line, then the code.'
+              : 'loading the assembler…'
             : errors.length > 0
               ? `${errors.length} ${errors.length === 1 ? 'error' : 'errors'}`
               : `${assembled.name} · ${assembled.bytes.length} B`}

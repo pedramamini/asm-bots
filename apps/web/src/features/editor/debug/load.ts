@@ -6,13 +6,13 @@
  */
 import type { Assembled } from '@asmbots/asm'
 import type { LoadedBot } from '@asmbots/engine'
-import type { CatalogBot } from '../../arena/setup/bots'
+import type { AssembledBot, CatalogBot } from '../../arena/setup/bots'
 import type { Breakpoint } from './session'
 
 /** The battle's bots: the editor's first, then the opponents, a repeated name numbered. */
 export function debugBots(mine: Assembled, opponents: readonly CatalogBot[]): LoadedBot[] {
   const taken = new Map<string, number>()
-  const bot = (assembled: Assembled, name: string): LoadedBot => {
+  const bot = (assembled: AssembledBot, name: string): LoadedBot => {
     const n = (taken.get(name) ?? 0) + 1
     taken.set(name, n)
     const { author, strategy, version } = assembled

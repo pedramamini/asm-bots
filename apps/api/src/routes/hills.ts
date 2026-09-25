@@ -36,6 +36,7 @@ import {
   toHillSubmission,
 } from '../db/queries'
 import { runnerOf } from '../do/runner'
+import { edgeCached, HILLS_CACHE_SECONDS } from '../edge-cache'
 import type { AppEnv, Env } from '../env'
 import { errorResponse, log } from '../middleware'
 import { hillCard } from '../og/hill'
@@ -233,6 +234,8 @@ async function submission(c: Context<AppEnv>): Promise<Response> {
 /**
  * `GET /api/hills`: every hill, its entrant count, and its king.
  * `GET /api/hills/:slug`: the hill and its standings, each with its rating's RD.
+ * Both are cached 30 s (`edgeCached`): a request with `Cache-Control: no-cache` gets them as they
+ * are, as the web app asks once it knows a board changed.
  * `GET /api/hills/:slug/matches?bot=&limit=`: its finished matches, newest first; with `bot` (a
  * bot version id), only the ones that version played. `limit` is 1..100, 50 when left out.
  * `GET /api/hills/:slug/history?limit=`: what its submissions did to its board (`HillEvent`s),
@@ -242,12 +245,18 @@ async function submission(c: Context<AppEnv>): Promise<Response> {
  * are.
  */
 export const hills = new Hono<AppEnv>()
-  .get('/', async (c) => c.json({ hills: await listHillSummaries(c.env.DB) } satisfies HillList))
-  .get('/:slug', async (c) => {
-    const hill = await hillOf(c)
-    const standings = await listHillStandings(c.env.DB, hill.id)
-    return c.json({ hill, standings } satisfies HillDetail)
-  })
+  .get('/', (c) =>
+    edgeCached(c, HILLS_CACHE_SECONDS, async () =>
+      c.json({ hills: await listHillSummaries(c.env.DB) } satisfies HillList),
+    ),
+  )
+  .get('/:slug', (c) =>
+    edgeCached(c, HILLS_CACHE_SECONDS, async () => {
+      const hill = await hillOf(c)
+      const standings = await listHillStandings(c.env.DB, hill.id)
+      return c.json({ hill, standings } satisfies HillDetail)
+    }),
+  )
   .get('/:slug/matches', async (c) => {
     const bot = c.req.query('bot')
     const botVersionId = bot === undefined ? undefined : idParam(bot, 'the bot version id')

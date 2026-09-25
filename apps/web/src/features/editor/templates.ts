@@ -4,7 +4,7 @@
  * is in the formatter's layout (`test/editor-docs.test.ts`). The toolbar's menu and the new bot's
  * empty state (`EmptyEditor.tsx`) list them.
  */
-import { rosterCatalog } from '../arena/setup/bots'
+import { rosterSource } from '@asmbots/bots'
 
 export const TEMPLATE_IDS = ['blank', 'imp', 'dwarf', 'scanner', 'replicator'] as const
 export type TemplateId = (typeof TEMPLATE_IDS)[number]
@@ -112,10 +112,7 @@ export function templateSource(id: TemplateId): string {
     case 'replicator':
       return REPLICATOR
     case 'imp':
-    case 'dwarf': {
-      const bot = rosterCatalog().find((b) => b.ref.kind === 'roster' && b.ref.slug === id)
-      if (bot === undefined) throw new Error(`the roster has no bot '${id}'`)
-      return bot.source
-    }
+    case 'dwarf':
+      return rosterSource(id)
   }
 }

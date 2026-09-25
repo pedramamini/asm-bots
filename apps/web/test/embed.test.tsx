@@ -22,6 +22,7 @@ import {
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { stubLayout, useDom, window } from '../../../packages/ui/test/dom'
 import { buildReplay, replayUrl } from '../src/features/arena/battle/replay'
+import { assembleCached } from '../src/features/arena/setup/assembly'
 import { validateArenaSearch } from '../src/features/arena/setup/search'
 import type { ArenaClient } from '../src/features/arena/worker/client'
 import { EmbedReplay, EmbedSetup, embedFight } from '../src/features/embed/EmbedArena'
@@ -121,8 +122,10 @@ afterAll(() => {
 
 describe('embedFight', () => {
   it('fights the bots and seed an arena link names', () => {
-    const read = embedFight(validateArenaSearch({ b: 'roster:dwarf,roster:imp', seed: '7' }), '')
-    if (!('fight' in read)) throw new Error(read.problem)
+    const search = validateArenaSearch({ b: 'roster:dwarf,roster:imp', seed: '7' })
+    // The roster comes prebuilt: no assembler.
+    const read = embedFight(search, '', null)
+    if (!('fight' in read)) throw new Error(JSON.stringify(read))
     expect(read.fight.bots.map((bot) => bot.name)).toEqual(['Dwarf', 'Imp'])
     expect(read.fight.config.seed).toBe(7)
     expect(read.fight.rounds).toBe(1)
@@ -131,20 +134,21 @@ describe('embedFight', () => {
   it('fights a bot its fragment carries, and says what keeps a link from a battle', () => {
     const search = validateArenaSearch({ b: 'roster:dwarf,local:x1' })
     const carried = encodeSources([{ id: 'x1', source: '%name "Spin"\nstart: jmp $\n' }])
-    const read = embedFight(search, carried)
-    if (!('fight' in read)) throw new Error(read.problem)
+    expect(embedFight(search, carried, null)).toEqual({ pending: true })
+    const read = embedFight(search, carried, assembleCached)
+    if (!('fight' in read)) throw new Error(JSON.stringify(read))
     expect(read.fight.bots.map((bot) => bot.name)).toEqual(['Dwarf', 'Spin'])
     // A random seed that places them, as the arena draws one.
     expect(Number.isInteger(read.fight.config.seed)).toBe(true)
 
-    expect(embedFight(validateArenaSearch({}), '')).toEqual({
+    expect(embedFight(validateArenaSearch({}), '', assembleCached)).toEqual({
       problem: 'this embed names no battle.',
     })
-    expect(embedFight(search, '')).toEqual({
+    expect(embedFight(search, '', assembleCached)).toEqual({
       problem: 'this embed names a bot it does not carry.',
     })
     const broken = encodeSources([{ id: 'x1', source: 'mov ax,' }])
-    expect(embedFight(search, broken)).toEqual({
+    expect(embedFight(search, broken, assembleCached)).toEqual({
       problem: 'a bot of this embed does not assemble.',
     })
   })

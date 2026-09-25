@@ -1,0 +1,11 @@
+# Cache-Control for the static files the Worker never sees (`run_worker_first` in
+# apps/api/wrangler.jsonc): Workers Static Assets reads this file at deploy and serves no copy of
+# it. The build names each file under /assets by its content hash, so a browser keeps it a year
+# and never asks again; the pictures keep their names, so a day. Pages and the API are the
+# Worker's, and set their own. `scripts/check-bundle.ts` holds the build to these rules.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+/docs-shots/*
+  Cache-Control: public, max-age=86400
+/favicon.svg
+  Cache-Control: public, max-age=86400

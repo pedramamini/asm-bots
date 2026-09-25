@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --configLoader runner",
     "build": "tsc -b && vite build --configLoader runner",
+    "build:vite": "vite build --configLoader runner",
     "preview": "vite preview --configLoader runner",
     "test": "bun test",
     "e2e": "playwright test"

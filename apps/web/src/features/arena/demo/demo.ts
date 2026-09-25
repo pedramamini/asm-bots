@@ -4,7 +4,7 @@
  * through it. Under reduced motion the demo is a still instead: `stillFrame` gets one battle's
  * core at one cycle, and `paintStill` draws its owner map. The demo makes no sound.
  */
-import { fighter } from '@asmbots/bots'
+import { rosterImage } from '@asmbots/bots'
 import { DEFAULT_CONFIG, Pcg32, PlacementError, place } from '@asmbots/engine'
 import type { Theme } from '@asmbots/ui/themes'
 import { CorePainter } from '../render/canvas2d'
@@ -41,8 +41,8 @@ const SEED_TRIES = 32
 /** The demo's bots as the Worker loads them. */
 export function demoBots(): ArenaBot[] {
   return DEMO_SLUGS.map((slug) => {
-    const { name, bytes, meta } = fighter(slug)
-    return { name, bytes, meta }
+    const { name, author, strategy, version, bytes } = rosterImage(slug)
+    return { name, bytes, meta: { author, strategy, version } }
   })
 }
 

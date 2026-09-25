@@ -22,8 +22,16 @@ const WORKER_COMMAND = [
   `bun run scripts/seed.ts --local --persist-to ${WORKER_STATE}`,
   `bunx wrangler dev --port 8788 --inspector-port 9239 --local-upstream localhost:8788 --persist-to ${WORKER_STATE} --var DEV_FAKE_AUTH:1 --var SESSION_SECRET:e2e-session-secret --var RUNNER_ALARM_DELAY_MS:300`,
 ].join(' && ')
-/** The frame-rate spec: it runs alone, since specs beside it on the same CPU slow the frames. */
-const PERF = /arena-perf\.spec\.ts$/
+/**
+ * The runtime budgets' specs: the frame rate, and the 10-minute soak (opt-in, `SOAK=1`). They run
+ * alone, since specs beside them on the same CPU slow the frames, and on the real GPU where there
+ * is one (Metal on a Mac, as PRODUCT_SPEC §11's "Chrome, M1"): headless Chromium's default GL is
+ * SwiftShader, whose work on the CPU holds the page's thread (web README "Budgets").
+ * `PERF_GL=software` keeps SwiftShader, as a machine with no GPU has it.
+ */
+const PERF = /arena-(perf|soak)\.spec\.ts$/
+const GPU_ARGS =
+  process.platform === 'darwin' && process.env.PERF_GL !== 'software' ? ['--use-angle=metal'] : []
 
 export default defineConfig({
   testDir: './e2e',
@@ -42,7 +50,7 @@ export default defineConfig({
     // After the rest; `--project perf --no-deps` runs it on its own.
     {
       name: 'perf',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], launchOptions: { args: GPU_ARGS } },
       testMatch: PERF,
       dependencies: ['chromium'],
     },

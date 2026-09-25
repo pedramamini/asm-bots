@@ -14,7 +14,13 @@ import {
   simulate,
 } from '@asmbots/engine'
 import { runMatch } from '@asmbots/tourney'
-import { ArenaClient, type ArenaState, createArenaStore } from '../src/features/arena/worker/client'
+import {
+  ArenaClient,
+  type ArenaState,
+  createArenaStore,
+  TRANSFER_MARK,
+  TRANSFER_MEASURE,
+} from '../src/features/arena/worker/client'
 import type { ArenaRequest, FrameMessage } from '../src/features/arena/worker/protocol'
 import { manualSchedule } from './session-worker'
 
@@ -80,6 +86,36 @@ describe('arena Worker', () => {
     expect(state(arena).placements).toEqual(
       new Battle(DUEL, DUEL_CONFIG).bots.map((b) => ({ base: b.base, size: b.size })),
     )
+  })
+
+  it('stamps each frame as it posts it, and the page measures the trip: the latest only', async () => {
+    performance.clearMarks(TRANSFER_MARK)
+    performance.clearMeasures(TRANSFER_MEASURE)
+    const now = () => performance.timeOrigin + performance.now()
+    const arena = client()
+    const before = now()
+    const full = await load(arena)
+    // Two threads read the shared clock up to a fraction of a millisecond apart (in Bun, under a
+    // full run's load): the stamp falls within a millisecond of the page's own reads.
+    expect(full.sentAt).toBeGreaterThanOrEqual(before - 1)
+    expect(full.sentAt).toBeLessThanOrEqual(now() + 1)
+    for (const cycles of [10, 20, 30]) {
+      const next = arena.once('frame')
+      arena.step(cycles)
+      const frame = await next
+      const measures = performance.getEntriesByName(TRANSFER_MEASURE)
+      const marks = performance.getEntriesByName(TRANSFER_MARK)
+      expect([measures.length, marks.length]).toEqual([1, 1])
+      const [trip, mark] = [measures[0] as PerformanceEntry, marks[0] as PerformanceEntry]
+      // From the frame's stamp, on the page's timeline, to its arrival.
+      expect(trip.startTime + trip.duration).toBeCloseTo(mark.startTime, 6)
+      expect(trip.startTime).toBeCloseTo(
+        Math.min((frame.sentAt as number) - performance.timeOrigin, mark.startTime),
+        6,
+      )
+      expect(trip.duration).toBeGreaterThanOrEqual(0)
+      expect(trip.duration).toBeLessThan(1000)
+    }
   })
 
   it('seeks back to 5,000 after running to 6,000: the owner map is a fresh run to 5,000', async () => {

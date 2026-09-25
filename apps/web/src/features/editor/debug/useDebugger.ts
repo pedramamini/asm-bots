@@ -11,10 +11,12 @@ import { EditorView as View } from '@codemirror/view'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import type { LocalBot } from '../../../store/local-bots'
 import type { ArenaConfig } from '../../../store/settings'
+import { assembleCached } from '../../arena/setup/assembly'
 import { resolveSelection, type SetupBot } from '../../arena/setup/bots'
 import { battleConfig, DEFAULT_ARENA_CONFIG } from '../../arena/setup/config'
 import { type BotRef, formatRef } from '../../arena/setup/url'
 import { type AsmResult, resultErrors } from '../asm/protocol'
+import { assemblyOf } from '../catalog'
 import { ipLine, lineBytes, lineOfAddress, setDebugLines, setDebugMarks } from '../cm/debug'
 import { DebugController, type DebugSnapshot } from './controller'
 import { type BotImage, botImage, inImage } from './image'
@@ -123,7 +125,7 @@ export function useDebugger({
     [local],
   )
   const opponents = useMemo(
-    () => resolveSelection(opponentRefs, { local: localMap, shared }),
+    () => resolveSelection(opponentRefs, { local: localMap, shared, assemble: assembleCached }),
     [opponentRefs, localMap, shared],
   )
   const setupKey = setupKeyOf(opponentRefs, seed, config)
@@ -149,7 +151,7 @@ export function useDebugger({
       const starts = new Set<number>()
       addStarts(starts, from.assembled, base)
       for (const [i, bot] of ready.entries()) {
-        addStarts(starts, bot.assembled, session.battle.bots[i + 1]?.base ?? 0)
+        addStarts(starts, assemblyOf(bot), session.battle.bots[i + 1]?.base ?? 0)
       }
       // The editor still has the old session's lines, mapped through the edits since.
       const editor = view?.state

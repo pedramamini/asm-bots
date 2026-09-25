@@ -11,9 +11,15 @@ const session = new ArenaSession()
 
 scope.addEventListener('message', (event: MessageEvent<ArenaRequest>) => {
   for (const message of session.handle(event.data)) {
-    scope.postMessage(message, transferList(message))
+    const sent = message.type === 'frame' ? { ...message, sentAt: sentAt() } : message
+    scope.postMessage(sent, transferList(sent))
   }
 })
+
+/** Now, on the clock the page shares: what `FrameMessage.sentAt` holds. */
+function sentAt(): number {
+  return performance.timeOrigin + performance.now()
+}
 
 /** The buffers of a message's typed arrays. Each array has a buffer of its own. */
 function transferList(message: ArenaMessage): ArrayBuffer[] {

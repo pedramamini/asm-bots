@@ -6,9 +6,11 @@ ASM Bots is a deterministic x86-16 assembler debugger and competitive hill-climb
 
 ```sh
 bun install
-bun run check       # typecheck, lint, contrast, test
+bun run check       # typecheck, lint, contrast, tests, the API's tests, the bundle budgets
 bun run contrast    # WCAG contrast of the text tokens in all five themes
+bun run bundle      # builds the web app and checks its budgets (apps/web/README.md "Budgets")
 bun run golden      # the roster goldens; --update writes packages/bots/goldens/results.json
+bun run roster-images  # writes the roster's prebuilt images after a roster, assembler, or codec change
 bun run opcodes     # writes docs/opcodes.json (the editor's cards) and the docs' language reference
 bun run docs-index  # writes the /docs search index from the MDX pages
 bun run dev         # the web app on :5173 with /api proxied to wrangler dev on :8787

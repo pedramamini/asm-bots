@@ -1,23 +1,5 @@
-export type {
-  BattleConfig,
-  BattleConfigInput,
-  BotMeta,
-  BotResult,
-  BotStats,
-  LoadedBot,
-  Result,
-} from './battle'
-export {
-  Battle,
-  Bot,
-  DEFAULT_CONFIG,
-  MAX_BOTS,
-  PLACEMENT_ATTEMPTS,
-  PlacementError,
-  place,
-  pmarsPoints,
-  simulate,
-} from './battle'
+export type { BotResult, BotStats, Result } from './battle'
+export { Battle, Bot, simulate } from './battle'
 export type { WriteLog } from './core'
 export { ADDR_MASK, CORE_SIZE, Core } from './core'
 export type { EventSink } from './events'
@@ -87,5 +69,14 @@ export {
   SP,
   setReg8,
 } from './proc'
+export type { BattleConfig, BattleConfigInput, BotMeta, LoadedBot } from './rules'
+export {
+  DEFAULT_CONFIG,
+  MAX_BOTS,
+  PLACEMENT_ATTEMPTS,
+  PlacementError,
+  place,
+  pmarsPoints,
+} from './rules'
 export type { BotSnapshot, Snapshot } from './snapshot'
 export { restore, snapshot } from './snapshot'

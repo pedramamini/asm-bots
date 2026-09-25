@@ -57,13 +57,13 @@ asm-bots-v3/
   bunfig.toml
   tsconfig.base.json        strict, ES2022, bundler resolution
   biome.json                lint + format
-  .github/workflows/ci.yml  bun install, typecheck, lint, test, build, golden
+  .github/workflows/ci.yml  bun install, check (typecheck, lint, tests, bundle budgets), build, golden
   docs/                     ISA_SPEC, ARCHITECTURE, DESIGN_SYSTEM, PRODUCT_SPEC, RESEARCH_BRIEF, guides/
   packages/
     codec/                  opcode table, encode, decode, length, formatting     (no deps)
     engine/                 core, cpu, process queues, battle, prng, events, snapshots (dep: codec)
     asm/                    lexer, parser, expr, assembler, listing, disassembler, formatter, lint (dep: codec)
-    bots/                   roster/*.asm, src/roster.ts, goldens/*.json         (dep: asm, engine)
+    bots/                   roster/*.asm, src/roster.ts, prebuilt images, goldens/*.json (dep: asm, engine)
     tourney/                round, match, roundrobin, bracket, melee, hill, scoring, rating (dep: engine)
     protocol/               zod schemas: API DTOs, replay file, share links, WS messages (no deps)
     ui/                     tokens, themes, primitives, icons, hooks (dep: react)

@@ -8,6 +8,8 @@ The roster of ASM Bots: the x16c bots that ship with the game, and the goldens t
 |---|---|
 | `ROSTER` | One `RosterEntry` for each bot: `slug`, `file`, `name`, `author`, `family`, `tier`, and `blurb`. |
 | `loadRoster()` | Each bot by slug: its source, and what `assemble` made of it. It assembles the bots on the first call (at import under `bun test`) and then gives the same map. |
+| `rosterImage(slug)` | The bot prebuilt: its `%name`, `%author`, `%strategy`, `%version`, and machine code, from `src/images.gen.ts`, with neither the assembler nor the sources. The arena and the home demo fight with it. |
+| `rosterSource(slug)` | The text of the bot's file, without assembling it (`src/sources.ts`). |
 | `fighter(slug)` | The roster bot `slug` as a `LoadedBot`, ready for `new Battle` or `simulate`. |
 | `ROSTER_FAMILIES`, `ROSTER_TIERS` | The families and the tiers of [roster/README.md](roster/README.md). |
 | `GOLDEN_MATCHUPS`, `HILL_RULES` | The golden matchups (see [Goldens](#goldens)), and the rules they play under: 80,000 cycles, all else at the engine's default. |
@@ -47,7 +49,7 @@ A golden changes only when a bot, the assembler, or the engine changes what a ba
 ## Adding a bot
 
 1. **Write the file.** Put it in `roster/<slug>.asm` (a test bot goes in `roster/test/<slug>.asm`). Use the [house style](roster/README.md#house-style): a header of three or more sentences on the tactic; `%name`, `%author`, and `%strategy`; the base idiom; labeled sections. The file must be formatter-clean and lint-clean, and at most 512 bytes.
-2. **Add the roster entry.** In `src/roster.ts`, import the file as text (`import x from '../roster/<slug>.asm' with { type: 'text' }`), and add a row to `ROWS` with the slug, file, name, author, family, tier, and blurb. `test/roster.test.ts` checks the file against the row and the house style.
+2. **Add the roster entry.** In `src/sources.ts`, import the file as text (`import x from '../roster/<slug>.asm' with { type: 'text' }`) and add it to `SOURCES` by its slug; in `src/entries.ts`, add a row to `ROSTER` with the slug, file, name, author, family, tier, and blurb. Then run `bun run roster-images`, which writes the bot's prebuilt image to `src/images.gen.ts`, and run it again after any change to a roster file, the assembler, or the codec. `test/roster.test.ts` checks the file against the row and the house style; `test/images.test.ts` fails while an image is not what its source assembles to.
 3. **Record the fights in the header.** A bot of the six classic families fights `imp.asm` over seeds 1..20 and writes the result in its header: `; vs imp.asm, seeds 1..20: 14 W / 6 T / 0 L`. `record` in `test/fight.ts` gives the numbers. `test/fighters.test.ts` fights each record line again.
 4. **Write the tests.** Test what the bot is for: a bar against a rival or a shape in `test/fighters.test.ts`, the paint in `test/painters.test.ts`, or the exact outcome of a test bot in `test/test-bots.test.ts`.
 5. **Update the goldens.** A `showcase` bot gets a pair with each other showcase bot automatically. Put a `solid` bot into a melee of `GOLDEN_MATCHUPS`: `test/goldens.test.ts` fails until each bot, except the test bots, plays in a golden. Then run `bun run golden --update`, read the table and the diff of `goldens/results.json`, and commit the file with the bot. The only changed rounds must be those of the matchups that the bot joined.
@@ -57,6 +59,7 @@ A golden changes only when a bot, the assembler, or the engine changes what a ba
 | File | Checks |
 |---|---|
 | `test/roster.test.ts` | Each bot assembles with no errors, is lint-clean and formatter-clean, is at most 512 bytes, and matches its roster entry and the house style. |
+| `test/images.test.ts` | Each prebuilt image (`src/images.gen.ts`) is what its bot's source assembles to, and each bot has one; `rosterSource` is the text `loadRoster` assembles. |
 | `test/fighters.test.ts` | Each record line in a header, fought again; the bars of each fighter; what each fighter does alone. |
 | `test/painters.test.ts`, `test/test-bots.test.ts` | What each painter paints, and the exact outcome of each test bot. |
 | `test/goldens.test.ts` | The matchups; `playGolden` against battles played by hand; the file against `playGoldens` on the main thread and in a Worker; `diffGoldens`, `parseGoldens`, and the layout of `formatGoldens`. |

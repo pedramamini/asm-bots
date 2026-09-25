@@ -235,6 +235,12 @@ export interface FrameMessage {
   readonly ownerDirty: Uint8Array | null
   /** The whole core on a full frame, else null. */
   readonly bytesDirty: Uint8Array | null
+  /**
+   * When the Worker posted it: `performance.timeOrigin + performance.now()`, the clock the page
+   * and its Workers share. The client measures the frame's trip by it (`TRANSFER_MEASURE`). A
+   * frame made on the page's own thread (a test's fake Worker) has none.
+   */
+  readonly sentAt?: number | undefined
 }
 
 /** The round is over. Follows its frame, once per ending: a seek back and a replay end it again. */

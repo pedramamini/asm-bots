@@ -22,22 +22,36 @@ import {
   TournamentList,
   UserDetail,
 } from '@asmbots/protocol'
-import { queryOptions, useQuery } from '@tanstack/react-query'
+import { type QueryClient, type QueryKey, queryOptions, useQuery } from '@tanstack/react-query'
 import { ApiRequestError, apiGet } from './client'
 
 const segment = encodeURIComponent
 
+/**
+ * The hills and their standings: the API keeps them 30 s (`Cache-Control: public, max-age=30`). A
+ * first read may come from that cache; a read again (a job ended, a submission finished, the tab
+ * came back) asks past it, so a board the page knows has changed shows as it is.
+ */
+const refetching = ({ client, queryKey }: { client: QueryClient; queryKey: QueryKey }) =>
+  client.getQueryData(queryKey) !== undefined
+
 export const hillsQuery = () =>
   queryOptions({
     queryKey: ['hills'],
-    queryFn: ({ signal }) => apiGet('/hills', (v) => parse(HillList, v, 'the hills'), signal),
+    queryFn: (context) =>
+      apiGet('/hills', (v) => parse(HillList, v, 'the hills'), context.signal, refetching(context)),
   })
 
 export const hillQuery = (slug: string) =>
   queryOptions({
     queryKey: ['hills', slug],
-    queryFn: ({ signal }) =>
-      apiGet(`/hills/${segment(slug)}`, (v) => parse(HillDetail, v, 'the hill'), signal),
+    queryFn: (context) =>
+      apiGet(
+        `/hills/${segment(slug)}`,
+        (v) => parse(HillDetail, v, 'the hill'),
+        context.signal,
+        refetching(context),
+      ),
   })
 
 export interface HillMatchesFilter {
@@ -197,12 +211,17 @@ export const userQuery = (handle: string) =>
  */
 const SIGNED_IN = /(?:^|;\s*)signed_in=1(?:;|$)/
 
+/** Whether someone may be signed in here: the API's hint beside the session. */
+export function mayBeSignedIn(): boolean {
+  return SIGNED_IN.test(globalThis.document?.cookie ?? '')
+}
+
 /** The signed-in user, or null when nobody is. */
 export const meQuery = () =>
   queryOptions({
     queryKey: ['me'],
     queryFn: async ({ signal }): Promise<Me | null> => {
-      if (!SIGNED_IN.test(globalThis.document?.cookie ?? '')) return null
+      if (!mayBeSignedIn()) return null
       try {
         return await apiGet('/me', (v) => parse(Me, v, 'your account'), signal)
       } catch (error) {

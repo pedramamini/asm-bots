@@ -1,0 +1,3 @@
+# What wrangler does not upload from dist: the build manifest, which only
+# `scripts/check-bundle.ts` reads.
+.vite

@@ -11,14 +11,15 @@ import { fromBase64Url, SOURCES_KEY, toBase64Url } from '@asmbots/protocol'
 import { MAX_MELEE_ENTRANTS } from '@asmbots/tourney'
 import { defaultParseSearch } from '@tanstack/react-router'
 import { deflateSync, strToU8 } from 'fflate'
+import { assembleCached, fileAssembles, readBotFiles } from '../src/features/arena/setup/assembly'
 import {
   arenaBots,
+  arenaFight,
   fightSeed,
   fightStatus,
-  fileAssembles,
   fits,
   matchesQuery,
-  readBotFiles,
+  replaySources,
   resolveSelection,
   rosterCatalog,
   type SetupBot,
@@ -68,7 +69,11 @@ function spec(bots: readonly BotRef[], config: Partial<ArenaConfig> = {}): Arena
   return { bots, config: { ...DEFAULT_ARENA_CONFIG, ...config } }
 }
 
-const NO_SOURCES = { local: new Map<string, LocalBot>(), shared: new Map<string, string>() }
+const NO_SOURCES = {
+  local: new Map<string, LocalBot>(),
+  shared: new Map<string, string>(),
+  assemble: assembleCached,
+}
 
 describe('config', () => {
   it('starts as duel: the engine defaults, one round, a random seed', () => {
@@ -334,6 +339,22 @@ describe('roster catalog', () => {
     expect(rosterCatalog()).toBe(catalog)
   })
 
+  it('comes prebuilt: what each source assembles to, with no source loaded', () => {
+    for (const bot of rosterCatalog()) {
+      const slug = bot.roster?.slug ?? ''
+      const { name, author, strategy, version, bytes } = loadRoster().get(slug)?.assembled ?? {}
+      expect(bot.source).toBeNull()
+      expect({ ...bot.assembled, bytes: [...bot.assembled.bytes] }).toEqual({
+        name,
+        author,
+        strategy,
+        version,
+        bytes: [...(bytes ?? [])],
+        diagnostics: [],
+      })
+    }
+  })
+
   it('finds bots by every word, in name, author, family, tier, or blurb', () => {
     const find = (query: string) =>
       rosterCatalog()
@@ -368,6 +389,7 @@ describe('resolveSelection', () => {
         ['a', BROKEN],
         ['b', IMP],
       ]),
+      assemble: assembleCached,
     }
     const got = resolveSelection([local('a'), local('b'), local('c')], sources)
     expect(got.map((s) => [s.state, s.bot?.origin ?? null, s.name])).toEqual([
@@ -378,23 +400,38 @@ describe('resolveSelection', () => {
   })
 
   it('marks a local bot loading while the store is read, and one with errors broken', () => {
-    const loading = resolveSelection([local('a')], { local: null, shared: new Map() })
+    const loading = resolveSelection([local('a')], { ...NO_SOURCES, local: null })
     expect(loading[0]?.state).toBe('loading')
     const broken = resolveSelection([local('x')], {
+      ...NO_SOURCES,
       local: new Map([['x', localBot('x', BROKEN)]]),
-      shared: new Map(),
     })
     expect(broken[0]).toMatchObject({ state: 'broken', name: 'Broken' })
     // An unknown roster slug is missing, never loading.
-    expect(resolveSelection([roster('nobody')], { local: null, shared: new Map() })[0]?.state).toBe(
+    expect(resolveSelection([roster('nobody')], { ...NO_SOURCES, local: null })[0]?.state).toBe(
       'missing',
     )
   })
 
+  it('marks a local or shared bot loading while the assembler loads; the roster needs none', () => {
+    const got = resolveSelection([roster('imp'), local('a'), local('b'), local('c')], {
+      local: new Map([['a', localBot('a', IMP)]]),
+      shared: new Map([['b', IMP]]),
+      assemble: null,
+    })
+    expect(got.map((s) => [s.state, s.name])).toEqual([
+      ['ready', 'Imp'],
+      ['loading', 'local bot'],
+      ['loading', 'local bot 2'],
+      // Nothing has it: no assembler would find it.
+      ['missing', 'local bot 3'],
+    ])
+  })
+
   it('names a bot with no %name by its stored name', () => {
     const got = resolveSelection([local('n')], {
+      ...NO_SOURCES,
       local: new Map([['n', localBot('n', 'jmp $', 'scratch')]]),
-      shared: new Map(),
     })
     expect(got[0]).toMatchObject({ state: 'broken', name: 'scratch' })
   })
@@ -403,6 +440,7 @@ describe('resolveSelection', () => {
     const got = resolveSelection([roster('imp'), local('a'), local('a'), local('b')], {
       local: new Map([['a', localBot('a', IMP)]]),
       shared: new Map([['b', BROKEN]]),
+      assemble: assembleCached,
     })
     expect(sharedSources(got)).toEqual([
       { id: 'a', source: IMP },
@@ -435,12 +473,18 @@ describe('fightStatus', () => {
     expect(status([roster('imp'), local('gone'), local('gone2')]).label).toBe(
       'remove 2 missing bots',
     )
-    const sources = { local: new Map([['x', localBot('x', BROKEN)]]), shared: new Map() }
+    const sources = { ...NO_SOURCES, local: new Map([['x', localBot('x', BROKEN)]]) }
     expect(status([roster('imp'), local('x')], {}, sources).label).toBe('remove 1 broken bot')
   })
 
   it('waits for the local store', () => {
-    const got = status([roster('imp'), local('a')], {}, { local: null, shared: new Map() } as never)
+    const got = status([roster('imp'), local('a')], {}, { ...NO_SOURCES, local: null } as never)
+    expect(got).toEqual({ label: 'fight · 2 bots · 1 round', ready: false, busy: true })
+  })
+
+  it('waits for the assembler', () => {
+    const sources = { ...NO_SOURCES, local: new Map([['a', localBot('a', IMP)]]), assemble: null }
+    const got = status([roster('imp'), local('a')], {}, sources as never)
     expect(got).toEqual({ label: 'fight · 2 bots · 1 round', ready: false, busy: true })
   })
 
@@ -493,6 +537,35 @@ describe('arenaBots', () => {
   it('refuses a bot that is not loaded', () => {
     const missing = resolveSelection([local('gone')], NO_SOURCES) as SetupBot[]
     expect(() => arenaBots(missing)).toThrow("bot 'local bot' is not loaded")
+  })
+})
+
+describe('replaySources', () => {
+  it("reads a roster bot's source from the roster, and keeps the others as they are", async () => {
+    const refs = [roster('dwarf'), local('a'), roster('imp')]
+    const selection = resolveSelection(refs, {
+      ...NO_SOURCES,
+      local: new Map([['a', localBot('a', BROKEN.replace('jmp nowhere', 'jmp $'))]]),
+    })
+    const fight = arenaFight(selection, spec(refs), 1)
+    expect(fight.sources).toEqual([null, BROKEN.replace('jmp nowhere', 'jmp $'), null])
+    expect(await replaySources(fight)).toEqual([
+      loadRoster().get('dwarf')?.source,
+      BROKEN.replace('jmp nowhere', 'jmp $'),
+      IMP,
+    ])
+  })
+
+  it('hands back the sources of a fight with no roster bot', async () => {
+    const refs = [local('a'), local('b')]
+    const selection = resolveSelection(refs, {
+      ...NO_SOURCES,
+      local: new Map([
+        ['a', localBot('a', IMP)],
+        ['b', localBot('b', IMP, 'again')],
+      ]),
+    })
+    expect(await replaySources(arenaFight(selection, spec(refs), 1))).toEqual([IMP, IMP])
   })
 })
 

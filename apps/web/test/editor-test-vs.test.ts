@@ -5,7 +5,7 @@
  */
 import { afterEach, describe, expect, it } from 'bun:test'
 import { assemble } from '@asmbots/asm'
-import { fighter } from '@asmbots/bots'
+import { fighter, rosterSource } from '@asmbots/bots'
 import { type MatchResult, runMatch } from '@asmbots/tourney'
 import { type CatalogBot, rosterCatalog } from '../src/features/arena/setup/bots'
 import { battleConfig } from '../src/features/arena/setup/config'
@@ -80,7 +80,7 @@ describe('the record', () => {
 
 describe('the bots of a test', () => {
   it('names the tested bot by its %name, and a namesake opponent as the arena does', () => {
-    const mine = assemble(roster('dwarf').source)
+    const mine = assemble(rosterSource('dwarf'))
     expect(testBots(mine, roster('imp')).map((b) => b.name)).toEqual(['Dwarf', 'Imp'])
     expect(testBots(mine, roster('dwarf')).map((b) => b.name)).toEqual(['Dwarf', 'Dwarf 2'])
     const nameless = { ...mine, name: '' }
@@ -98,7 +98,7 @@ describe('the bots of a test', () => {
   })
 
   it('links the arena set up as the test: the two bots, the seed, the source inside', () => {
-    const tested = { id: 'draft-1', source: roster('dwarf').source }
+    const tested = { id: 'draft-1', source: rosterSource('dwarf') }
     const { spec, shared } = watchSetup(tested, 'imp', 42)
     const url = shareUrl('', spec, shared)
     expect(

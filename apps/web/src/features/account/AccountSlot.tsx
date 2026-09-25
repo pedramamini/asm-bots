@@ -4,8 +4,9 @@ import { type QueryClient, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { LogIn, LogOut, Settings, UserRound } from 'lucide-react'
 import type { Ref } from 'react'
-import { useMe } from '../../api/queries'
+import { mayBeSignedIn, useMe } from '../../api/queries'
 import { signInHref, signOut } from '../../api/writes'
+import { preconnectAvatars } from './avatars'
 
 /** Sends the browser to GitHub's sign-in, and back to this page after. */
 export function signIn(): void {
@@ -47,9 +48,11 @@ export function useSignOut(): () => Promise<void> {
 
 /**
  * The header's account slot (PRODUCT_SPEC §9): the signed-in user's avatar, which opens a menu
- * (profile, settings, sign out), or `sign in with github`.
+ * (profile, settings, sign out), or `sign in with github`. A visit that may be signed in opens the
+ * avatars' connection while `me` loads.
  */
 export function AccountSlot() {
+  if (mayBeSignedIn()) preconnectAvatars()
   const { data: me } = useMe()
   const router = useRouter()
   const signOutHere = useSignOut()

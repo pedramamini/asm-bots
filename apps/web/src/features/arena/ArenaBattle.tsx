@@ -28,7 +28,7 @@ import { RoundOver, Victory } from './battle/Victory'
 import type { ReplayCheck } from './battle/verify'
 import { ROUND_PAUSE_MS, useArenaView } from './battle/view'
 import { type IntroRun, useIntroGuide } from './intro'
-import type { ArenaFight } from './setup/bots'
+import { type ArenaFight, replaySources } from './setup/bots'
 import { searchFromSetup, sharedFragment, shareUrl } from './setup/url'
 import { copyLink, copyShareLink } from './share'
 import type { ArenaClient } from './worker/client'
@@ -193,7 +193,8 @@ export function ArenaBattle({
 
   const download = async () => {
     if (match === null) return
-    const file = await buildReplay(fight.bots, fight.sources, fight.config, fight.rounds, match)
+    const sources = await replaySources(fight)
+    const file = await buildReplay(fight.bots, sources, fight.config, fight.rounds, match)
     const blob = new Blob([`${JSON.stringify(file, null, 2)}\n`], { type: 'application/json' })
     downloadBlob(blob, replayName(names, seed))
   }

@@ -42,7 +42,11 @@ export function introSpec(): ArenaSetupSpec {
 /** The intro's fight: roster bots only, so nothing waits on the local store. */
 export function introFight(): ArenaFight {
   const spec = introSpec()
-  const selection = resolveSelection(spec.bots, { local: new Map(), shared: new Map() })
+  const selection = resolveSelection(spec.bots, {
+    local: new Map(),
+    shared: new Map(),
+    assemble: null,
+  })
   return arenaFight(selection, spec, INTRO_SEED)
 }
 

@@ -19,14 +19,13 @@ import { FileUp, X } from 'lucide-react'
 import { type DragEvent, useId, useMemo, useRef, useState } from 'react'
 import { useLocalBots } from '../../store/local-bots'
 import type { ArenaConfig } from '../../store/settings'
+import { assembleCached, fileAssembles, readBotFiles } from '../arena/setup/assembly'
 import {
   type CatalogBot,
   carriesFiles,
   errorsOf,
-  fileAssembles,
   localCatalog,
   matchesQuery,
-  readBotFiles,
   rosterCatalog,
 } from '../arena/setup/bots'
 import { ConfigForm } from '../arena/setup/ConfigForm'
@@ -63,7 +62,7 @@ function entrantOf(bot: CatalogBot): PickedEntrant {
   const size = bot.assembled.bytes.length
   return bot.ref.kind === 'roster'
     ? { source: 'roster', ref: bot.ref.slug, name: bot.name, size }
-    : { source: 'local', ref: bot.ref.id, name: bot.name, code: bot.source, size }
+    : { source: 'local', ref: bot.ref.id, name: bot.name, code: bot.source ?? undefined, size }
 }
 
 /** The preset a kind starts from, while the config is a preset: a crowd gets a melee's. */
@@ -111,7 +110,10 @@ function NewTournamentForm({
   const [dragDepth, setDragDepth] = useState(0)
   const picker = useRef<HTMLInputElement>(null)
 
-  const mine = useMemo(() => (localBots.data ?? []).map(localCatalog), [localBots.data])
+  const mine = useMemo(
+    () => (localBots.data ?? []).map((bot) => localCatalog(bot, assembleCached)),
+    [localBots.data],
+  )
   const pickedKeys = new Set(picked.map(keyOf))
   const names = uniqueNames(picked.map((e) => e.name))
   const plan = {
@@ -400,7 +402,7 @@ function PickRow({
           onChange={onToggle}
           className="size-3 shrink-0 accent-(--accent)"
         />
-        <Identicon value={bytes.length > 0 ? bytes : bot.source} size={16} />
+        <Identicon value={bytes.length > 0 ? bytes : (bot.source ?? '')} size={16} />
         <span className="min-w-0 flex-1 truncate text-bright">{bot.name}</span>
         <span className="shrink-0 text-data text-muted">{broken ? '—' : `${bytes.length} B`}</span>
         {broken ? (

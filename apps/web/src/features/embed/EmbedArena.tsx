@@ -21,8 +21,10 @@ import { ArenaCanvas } from '../arena/ArenaCanvas'
 import { matchOutcome, roundOutcome } from '../arena/battle/outcome'
 import { readReplayFragment, readReplayValue, replayFight } from '../arena/battle/replay'
 import { ROUND_PAUSE_MS } from '../arena/battle/view'
+import { useAssemble } from '../arena/setup/assembler'
 import {
   type ArenaFight,
+  type Assemble,
   arenaFight,
   fightSeed,
   resolveSelection,
@@ -44,18 +46,31 @@ const newClient = () => new ArenaClient({ store: createArenaStore() })
 
 const count = (n: number) => n.toLocaleString('en-US')
 
-/** A battle an embed can fight, or what keeps it from one. */
-type EmbedRead = { readonly fight: ArenaFight } | { readonly problem: string }
+/** A battle an embed can fight, what keeps it from one, or `pending` while the assembler loads. */
+type EmbedRead =
+  | { readonly fight: ArenaFight }
+  | { readonly problem: string }
+  | { readonly pending: true }
 
 /**
  * The battle of an arena link's query and fragment: its bots (the roster's, and the ones the
  * fragment carries; this browser's own bots are not read), its config, and its seed, or a random
- * seed that places them when it names none.
+ * seed that places them when it names none. `assemble` (null while it loads) is for the
+ * fragment's bots: the roster comes prebuilt.
  */
-export function embedFight(search: ArenaSearch, fragment: string): EmbedRead {
+export function embedFight(
+  search: ArenaSearch,
+  fragment: string,
+  assemble: Assemble | null,
+): EmbedRead {
   const spec = setupFromSearch(search)
-  const selection = resolveSelection(spec.bots, { local: new Map(), shared: sharedBots(fragment) })
+  const selection = resolveSelection(spec.bots, {
+    local: new Map(),
+    shared: sharedBots(fragment),
+    assemble,
+  })
   if (selection.length < MIN_ARENA_BOTS) return { problem: 'this embed names no battle.' }
+  if (selection.some((s) => s.state === 'loading')) return { pending: true }
   if (selection.some((s) => s.state === 'missing')) {
     return { problem: 'this embed names a bot it does not carry.' }
   }
@@ -72,7 +87,16 @@ export function embedFight(search: ArenaSearch, fragment: string): EmbedRead {
 export function EmbedSetup({ createClient }: EmbedProps) {
   const raw = useSearch({ strict: false })
   const hash = useLocation({ select: (location) => location.hash })
-  const read = useMemo(() => embedFight(validateArenaSearch(raw), hash), [raw, hash])
+  const search = useMemo(() => validateArenaSearch(raw), [raw])
+  const assemble = useAssemble(setupFromSearch(search).bots.some((ref) => ref.kind === 'local'))
+  const read = useMemo(() => embedFight(search, hash, assemble), [search, hash, assemble])
+  if ('pending' in read) {
+    return (
+      <EmbedNote>
+        <RadarLoader label="loading the bots" />
+      </EmbedNote>
+    )
+  }
   if ('problem' in read) return <EmbedNote>{read.problem}</EmbedNote>
   return <EmbedBattle fight={read.fight} createClient={createClient} />
 }

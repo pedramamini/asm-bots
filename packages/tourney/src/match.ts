@@ -16,7 +16,10 @@ import {
   fnv1a64,
   type LoadedBot,
 } from '@asmbots/engine'
+import { roundOrder, roundSeed } from './rotation'
 import { type RoundResult, runRound } from './round'
+
+export { roundOrder, roundSeed } from './rotation'
 
 /** One round of a match. Indices are entrant indices: positions in the `bots` of the match. */
 export interface MatchRound {
@@ -125,16 +128,6 @@ export function matchHash(
     bots.map((b) => [b.name, hex(b.bytes)]),
   ])
   return fnv1a64(new TextEncoder().encode(text))
-}
-
-/** Round `round`'s fighting order in a match of `n` bots: `order[j]` is the entrant placed j-th. */
-export function roundOrder(n: number, round: number): number[] {
-  return Array.from({ length: n }, (_, j) => (round + j) % n)
-}
-
-/** Round `round`'s placement seed in a match whose seed is `seed`: `seed + round`, mod 2^32. */
-export function roundSeed(seed: number, round: number): number {
-  return (seed + round) >>> 0
 }
 
 /**

@@ -117,6 +117,27 @@ interface WaitingMatch {
 /** Calls `callback` on the next display frame, and returns what cancels the call. */
 export type Schedule = (callback: () => void) => () => void
 
+/**
+ * The User Timing entries a frame's trip from the Worker leaves on the page's timeline: a mark as
+ * it arrives, and a measure from its `sentAt` to that mark. DevTools shows both under Timings; the
+ * perf spec holds the measure under 1 ms (web README "Budgets"). Only the latest of each stays on
+ * the timeline, so a long battle does not grow it; a `PerformanceObserver` still sees every one.
+ */
+export const TRANSFER_MARK = 'arena:frame-received'
+export const TRANSFER_MEASURE = 'arena:frame-transfer'
+
+/** Marks a frame's arrival and measures its trip from `sentAt`. */
+function measureTransfer(sentAt: number): void {
+  const perf = globalThis.performance
+  if (typeof perf?.mark !== 'function' || typeof perf.measure !== 'function') return
+  perf.clearMarks(TRANSFER_MARK)
+  perf.clearMeasures(TRANSFER_MEASURE)
+  const received = perf.mark(TRANSFER_MARK)
+  // The page's timeline starts at its own origin: the Worker's clock, read on it.
+  const start = Math.min(sentAt - perf.timeOrigin, received.startTime)
+  perf.measure(TRANSFER_MEASURE, { start, end: received.startTime })
+}
+
 /** `requestAnimationFrame`, or a 16 ms timer where there is none (a test, a Worker). */
 export const animationFrame: Schedule = (callback) => {
   if (typeof requestAnimationFrame === 'function') {
@@ -337,6 +358,7 @@ export class ArenaClient {
 
   private receive(message: ArenaMessage): void {
     if (this.disposed) return
+    if (message.type === 'frame' && message.sentAt !== undefined) measureTransfer(message.sentAt)
     if (message.type === 'match' || (message.type === 'error' && message.request === 'match')) {
       this.settleMatch(message)
       return

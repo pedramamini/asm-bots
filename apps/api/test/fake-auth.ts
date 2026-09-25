@@ -23,14 +23,16 @@ interface Send {
   body?: unknown
   site?: string
   vars?: Env
+  /** More request headers: `Cache-Control: no-cache` for a read past the hills' cache. */
+  headers?: Record<string, string>
 }
 
 export async function send(
   jar: Jar,
   path: string,
-  { method = 'GET', body, site = LOCAL, vars = FAKE }: Send = {},
+  { method = 'GET', body, site = LOCAL, vars = FAKE, headers: extra = {} }: Send = {},
 ): Promise<Response> {
-  const headers = new Headers({ Cookie: jar.header(), 'CF-Connecting-IP': jar.ip })
+  const headers = new Headers({ ...extra, Cookie: jar.header(), 'CF-Connecting-IP': jar.ip })
   if (method !== 'GET') headers.set('Origin', site)
   if (body !== undefined) headers.set('Content-Type', 'application/json')
   const init = { method, headers, redirect: 'manual' as const }

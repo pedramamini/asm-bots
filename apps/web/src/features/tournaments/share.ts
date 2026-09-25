@@ -39,7 +39,7 @@ import {
   text,
   UINT32,
 } from '../arena/battle/replay'
-import { assembleCached } from '../arena/setup/bots'
+import { assembleCached } from '../arena/setup/assembly'
 import { ROUNDS } from '../arena/setup/config'
 import { copyLink } from '../arena/share'
 import { ENTRANT_LIMITS } from './create'

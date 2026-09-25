@@ -23,7 +23,8 @@ import {
 } from '@asmbots/tourney'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import { assembleCached, rosterCatalog } from '../arena/setup/bots'
+import { assembleCached } from '../arena/setup/assembly'
+import { rosterCatalog } from '../arena/setup/bots'
 import { ArenaClient, createArenaStore } from '../arena/worker/client'
 import type { ArenaBot } from '../arena/worker/protocol'
 import {

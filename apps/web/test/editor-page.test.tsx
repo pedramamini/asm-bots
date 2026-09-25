@@ -10,7 +10,7 @@
 import 'fake-indexeddb/auto'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock } from 'bun:test'
 import { formatSource } from '@asmbots/asm'
-import { fighter } from '@asmbots/bots'
+import { fighter, rosterSource } from '@asmbots/bots'
 import type { Bot } from '@asmbots/engine'
 import { type MatchResult, runMatch } from '@asmbots/tourney'
 import { ToastProvider } from '@asmbots/ui'
@@ -27,7 +27,6 @@ import {
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useDom, window } from '../../../packages/ui/test/dom'
 import { Frame } from '../src/app/Frame'
-import { rosterCatalog } from '../src/features/arena/setup/bots'
 import { battleConfig } from '../src/features/arena/setup/config'
 import { validateArenaSearch } from '../src/features/arena/setup/search'
 import { setupFromSearch, sharedBots, sharedFragment } from '../src/features/arena/setup/url'
@@ -67,8 +66,7 @@ beforeAll(() => {
 })
 afterAll(() => restoreCanvas())
 
-const source = (slug: string) =>
-  rosterCatalog().find((b) => b.ref.kind === 'roster' && b.ref.slug === slug)?.source ?? ''
+const source = rosterSource
 const BLANK = templateSource('blank')
 
 beforeEach(async () => {

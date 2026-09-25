@@ -6,6 +6,7 @@ import { useUser } from '../../api/queries'
 import { LoadFailure, readStatus } from '../../app/LoadFailure'
 import { useLinkAction } from '../../app/link-action'
 import { Placeholder } from '../../app/Placeholder'
+import { preconnectAvatars } from '../account/avatars'
 import { BotLink, CELL_LINK, count, day } from '../hills/links'
 
 const COLUMNS: TableColumn<Bot>[] = [
@@ -79,9 +80,11 @@ const CHAMPIONSHIP_COLUMNS: TableColumn<ChampionshipResult>[] = [
 
 /**
  * `/u/$handle` (PRODUCT_SPEC §6): who they are, since when, their bots (the public ones, or all of
- * them for the user themself), their best place on each hill, and their championship results.
+ * them for the user themself), their best place on each hill, and their championship results. The
+ * avatars' connection opens while the user loads.
  */
 export function ProfilePage({ handle }: { handle: string }) {
+  preconnectAvatars()
   const read = useUser(handle)
   const { data, error } = read
   const link = useLinkAction()

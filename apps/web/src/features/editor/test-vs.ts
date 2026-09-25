@@ -7,7 +7,7 @@ import type { Assembled } from '@asmbots/asm'
 import { fnv1a64 } from '@asmbots/engine'
 import type { MatchResult } from '@asmbots/tourney'
 import type { ArenaConfig } from '../../store/settings'
-import type { CatalogBot } from '../arena/setup/bots'
+import type { AssembledBot, CatalogBot } from '../arena/setup/bots'
 import { DEFAULT_ARENA_CONFIG } from '../arena/setup/config'
 import type { ArenaSetupSpec, SharedBot } from '../arena/setup/url'
 import type { ArenaBot } from '../arena/worker/protocol'
@@ -51,7 +51,7 @@ export function tally(match: MatchResult, me = 0): Tally {
 export function testBots(mine: Assembled, opponent: CatalogBot): ArenaBot[] {
   const name = mine.name === '' ? 'my bot' : mine.name
   const theirs = opponent.name === name ? `${opponent.name} 2` : opponent.name
-  const bot = (bot: Assembled, battleName: string): ArenaBot => ({
+  const bot = (bot: AssembledBot, battleName: string): ArenaBot => ({
     name: battleName,
     bytes: bot.bytes,
     meta: { author: bot.author, strategy: bot.strategy, version: bot.version },

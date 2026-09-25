@@ -68,10 +68,14 @@ export default defineConfig({
     target: 'es2022',
     // One stylesheet for the app, in index.html (`inlineStylesheet`): no lazy chunk links a sheet.
     cssCodeSplit: false,
+    // `dist/.vite/manifest.json`: the chunk graph `scripts/check-bundle.ts` measures each page's
+    // cold load by. `public/.assetsignore` keeps it off the deploy.
+    manifest: true,
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (/[\\/]packages[\\/](engine|codec)[\\/]/.test(id)) return 'engine'
+          // The workspace packages go where Rollup puts them (each is `sideEffects: false`), so a
+          // page loads only the modules it uses: `/arena`'s shell has no `Battle`, no assembler.
           // CodeMirror and the small packages only it uses: none of it loads before the editor.
           if (
             /[\\/]node_modules[\\/](@codemirror|@lezer|codemirror|@marijn|crelt|style-mod|w3c-keyname)[\\/]/.test(
@@ -80,7 +84,7 @@ export default defineConfig({
           ) {
             return 'editor'
           }
-          // The zip codec serves only the settings page's import and export: it rides that chunk.
+          // The zip codec (share links, the settings page's import and export) rides their chunks.
           if (/[\\/]node_modules[\\/]fflate[\\/]/.test(id)) return undefined
           if (/[\\/]node_modules[\\/]/.test(id)) return 'vendor'
           return undefined

@@ -113,7 +113,7 @@ budget: 12 cues in any second; tick, write, and death at most every 125 ms and 8
 writes it stands for. `sound/arena.ts`'s `useArenaSound` plays a battle's cues in `ArenaBattle`
 (`/arena` and replays); full frames (a load, a seek) are silent. The home demo, the live panel, and
 a tournament's watch modal play by themselves and stay silent. The synth builds as a small
-`engine-*.js` chunk beside the machine's `engine-*.js`; a `manualChunks` rule for it would pull
+chunk of its own (`engine-*.js`, named after its file); a `manualChunks` rule for it would pull
 the kit out of the entry. Tests: `test/sound.test.ts` on `test/fake-audio.ts`, and
 `e2e/sound.spec.ts`, which takes away the user activation Playwright's `goto` gives a page.
 
@@ -203,9 +203,7 @@ Measured on an M5 Max in headless Chromium 1243, 2026-09-23.
 | `e2e/arena-perf.spec.ts`, 16 bots, 2,000 cycles a frame, all effects | 1280 x 720, DPR 1 | p50 16.7 ms, p95 16.8 ms frame gap |
 | The battle page, same melee (HUD, rail, sparklines, log) | 1280 x 720 DPR 1, 1440 x 900 DPR 2 on Metal | p95 16.7 ms, no long tasks |
 | The home demo, 4 bots, 400 cycles a frame, bloom | 1280 x 720 DPR 1, 1440 x 900 DPR 2 on Metal | p95 16.7 ms, max 16.8 ms |
-| Cold JS | `/arena`, `/arena/$replayId`, `/` | 222.8, 214.7, and 145 KB gz, then 65 KB gz of demo on `/` |
-| Cold JS with the editor (EXEC 2.4), 2026-09-23 | `/arena`, `/editor` | 226.8 KB gz (the editor's icons, `Toolbar`, and the chunks it shares with the arena: +3.5); 356 KB gz, of which CodeMirror is 124 and the assembler Worker 17 |
-| Cold JS with the debugger (EXEC 2.4), 2026-09-24, every JS response of a cold load, gzipped | `/arena`, `/editor` | 229.9 KB gz (226.3 before, the same way: the engine's snapshots, which the `engine` chunk takes, and chunks shuffled between the routes); 401.1 KB gz (356.0 before) |
+| Cold JS | every page | "Budgets" below: `bun run bundle` measures it at each `bun run check` |
 
 Headless Chromium's WebGL is SwiftShader (software) unless launched with `--use-angle=metal`. It
 holds 60 fps at DPR 1; at DPR 2 with bloom the melee's p95 is 33 ms. The renderer's first images
@@ -213,9 +211,10 @@ under SwiftShader make one long task of about 120 ms (half with the post effects
 the home page moves past its first paint.
 
 The renderer's Playwright specs drive `e2e/harness/arena.html`, a page only the dev server serves.
-`e2e/arena-perf.spec.ts` (16 roster bots at 2,000 cycles a frame, p95 frame gap at most 20 ms) is
-its own project and runs after the rest: `bunx playwright test --project perf --no-deps` runs it
-alone.
+`e2e/arena-perf.spec.ts` (16 roster bots at 2,000 cycles a frame: the arena alone, then the
+production build's battle page) and `e2e/arena-soak.spec.ts` (10 minutes, opt-in) are the `perf`
+project, which runs after the rest, on Metal on a Mac: `bunx playwright test --project perf
+--no-deps` runs them alone. Their budgets are in "Budgets".
 
 ### Adding an effect
 
@@ -504,6 +503,127 @@ Rules for new UI, each learned from a violation this pass fixed:
 The arena speaks every 2 s while it plays (`battle/Announcer.tsx`, a polite status region):
 `cycle 12,480; 3 bots alive; dwarf-v3 leads footprint`. The victory's headline is a live region
 too. The embed and the home demo say nothing: a frame on someone else's page, and a decoration.
+
+## Budgets
+
+What the app may cost, and what it costs now: 2026-09-25, an M5 Max, headless Chromium 1243.
+`bun run bundle` builds the app and checks the bundle rows (`scripts/check-bundle.ts`); CI runs it
+as a step of its own ahead of `bun run check`, which runs it again with the API's tests, so a bundle
+or network miss fails CI. The runtime rows are the Playwright `perf` project's; CI runs no
+Playwright yet (EXEC 4.2), and the frame trip needs a GPU and the soak ten minutes, so run them
+before a release (below).
+
+### Bundle
+
+A page's cold JS is what it fetches before it draws: the entry's static imports and the page's
+route chunk's (and its layout route's), from the build's manifest (`dist/.vite/manifest.json`),
+gzip -9, KB = 1,024 bytes. A browser's cold load of `/arena` (every JS response in 3 s, gzip -6)
+comes to the same: 241.2 KB over 33 files. `/arena`'s budget is PRODUCT_SPEC §11's; each other sits
+about 5% over its page, so what grows one is a choice, made here and in `BUDGETS`.
+
+| What | Now | Budget | Note |
+| --- | ---: | ---: | --- |
+| shell, every page | 165.6 KB | 175 KB | the entry and `vendor`; 185.2 KB before this pass |
+| `/` | 176.4 KB | 185 KB | |
+| `/arena` | 241.4 KB | 250 KB | engine + renderer + shell; 263.2 KB before |
+| `/arena/$replayId` | 233.2 KB | 250 KB | |
+| `/editor` | 418.2 KB | 440 KB | CodeMirror 127 KB of it |
+| `/editor/$botId` | 418.2 KB | 440 KB | |
+| `/tournaments` | 224.0 KB | 235 KB | |
+| `/tournaments/$id` | 260.7 KB | 275 KB | the bracket, the watch's renderer, the assembler and engine a local run uses |
+| `/hills` | 169.6 KB | 180 KB | |
+| `/hills/$slug` | 191.5 KB | 200 KB | |
+| `/bots/$id` | 186.2 KB | 195 KB | |
+| `/u/$handle` | 169.8 KB | 180 KB | |
+| `/docs` | 169.5 KB | 180 KB | a page's own MDX loads after its route |
+| `/docs/$` | 180.7 KB | 190 KB | |
+| `/settings` | 182.8 KB | 195 KB | |
+| `/embed/arena` | 213.6 KB | 225 KB | |
+| / home demo, after paint | 34.2 KB | 40 KB | 65 KB before: it fights prebuilt bots too |
+| arena Worker, at the first fight | 14.2 KB | 20 KB | |
+| assembler Worker, with the editor | 15.8 KB | 20 KB | |
+| fonts | 104.3 KB | 120 KB | 5 woff2 subsets, as shipped |
+
+The check also holds: CodeMirror (the `editor` chunk) and the editor's route load with the
+editor's pages only, the docs' routes and pages with the docs' only; every file under
+`dist/assets` has its hash in its name, and `_headers` keeps them a year; `.assetsignore` keeps the
+manifest off the deploy.
+
+What took `/arena` under 250 KB:
+
+1. `"sideEffects": false` on the six workspace packages (asm, bots, codec, engine, protocol,
+   tourney). Without it an import through a barrel kept every module behind it: every zod schema
+   of the protocol, on every page (−10 KB a page).
+2. No `engine` manual chunk, and the light exports in modules of their own: `DEFAULT_CONFIG`,
+   placement, and scoring (`engine/src/rules.ts`); `roundOrder` and `roundSeed`
+   (`tourney/src/rotation.ts`); `meleeStandings` (`tourney/src/melee-standings.ts`). Rollup shakes
+   code out globally and then puts each module in one chunk, whole: `DEFAULT_CONFIG` beside
+   `Battle` put `Battle`, the interpreter, and the decoder in the shell (−9.7 KB a page, −6 KB on
+   `/arena` beyond).
+3. The roster prebuilt: `@asmbots/bots` `rosterImage` reads each bot's machine code and metadata
+   from `images.gen.ts`, which `bun run roster-images` writes (and `bun test` checks). The arena
+   fights roster bots with neither the assembler nor the sources, and assembles a local, shared,
+   pasted, or dropped bot with `assembleCached` from a chunk it loads then
+   (`setup/assembler.ts`); a replay file reads the roster's sources when it is written
+   (`replaySources`). −16 KB on `/arena`, and the ~10 ms the page spent assembling the roster.
+
+### Runtime
+
+The `perf` project, 1280 × 720, DPR 1, every post effect on; on Metal unless it says software
+(`PERF_GL=software`, SwiftShader, as a machine with no GPU has it).
+
+| What | Where | Now | Budget |
+| --- | --- | --- | --- |
+| 60 fps, 16 bots × 2,000 cycles a frame | the arena alone (`e2e/harness/arena.html`) | frame gap p50 16.7, p95 16.7, max 16.8 ms | p95 ≤ 20 ms |
+| 60 fps, the same melee | the battle page, production build | p50 16.7, p95 16.7, max 16.8 ms | p95 ≤ 20 ms |
+| 60 fps, software GL | both | p95 16.7 ms | p95 ≤ 20 ms |
+| a frame's trip, Worker → page | the arena alone | p50 0.0, p95 0.1, max 0.2 ms | p95 < 1 ms |
+| a frame's trip, Worker → page | the battle page | p50 0.0, p95 0.3 to 0.8, max 2.2 to 2.5 ms | p95 < 1 ms |
+| a frame's trip, software GL | both | p50 7.5 to 10.3, p95 9.7 to 12.4 ms | reported, not held |
+| memory over a 10-minute autoplay | the battle page: the melee, 10 rounds, rematch at each end | +1.62 MB over 10.4 min, 16 matches, 160 rounds (page JS +1.06, DOM +0.47, Worker +0.09) | < 20 MB |
+
+- **The trip**: the Worker stamps each frame as it posts it (`sentAt`, `performance.timeOrigin +
+  performance.now()`, the clock the page and its Workers share), and the client marks its
+  arrival (`arena:frame-received`) and measures from the stamp to the mark
+  (`arena:frame-transfer`, `worker/client.ts`). DevTools shows both under Timings; only the latest
+  of each stays on the timeline, so a long battle does not grow it. The trip is the copy and
+  whatever holds the page's thread when the frame lands. Under software GL the page's thread
+  uploads each image's textures through SwiftShader for 8 to 10 ms, and the frame waits: the
+  Worker answers in 0.5 ms. The spec holds the trip where the GL is a GPU's, and reports it
+  otherwise.
+- **The soak** (`e2e/arena-soak.spec.ts`): after the first match and after the last it collects
+  the garbage and reads the heaps a heap snapshot counts, through CDP: the page's JS with its
+  typed arrays' buffers, its DOM (Blink's heap), and the arena Worker's (a browser session
+  attached to the Worker's target). Both reads come at a match's end, when the Worker holds all of
+  its 128 keyframes (~17 MB of its 24 MB), never half of them.
+
+```sh
+bun run bundle                                                  # build, then the bundle budgets
+bunx playwright test --project perf --no-deps                   # frame rate and trip, Metal on a Mac
+PERF_GL=software bunx playwright test --project perf --no-deps  # software GL
+SOAK=1 bunx playwright test --project perf --no-deps e2e/arena-soak.spec.ts  # 10 minutes
+```
+
+The battle page and the soak run on the preview, which needs the seeded dev Worker on :8787
+(`bunx wrangler dev --inspector-port 9249` in apps/api). `SOAK_MINUTES=2` makes a short soak.
+
+### Network
+
+| What | Where | Rule | Checked by |
+| --- | --- | --- | --- |
+| hashed files, `/assets/*`: JS, fonts | `public/_headers` | `public, max-age=31536000, immutable` | `bun run bundle` (the rule, a hash in every name), `e2e/network.spec.ts` |
+| pictures, `/docs-shots/*`, `/favicon.svg` | `public/_headers` | `public, max-age=86400` | `e2e/network.spec.ts` |
+| the build's manifest | `public/.assetsignore` | not deployed | `bun run bundle`, `e2e/network.spec.ts` |
+| replays, `GET /api/replays/:key` | API | `public, max-age=31536000, immutable` and an `ETag`: the key names the content | API `read-api.test.ts`, `e2e/network.spec.ts` |
+| hills and standings, `GET /api/hills`, `/api/hills/:slug` | API `edgeCached` | 30 s in the colo's edge cache (Cache API), `public, max-age=30`, with `Age`; a request with `Cache-Control: no-cache` gets them as they are | API `edge-cache.test.ts`, `hill-submit.test.ts`; web `api-cache.test.ts`; `e2e/network.spec.ts` |
+| GitHub avatars | `features/account/avatars.ts` | `preconnect` to `https://avatars.githubusercontent.com`: the header when the `signed_in` hint is there, the profile page always | `e2e/network.spec.ts` |
+
+The app reads a hill's board past the cache each time it reads it again (a job ended, a
+submission finished, the tab came back: `hillQuery`, `hillsQuery`), so a board it knows has
+changed shows as it is; a first read may be up to 30 s old. Workers Static Assets applies
+`_headers` to the files it serves itself: the hashed files and the pictures never reach the
+Worker (`run_worker_first` in apps/api/wrangler.jsonc), and pages keep the default (revalidate
+each load).
 
 ## Lighthouse
 

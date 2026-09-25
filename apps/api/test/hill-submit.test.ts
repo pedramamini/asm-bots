@@ -163,8 +163,11 @@ async function detail(slug: string, id: string) {
   return parse(SubmissionDetail, await res.json(), 'the submission')
 }
 
+/** The hill's standings as they are: past its 30 s cache, as the web app reads a changed board. */
 async function standings(slug: string): Promise<HillDetail['standings']> {
-  const res = await send(new Jar(), `/api/hills/${slug}`)
+  const res = await send(new Jar(), `/api/hills/${slug}`, {
+    headers: { 'Cache-Control': 'no-cache' },
+  })
   return parse(HillDetail, await res.json(), 'the hill').standings
 }
 

@@ -1,11 +1,12 @@
 /**
  * The bots the arena setup offers and fights (PRODUCT_SPEC §2): the roster, the local bots, the
- * bots a share link carries, and dropped `.asm` files, each assembled on the main thread (the
- * whole roster takes about 10 ms). The selection is a list of refs; `resolveSelection` turns it
- * into bots, and `arenaBots` into what the Worker loads.
+ * bots a share link carries, and dropped `.asm` files. The roster comes prebuilt
+ * (`rosterImage`); the others are assembled on the main thread by `assembleCached`, whose chunk
+ * (`assembly.ts`, with the assembler) a setup of roster bots never loads. The selection is a list
+ * of refs; `resolveSelection` turns it into bots, and `arenaBots` into what the Worker loads.
  */
-import { type Assembled, assemble, type Diag } from '@asmbots/asm'
-import { loadRoster, ROSTER, type RosterEntry } from '@asmbots/bots'
+import type { Assembled, Diag } from '@asmbots/asm'
+import { ROSTER, type RosterEntry, rosterImage } from '@asmbots/bots'
 import { type BattleConfigInput, Pcg32, PlacementError, place } from '@asmbots/engine'
 import { roundOrder, roundSeed } from '@asmbots/tourney'
 import type { LocalBot } from '../../../store/local-bots'
@@ -16,6 +17,19 @@ import { type ArenaSetupSpec, type BotRef, formatRef, type SharedBot } from './u
 /** Where a bot comes from: the roster, this browser's store, or a share link. */
 export type BotOrigin = 'roster' | 'local' | 'shared'
 
+/**
+ * What the setup reads of a bot's assembly: its image, its metadata, and its errors. A local or
+ * shared bot's is its whole `Assembled`; a roster bot's is prebuilt (`rosterImage`) and has no
+ * listing, so what needs one assembles the roster's source (`loadRoster`).
+ */
+export type AssembledBot = Pick<
+  Assembled,
+  'name' | 'author' | 'strategy' | 'version' | 'bytes' | 'diagnostics'
+>
+
+/** Assembles a source: `assembleCached`, once its chunk has loaded (`assembler.ts`). */
+export type Assemble = (source: string) => Assembled
+
 /** A bot the setup can show and fight. */
 export interface CatalogBot {
   readonly ref: BotRef
@@ -23,8 +37,9 @@ export interface CatalogBot {
   /** The `%name`, or the stored name of a local bot whose source does not assemble. */
   readonly name: string
   readonly author: string
-  readonly source: string
-  readonly assembled: Assembled
+  /** Its source; null for a roster bot, whose text `rosterSource` reads when a replay needs it. */
+  readonly source: string | null
+  readonly assembled: AssembledBot
   /** A roster bot's entry: its tier, family, and blurb. */
   readonly roster?: RosterEntry | undefined
 }
@@ -34,60 +49,49 @@ export function errorsOf(bot: CatalogBot): readonly Diag[] {
   return bot.assembled.diagnostics.filter((d) => d.severity === 'error')
 }
 
-/** Assemblies by source text, the newest last. The same source is the same bot. */
-const assemblies = new Map<string, Assembled>()
-const MAX_ASSEMBLIES = 64
-
-/** `assemble(source)`, from the cache when the text was seen before. Do not change what it holds. */
-export function assembleCached(source: string): Assembled {
-  let assembled = assemblies.get(source)
-  if (assembled === undefined) {
-    assembled = assemble(source)
-    assemblies.set(source, assembled)
-    if (assemblies.size > MAX_ASSEMBLIES) assemblies.delete(assemblies.keys().next().value ?? '')
-  }
-  return assembled
-}
-
 let roster: readonly CatalogBot[] | undefined
 
 /**
  * The roster, showcase bots first, then the solid ones, then the test bots, each tier in roster
- * order. Assembled on the first call.
+ * order. Prebuilt: nothing is assembled, and no source is loaded.
  */
 export function rosterCatalog(): readonly CatalogBot[] {
   roster ??= [...ROSTER]
     .sort((a, b) => TIER_ORDER.indexOf(a.tier) - TIER_ORDER.indexOf(b.tier))
-    .map((entry) => {
-      const bot = loadRoster().get(entry.slug)
-      if (bot === undefined) throw new Error(`the roster has no bot '${entry.slug}'`)
-      return {
+    .map(
+      (entry): CatalogBot => ({
         ref: { kind: 'roster', slug: entry.slug },
         origin: 'roster',
         name: entry.name,
         author: entry.author,
-        source: bot.source,
-        assembled: bot.assembled,
+        source: null,
+        assembled: { ...rosterImage(entry.slug), diagnostics: [] },
         roster: entry,
-      } satisfies CatalogBot
-    })
+      }),
+    )
   return roster
 }
 
 const TIER_ORDER = ['showcase', 'solid', 'test'] as const
 
 /** A local bot, assembled. */
-export function localCatalog(bot: LocalBot): CatalogBot {
-  return sourceBot({ kind: 'local', id: bot.id }, 'local', bot.source, bot.name)
+export function localCatalog(bot: LocalBot, assemble: Assemble): CatalogBot {
+  return sourceBot({ kind: 'local', id: bot.id }, 'local', bot.source, bot.name, assemble)
 }
 
 /** A bot a share link carries, assembled. */
-export function sharedCatalog(id: string, source: string): CatalogBot {
-  return sourceBot({ kind: 'local', id }, 'shared', source, 'shared bot')
+export function sharedCatalog(id: string, source: string, assemble: Assemble): CatalogBot {
+  return sourceBot({ kind: 'local', id }, 'shared', source, 'shared bot', assemble)
 }
 
-function sourceBot(ref: BotRef, origin: BotOrigin, source: string, fallback: string): CatalogBot {
-  const assembled = assembleCached(source)
+function sourceBot(
+  ref: BotRef,
+  origin: BotOrigin,
+  source: string,
+  fallback: string,
+  assemble: Assemble,
+): CatalogBot {
+  const assembled = assemble(source)
   return {
     ref,
     origin,
@@ -116,7 +120,7 @@ export interface SetupBot {
   readonly ref: BotRef
   /**
    * `ready` to fight; `broken` when its source does not assemble; `missing` when nothing in this
-   * browser has it; `loading` while the local store is read.
+   * browser has it; `loading` while the local store is read, or the assembler loads.
    */
   readonly state: 'ready' | 'broken' | 'missing' | 'loading'
   readonly bot: CatalogBot | null
@@ -124,12 +128,14 @@ export interface SetupBot {
   readonly name: string
 }
 
-/** Where `resolveSelection` looks a local ref up. */
+/** Where `resolveSelection` looks a local ref up, and what assembles it. */
 export interface BotSources {
   /** The local bots by id, or null while the store is read. */
   readonly local: ReadonlyMap<string, LocalBot> | null
   /** The sources a share link carries, by id. */
   readonly shared: ReadonlyMap<string, string>
+  /** Assembles a local or shared bot; null while the assembler loads. The roster needs none. */
+  readonly assemble: Assemble | null
 }
 
 /**
@@ -140,15 +146,18 @@ export function resolveSelection(refs: readonly BotRef[], sources: BotSources): 
   const rosterBots = new Map(rosterCatalog().map((bot) => [formatRef(bot.ref), bot]))
   const taken = new Map<string, number>()
   return refs.map((ref, index) => {
-    const bot = lookUp(ref, sources, rosterBots)
+    const found = lookUp(ref, sources, rosterBots)
+    const bot = found === 'loading' ? undefined : found
     const state =
-      bot === undefined
-        ? ref.kind === 'local' && sources.local === null
-          ? 'loading'
-          : 'missing'
-        : errorsOf(bot).length > 0
-          ? 'broken'
-          : 'ready'
+      found === 'loading'
+        ? 'loading'
+        : bot === undefined
+          ? ref.kind === 'local' && sources.local === null
+            ? 'loading'
+            : 'missing'
+          : errorsOf(bot).length > 0
+            ? 'broken'
+            : 'ready'
     const own = bot?.name ?? (ref.kind === 'roster' ? ref.slug : 'local bot')
     const seen = (taken.get(own) ?? 0) + 1
     taken.set(own, seen)
@@ -156,23 +165,29 @@ export function resolveSelection(refs: readonly BotRef[], sources: BotSources): 
   })
 }
 
+/** A ref's bot; `loading` for a local or shared one while the assembler loads. */
 function lookUp(
   ref: BotRef,
   sources: BotSources,
   rosterBots: ReadonlyMap<string, CatalogBot>,
-): CatalogBot | undefined {
+): CatalogBot | 'loading' | undefined {
   if (ref.kind === 'roster') return rosterBots.get(formatRef(ref))
   const local = sources.local?.get(ref.id)
-  if (local !== undefined) return localCatalog(local)
   const shared = sources.shared.get(ref.id)
-  return shared === undefined ? undefined : sharedCatalog(ref.id, shared)
+  if (local === undefined && shared === undefined) return undefined
+  const { assemble } = sources
+  if (assemble === null) return 'loading'
+  if (local !== undefined) return localCatalog(local, assemble)
+  return shared === undefined ? undefined : sharedCatalog(ref.id, shared, assemble)
 }
 
 /** The local and shared bots of a selection, once each: what a share link must carry. */
 export function sharedSources(selection: readonly SetupBot[]): SharedBot[] {
   const bots = new Map<string, SharedBot>()
   for (const { ref, bot } of selection) {
-    if (ref.kind === 'local' && bot !== null) bots.set(ref.id, { id: ref.id, source: bot.source })
+    if (ref.kind === 'local' && bot !== null && bot.source !== null) {
+      bots.set(ref.id, { id: ref.id, source: bot.source })
+    }
   }
   return [...bots.values()]
 }
@@ -269,8 +284,11 @@ export interface ArenaFight {
   readonly rounds: number
   /** The setup it came from. */
   readonly spec: ArenaSetupSpec
-  /** Each bot's source, in order: what a replay file carries. */
-  readonly sources: readonly string[]
+  /**
+   * Each bot's source, in order: what a replay file carries. Null for a roster bot:
+   * `replaySources` reads the roster's text.
+   */
+  readonly sources: readonly (string | null)[]
   /** The local bots among them, once each: what a share link carries. */
   readonly shared: readonly SharedBot[]
 }
@@ -295,52 +313,24 @@ export function arenaFight(
     config: battleConfig(spec.config, seed),
     rounds: spec.config.rounds,
     spec,
-    sources: selection.map((s) => s.bot?.source ?? ''),
+    sources: selection.map((s) => (s.bot === null ? '' : s.bot.source)),
     shared: sharedSources(selection),
   }
 }
 
-/** The largest file the setup reads as a bot source. */
-export const MAX_SOURCE_BYTES = 64 * 1024
-
-/** A dropped or picked file, read and assembled, or the reason it was not. */
-export interface BotFile {
-  /** The file's name. */
-  readonly file: string
-  readonly source: string
-  /** Null when the file was not read: see `problem`. */
-  readonly assembled: Assembled | null
-  /** Why the file was not read: not an `.asm` file, or too big. */
-  readonly problem: string | null
-}
-
-/** Reads and assembles each file (PRODUCT_SPEC §2: the drop zone takes `.asm` files, many). */
-export function readBotFiles(files: readonly File[]): Promise<BotFile[]> {
-  return Promise.all(
-    files.map(async (file): Promise<BotFile> => {
-      if (!/\.asm$/i.test(file.name)) {
-        return { file: file.name, source: '', assembled: null, problem: 'not an .asm file' }
-      }
-      if (file.size > MAX_SOURCE_BYTES) {
-        const kb = Math.ceil(file.size / 1024)
-        const problem = `${kb} KB: a bot source is at most ${MAX_SOURCE_BYTES / 1024} KB`
-        return { file: file.name, source: '', assembled: null, problem }
-      }
-      let source: string
-      try {
-        source = await file.text()
-      } catch {
-        // A folder dropped under an `.asm` name, or a file the browser may not read.
-        return { file: file.name, source: '', assembled: null, problem: 'could not read the file' }
-      }
-      return { file: file.name, source, assembled: assembleCached(source), problem: null }
-    }),
-  )
-}
-
-/** Whether a read file makes a bot: read, and assembled with no error. */
-export function fileAssembles(file: BotFile): file is BotFile & { assembled: Assembled } {
-  return file.assembled !== null && !file.assembled.diagnostics.some((d) => d.severity === 'error')
+/**
+ * Each bot's source for a replay file, in order. A roster bot's is read from the roster's
+ * sources, a chunk of their own (`roster-source.ts`) that loads here, not with the arena.
+ */
+export async function replaySources(fight: ArenaFight): Promise<string[]> {
+  const { sources } = fight
+  if (sources.every((source): source is string => source !== null)) return [...sources]
+  const { rosterSource } = await import('./roster-source')
+  return sources.map((source, i) => {
+    if (source !== null) return source
+    const ref = fight.spec.bots[i]
+    return ref?.kind === 'roster' ? rosterSource(ref.slug) : ''
+  })
 }
 
 /** Whether a drag carries files: what a drop zone takes. */

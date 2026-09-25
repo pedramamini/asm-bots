@@ -24,13 +24,20 @@ export function apiUrl(path: string): string {
   return new URL(`/api${path}`, globalThis.location?.origin ?? 'http://localhost').href
 }
 
-/** `GET /api<path>`, its JSON body as `read` takes it. */
+/**
+ * `GET /api<path>`, its JSON body as `read` takes it. `fresh` asks past every cache, the browser's
+ * and the Worker's (`Cache-Control: no-cache`): for a read the page knows has changed since.
+ */
 export function apiGet<T>(
   path: string,
   read: (value: unknown) => T,
   signal?: AbortSignal,
+  fresh = false,
 ): Promise<T> {
-  return request(path, { headers: { Accept: 'application/json' } }, read, signal)
+  const init: RequestInit = fresh
+    ? { headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' }, cache: 'no-cache' }
+    : { headers: { Accept: 'application/json' } }
+  return request(path, init, read, signal)
 }
 
 /** `POST /api<path>` with `body` as JSON, its JSON answer as `read` takes it. */

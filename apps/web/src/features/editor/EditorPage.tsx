@@ -50,6 +50,7 @@ import { type CloudSave, localCopyOf, saveToCloud } from '../bots/cloud'
 import { AsmClient } from './asm/client'
 import { resultErrors } from './asm/protocol'
 import { useAssembler } from './asm/useAssembler'
+import { sourceOf } from './catalog'
 import { SNIPPETS } from './cm/complete'
 import { lineOfAddress } from './cm/debug'
 import { type Problem, showResult } from './cm/diagnostics'
@@ -127,10 +128,11 @@ export function openDoc(
     case 'roster': {
       const bot = rosterCatalog().find((b) => docKey(b.ref) === key)
       if (bot === undefined) return 'missing'
+      const source = sourceOf(bot)
       return {
         ...base,
-        initial: bot.source,
-        saved: bot.source,
+        initial: source,
+        saved: source,
         savedName: bot.name,
         name: bot.name,
         readOnly: true,
@@ -558,8 +560,9 @@ function Workbench({
   const fork = useCallback(
     async (bot: CatalogBot) => {
       try {
-        const copy = await saveBot.mutateAsync({ name: bot.name, source: bot.source })
-        await addVersion(copy.id, { name: bot.name, source: bot.source })
+        const source = sourceOf(bot)
+        const copy = await saveBot.mutateAsync({ name: bot.name, source })
+        await addVersion(copy.id, { name: bot.name, source })
         toast(`forked ${bot.name} into my bots.`, { variant: 'accent' })
         go({ kind: 'local', id: copy.id })
       } catch {
