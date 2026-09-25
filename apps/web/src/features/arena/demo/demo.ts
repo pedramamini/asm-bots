@@ -5,7 +5,13 @@
  * core at one cycle, and `paintStill` draws its owner map. The demo makes no sound.
  */
 import { rosterImage } from '@asmbots/bots'
-import { DEFAULT_CONFIG, Pcg32, PlacementError, place } from '@asmbots/engine'
+import {
+  type BattleConfigInput,
+  DEFAULT_CONFIG,
+  Pcg32,
+  PlacementError,
+  place,
+} from '@asmbots/engine'
 import type { Theme } from '@asmbots/ui/themes'
 import { CorePainter } from '../render/canvas2d'
 import { ArenaScene, SIDE } from '../render/scene'
@@ -75,6 +81,8 @@ export interface DemoLoopOptions {
   readonly holdMs?: number | undefined
   /** Cycles per frame. Default: `DEMO_SPEED`. */
   readonly speed?: Speed | undefined
+  /** The battles' config but the seed: the engine's defaults by default. */
+  readonly config?: BattleConfigInput | undefined
   /** Hears each battle's seed as it loads. */
   readonly onBattle?: ((seed: number) => void) | undefined
 }
@@ -131,7 +139,7 @@ export class DemoLoop {
   private next(): void {
     const seed = demoSeed(this.options.bots, this.options.random)
     this.options.onBattle?.(seed)
-    this.client.load(this.options.bots, { seed })
+    this.client.load(this.options.bots, { ...this.options.config, seed })
     if (this.visible) this.client.play()
   }
 
@@ -161,16 +169,18 @@ function nextFrame(client: ArenaClient): Promise<FrameMessage> {
   })
 }
 
-/** The still's frame: battle `STILL_SEED` at `STILL_CYCLE`, the whole core. */
+/** A still's frame: battle `seed` at `cycle` (the demo's by default), the whole core. */
 export async function stillFrame(
   client: ArenaClient,
   bots: readonly ArenaBot[],
+  seed = STILL_SEED,
+  cycle = STILL_CYCLE,
 ): Promise<FrameMessage> {
   const loaded = nextFrame(client)
-  client.load(bots, { seed: STILL_SEED })
+  client.load(bots, { seed })
   await loaded
   const seeked = nextFrame(client)
-  client.seek(STILL_CYCLE)
+  client.seek(cycle)
   return seeked
 }
 

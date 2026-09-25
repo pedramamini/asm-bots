@@ -46,6 +46,7 @@ Copy `.dev.vars.example` to `.dev.vars` (git-ignored) for `wrangler dev`. Produc
 | `MATCH_ANALYTICS` | Analytics Engine | `asmbots_matches` | A data point per match a Runner settles: count, duration, bots, kind ([Observability](#observability)) |
 | `ISA_VERSION` | var | `x16c-v1` | The ISA the hills run |
 | `APP_VERSION` | var | `dev` | Build stamp; deploy passes `--var APP_VERSION:<bun run version>` |
+| `CF_VERSION_METADATA` | version metadata | | The running version's id, tag, and upload time: `/api/health`'s uptime counts from it |
 | `APP_ORIGIN` | var | `http://localhost:5173` | The one origin CORS lets in (the Vite dev server) |
 | `SITE_URL` | var | `https://asmbots.io` | The canonical origin: page heads link to it and share cards sign with its host, whichever host served them. The web build's `SITE_URL` (`apps/web/src/app/pages.ts`) agrees |
 | `ADMIN_HANDLES` | var | empty | Who may read `GET /api/admin/stats`: handles, split on commas or spaces, any case. Empty: nobody. A handle is its user's pick, so name only handles their owners hold: a free one could be taken by anyone who signs up |
@@ -96,7 +97,7 @@ Test sign-in: with the var `DEV_FAKE_AUTH=1` (`wrangler dev --var DEV_FAKE_AUTH:
 
 | Method and path | Answers |
 | --- | --- |
-| `GET /api/health` | `{ ok, version, isa }`; touches no binding |
+| `GET /api/health` | `{ ok, version, isa, uptime, since }`: `uptime` is whole seconds since `since`, when this version went up (its upload, from `CF_VERSION_METADATA`; `wrangler dev`'s start locally; this isolate's first answer without one). Touches no storage binding |
 | `GET /api/auth/github?returnTo=/path` | 302 to GitHub, with the state (and `returnTo`, a local path) in 10-minute cookies |
 | `GET /api/auth/github/callback` | Checks the state, trades the code, makes or refreshes the user by `github_id` (first handle: the login, else login plus a suffix), starts a session, 302 to `returnTo` or `/?signed-in=1`; 400 on a bad state or code |
 | `POST /api/auth/logout` | Ends the session (KV and cookie); 204 |
@@ -112,11 +113,11 @@ Test sign-in: with the var `DEV_FAKE_AUTH=1` (`wrangler dev --var DEV_FAKE_AUTH:
 | `POST /api/bots/:id/versions` | `{ source }`, the owner only: assembled here (422), the next version → 201 `{ bot, version, created: true }`. Bytes the same as the latest version's make none → 200 `{ bot, version: latest, created: false }`. 409 past 100 versions a bot |
 | `DELETE /api/bots/:id` | The owner only: soft (`bots.deleted_at`), so hill entries and matches keep their history; the bot is 404 to everyone from then on, its owner too, and frees its place under the 200. 204 |
 | `POST /api/bots/import` | `{ bots: [{ name, source, visibility? }] }` (1..50), signed in: each source assembled here and made a bot at version 1 (private by default, bytes in R2) → 201 `{ results }`, one per bot in order: `{ ok: true, bot, version }`, or `{ ok: false, message, diagnostics }` for one that does not assemble. 409 past 200 bots an account |
-| `GET /api/bots/:id` | The bot, its owner, its versions (no sources), and its hill places; a private bot is 404 to others, a deleted one to all |
+| `GET /api/bots/:id` | The bot, its owner, its versions (no sources), its hill places, and `fights`: the finished matches of its versions, hills and tournaments, a match once (duels by the indexed `a_version_id`/`b_version_id`, melees by their participants). A private bot is 404 to others, a deleted one to all |
 | `GET /api/bots/:id/versions/:v` | One version, with its source when the bot is public or the reader's |
 | `GET /api/bots/:id/og.svg`, `og.png` | Its share card: identicon, name, owner, strategy, size, best place. A public or unlisted bot's; 404 for a private one, to its owner too ([Pages and share cards](#pages-and-share-cards)) |
 | `GET /api/hills` | Every hill, its entrant count, and its king |
-| `GET /api/hills/:slug` | The hill (with its `scoring`, `duel` or `melee`) and its standings, each with its rating's RD (null until a submission or the seed rated it) |
+| `GET /api/hills/:slug` | The hill (with its `scoring`, `duel` or `melee`) and its standings, each with its rating's RD (null until a submission or the seed rated it). The king's entry has its `reign`: the submissions it has held rank 1 through, 0 when the latest crowned it (null on every other entry). The Runner writes it with each board: a king that stays reigns one longer, as does a challenger with its bytes that replaced it |
 | `GET /api/hills/:slug/matches?bot=&limit=` | Its finished matches, newest first |
 | `GET /api/hills/:slug/og.svg`, `og.png` | Its share card: name, rules, the top 7 of its standings |
 | `GET /api/hills/:slug/history?limit=` | `{ events }`, newest first (`limit` 1..100, 20 by default): what each submission did to the board. `entered` (its new rank, and `delta`: its bot's best rank before less the new one, null when the bot had none), `rejected`, `evicted` and `replaced` (the entry's rank before), each with the bot's label |

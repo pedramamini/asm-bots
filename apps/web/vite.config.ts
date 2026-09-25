@@ -9,6 +9,7 @@ import { defineConfig, type Plugin } from 'vite'
 import { PAGES_MANIFEST } from '../../packages/protocol/src/pages'
 // The token parser alone: the kit's index would pull React into the config.
 import { parseTokenRules, themeTokens } from '../../packages/ui/src/css-tokens'
+import { readReleases, releaseOf } from '../../scripts/changelog'
 import { getVersion } from '../../scripts/version'
 import { defaultHeadTags, pageManifest, robotsTxt, SITE_URL, sitemap } from './src/app/pages'
 import { themeBootScript } from './src/app/theme-boot'
@@ -38,6 +39,9 @@ const SWATCH_TOKENS = [
  */
 const API_PROXY = { '/api': { target: 'http://localhost:8787', ws: true } }
 
+/** The build's version stamp, and its release's name from CHANGELOG.md: the version chip's. */
+const VERSION = getVersion()
+
 export default defineConfig({
   plugins: [
     tanstackRouter({ target: 'react', autoCodeSplitting: true }),
@@ -52,10 +56,14 @@ export default defineConfig({
     sitePages(),
   ],
   define: {
-    __APP_VERSION__: JSON.stringify(getVersion()),
+    __APP_VERSION__: JSON.stringify(VERSION),
+    __APP_RELEASE__: JSON.stringify(releaseOf(VERSION, readReleases())),
     __THEME_SWATCHES__: JSON.stringify(themeSwatches()),
   },
   resolve: {
+    // React from the app's own dependencies wherever the importer is: the changelog page is the
+    // repository's CHANGELOG.md, and its compiled JSX imports `react/jsx-runtime` from the root.
+    dedupe: ['react'],
     alias: WORKSPACE.map((name) => ({
       find: new RegExp(`^@asmbots/${name}$`),
       replacement: `${PACKAGES}${name}/src/index.ts`,

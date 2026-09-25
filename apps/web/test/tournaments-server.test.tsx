@@ -500,6 +500,7 @@ describe('a server tournament’s page', () => {
         owner: ME.user,
         versions: [MY_VERSION],
         placements: [],
+        fights: 0,
       }),
     )
   })

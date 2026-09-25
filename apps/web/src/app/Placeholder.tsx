@@ -20,6 +20,8 @@ export interface PlaceholderProps {
   action?: PlaceholderAction | undefined
   /** False inside a page that already pads its content (the docs frame). */
   padded?: boolean | undefined
+  /** A picture over the sentence: the 404 page's live imp. */
+  figure?: ReactNode
 }
 
 const GO_HOME: PlaceholderAction = { label: 'go home', to: '/' }
@@ -34,11 +36,13 @@ export function Placeholder({
   children,
   action = GO_HOME,
   padded = true,
+  figure,
 }: PlaceholderProps) {
   const link = useLinkAction()
   return (
     <PanelGrid className={padded ? 'p-3' : undefined}>
       <Panel className="col-span-12" title={title} status={status}>
+        {figure}
         <EmptyState action={link(action.label, action.to)}>{children}</EmptyState>
       </Panel>
     </PanelGrid>

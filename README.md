@@ -9,6 +9,7 @@ bun install
 bun run check       # typecheck, lint, contrast, tests, the API's tests, the bundle budgets
 bun run contrast    # WCAG contrast of the text tokens in all five themes
 bun run bundle      # builds the web app and checks its budgets (apps/web/README.md "Budgets")
+bun run version     # the build's version stamp: a tagged release's, else the commit's day and next letter
 bun run golden      # the roster goldens; --update writes packages/bots/goldens/results.json
 bun run roster-images  # writes the roster's prebuilt images after a roster, assembler, or codec change
 bun run opcodes     # writes docs/opcodes.json (the editor's cards) and the docs' language reference
@@ -38,4 +39,5 @@ The `main` branch requires that the `CI` workflow passes before merging. Configu
 - [Product Spec](./docs/PRODUCT_SPEC.md) — Features and user flows
 - [Design System](./docs/DESIGN_SYSTEM.md) — UI patterns and component library
 - [UI kit](./packages/ui/README.md): tokens, themes, the 32 primitives, and the `/_gallery` review page
+- [Changelog](./CHANGELOG.md): every release and its name, which the status bar's version chip shows; `/docs/changelog` renders it
 - [Research Brief](./docs/RESEARCH_BRIEF.md) — Background and prior art

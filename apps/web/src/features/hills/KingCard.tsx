@@ -1,4 +1,7 @@
-/** The king's card (PRODUCT_SPEC §5): rank 1 on the hill, its score, rating, record, and age. */
+/**
+ * The king's card (PRODUCT_SPEC §5): rank 1 on the hill, its score, rating, record, its reign (the
+ * submissions it has held the top through), and its age.
+ */
 import type { HillStanding } from '@asmbots/protocol'
 import { Identicon, Panel, Skeleton, Stat } from '@asmbots/ui'
 import { authorOf, BotLink, count, plural } from './links'
@@ -14,7 +17,7 @@ export function KingCard({ king, className }: KingCardProps) {
     <Panel
       className={className}
       title="king"
-      status={king ? `age ${count(king.entry.age)}` : king === null ? 'vacant' : 'loading'}
+      status={king ? kingStatus(king) : king === null ? 'vacant' : 'loading'}
     >
       {king === undefined ? (
         <Skeleton rows={3} />
@@ -48,10 +51,17 @@ export function KingCard({ king, className }: KingCardProps) {
             />
           </div>
           <p className="text-data text-muted">
-            on the hill through {plural(king.entry.age, 'challenge')}.
+            {king.entry.reign === null
+              ? `on the hill through ${plural(king.entry.age, 'challenge')}.`
+              : `king through ${plural(king.entry.reign, 'submission')}, on the hill through ${plural(king.entry.age, 'challenge')}.`}
           </p>
         </div>
       )}
     </Panel>
   )
+}
+
+/** The card's status: `reign 6`, the king's reign in submissions; its age where it has none. */
+function kingStatus({ entry }: HillStanding): string {
+  return entry.reign === null ? `age ${count(entry.age)}` : `reign ${count(entry.reign)}`
 }

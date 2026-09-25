@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { Copy } from 'lucide-react'
 import type { MDXComponents } from 'mdx/types'
 import { type ComponentProps, isValidElement, type ReactNode } from 'react'
+import { sitePath } from '../app/site'
 import { Asm } from './Asm'
 import { Fig, Keys, Note, Shot, Warn } from './blocks'
 import { KeyMap } from './keymap'
@@ -20,9 +21,11 @@ const LINK = cx(
 
 /**
  * A docs link: an app path goes through the router (no reload), its `#anchor` as the router's
- * hash; anything else leaves the app.
+ * hash, and so does a link to the canonical site (CHANGELOG.md's, which reads on GitHub too);
+ * anything else leaves the app.
  */
-function DocLink({ href = '', children }: ComponentProps<'a'>) {
+function DocLink({ href: given = '', children }: ComponentProps<'a'>) {
+  const href = sitePath(given) ?? given
   if (href.startsWith('/')) {
     const at = href.indexOf('#')
     const to = at < 0 ? { to: href } : { to: href.slice(0, at), hash: href.slice(at + 1) }

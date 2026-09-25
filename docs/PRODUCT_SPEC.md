@@ -21,7 +21,7 @@ Every screen, every interaction, every state. The playbooks implement this; the 
 - Ticker: latest hill event, latest tournament result, next scheduled championship countdown.
 - Hero: a live, autoplaying 4-bot demo battle in the arena renderer (roster bots, random seed, muted, loops). Overlaid: `ASM BOTS`, one line ("Write 8086 assembly. Fight for 64 KB."), two actions: `open arena` and `write a bot`.
 - Three panels: **Main hill** top 10 (rank, bot, author, score, rating, age); **Recent matches** (10 rows, click → replay); **Championship** (next event, entrants so far, `enter` button).
-- Footer status: version stamp, ISA version, `made with maestro` attribution chip center.
+- Footer status: version stamp (its release's name in a tooltip, from `CHANGELOG.md`; a link to the changelog), ISA version, `made with maestro` attribution chip center.
 
 ## 2. Arena `/arena`
 
@@ -33,7 +33,7 @@ The soul. Layout: arena panel 8/12 columns, right rail 4/12.
 - `fight` button self-narrates: "add 1 more bot" → "fight · 4 bots · 1 round".
 
 **Battle state**:
-- Arena canvas (DESIGN_SYSTEM §5). Overlay HUD top-left: `cycle 12,480 / 100,000`, speed, fps. Top-right: zoom, minimap toggle, fullscreen (`f`), screenshot (`s`, saves PNG with theme and HUD).
+- Arena canvas (DESIGN_SYSTEM §5). Overlay HUD top-left: `cycle 12,480 / 100,000`, speed, fps. Top-right: zoom, minimap toggle, fullscreen (`f`), screenshot (`s`, saves PNG with theme and HUD, and a footer stamp: bots, seed, cycle, site URL).
 - Transport bar under the canvas: `⏮ step-back · ▶/⏸ · step ▶| · speed slider (1 cycle/frame … max) · scrub bar with death markers in bot hues · round N/K`.
 - Right rail:
   - **Bots** table: hue swatch, name, procs (live count with sparkline), footprint (bytes owned), writes, status (`alive` / `dead @ cycle`). Click a row to isolate that bot's territory (others dim); shift-click to add.
@@ -74,13 +74,13 @@ Split view, draggable: editor left, debugger right, arena strip bottom (collapsi
 ## 5. Hills `/hills`, `/hills/:slug`
 
 - Hill list: name, size, rules (rounds, cycles, max bytes), entrants, king (top bot), your best rank.
-- Hill page: standings table (rank, bot, author, score, rating ± RD, W/T/L, age in submissions, `challenge` to fight it locally), the king's card, recent submissions feed with deltas ("+3 rank"), and a `submit` button (signed in; picks one of my bots; server assembles and queues a `Runner`).
+- Hill page: standings table (rank, bot, author, score, rating ± RD, W/T/L, age in submissions, `challenge` to fight it locally), the king's card (its reign in submissions), recent submissions feed with deltas ("+3 rank"), and a `submit` button (signed in; picks one of my bots; server assembles and queues a `Runner`).
 - Submission flow: progress panel ("fighting 24 of 32 entrants"), then result card (score, rank, matches list with `watch`). If it did not make the hill: "scored 112, needed 131. closest fight: vs paper-v2 (lost 2–8)."
 - Default hills seeded at launch: `main` (size 32, 10 rounds, 512 B), `tiny` (size 16, 256 B, 50k cycles), `melee` (8-bot melee scoring).
 
 ## 6. Bots and profiles `/bots/:id`, `/u/:handle`
 
-- Bot page: name, author, strategy blurb, identicon, size, versions (diff between versions), hill placements, rating history sparkline, recent matches, source (if public), `fork`, `challenge`, `share`.
+- Bot page: name, author, strategy blurb, identicon, size, first seen, fights, versions (diff between versions), hill placements, rating history sparkline, recent matches, source (if public), `fork`, `challenge`, `share`.
 - Profile: handle, avatar, bots, best hill ranks, championship results, join date.
 
 ## 7. Docs `/docs/*`

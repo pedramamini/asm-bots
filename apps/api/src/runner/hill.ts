@@ -11,7 +11,8 @@
  *
  * Each submission is a Glicko-2 rating period (`rateMatches`): the challenger's matches rate it
  * and every entry it fought. The board write carries the new ratings (`ratings`, and each entry's
- * `hill_entries.rating`) and the challenge's events (`hill_history`) in its batch.
+ * `hill_entries.rating`), the challenge's events (`hill_history`), and the king's reign
+ * (`reign.ts`) in its batch.
  */
 import {
   type HillJob,
@@ -53,6 +54,7 @@ import {
   type VersionRef,
 } from './job'
 import { rateChallenge } from './rating'
+import { kingReign } from './reign'
 
 /** Board writes in a row that may find the board changed before a job gives up for now. */
 const WRITE_ATTEMPTS = 5
@@ -264,12 +266,16 @@ export interface BoardWrite {
   readonly events: readonly HistoryEvent[]
 }
 
+/** An entry of a board to write: the king's carries its reign. */
+export type BoardEntryWrite = HillEntry & { readonly reign?: number | null | undefined }
+
 /**
  * Writes `entries` (best first) as hill `hill`'s board, over `hill.revision`: entries not in it
  * leave the hill, new ones come on, and the rest keep their `entered_at`. An entry's rating is its
- * `rating`, the default when null. With `write`, the same batch marks the submission finished
- * with its score, rank, and needed score, keeps the new ratings, and adds the events. False, with
- * nothing written, when another job wrote the board since `hill` was read.
+ * `rating`, the default when null; its reign its `reign`, null when it has none. With `write`, the
+ * same batch marks the submission finished with its score, rank, and needed score, keeps the new
+ * ratings, and adds the events. False, with nothing written, when another job wrote the board
+ * since `hill` was read.
  *
  * Each table takes one statement whatever the hill's size (rows as JSON, `json_each`): a batch
  * counts each statement against the Worker's queries per invocation.
@@ -277,7 +283,7 @@ export interface BoardWrite {
 export async function writeBoard(
   db: D1Database,
   hill: Pick<HillRow, 'id' | 'revision'>,
-  entries: readonly HillEntry[],
+  entries: readonly BoardEntryWrite[],
   write?: BoardWrite,
 ): Promise<boolean> {
   const at = new Date().toISOString()
@@ -289,6 +295,7 @@ export async function writeBoard(
     ties: e.ties,
     losses: e.losses,
     age: e.age,
+    reign: e.reign ?? null,
   }))
   const statements = [
     // A stale revision becomes -1, which the column's CHECK refuses: the batch fails whole.
@@ -307,15 +314,16 @@ export async function writeBoard(
     db
       .prepare(
         `INSERT INTO hill_entries
-           (hill_id, bot_version_id, score, rating, wins, ties, losses, age, rank)
+           (hill_id, bot_version_id, score, rating, wins, ties, losses, age, rank, reign)
          SELECT ?1, json_extract(value, '$.id'), json_extract(value, '$.points'),
            json_extract(value, '$.rating'), json_extract(value, '$.wins'),
            json_extract(value, '$.ties'), json_extract(value, '$.losses'),
-           json_extract(value, '$.age'), key + 1
+           json_extract(value, '$.age'), key + 1, json_extract(value, '$.reign')
          FROM json_each(?2) WHERE true
          ON CONFLICT (hill_id, bot_version_id) DO UPDATE SET score = excluded.score,
            rating = excluded.rating, wins = excluded.wins, ties = excluded.ties,
-           losses = excluded.losses, age = excluded.age, rank = excluded.rank`,
+           losses = excluded.losses, age = excluded.age, rank = excluded.rank,
+           reign = excluded.reign`,
       )
       .bind(hill.id, JSON.stringify(rows)),
   ]
@@ -528,9 +536,16 @@ export async function finalizeHill(
       needed: result.accepted ? null : (result.field.at(-2)?.points ?? null),
       evicted: result.evicted?.id ?? null,
     }
-    const rated = result.state.entries.map((e) => ({
+    const king = board.entries[0]
+    const reign = kingReign(
+      king === undefined ? null : { id: king.bot_version_id, reign: king.reign },
+      result,
+      challenger.versionId,
+    )
+    const rated = result.state.entries.map((e, i) => ({
       ...e,
       rating: ratings.get(e.id)?.rating ?? e.rating,
+      reign: i === 0 ? reign : null,
     }))
     const write: BoardWrite = {
       submission: {

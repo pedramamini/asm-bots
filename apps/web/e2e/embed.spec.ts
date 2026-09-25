@@ -93,8 +93,12 @@ test('the Worker writes each page’s head, and draws its card', async ({ reques
   const key = matches.find((m) => m.match.replayKey !== null)?.match.replayKey ?? ''
   expect(key).toMatch(/^[0-9a-f]{64}$/)
   const replay = await (await request.get(`${WORKER}/arena/${key}`)).text()
-  expect(replay).toContain(`<meta property="og:image" content="https://asmbots.io/api/replays/${key}/og.png" />`)
-  expect(replay).toMatch(/<meta property="og:title" content="(a draw|no winner|[^"]+ wins|[^"]+ tie): /)
+  expect(replay).toContain(
+    `<meta property="og:image" content="https://asmbots.io/api/replays/${key}/og.png" />`,
+  )
+  expect(replay).toMatch(
+    /<meta property="og:title" content="(a draw|no winner|[^"]+ wins|[^"]+ tie): /,
+  )
   const replayCard = await request.get(`${WORKER}/api/replays/${key}/og.png`)
   expect(pngSize(await replayCard.body())).toEqual({ width: 1200, height: 630 })
 
@@ -107,7 +111,8 @@ test('the Worker writes each page’s head, and draws its card', async ({ reques
   const sitemap = await (await request.get(`${WORKER}/sitemap.xml`)).text()
   expect(sitemap).toContain('<loc>https://asmbots.io/docs/machine/memory</loc>')
   expect(sitemap).toContain('<loc>https://asmbots.io/hills/main</loc>')
-  expect(await (await request.get(`${WORKER}/robots.txt`)).text()).toContain(
-    'Sitemap: https://asmbots.io/sitemap.xml',
-  )
+  const robots = await (await request.get(`${WORKER}/robots.txt`)).text()
+  expect(robots).toContain('Sitemap: https://asmbots.io/sitemap.xml')
+  // The one-line imp, first, for whoever reads it.
+  expect(robots.split('\n')[0]).toMatch(/^# (A5 90 )+\}:>/)
 })

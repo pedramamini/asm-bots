@@ -11,10 +11,11 @@ import {
 } from '@tanstack/react-router'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useDom, window } from '../../../packages/ui/test/dom'
-import { Frame, FrameToolbar } from '../src/app/Frame'
+import { FPS_WARN, Frame, FrameToolbar } from '../src/app/Frame'
 import { CHORD_WINDOW, createKeymap, type KeyCommand, ROUTE_SEARCH } from '../src/app/keys'
-import { useHeaderStat, useRouteStat } from '../src/app/slots'
+import { useFps, useHeaderStat, useRouteStat } from '../src/app/slots'
 import { titleHead } from '../src/app/title'
+import { VERSION, versionTitle } from '../src/app/version'
 import { useSettings } from '../src/store/settings'
 import { answer, useApiServer, WithQueries } from './api-server'
 import { TICKER } from './fixtures/api'
@@ -192,6 +193,44 @@ describe('Frame', () => {
     )
   })
 
+  it('links the version stamp to the changelog, and names its release in the tooltip', async () => {
+    await renderAndWait()
+    const footer = screen.getByRole('contentinfo')
+    const stamp = within(footer).getByRole('link', { name: `${VERSION}: the changelog` })
+    expect(stamp.getAttribute('href')).toBe('/docs/changelog')
+    expect(stamp.textContent).toBe(VERSION)
+    fireEvent.pointerEnter(stamp, { pointerType: 'mouse' })
+    const tip = await screen.findByRole('tooltip', {}, { timeout: 2_000 })
+    // No build defines the release under test: the stamp alone.
+    expect(tip.textContent).toBe(versionTitle(VERSION, null))
+    expect(stamp.getAttribute('aria-describedby')).toBe(tip.id)
+  })
+
+  it('warns under 50 fps, and its tooltip names the speed slider', async () => {
+    await renderAndWait()
+    const footer = screen.getByRole('contentinfo')
+    expect(within(footer).queryByText(/fps$/)).toBeNull()
+    act(() => useFps.getState().setFps(59.6))
+    const chip = within(footer).getByText('60 fps')
+    expect(chip.className).toContain('text-accent-fg')
+    // A Tab stop, so the keyboard reads the tooltip too.
+    expect(chip.tabIndex).toBe(0)
+    act(() => chip.focus())
+    expect((await screen.findByRole('tooltip', {}, { timeout: 2_000 })).textContent).toBe(
+      'frames a second the arena draws.',
+    )
+    act(() => useFps.getState().setFps(FPS_WARN - 7.8))
+    expect(chip.textContent).toBe('42 fps')
+    expect(chip.className).toContain('text-warn')
+    expect(screen.getByRole('tooltip').textContent).toBe(
+      'under 50 fps: each frame runs more cycles than this machine can draw. slow the speed slider under the arena, or press [.',
+    )
+    act(() => useFps.getState().setFps(FPS_WARN))
+    expect(chip.className).toContain('text-accent-fg')
+    act(() => useFps.getState().setFps(null))
+    expect(within(footer).queryByText(/fps$/)).toBeNull()
+  })
+
   it('starts the Tab order with a skip link to the content, which leaves the URL alone', async () => {
     const router = await renderAndWait()
     await act(() => router.navigate({ to: '/', hash: 'src=keep-me' }))
@@ -321,4 +360,26 @@ describe('Frame', () => {
     await screen.findByText('home')
     return router
   }
+})
+
+describe('versionTitle', () => {
+  it("names a release's build by its release", () => {
+    expect(versionTitle('2026.10.03a', { name: 'imp gate', released: true })).toBe(
+      '2026.10.03a · "imp gate"',
+    )
+  })
+
+  it('says a build ahead of every release is unreleased, with the name of the one coming', () => {
+    expect(versionTitle('2026.09.25a', { name: 'imp gate', released: false })).toBe(
+      '2026.09.25a · "imp gate" · unreleased',
+    )
+    expect(versionTitle('2026.09.25a', { name: null, released: false })).toBe(
+      '2026.09.25a · unreleased',
+    )
+  })
+
+  it('is the stamp alone without a release', () => {
+    expect(versionTitle('2026.10.10a', { name: null, released: true })).toBe('2026.10.10a')
+    expect(versionTitle('dev', null)).toBe('dev')
+  })
 })

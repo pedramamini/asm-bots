@@ -25,6 +25,7 @@ import {
   auditInsert,
   type BotRow,
   type BotVersionRow,
+  countBotFights,
   countBots,
   getBot,
   getBotVersionRow,
@@ -303,15 +304,16 @@ async function importBots(c: Context<AppEnv>): Promise<Response> {
   return c.json({ results: filled } satisfies ImportBotsResult, 201)
 }
 
-/** `GET /api/bots/:id`'s body for `bot`: its owner, its versions, and its hill places. */
+/** `GET /api/bots/:id`'s body for `bot`: its owner, its versions, its hill places, its fights. */
 async function botDetail(c: Context<AppEnv>, bot: Bot): Promise<BotDetail> {
-  const [owner, versions, placements] = await Promise.all([
+  const [owner, versions, placements, fights] = await Promise.all([
     getUser(c.env.DB, bot.ownerId),
     listBotVersions(c.env.DB, bot.id),
     listBotPlacements(c.env.DB, bot.id),
+    countBotFights(c.env.DB, bot.id),
   ])
   if (owner === null) throw new Error(`bot ${bot.id} has no owner ${bot.ownerId}`)
-  return { bot, owner, versions, placements }
+  return { bot, owner, versions, placements, fights }
 }
 
 /** The path's bot's share card in `format`: a public or unlisted bot's, else a 404. */

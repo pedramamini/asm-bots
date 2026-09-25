@@ -95,6 +95,12 @@ export const BUDGETS: Budgets = {
       src: 'src/features/arena/demo/HomeDemo.tsx',
       kb: 40,
     },
+    {
+      label: '404 live imp, after the shell',
+      page: '404',
+      src: 'src/features/arena/demo/LiveImp.tsx',
+      kb: 36,
+    },
   ],
   workers: [
     { label: 'arena Worker, at the first fight', name: 'arena.worker', kb: 20 },

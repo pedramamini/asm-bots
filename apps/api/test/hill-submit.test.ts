@@ -189,6 +189,21 @@ function challenge(state: HillState, id: string) {
   return hill(state, { id, bot: BOTS.get(id) as LoadedBot }, (e) => BOTS.get(e.id) as LoadedBot)
 }
 
+/**
+ * The seeded hill's king's reign, counted here by the rule: one more for each challenge the king
+ * stays on top through, 0 when a challenge crowns another.
+ */
+function seededReign(size: number): number {
+  let state = createHill({ size, rounds: ROUNDS, battle: { ...CONFIG, seed: SEED_MATCH_SEED } })
+  let reign = 0
+  for (const { slug } of DEFENDERS) {
+    const before = state.entries[0]?.id
+    state = challenge(state, `roster-${slug}-v1`).state
+    reign = state.entries[0]?.id === before ? reign + 1 : 0
+  }
+  return reign
+}
+
 /** Hill `slug`'s ratings in D1, by bot version. */
 async function ratings(slug: string): Promise<Map<string, Rating>> {
   const { results } = await env.DB.prepare(
@@ -259,6 +274,16 @@ describe('the launch seed', () => {
   })
 })
 
+describe("the king's reign", () => {
+  it('is on the seeded king alone: the challenges it has held the top through', async () => {
+    const board = await standings('full')
+    expect(board[0]?.entry.reign).toBe(seededReign(3))
+    expect(board.slice(1).map((s) => s.entry.reign)).toEqual(board.slice(1).map(() => null))
+    // No challenge has played the melee hill: its one melee crowned its king.
+    expect((await standings('crowd')).map((s) => s.entry.reign)).toEqual([0, null])
+  })
+})
+
 describe('POST /api/hills/:slug/submit', () => {
   it('starts a job for my version, reports it match by match, and lands it on the board', async () => {
     const jar = await user('climber')
@@ -323,6 +348,12 @@ describe('POST /api/hills/:slug/submit', () => {
     expect(after.find((s) => s.entry.botVersionId === 'roster-dwarf-v1')?.entry.age).toBe(
       (seededHill(3).entries.find((e) => e.id === 'roster-dwarf-v1')?.age ?? 0) + 1,
     )
+    // The king reigns a challenge longer, or the challenge crowned another: 0.
+    const kept = expected.board[0]?.entry.id === seededHill(3).entries[0]?.id
+    expect(after.map((s) => s.entry.reign)).toEqual([
+      kept ? seededReign(3) + 1 : 0,
+      ...after.slice(1).map(() => null),
+    ])
 
     // The feed, newest first: the same two events.
     const res = await send(new Jar(), '/api/hills/full/history')

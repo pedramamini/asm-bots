@@ -155,6 +155,11 @@ describe('GET /api/hills/:slug', () => {
     const { hill, standings } = await read<HillDetail>('/api/hills/main', HillDetail)
     expect(hill.slug).toBe('main')
     expect(standings.map((s) => s.entry.rank)).toEqual([1, 2, 3])
+    // The king's reign: no longer than its age; no one else has one.
+    const [king, ...rest] = standings
+    expect(king?.entry.reign).toBeGreaterThanOrEqual(0)
+    expect(king?.entry.reign).toBeLessThanOrEqual(king?.entry.age ?? 0)
+    expect(rest.map((s) => s.entry.reign)).toEqual([null, null])
     expect(standings.map((s) => s.bot.name).sort()).toEqual(['Dwarf', 'Halt', 'Spin'])
     const scores = standings.map((s) => s.entry.score)
     expect(scores).toEqual([...scores].sort((a, b) => b - a))
@@ -238,6 +243,48 @@ describe('GET /api/bots/:id', () => {
     expect(detail.versions.map((v) => v.version)).toEqual([1])
     expect(detail.versions[0]?.source).toBeUndefined()
     expect(detail.placements.map((p) => p.hill.slug).sort()).toEqual(['main', 'tiny'])
+    // First seen: the day the seed made it.
+    expect(detail.bot.createdAt).toBe(NOW.toISOString())
+  })
+
+  it("counts the bot's fights: each finished match of its versions, duels and melees", async () => {
+    // A duel with each other bot on main and on tiny.
+    expect((await read<BotDetail>('/api/bots/roster-dwarf', BotDetail)).fights).toBe(4)
+    // Those, and the melee hill's one melee.
+    expect((await read<BotDetail>('/api/bots/roster-spin', BotDetail)).fights).toBe(5)
+    expect((await read<BotDetail>('/api/bots/quiet', BotDetail)).fights).toBe(0)
+    // A second version's matches count too, a match with both of them once, a duel with a deleted
+    // version (its column null, as a melee's are) once, and an unfinished match not at all.
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO bot_versions (id, bot_id, version, source, bytes_sha256, size, isa)
+         VALUES ('roster-dwarf-v2', 'roster-dwarf', 2, 'nop', ?1, 1, 'x16c-v1')`,
+      ).bind('ef'.repeat(32)),
+      env.DB.prepare(
+        `INSERT INTO matches (id, a_version_id, b_version_id, participants_json, rounds, seed,
+           finished_at)
+         VALUES ('m-self', 'roster-dwarf-v1', 'roster-dwarf-v2',
+                 '["roster-dwarf-v1","roster-dwarf-v2"]', 1, 1, ?1),
+                ('m-melee', NULL, NULL,
+                 '["roster-halt-v1","roster-dwarf-v2","roster-spin-v1"]', 1, 1, ?1),
+                ('m-orphan', NULL, 'roster-dwarf-v1', '["gone-v1","roster-dwarf-v1"]', 1, 1, ?1),
+                ('m-later', 'roster-dwarf-v2', 'roster-halt-v1',
+                 '["roster-dwarf-v2","roster-halt-v1"]', 1, 1, NULL),
+                ('m-later-b', 'roster-halt-v1', 'roster-dwarf-v2',
+                 '["roster-halt-v1","roster-dwarf-v2"]', 1, 1, NULL)`,
+      ).bind(NOW.toISOString()),
+    ])
+    try {
+      expect((await read<BotDetail>('/api/bots/roster-dwarf', BotDetail)).fights).toBe(7)
+      expect((await read<BotDetail>('/api/bots/roster-spin', BotDetail)).fights).toBe(6)
+    } finally {
+      await env.DB.batch([
+        env.DB.prepare(
+          "DELETE FROM matches WHERE id IN ('m-self', 'm-melee', 'm-orphan', 'm-later', 'm-later-b')",
+        ),
+        env.DB.prepare("DELETE FROM bot_versions WHERE id = 'roster-dwarf-v2'"),
+      ])
+    }
   })
 
   it('shows a public bot’s source', async () => {

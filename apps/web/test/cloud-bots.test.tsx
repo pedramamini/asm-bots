@@ -269,6 +269,7 @@ describe('versions', () => {
       owner: { id: 'u1', handle: 'octo', avatarUrl: null, createdAt: T },
       versions: [cloudVersion('c9', 2), cloudVersion('c9', 1)],
       placements: [],
+      fights: 0,
     }
     server.use(
       answer('/bots/c9', detail),

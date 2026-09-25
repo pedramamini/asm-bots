@@ -58,6 +58,7 @@ const entry = (bot: BotLabel, rank: number, score: number) => ({
   age: 2,
   enteredAt: T,
   rank,
+  reign: rank === 1 ? 1 : null,
 })
 
 export const MAIN_DETAIL: HillDetail = {
@@ -149,6 +150,7 @@ export const DWARF_DETAIL: BotDetail = {
     },
   ],
   placements: [{ hill: { slug: 'main', name: 'main' }, version: 1, entry: entry(DWARF, 2, 145) }],
+  fights: 1204,
 }
 
 export const SYSTEM: UserDetail = {

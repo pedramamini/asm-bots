@@ -14,8 +14,7 @@ import {
 } from '@asmbots/protocol'
 import { docEntries } from '../docs'
 
-/** The site's canonical origin. The Worker's `SITE_URL` (apps/api/wrangler.jsonc) agrees. */
-export const SITE_URL = 'https://asmbots.io'
+export { SITE_URL } from './site'
 
 /** The app's own pages, by path. */
 const APP_PAGES: Readonly<Record<string, PageMeta>> = {
@@ -102,9 +101,18 @@ export function sitemap(site: string, manifest: PagesManifest): string {
   return sitemapXml(paths.map((path) => ({ loc: `${site}${path}` })))
 }
 
+/**
+ * The imp, in one line of ASCII for whoever reads `robots.txt`: the words it leaves behind as it
+ * walks the core (`movsw` is A5, `nop` 90: its whole loop), and its head.
+ */
+export const ROBOTS_IMP =
+  '# A5 90 A5 90 A5 90 A5 90 A5 90 A5 90 A5 90 A5 90 }:>  imp: movsw, nop, one word ahead forever'
+
 /** `robots.txt`: every page may be crawled; the embeds say `noindex` in their heads. */
 export function robotsTxt(site: string): string {
-  return ['User-agent: *', 'Allow: /', '', `Sitemap: ${site}/sitemap.xml`, ''].join('\n')
+  return [ROBOTS_IMP, 'User-agent: *', 'Allow: /', '', `Sitemap: ${site}/sitemap.xml`, ''].join(
+    '\n',
+  )
 }
 
 /**

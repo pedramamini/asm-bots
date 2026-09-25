@@ -39,6 +39,8 @@
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Runner", "LiveRoom"] }],
   // A data point per match a Runner plays: count, duration, bots, kind (src/analytics.ts).
   "analytics_engine_datasets": [{ "binding": "MATCH_ANALYTICS", "dataset": "asmbots_matches" }],
+  // The running version's id and upload time: /api/health's uptime counts from it.
+  "version_metadata": { "binding": "CF_VERSION_METADATA" },
   "triggers": {
     // Saturdays 18:00 UTC: the weekly championship.
     "crons": ["0 18 * * 6"]

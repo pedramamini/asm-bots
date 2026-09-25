@@ -18,6 +18,11 @@ export interface Env {
   ISA_VERSION: string
   APP_VERSION: string
   /**
+   * The running version's id, tag, and upload time (`version_metadata`): `/api/health`'s uptime
+   * counts from the upload. `wrangler dev` makes one at its start.
+   */
+  CF_VERSION_METADATA?: WorkerVersionMetadata
+  /**
    * The site's canonical origin, `https://asmbots.io`: what page heads link to and share cards
    * sign, whichever host served them (a preview, `wrangler dev`).
    */

@@ -1,7 +1,7 @@
 import { DOCS, type DocPage, type DocSection } from './nav'
 
-export type { DocPage, DocSection } from './nav'
-export { DOCS, docFile } from './nav'
+export type { DocPage, DocSection, DocSource } from './nav'
+export { DOCS, docFile, docSource } from './nav'
 
 /** A page and the section it sits in. */
 export interface DocEntry {

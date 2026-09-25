@@ -2,6 +2,7 @@ import { createScheduledController } from 'cloudflare:test'
 import { env, exports } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
 import handler from '../src/index'
+import { uptimeOf } from '../src/routes/health'
 
 const worker = exports.default
 /** What a browser sends when it loads a page. */
@@ -12,10 +13,41 @@ function get(path: string, init?: RequestInit): Promise<Response> {
 }
 
 describe('GET /api/health', () => {
-  it('answers ok with the build stamp and the ISA', async () => {
+  it('answers ok with the build stamp, the ISA, and how long this version has been up', async () => {
+    const before = Date.now()
     const res = await get('/api/health')
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ ok: true, version: 'dev', isa: 'x16c-v1' })
+    const body = (await res.json()) as { uptime: number; since: string }
+    expect(body).toEqual({
+      ok: true,
+      version: 'dev',
+      isa: 'x16c-v1',
+      uptime: expect.any(Number),
+      since: expect.stringMatching(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/),
+    })
+    // Since the version went up: the version metadata binding's upload time, the pool's start.
+    const since = Date.parse(body.since)
+    expect(new Date(since).toISOString()).toBe(
+      new Date(Date.parse(env.CF_VERSION_METADATA?.timestamp ?? '')).toISOString(),
+    )
+    expect(Number.isInteger(body.uptime)).toBe(true)
+    expect(body.uptime).toBe(Math.floor((Date.now() - since) / 1000))
+    expect(since).toBeLessThanOrEqual(before)
+  })
+
+  it('counts whole seconds from the upload, and from the fallback without one', () => {
+    const at = Date.parse('2026-10-03T18:00:00.000Z')
+    const metadata = { id: 'v', tag: '', timestamp: '2026-10-03T18:00:00.000000Z' }
+    expect(uptimeOf({ CF_VERSION_METADATA: metadata }, at + 90_061_999, at - 5_000)).toEqual({
+      uptime: 90_061,
+      since: '2026-10-03T18:00:00.000Z',
+    })
+    // A clock behind the upload says 0, not a negative uptime.
+    expect(uptimeOf({ CF_VERSION_METADATA: metadata }, at - 5_000, 0).uptime).toBe(0)
+    // No metadata, or none that reads as a time: the fallback, this isolate's first answer.
+    expect(uptimeOf({}, at + 2_500, at)).toEqual({ uptime: 2, since: '2026-10-03T18:00:00.000Z' })
+    const garbled = { id: 'v', tag: '', timestamp: 'soon' }
+    expect(uptimeOf({ CF_VERSION_METADATA: garbled }, at + 61_000, at).uptime).toBe(61)
   })
 
   it('gives every response a request id, and keeps a well-formed one it was sent', async () => {

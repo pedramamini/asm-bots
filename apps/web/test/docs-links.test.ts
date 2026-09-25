@@ -14,6 +14,25 @@ describe('check-docs-links: the docs', () => {
     expect(checkDocsLinks()).toEqual([])
   })
 
+  it('reads the changelog page as the Markdown of CHANGELOG.md', () => {
+    const problems = checkDocsLinks((page) => {
+      const text = readFileSync(pageFile(page), 'utf8')
+      return page.slug === 'changelog'
+        ? text.replace('/docs/isa-versions', '/docs/isa-version')
+        : text
+    })
+    const line = readFileSync(`${DOCS_DIR}../../../../CHANGELOG.md`, 'utf8')
+      .split('\n')
+      .findIndex((text: string) => text.includes('/docs/isa-versions'))
+    expect(problems).toEqual([
+      {
+        file: '../../../../CHANGELOG.md',
+        line: line + 1,
+        message: '/docs/isa-version: no docs page isa-version',
+      },
+    ])
+  })
+
   it('says so from the command line', () => {
     const run = Bun.spawnSync(['bun', 'scripts/check-docs-links.ts'], {
       cwd: `${import.meta.dir}/..`,
@@ -84,6 +103,7 @@ describe('check-docs-links: the rules', () => {
       expect(problem(url)).toBeUndefined()
     }
     expect(problem('https://bun.sh')).toBeUndefined()
+    expect(problem('https://asmbots.io/docs/b/c#why-spl')).toBeUndefined()
     expect(problem('mailto:a@b.c')).toBeUndefined()
     expect(problem('modrm', 'Fig')).toBeUndefined()
     expect(problem('tour-arena', 'Shot')).toBeUndefined()
@@ -91,6 +111,9 @@ describe('check-docs-links: the rules', () => {
 
   it('names what is missing', () => {
     expect(problem('/docs/b')).toBe('/docs/b: no docs page b')
+    // A link to the canonical site is the app's path there: CHANGELOG.md links so.
+    expect(problem('https://asmbots.io/docs/b')).toBe('/docs/b: no docs page b')
+    expect(problem('https://asmbots.io/nowhere')).toBe('/nowhere: no route matches /nowhere')
     expect(problem('/docs/b/c#why')).toBe('/docs/b/c#why: b/c has no heading #why')
     expect(problem('#nope')).toBe('#nope: a has no heading #nope')
     expect(problem('/nowhere')).toBe('/nowhere: no route matches /nowhere')

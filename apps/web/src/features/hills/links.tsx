@@ -50,6 +50,20 @@ export function rules(rounds: number, config: ReplayConfig): string {
 /** The day of an ISO time: `2026-09-24`. */
 export const day = (iso: string) => iso.slice(0, 10)
 
+const DAY_MS = 86_400_000
+
+/**
+ * How long ago the ISO time `iso` was, in the largest whole unit: `today`, `1 day ago`,
+ * `3 months ago` (from 60 days), `2 years ago` (from 2 years). What a first-seen date's age reads.
+ */
+export function longAgo(iso: string, now = Date.now()): string {
+  const days = Math.max(0, Math.floor((now - Date.parse(iso)) / DAY_MS))
+  const years = Math.floor(days / 365.25)
+  if (years >= 2) return `${plural(years, 'year')} ago`
+  if (days >= 60) return `${plural(Math.floor(days / 30.4375), 'month')} ago`
+  return days < 1 ? 'today' : `${plural(days, 'day')} ago`
+}
+
 /** How long before `now` the ISO time `iso` was: `now`, `5m ago`, `3h ago`, else its day. */
 export function ago(iso: string, now = Date.now()): string {
   const seconds = Math.max(0, Math.floor((now - Date.parse(iso)) / 1000))

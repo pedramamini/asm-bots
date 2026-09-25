@@ -4,6 +4,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { Settings2, Trophy } from 'lucide-react'
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from 'zustand'
+import { SITE_HOST } from '../../app/site'
 import { useRouteStat } from '../../app/slots'
 import { ShareMenu, type ShareTarget } from '../share/ShareMenu'
 import { embedTitle, embedUrl } from '../share/share'
@@ -21,7 +22,7 @@ import { roundOutcome } from './battle/outcome'
 import { ReplayChip } from './battle/ReplayChip'
 import { buildReplay, replayUrl } from './battle/replay'
 import { StandingsPanel } from './battle/StandingsPanel'
-import { captureArena } from './battle/screenshot'
+import { captureArena, footerStamp } from './battle/screenshot'
 import { speedLabel } from './battle/speed'
 import { Transport } from './battle/Transport'
 import { RoundOver, Victory } from './battle/Victory'
@@ -147,7 +148,8 @@ export function ArenaBattle({
     const handle = canvas.current
     if (handle === null) return
     const state = client.store.getState()
-    const title = `asm bots · seed ${state.config?.seed ?? seed}${
+    const roundSeed = state.config?.seed ?? seed
+    const title = `asm bots · seed ${roundSeed}${
       state.rounds > 1 ? ` · round ${state.round + 1}/${state.rounds}` : ''
     }`
     const blob = await captureArena(handle, {
@@ -157,6 +159,8 @@ export function ArenaBattle({
       ],
       title,
       bots: names,
+      stamp: footerStamp(names, roundSeed, state.cycle),
+      site: SITE_HOST,
     })
     if (blob === null) {
       toast('could not take the screenshot.', { variant: 'danger' })

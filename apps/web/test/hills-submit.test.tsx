@@ -194,6 +194,7 @@ const server = useApiServer(
     owner: ME.user,
     versions: [version(2, 600), version(1, 40)],
     placements: [],
+    fights: 0,
   }),
 )
 

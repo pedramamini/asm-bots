@@ -296,9 +296,9 @@ describe('changelog and isa versions', () => {
     expect(page).toContain(`(\`"isa": "${REPLAY_ISA}"\`)`)
   })
 
-  it('the roster counts', () => {
+  it('the roster counts, in CHANGELOG.md, which the changelog page renders', () => {
     const tests = ROSTER.filter((r) => r.tier === 'test').length
-    const page = mdx('changelog')
+    const page = readFileSync(`${DOCS_DIR}../../../../CHANGELOG.md`, 'utf8')
     expect(page).toContain(`${ROSTER.length - tests} fighters and painters`)
     expect(page).toContain(`plus ${tests} test bots`)
   })

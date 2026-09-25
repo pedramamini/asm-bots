@@ -1,10 +1,11 @@
 /**
  * The docs' tree (PRODUCT_SPEC §7): the sidebar's sections, their pages in reading order, and
  * each page's MDX. A page at slug `machine/memory` is the file `src/docs/machine/memory.mdx`,
- * unless it names another (`docFile`); `scripts/gen-docs-index.ts` reads the files this way, and
- * the docs tests hold every file to a page here. This module is in the entry chunk (the docs
- * route's `head` names the page), so it imports only the generated reference's list: each page's
- * MDX loads on its first visit.
+ * unless it names another (`docFile`), or renders a Markdown file of the repository (`markdown`:
+ * the changelog is CHANGELOG.md); `scripts/gen-docs-index.ts` reads the files this way
+ * (`docSource`), and the docs tests hold every file to a page here. This module is in the entry
+ * chunk (the docs route's `head` names the page), so it imports only the generated reference's
+ * list: each page's MDX loads on its first visit.
  */
 import type { MDXContent } from 'mdx/types'
 import { REFERENCE } from './generated/reference/nav'
@@ -14,6 +15,11 @@ export interface DocPage {
   slug: string
   /** The MDX file under `src/docs/`, less `.mdx`, when it is not the slug: a generated page's. */
   file?: string
+  /**
+   * A Markdown file of the repository that the page renders in place of an MDX file, from
+   * `src/docs/`: the changelog's is the root CHANGELOG.md, where release names live.
+   */
+  markdown?: string
   /** Lowercase, as the sidebar and the tab show it: `start here`. */
   title: string
   /** One sentence for the contents page. */
@@ -241,9 +247,10 @@ export const DOCS: readonly DocSection[] = [
     pages: [
       {
         slug: 'changelog',
+        markdown: '../../../../CHANGELOG.md',
         title: 'changelog',
-        blurb: 'what each release changed.',
-        load: () => import('./changelog.mdx'),
+        blurb: 'what each release changed, and each release name.',
+        load: () => import('../../../../CHANGELOG.md'),
       },
       {
         slug: 'isa-versions',
@@ -258,4 +265,17 @@ export const DOCS: readonly DocSection[] = [
 /** The MDX file of a page under `src/docs/`, less `.mdx`: `generated/reference/data`. */
 export function docFile(page: DocPage): string {
   return page.file ?? page.slug
+}
+
+/** The file a page renders, from `src/docs/`, and how it reads: MDX, or plain Markdown. */
+export interface DocSource {
+  path: string
+  format: 'md' | 'mdx'
+}
+
+/** A page's file: its MDX (`docFile`), or the repository's Markdown file it names. */
+export function docSource(page: DocPage): DocSource {
+  return page.markdown === undefined
+    ? { path: `${docFile(page)}.mdx`, format: 'mdx' }
+    : { path: page.markdown, format: 'md' }
 }

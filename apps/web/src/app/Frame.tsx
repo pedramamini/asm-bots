@@ -2,6 +2,7 @@ import {
   Chip,
   Header,
   IconButton,
+  Kbd,
   KeyHelp,
   Menu,
   Modal,
@@ -10,10 +11,11 @@ import {
   Ticker,
   Toolbar,
   type ToolbarProps,
+  Tooltip,
 } from '@asmbots/ui'
 import { THEMES } from '@asmbots/ui/themes'
 import { useQueryClient } from '@tanstack/react-query'
-import { createLink, useLocation, useRouter } from '@tanstack/react-router'
+import { createLink, Link, useLocation, useRouter } from '@tanstack/react-router'
 import {
   BookOpen,
   Check,
@@ -52,6 +54,7 @@ import { useOnline } from './online'
 import { useFps, useHeaderStat } from './slots'
 import { useTicker } from './ticker'
 import { BRAND, useRouteHead } from './title'
+import { RELEASE, VERSION, versionTitle } from './version'
 
 /** The header's routes (DESIGN_SYSTEM §6 icons), and the second key of each `g` chord. */
 export const NAV = [
@@ -65,8 +68,8 @@ export const NAV = [
 /** The instruction set the engine runs, as the status bar names it. */
 export const ISA = 'x16c v1'
 
-/** The build's version stamp; `dev` where Vite did not define it (the unit tests). */
-const VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev'
+/** Under this frame rate the status bar's fps chip warns, and its tooltip names the fix. */
+export const FPS_WARN = 50
 
 /** A nav button the router drives: it preloads on intent and navigates without a reload. */
 export const NavLink = createLink(NavButton)
@@ -106,10 +109,11 @@ export function Frame({ children }: { children: ReactNode }) {
       />
       <div ref={setToolbar} className="contents" />
       <ToolbarSlot value={toolbar}>
+        {/* The scroll padding: a Tab stop scrolled into view keeps its focus ring clear of the edge. */}
         <main
           id={CONTENT_ID}
           tabIndex={-1}
-          className="relative min-h-0 flex-1 overflow-auto outline-none"
+          className="relative min-h-0 flex-1 scroll-py-2 overflow-auto outline-none"
         >
           {children}
         </main>
@@ -289,6 +293,13 @@ function NetworkStatus() {
   )
 }
 
+/** A status chip's keyboard focus: the kit's 1 px accent outline, 2 px out. */
+const CHIP_FOCUS =
+  'rounded-sm focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent'
+
+/** A chip that is a link: the accent under the pointer. */
+const CHIP_LINK = 'transition-colors duration-120 ease-out hover:text-accent-fg'
+
 function FrameStatus() {
   const fps = useFps((state) => state.fps)
   return (
@@ -296,26 +307,63 @@ function FrameStatus() {
       className="mb-2"
       left={<NetworkStatus />}
       center={
-        <a
-          href="https://runmaestro.ai"
-          target="_blank"
-          rel="noreferrer"
-          className="rounded-sm focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          <Chip className="transition-colors duration-120 ease-out hover:text-accent-fg">
-            made with maestro
-          </Chip>
+        <a href="https://runmaestro.ai" target="_blank" rel="noreferrer" className={CHIP_FOCUS}>
+          <Chip className={CHIP_LINK}>made with maestro</Chip>
         </a>
       }
       right={
         <>
-          <Chip>{VERSION}</Chip>
+          <VersionChip />
           <Chip>{ISA}</Chip>
-          {fps !== null && (
-            <Chip variant={fps < 50 ? 'warn' : 'accent'}>{Math.round(fps)} fps</Chip>
-          )}
+          {fps !== null && <FpsChip fps={fps} />}
         </>
       }
     />
+  )
+}
+
+/** The version stamp: its release's name in the tooltip, and a link to the changelog. */
+function VersionChip() {
+  return (
+    <Tooltip content={versionTitle(VERSION, RELEASE)} placement="top-end">
+      <Link
+        to="/docs/$"
+        params={{ _splat: 'changelog' }}
+        aria-label={`${VERSION}: the changelog`}
+        className={CHIP_FOCUS}
+      >
+        <Chip className={CHIP_LINK}>{VERSION}</Chip>
+      </Link>
+    </Tooltip>
+  )
+}
+
+/**
+ * The arena's frame rate: `--warn` under `FPS_WARN`, where its tooltip says the speed slider is the
+ * fix. A Tab stop while it shows, so the keyboard reads the tooltip too.
+ */
+function FpsChip({ fps }: { fps: number }) {
+  const slow = fps < FPS_WARN
+  return (
+    <Tooltip
+      placement="top-end"
+      content={
+        slow ? (
+          <span>
+            under {FPS_WARN} fps: each frame runs more cycles than this machine can draw. slow the
+            speed slider under the arena, or{' '}
+            <span className="whitespace-nowrap">
+              press <Kbd>[</Kbd>.
+            </span>
+          </span>
+        ) : (
+          'frames a second the arena draws.'
+        )
+      }
+    >
+      <Chip tabIndex={0} variant={slow ? 'warn' : 'accent'} className={CHIP_FOCUS}>
+        {Math.round(fps)} fps
+      </Chip>
+    </Tooltip>
   )
 }

@@ -85,6 +85,8 @@ describe('the schema', () => {
       'hill_submissions_active',
       'hill_submissions_hill',
       'hill_submissions_user',
+      'matches_a_version',
+      'matches_b_version',
       'matches_hill_finished',
       'matches_key',
       'matches_tournament',

@@ -97,6 +97,8 @@ export interface HillEntryRow {
   age: number
   entered_at: string
   rank: number
+  /** The challenges the king has held rank 1 through; null for every other entry. */
+  reign: number | null
 }
 
 export interface HillSubmissionRow {
@@ -260,6 +262,7 @@ export function toHillEntry(row: HillEntryRow): HillEntry {
     age: row.age,
     enteredAt: row.entered_at,
     rank: row.rank,
+    reign: row.reign,
   }
 }
 
@@ -500,6 +503,33 @@ export async function getLatestBotVersionRow(
     .prepare('SELECT * FROM bot_versions WHERE bot_id = ? ORDER BY version DESC LIMIT 1')
     .bind(botId)
     .first<BotVersionRow>()
+}
+
+/**
+ * How many finished matches a bot's versions have fought, a match once however many of its
+ * versions were in it: the duels through their indexed version columns, the melees (no version
+ * columns) through their participants.
+ */
+export async function countBotFights(db: D1Database, botId: string): Promise<number> {
+  const row = await db
+    .prepare(
+      `WITH mine AS (SELECT id FROM bot_versions WHERE bot_id = ?1)
+       SELECT COUNT(*) AS n FROM (
+         SELECT id FROM matches
+         WHERE a_version_id IN (SELECT id FROM mine) AND finished_at IS NOT NULL
+         UNION
+         SELECT id FROM matches
+         WHERE b_version_id IN (SELECT id FROM mine) AND finished_at IS NOT NULL
+         UNION
+         SELECT m.id FROM matches m WHERE m.a_version_id IS NULL AND m.finished_at IS NOT NULL
+           AND EXISTS (
+             SELECT 1 FROM json_each(m.participants_json) WHERE value IN (SELECT id FROM mine)
+           )
+       )`,
+    )
+    .bind(botId)
+    .first<{ n: number }>()
+  return row?.n ?? 0
 }
 
 /** A bot's versions, newest first, without their sources. */

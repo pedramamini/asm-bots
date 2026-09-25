@@ -6,7 +6,9 @@
  *   headings (the ids `text.ts` gives them, read as `gen-docs-index.ts` reads them); a bare
  *   `#anchor` one of this page's;
  * - any other app path (`/editor`, `/hills/<slug>`) matches a route of `src/routeTree.gen.ts`;
- * - an outside link is `https://` (or `mailto:`), well formed; the network is not asked;
+ * - a link to the canonical site (`https://asmbots.io/docs/...`, which the app follows as its own
+ *   path: CHANGELOG.md reads on GitHub too) is checked as that path;
+ * - any other outside link is `https://` (or `mailto:`), well formed; the network is not asked;
  * - a relative path (`../x`) is an error: the router would read it against the page's URL;
  * - `<Fig src>` names a figure of `src/docs/figures/`, and `<Shot src>` a file of
  *   `public/docs-shots/`.
@@ -17,9 +19,10 @@ import { existsSync, readFileSync } from 'node:fs'
 import { relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createProcessor } from '@mdx-js/mdx'
+import { sitePath } from '../src/app/site'
 import { SHOT_PATH } from '../src/docs/blocks'
 import { FIGURES } from '../src/docs/figures'
-import { DOCS, type DocPage, docFile } from '../src/docs/nav'
+import { DOCS, type DocPage, type DocSource, docSource } from '../src/docs/nav'
 import { REMARK_PLUGINS } from '../src/docs/remark'
 import { pageFile, pageRecords } from './gen-docs-index'
 
@@ -57,9 +60,12 @@ function attribute(node: MdNode, name: string): string | undefined {
   return typeof found?.value === 'string' ? found.value : undefined
 }
 
-/** Every link of an MDX page: Markdown links and images, JSX `href`s, and pictures' `src`. */
-export function pageLinks(mdx: string): PageLink[] {
-  const tree = createProcessor({ remarkPlugins: REMARK_PLUGINS }).parse(mdx) as MdNode
+/**
+ * Every link of an MDX page: Markdown links and images, JSX `href`s, and pictures' `src`. `format`
+ * is how the page reads: MDX, or plain Markdown (the changelog).
+ */
+export function pageLinks(mdx: string, format: DocSource['format'] = 'mdx'): PageLink[] {
+  const tree = createProcessor({ format, remarkPlugins: REMARK_PLUGINS }).parse(mdx) as MdNode
   const links: PageLink[] = []
   const visit = (node: MdNode) => {
     const line = node.position?.start.line ?? 0
@@ -106,7 +112,7 @@ export interface LinkContext {
 
 /** Why `link` of the page `slug` goes nowhere, or undefined when it lands. */
 export function linkProblem(slug: string, link: PageLink, ctx: LinkContext): string | undefined {
-  const { url } = link
+  const url = link.kind === 'link' ? (sitePath(link.url) ?? link.url) : link.url
   if (link.kind === 'Fig') {
     return ctx.figures.has(url) ? undefined : `<Fig src="${url}">: no such figure`
   }
@@ -156,7 +162,12 @@ export function checkDocsLinks(
       pages.map((page) => [
         page.slug,
         new Set(
-          pageRecords(page.slug, page.title, sources.get(page.slug) ?? '').map((r) => r.anchor),
+          pageRecords(
+            page.slug,
+            page.title,
+            sources.get(page.slug) ?? '',
+            docSource(page).format,
+          ).map((r) => r.anchor),
         ),
       ]),
     ),
@@ -164,14 +175,13 @@ export function checkDocsLinks(
     figures: new Set(Object.keys(FIGURES)),
     hasShot: (name) => existsSync(`${PUBLIC_DIR}${SHOT_PATH}${name}.webp`),
   }
-  return pages.flatMap((page) =>
-    pageLinks(sources.get(page.slug) ?? '').flatMap((link) => {
+  return pages.flatMap((page) => {
+    const { path, format } = docSource(page)
+    return pageLinks(sources.get(page.slug) ?? '', format).flatMap((link) => {
       const message = linkProblem(page.slug, link, context)
-      return message === undefined
-        ? []
-        : [{ file: `${docFile(page)}.mdx`, line: link.line, message }]
-    }),
-  )
+      return message === undefined ? [] : [{ file: path, line: link.line, message }]
+    })
+  })
 }
 
 if (import.meta.main) {
@@ -180,7 +190,7 @@ if (import.meta.main) {
   for (const { file, line, message } of problems)
     console.error(`${dir}/${file}:${line}: ${message}`)
   const count = DOCS.flatMap((s) => s.pages).reduce(
-    (n, page) => n + pageLinks(readFileSync(pageFile(page), 'utf8')).length,
+    (n, page) => n + pageLinks(readFileSync(pageFile(page), 'utf8'), docSource(page).format).length,
     0,
   )
   if (problems.length > 0) {

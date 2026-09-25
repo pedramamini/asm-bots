@@ -16,7 +16,7 @@ import { useBot, useBotVersion } from '../../api/queries'
 import { LoadFailure, readStatus } from '../../app/LoadFailure'
 import { useLinkAction } from '../../app/link-action'
 import { Placeholder } from '../../app/Placeholder'
-import { CELL_LINK, count, day, UserLink } from '../hills/links'
+import { CELL_LINK, count, day, longAgo, UserLink } from '../hills/links'
 import { BotActions } from './BotActions'
 
 const PLACEMENT_COLUMNS: TableColumn<BotPlacement>[] = [
@@ -71,8 +71,9 @@ const VERSION_COLUMNS: TableColumn<BotVersion>[] = [
 ]
 
 /**
- * `/bots/$id` (PRODUCT_SPEC §6): the bot's card with `fork` and `challenge`, where it stands on
- * each hill, its versions, and the latest version's source when the bot is public (or mine).
+ * `/bots/$id` (PRODUCT_SPEC §6): the bot's card with `fork` and `challenge`, its fights and the
+ * day it was first seen, where it stands on each hill, its versions, and the latest version's
+ * source when the bot is public (or mine).
  */
 export function BotPage({ id }: { id: string }) {
   const bot = useBot(id)
@@ -99,7 +100,7 @@ export function BotPage({ id }: { id: string }) {
       </PanelGrid>
     )
   }
-  const { bot: record, owner, versions, placements } = bot.data
+  const { bot: record, owner, versions, placements, fights } = bot.data
   const text = source.data?.version.source
   return (
     <PanelGrid className="p-3">
@@ -125,6 +126,13 @@ export function BotPage({ id }: { id: string }) {
             <Stat label="size" value={latest ? `${count(latest.size)} B` : '–'} />
             <Stat label="versions" value={count(versions.length)} />
             <Stat label="isa" value={latest?.isa ?? '–'} />
+            {/* The server's matches: its hill challenges and tournaments. */}
+            <Stat label="fights" value={count(fights)} />
+            <Stat
+              label="first seen"
+              value={day(record.createdAt)}
+              note={longAgo(record.createdAt)}
+            />
           </div>
         </div>
       </Panel>

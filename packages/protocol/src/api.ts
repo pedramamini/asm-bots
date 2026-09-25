@@ -137,12 +137,17 @@ export const BotPlacement = z.object({
 })
 export type BotPlacement = z.output<typeof BotPlacement>
 
-/** `GET /api/bots/:id`: the bot, its owner, its versions (newest first, no sources), its places. */
+/**
+ * `GET /api/bots/:id`: the bot, its owner, its versions (newest first, no sources), its places,
+ * and its fights: the finished matches its versions have played on the server (hills and
+ * tournaments).
+ */
 export const BotDetail = z.object({
   bot: Bot,
   owner: User,
   versions: z.array(BotVersion),
   placements: z.array(BotPlacement),
+  fights: whole('fights', 0, Number.MAX_SAFE_INTEGER),
 })
 export type BotDetail = z.output<typeof BotDetail>
 

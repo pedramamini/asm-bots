@@ -13,7 +13,7 @@ import { HomePage, lastChampionship, nextChampionship } from '../src/app/HomePag
 import { BotPage } from '../src/features/bots/BotPage'
 import { HillPage } from '../src/features/hills/HillPage'
 import { HillsPage } from '../src/features/hills/HillsPage'
-import { rules } from '../src/features/hills/links'
+import { longAgo, rules } from '../src/features/hills/links'
 import { matchScore, matchTitle, matchWinner } from '../src/features/hills/MatchesTable'
 import { ProfilePage } from '../src/features/profile/ProfilePage'
 import { answer, hang, refuse, renderAt, useApiServer, WithQueries } from './api-server'
@@ -121,6 +121,19 @@ describe('the words for records', () => {
     expect(rules(3, { ...CONFIG, maxCycles: 1500 })).toBe('3 rounds · 1,500 cycles · 512 B')
   })
 
+  it('says how long ago a first sighting was, in its largest whole unit', () => {
+    const now = Date.parse('2029-09-24T12:00:00.000Z')
+    const ago = (iso: string) => longAgo(iso, now)
+    expect(ago('2029-09-24T00:00:00.000Z')).toBe('today')
+    expect(ago('2029-09-30T00:00:00.000Z')).toBe('today')
+    expect(ago('2029-09-23T11:00:00.000Z')).toBe('1 day ago')
+    expect(ago('2029-07-27T12:00:00.000Z')).toBe('59 days ago')
+    expect(ago('2029-07-26T12:00:00.000Z')).toBe('1 month ago')
+    expect(ago('2027-09-25T12:00:00.000Z')).toBe('23 months ago')
+    expect(ago('2027-09-24T00:00:00.000Z')).toBe('2 years ago')
+    expect(ago('2019-09-24T12:00:00.000Z')).toBe('10 years ago')
+  })
+
   it('names a match, its winner, and its points; a draw and a deleted bot too', () => {
     const [won, drawn] = MATCHES.matches as [
       (typeof MATCHES.matches)[0],
@@ -217,6 +230,13 @@ describe('/hills/$slug', () => {
     expect(cells(standings)[2]?.[2]).toBe('system')
     expect(screen.getByText(/3 of 32 places taken/)).toBeTruthy()
 
+    // The king's card: its reign in submissions, and its age.
+    const king = screen.getByRole('region', { name: 'king' })
+    expect(within(king).getByText('reign 1')).toBeTruthy()
+    expect(
+      within(king).getByText('king through 1 submission, on the hill through 2 challenges.'),
+    ).toBeTruthy()
+
     const matches = await screen.findByRole('table', { name: 'recent matches' })
     await waitFor(() => expect(cells(matches)).toHaveLength(2))
     expect(cells(matches)[0]).toEqual(['Dwarf vs Imp', 'Dwarf', '21–9', 'verify', 'watch'])
@@ -247,6 +267,12 @@ describe('/bots/$id', () => {
       'v1',
       '23 B',
     ])
+    // Its fights on the server, and the day it was first seen, with how long ago.
+    const card = screen.getByRole('region', { name: 'bot' })
+    expect(within(card).getByText('fights').nextElementSibling?.textContent).toBe('1,204')
+    const seen = within(card).getByText('first seen').nextElementSibling
+    expect(seen?.textContent).toBe('2026-09-24')
+    expect(seen?.nextElementSibling?.textContent).toBe(longAgo('2026-09-24T12:00:00.000Z'))
     const source = screen.getByRole('region', { name: 'source' })
     await waitFor(() => expect(source.querySelector('pre')?.textContent).toBe('start: jmp $\n'))
   })

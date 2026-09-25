@@ -4,8 +4,16 @@
  * the ones the routes' own `head`s write; the sitemap; `robots.txt`; and index.html's own tags.
  */
 import { describe, expect, it } from 'bun:test'
+import { rosterImage } from '@asmbots/bots'
 import { readPagesManifest, routeTitle } from '@asmbots/protocol'
-import { defaultHeadTags, pageManifest, robotsTxt, SITE_URL, sitemap } from '../src/app/pages'
+import {
+  defaultHeadTags,
+  pageManifest,
+  ROBOTS_IMP,
+  robotsTxt,
+  SITE_URL,
+  sitemap,
+} from '../src/app/pages'
 import { docEntries } from '../src/docs'
 import { Route as ArenaRoute } from '../src/routes/arena/index'
 import { Route as DocsRoute } from '../src/routes/docs'
@@ -85,8 +93,20 @@ describe('what the build writes', () => {
 
   it('robots.txt: every page may be crawled, and where the sitemap is', () => {
     expect(robotsTxt(SITE_URL)).toBe(
-      'User-agent: *\nAllow: /\n\nSitemap: https://asmbots.io/sitemap.xml\n',
+      `${ROBOTS_IMP}\nUser-agent: *\nAllow: /\n\nSitemap: https://asmbots.io/sitemap.xml\n`,
     )
+  })
+
+  it("robots.txt: a one-line ASCII imp, in a comment, walking on its own loop's bytes", () => {
+    expect(ROBOTS_IMP.startsWith('# ')).toBe(true)
+    expect(ROBOTS_IMP).not.toContain('\n')
+    expect(/^[\x20-\x7e]+$/.test(ROBOTS_IMP)).toBe(true)
+    // The roster's imp ends in its loop: `movsw`, `nop`.
+    const word = [...rosterImage('imp').bytes.slice(-2)]
+      .map((b) => b.toString(16).toUpperCase().padStart(2, '0'))
+      .join(' ')
+    expect(word).toBe('A5 90')
+    expect(ROBOTS_IMP).toContain(`# ${Array(8).fill(word).join(' ')} }:>`)
   })
 
   it('index.html’s tags: the home page’s, with its card', () => {

@@ -1,6 +1,7 @@
 /**
  * The arena's screenshot (`s`, PRODUCT_SPEC §2): the image on screen, in its theme, with the HUD's
- * words in the band over the core and the bots' hues named in a band under it, as a PNG.
+ * words in the band over the core, the bots' hues named in a band under it, and a footer stamp
+ * that says what it shows and where it is from, so the PNG explains itself wherever it goes.
  */
 import type { ArenaCanvasHandle } from '../ArenaCanvas'
 
@@ -12,6 +13,27 @@ export interface ScreenshotText {
   readonly title: string
   /** Under the arena: the bots' names, each beside its hue. */
   readonly bots: readonly string[]
+  /** The footer stamp, left: the bots, the seed, and the cycle (`footerStamp`). */
+  readonly stamp: FooterStamp
+  /** The footer stamp, right: the site, `asmbots.io`. */
+  readonly site: string
+}
+
+/** The footer stamp's words: the bots by name, and by count for when the names do not fit. */
+export interface FooterStamp {
+  readonly full: string
+  readonly short: string
+}
+
+const count = (n: number) => n.toLocaleString('en-US')
+
+/** `dwarf vs imp · seed 1 · cycle 3,527`, and `2 bots · seed 1 · cycle 3,527`. */
+export function footerStamp(bots: readonly string[], seed: number, cycle: number): FooterStamp {
+  const rest = `seed ${seed} · cycle ${count(cycle)}`
+  return {
+    full: `${bots.join(' vs ')} · ${rest}`,
+    short: `${bots.length} ${bots.length === 1 ? 'bot' : 'bots'} · ${rest}`,
+  }
 }
 
 /** CSS px, scaled by the device pixel ratio when drawn. */
@@ -23,6 +45,8 @@ const GAP = 4
 const LEFT = 56
 /** A legend chip's swatch and the space after it. */
 const SWATCH = 12
+/** The footer stamp's band: the status bar's height, under the legend. */
+export const FOOTER = 22
 const FONT = '500 10px "JetBrains Mono", ui-monospace, monospace'
 
 /** A theme token's value on the page: `--panel`. */
@@ -76,7 +100,8 @@ export function captureArena(
   probe.font = FONT
   const rows = legendRows(probe, text.bots, width)
   shot.width = canvas.width
-  shot.height = canvas.height + Math.round((rows.length * (CHIP_HEIGHT + GAP) + INSET) * ratio)
+  shot.height =
+    canvas.height + Math.round((rows.length * (CHIP_HEIGHT + GAP) + INSET + FOOTER) * ratio)
   // A new size resets the context: the transform, the font, all of it.
   const ctx = shot.getContext('2d') as CanvasRenderingContext2D
   ctx.fillStyle = token('--arena-bg') || '#000'
@@ -86,7 +111,36 @@ export function captureArena(
   if (overlay !== null) ctx.drawImage(overlay, 0, 0)
   ctx.scale(ratio, ratio)
   drawText(ctx, text, rows, width, height)
+  drawStamp(ctx, text, width, shot.height / ratio - FOOTER)
   return new Promise((resolve) => shot.toBlob(resolve, 'image/png'))
+}
+
+/**
+ * The footer stamp in a band at `top`, the width of the shot: what the shot shows (the bots, the
+ * seed, the cycle) in muted UPPER on the left, the site in the accent on the right. The bots go by
+ * count when their names would reach the site.
+ */
+function drawStamp(
+  ctx: CanvasRenderingContext2D,
+  text: ScreenshotText,
+  width: number,
+  top: number,
+) {
+  ctx.fillStyle = token('--panel') || '#111A11'
+  ctx.fillRect(0, top, width, FOOTER)
+  ctx.fillStyle = token('--border') || '#1A2F1A'
+  ctx.fillRect(0, top, width, 1)
+  ctx.font = FONT
+  ctx.textBaseline = 'middle'
+  const y = top + FOOTER / 2 + 0.5
+  const siteWidth = ctx.measureText(text.site).width
+  ctx.fillStyle = token('--accent-fg') || '#00FF88'
+  ctx.fillText(text.site, width - INSET - siteWidth, y)
+  const room = width - INSET - siteWidth - 2 * PAD_X - LEFT
+  const full = text.stamp.full.toUpperCase()
+  const words = ctx.measureText(full).width <= room ? full : text.stamp.short.toUpperCase()
+  ctx.fillStyle = token('--text-muted') || '#7D9B7D'
+  ctx.fillText(words, LEFT, y)
 }
 
 /** The HUD's words over an arena `width` x `height` CSS px, and the bots' legend under it. */

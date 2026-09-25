@@ -366,6 +366,7 @@ describe('records', () => {
           age: 4,
           enteredAt: at,
           rank: 1,
+          reign: 2,
         },
       ],
       [

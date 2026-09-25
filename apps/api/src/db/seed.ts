@@ -32,6 +32,7 @@ import {
   type Rating,
 } from '@asmbots/tourney'
 import { rateChallenge } from '../runner/rating'
+import { kingReign } from '../runner/reign'
 import { botBytesKey, replayObjectKey } from '../storage'
 
 /** A bot to seed: its source, and whether it enters the melee hill. */
@@ -186,11 +187,14 @@ interface Standing {
   readonly ties: number
   readonly losses: number
   readonly age: number
+  /** The king's reign (`runner/reign.ts`); null below rank 1. */
+  readonly reign: number | null
 }
 
 /**
- * The duel hill `spec` after each bot, in order, challenges it: its board, its matches, and the
- * ratings the challenges left, by bot version (the entries' and those pushed off).
+ * The duel hill `spec` after each bot, in order, challenges it: its board, its matches, the
+ * ratings the challenges left, by bot version (the entries' and those pushed off), and its king's
+ * reign, as a Runner counts it.
  */
 async function duelHill(spec: SeedHill, bots: readonly Made[], now: Date) {
   const byId = new Map(bots.map((m) => [m.versionId, m]))
@@ -201,6 +205,7 @@ async function duelHill(spec: SeedHill, bots: readonly Made[], now: Date) {
     rounds: spec.rounds,
     battle: { ...spec.config, seed: SEED_MATCH_SEED },
   })
+  let reign: number | null = null
   for (const made of bots) {
     if (made.bot.bytes.length > spec.config.maxBotBytes) continue
     const result = hill(state, { id: made.versionId, bot: made.bot }, (entry) => {
@@ -212,6 +217,8 @@ async function duelHill(spec: SeedHill, bots: readonly Made[], now: Date) {
     const defenders = state.entries.filter((e) => e.id !== result.replaced?.id).map((e) => e.id)
     const rated = rateChallenge((id) => ratings.get(id), made.versionId, defenders, result.matches)
     for (const [id, rating] of rated) ratings.set(id, rating)
+    const king = state.entries[0]
+    reign = kingReign(king === undefined ? null : { id: king.id, reign }, result, made.versionId)
     state = result.state
   }
   const matches = await Promise.all(
@@ -222,13 +229,14 @@ async function duelHill(spec: SeedHill, bots: readonly Made[], now: Date) {
       return fought(spec.slug, spec.config, spec.rounds, participants, match, now)
     }),
   )
-  const standings: Standing[] = state.entries.map((e) => ({
+  const standings: Standing[] = state.entries.map((e, i) => ({
     made: byId.get(e.id) as Made,
     score: e.points,
     wins: e.wins,
     ties: e.ties,
     losses: e.losses,
     age: e.age,
+    reign: i === 0 ? reign : null,
   }))
   return { standings, matches, ratings }
 }
@@ -246,13 +254,15 @@ async function meleeHill(spec: SeedHill, bots: readonly Made[], now: Date) {
     { ...spec.config, seed: SEED_MATCH_SEED },
     spec.rounds,
   )
-  const standings: Standing[] = result.standings.map((s) => ({
+  // One melee makes the board: its king is new to it.
+  const standings: Standing[] = result.standings.map((s, i) => ({
     made: entrants[s.entrant] as Made,
     score: s.points,
     wins: s.wins,
     ties: s.ties,
     losses: s.losses,
     age: 0,
+    reign: i === 0 ? 0 : null,
   }))
   const match = await fought(spec.slug, spec.config, spec.rounds, entrants, result.match, now)
   return { standings, matches: [match], ratings: new Map<string, Rating>() }
@@ -346,6 +356,7 @@ export async function buildSeed(
           age: s.age,
           entered_at: at,
           rank: i + 1,
+          reign: s.reign,
         }),
       )
     })

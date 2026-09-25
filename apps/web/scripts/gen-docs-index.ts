@@ -9,21 +9,22 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createProcessor } from '@mdx-js/mdx'
-import { DOCS, type DocPage, docFile } from '../src/docs/nav'
+import { DOCS, type DocPage, type DocSource, docSource } from '../src/docs/nav'
 import { REMARK_PLUGINS } from '../src/docs/remark'
 import { buildSearchIndex, type SearchRecord } from '../src/docs/search'
 import { headingId } from '../src/docs/text'
 
+const DOCS_URL = new URL('../src/docs/', import.meta.url)
 /** The docs' MDX files: a page at slug `a/b` is `a/b.mdx` here, unless it names its file. */
-export const DOCS_DIR = fileURLToPath(new URL('../src/docs/', import.meta.url))
+export const DOCS_DIR = fileURLToPath(DOCS_URL)
 /** The file this writes. */
 export const OUT = fileURLToPath(
   new URL('../src/docs/generated/search-index.json', import.meta.url),
 )
 
-/** The MDX file of `page`. */
+/** The file of `page`: its MDX, or the repository's Markdown file it renders. */
 export function pageFile(page: DocPage): string {
-  return `${DOCS_DIR}${docFile(page)}.mdx`
+  return fileURLToPath(new URL(docSource(page).path, DOCS_URL))
 }
 
 interface MdNode {
@@ -65,9 +66,15 @@ const squash = (text: string) => text.replace(/\s+/g, ' ').trim()
 /**
  * A page's records: its top (the text before its first `##`), then one per `##` and `###`.
  * Throws when two headings of the page share an anchor: a link could reach only the first.
+ * `format` is how the page reads: MDX, or plain Markdown (the changelog).
  */
-export function pageRecords(slug: string, title: string, mdx: string): SearchRecord[] {
-  const tree = createProcessor({ remarkPlugins: REMARK_PLUGINS }).parse(mdx) as MdNode
+export function pageRecords(
+  slug: string,
+  title: string,
+  mdx: string,
+  format: DocSource['format'] = 'mdx',
+): SearchRecord[] {
+  const tree = createProcessor({ format, remarkPlugins: REMARK_PLUGINS }).parse(mdx) as MdNode
   const records: SearchRecord[] = [{ slug, heading: title, anchor: '', text: '' }]
   const texts: string[][] = [[]]
   for (const node of tree.children ?? []) {
@@ -91,7 +98,9 @@ export function generate(
   read: (page: DocPage) => string = (p) => readFileSync(pageFile(p), 'utf8'),
 ) {
   const pages = DOCS.flatMap((section) => section.pages.map((page) => ({ section, page })))
-  const records = pages.flatMap(({ page }) => pageRecords(page.slug, page.title, read(page)))
+  const records = pages.flatMap(({ page }) =>
+    pageRecords(page.slug, page.title, read(page), docSource(page).format),
+  )
   const tops = new Map(
     pages.map(({ section, page }) => [page.slug, `${section.title} ${page.blurb}`]),
   )

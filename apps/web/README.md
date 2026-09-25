@@ -455,6 +455,41 @@ header), `test/site-pages.test.ts` (the manifest's titles are the routes' `head`
 `e2e/embed.spec.ts` (the embed plays to its end; `copy embed` pasted into another page plays
 there, framed; the Worker's heads, cards as PNGs, frame policy, sitemap, and robots).
 
+## Details that come with age
+
+- **Release names.** The status bar's version chip links `/docs/changelog` and names its release
+  in a tooltip: `2026.10.03a · "imp gate"`, or for a build ahead of every release, the one in the
+  making: `2026.09.25a · "imp gate" · unreleased` (`app/version.ts`). The names live in the root
+  `CHANGELOG.md` (`## <version> · "<name>"`, `## Unreleased · "<name>"`), which
+  `scripts/changelog.ts` reads at build (`__APP_RELEASE__`) and the changelog page renders: a docs
+  page may name a repository Markdown file (`markdown` in `docs/nav.ts`), compiled as plain
+  Markdown, indexed, and link-checked like the rest. A link to `https://asmbots.io/...` there
+  (it reads on GitHub too) goes through the router like an app path. `scripts/version.ts` gives
+  a commit tagged as a release (`v2026.10.03a`) that version.
+- **The fps chip** turns `--warn` under 50 fps (`FPS_WARN`), and its tooltip names the speed
+  slider (and `[`) as the fix. It is a Tab stop while it shows, so the keyboard reads it too.
+- **Screenshots** (`s`, `download png`) end in a footer stamp: the bots (or their count when the
+  names would reach the site), the seed, the cycle, and `asmbots.io` (`SITE_HOST`, whatever host
+  served the page).
+- **The 404 page** runs the roster's imp in the arena renderer (`demo/LiveImp.tsx`, a chunk the
+  shell never waits for): seed 182,052 places it at 0x0404, 2 cycles a frame, a lap of the core,
+  then again; the view fits the core's columns to its width and follows the imp's row. It pauses
+  out of sight, makes no sound, and stands still 400 cycles in under reduced motion.
+- **`robots.txt`** opens with the imp in one line of ASCII: its loop's bytes, `A5 90`, and its
+  head.
+- **A bot's page** says its fights (the server's matches of any of its versions) and when it was
+  first seen, with how long ago; **a hill's king card** its reign: the submissions it has held
+  the top through.
+
+`main` keeps a scroll padding (`scroll-py-2`): a Tab stop the browser scrolls into view keeps its
+focus ring clear of the scrollport's edge (the Tab walk of `/hills/main` found a ring cut there).
+
+Tests: `test/frame.test.tsx` (the version chip, its title, the fps chip), `test/screenshot.test.ts`,
+`test/live-imp.test.tsx`, `test/site-pages.test.ts` (the imp's bytes are the roster imp's loop),
+`test/api-pages.test.tsx`, `scripts/changelog.test.ts`, `scripts/version.test.ts`, and
+`e2e/delights.spec.ts` (the tooltip and the changelog page, the imp walking in WebGL2, a real
+screenshot's footer pixels, and from the Worker: uptime, fights, first seen, reign).
+
 ## Accessibility
 
 DESIGN_SYSTEM §8. Four Playwright specs hold it, all five themes where color matters. CI runs no
@@ -518,28 +553,29 @@ before a release (below).
 A page's cold JS is what it fetches before it draws: the entry's static imports and the page's
 route chunk's (and its layout route's), from the build's manifest (`dist/.vite/manifest.json`),
 gzip -9, KB = 1,024 bytes. A browser's cold load of `/arena` (every JS response in 3 s, gzip -6)
-comes to the same: 241.2 KB over 33 files. `/arena`'s budget is PRODUCT_SPEC §11's; each other sits
+came to the same: 241.2 KB over 33 files. `/arena`'s budget is PRODUCT_SPEC §11's; each other sits
 about 5% over its page, so what grows one is a choice, made here and in `BUDGETS`.
 
 | What | Now | Budget | Note |
 | --- | ---: | ---: | --- |
-| shell, every page | 165.6 KB | 175 KB | the entry and `vendor`; 185.2 KB before this pass |
-| `/` | 176.4 KB | 185 KB | |
-| `/arena` | 241.4 KB | 250 KB | engine + renderer + shell; 263.2 KB before |
-| `/arena/$replayId` | 233.2 KB | 250 KB | |
-| `/editor` | 418.2 KB | 440 KB | CodeMirror 127 KB of it |
-| `/editor/$botId` | 418.2 KB | 440 KB | |
-| `/tournaments` | 224.0 KB | 235 KB | |
-| `/tournaments/$id` | 260.7 KB | 275 KB | the bracket, the watch's renderer, the assembler and engine a local run uses |
-| `/hills` | 169.6 KB | 180 KB | |
-| `/hills/$slug` | 191.5 KB | 200 KB | |
-| `/bots/$id` | 186.2 KB | 195 KB | |
-| `/u/$handle` | 169.8 KB | 180 KB | |
-| `/docs` | 169.5 KB | 180 KB | a page's own MDX loads after its route |
-| `/docs/$` | 180.7 KB | 190 KB | |
-| `/settings` | 182.8 KB | 195 KB | |
-| `/embed/arena` | 213.6 KB | 225 KB | |
-| / home demo, after paint | 34.2 KB | 40 KB | 65 KB before: it fights prebuilt bots too |
+| shell, every page | 166.2 KB | 175 KB | the entry and `vendor`; 185.2 KB before this pass |
+| `/` | 177.1 KB | 185 KB | |
+| `/arena` | 242.4 KB | 250 KB | engine + renderer + shell; 263.2 KB before |
+| `/arena/$replayId` | 234.1 KB | 250 KB | |
+| `/editor` | 418.8 KB | 440 KB | CodeMirror 127 KB of it |
+| `/editor/$botId` | 418.8 KB | 440 KB | |
+| `/tournaments` | 224.7 KB | 235 KB | |
+| `/tournaments/$id` | 261.4 KB | 275 KB | the bracket, the watch's renderer, the assembler and engine a local run uses |
+| `/hills` | 170.3 KB | 180 KB | |
+| `/hills/$slug` | 192.2 KB | 200 KB | |
+| `/bots/$id` | 186.9 KB | 195 KB | |
+| `/u/$handle` | 170.5 KB | 180 KB | |
+| `/docs` | 170.1 KB | 180 KB | a page's own MDX loads after its route |
+| `/docs/$` | 181.4 KB | 190 KB | |
+| `/settings` | 183.5 KB | 195 KB | |
+| `/embed/arena` | 214.2 KB | 225 KB | |
+| / home demo, after paint | 34.5 KB | 40 KB | 65 KB before: it fights prebuilt bots too |
+| 404 live imp, after the shell | 34.3 KB | 36 KB | the 404 page's imp: the arena's renderer and client, which it shares with the home demo |
 | arena Worker, at the first fight | 14.2 KB | 20 KB | |
 | assembler Worker, with the editor | 15.8 KB | 20 KB | |
 | fonts | 104.3 KB | 120 KB | 5 woff2 subsets, as shipped |

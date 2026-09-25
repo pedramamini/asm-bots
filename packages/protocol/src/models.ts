@@ -125,6 +125,11 @@ export const HillEntry = z.object({
   enteredAt: Timestamp,
   /** 1 is the king. */
   rank: whole('rank', 1, Number.MAX_SAFE_INTEGER),
+  /**
+   * The king's reign: the challenges it has held rank 1 through, 0 when the latest crowned it.
+   * null for every other entry.
+   */
+  reign: z.nullable(whole('reign', 0, Number.MAX_SAFE_INTEGER)),
 })
 export type HillEntry = z.output<typeof HillEntry>
 

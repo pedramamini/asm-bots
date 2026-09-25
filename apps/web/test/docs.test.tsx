@@ -25,7 +25,16 @@ import * as runtime from 'react/jsx-runtime'
 import { useDom, window } from '../../../packages/ui/test/dom'
 import { DocsArticle, DocsFrame } from '../src/app/DocsFrame'
 import { focusRouteSearch } from '../src/app/keys'
-import { DOCS, type DocSection, docEntries, docFile, docNeighbors, findDoc } from '../src/docs'
+import {
+  DOCS,
+  type DocSection,
+  type DocSource,
+  docEntries,
+  docFile,
+  docNeighbors,
+  docSource,
+  findDoc,
+} from '../src/docs'
 import { Asm, blockSource, loadAsmRuntime, parseRun } from '../src/docs/Asm'
 import { MDX_COMPONENTS, metaAttributes } from '../src/docs/components'
 import { encodingFields, findForm } from '../src/docs/reference'
@@ -40,10 +49,14 @@ window.scrollTo = () => {}
 
 const DOCS_DIR = new URL('../src/docs/', import.meta.url).pathname
 
-/** Compiles MDX as the build does (vite.config.ts): the same remark plugins. */
-async function compile(source: string): Promise<MDXContent> {
+/**
+ * Compiles MDX as the build does (vite.config.ts): the same remark plugins, and a `.md` file as
+ * plain Markdown.
+ */
+async function compile(source: string, format: DocSource['format'] = 'mdx'): Promise<MDXContent> {
   const { default: Content } = await evaluate(source, {
     ...runtime,
+    format,
     remarkPlugins: REMARK_PLUGINS,
     baseUrl: import.meta.url,
   })
@@ -319,6 +332,19 @@ describe('fenced blocks', () => {
     await screen.findByText('page q')
     expect(router.state.location.pathname).toBe('/docs/q')
     expect(router.state.location.hash).toBe('add')
+  })
+
+  it("follows a link to the canonical site as the app's own: CHANGELOG.md's, on GitHub too", async () => {
+    const Content = await compile('See [q](https://asmbots.io/docs/q).', 'md')
+    const router = await renderDocs('/docs/p', {
+      pages: { p: () => <Content components={MDX_COMPONENTS} /> },
+    })
+    const q = screen.getByRole('link', { name: 'q' })
+    expect(q.getAttribute('href')).toBe('/docs/q')
+    expect(q.getAttribute('target')).toBeNull()
+    fireEvent.click(q)
+    await screen.findByText('page q')
+    expect(router.state.location.pathname).toBe('/docs/q')
   })
 })
 
@@ -603,7 +629,8 @@ describe('the pages', () => {
   it('are every MDX file, each once, with a unique slug and title', () => {
     const slugs = entries.map(({ page }) => page.slug)
     expect(new Set(slugs).size).toBe(slugs.length)
-    expect(entries.map(({ page }) => docFile(page)).sort()).toEqual(mdxFiles().sort())
+    const mdx = entries.filter(({ page }) => page.markdown === undefined)
+    expect(mdx.map(({ page }) => docFile(page)).sort()).toEqual(mdxFiles().sort())
     const titles = entries.map(({ page }) => page.title)
     expect(new Set(titles).size).toBe(titles.length)
     for (const { page } of entries) expect(page.title).toBe(page.title.toLowerCase())
@@ -611,8 +638,8 @@ describe('the pages', () => {
 
   for (const { page } of entries) {
     it(`${page.slug}: compiles, draws, and each open in editor snippet assembles`, async () => {
-      const source = readFileSync(`${DOCS_DIR}${docFile(page)}.mdx`, 'utf8')
-      const Content = await compile(source)
+      const { path, format } = docSource(page)
+      const Content = await compile(readFileSync(`${DOCS_DIR}${path}`, 'utf8'), format)
       await renderDocs(`/docs/${page.slug}`, {
         pages: { [page.slug]: () => <Content components={MDX_COMPONENTS} /> },
       })
