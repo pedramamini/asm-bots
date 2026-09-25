@@ -12,6 +12,8 @@ asmbots fight roster:dwarf roster:imp --seed 1
 
 Or, with no link, from the repository root: `bun apps/cli/src/main.ts <command> …`.
 
+`bun run bundle` in `apps/cli` builds `dist/asmbots.js`, one file that runs on Node.js with no install: `node asmbots.js <command> …`. The [skill](/docs/tools/agents#the-skill) carries it as `bin/asmbots.js`.
+
 Each command takes `--help`. A bot is a roster slug (`roster:dwarf`), an `.asm` file (assembled first), or a `.bin` file (raw bytes). Color is off with `--no-color`, with `--json`, when `NO_COLOR` is set, or when the output is not a terminal.
 
 | exit code | means |
@@ -20,6 +22,8 @@ Each command takes `--help`. A bot is a roster slug (`roster:dwarf`), an `.asm` 
 | 1 | usage: a missing argument, an unknown command or format, or a `--trace-bot` name that no bot has |
 | 2 | `asm`: the source has errors |
 | 3 | a runtime error: a file that cannot be read, a bot that does not assemble, or an unknown roster slug |
+
+The commands that talk to the server (`login`, `logout`, `whoami`, `push`, `submit`, `hills`) exit 0 when done and 1 on any error, with the server's message.
 
 ## asm
 
@@ -71,13 +75,53 @@ asmbots bench [--seconds 5]
 
 Runs battles of two dwarves for that long and prints the engine's speed in instructions a second.
 
+## The server
+
+These commands talk to `https://asmbots.io`: your account, your bots there, and the hills. They sign in with an API token, which you make on the site (see [the API](/docs/tools/api#sign-in-with-a-token)).
+
+The server is `--server <url>`, else `ASMBOTS_SERVER`, else the one `login` saved, else `https://asmbots.io`. The token is `ASMBOTS_TOKEN`, else the one `login` saved. A 401 says to run `asmbots login`.
+
+### login, logout, whoami
+
+```sh
+asmbots login [--token asmb_...] [--server https://asmbots.io]
+asmbots whoami
+asmbots logout
+```
+
+`login` checks the token with the server, then saves it and the server to `~/.config/asmbots/config.json`, which only you may read. Without `--token`, it reads the token from the next line you type or pipe in, so the token stays out of your shell history: `pbpaste | asmbots login`. It prints `signed in as <handle> on <server>`. `whoami` prints the same. `logout` forgets the saved token; revoke it in [settings](/settings) to end it everywhere.
+
+### push
+
+```sh
+asmbots push bot.asm [--name "Spin"] [--visibility public|unlisted|private]
+```
+
+Assembles the bot here first: a source with errors prints them, sends nothing, and exits 1. Then it saves the bot to your account. When you have a bot of that name, the source is its next version (the same bytes as its latest version make none); else it makes a new bot, public unless `--visibility` says otherwise. `--visibility` on a bot you have changes it. The name is `--name`, else the source's `%name`, else the file's name. It prints the bot's id, the version, and the bot's page.
+
+### submit
+
+```sh
+asmbots submit main bot.asm [--wait] [--name "Spin"] [--visibility public]
+```
+
+Pushes the bot as `push` does, then submits that version to the hill `main`, and prints the submission's id and its page. With `--wait`, it asks the server how the submission is going every 2 seconds, for 5 minutes at most, and prints its rank and score when it has finished, how many places it moved, and its rating. A bot that did not stay prints its score and the score it had to beat. A hill takes one submission of yours at a time, and 5 an hour.
+
+### hills
+
+```sh
+asmbots hills
+```
+
+Lists the hills: slug, name, scoring, entrants, and king. A slug is what `submit` takes.
+
 <Warn>
 
 Known gaps in this build:
 
 - `fight --rounds K` runs K rounds with the seeds `seed` to `seed + K - 1`, but it does not rotate the bot order as a match does, and it prints only the last round. For a match, use `tourney roundrobin` with two bots.
 - `tourney` has no `--seed`, and only a bracket's `--out` file records the seeds it used.
-- `hill submit` does not work: the second bot fails with "is 8192 bytes, not 1..512". Hills arrive with the server.
+- `hill submit`, the local hill, does not work: the second bot fails with "is 8192 bytes, not 1..512". Use `submit` for the server's hills.
 - `golden` runs `bun run golden`, which it finds only at the repository root: run it there.
 - `--json` does nothing for `asm` and `dis`.
 

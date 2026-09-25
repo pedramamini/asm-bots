@@ -4,6 +4,7 @@
  * every hill read.
  */
 import {
+  ApiTokenList,
   BotDetail,
   BotVersionDetail,
   HillDetail,
@@ -22,8 +23,16 @@ import {
   TournamentList,
   UserDetail,
 } from '@asmbots/protocol'
-import { type QueryClient, type QueryKey, queryOptions, useQuery } from '@tanstack/react-query'
+import {
+  type QueryClient,
+  type QueryKey,
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { ApiRequestError, apiGet } from './client'
+import { createApiToken, revokeApiToken } from './writes'
 
 const segment = encodeURIComponent
 
@@ -241,6 +250,14 @@ export const myBotsQuery = () =>
     queryFn: ({ signal }) => apiGet('/me/bots', (v) => parse(MyBotList, v, 'your bots'), signal),
   })
 
+/** The signed-in user's API tokens, under `me` so signing out drops them with the account. */
+export const apiTokensQuery = () =>
+  queryOptions({
+    queryKey: ['me', 'tokens'],
+    queryFn: ({ signal }) =>
+      apiGet('/me/tokens', (v) => parse(ApiTokenList, v, 'your api tokens'), signal),
+  })
+
 export const useHills = () => useQuery(hillsQuery())
 export const useHill = (slug: string) => useQuery(hillQuery(slug))
 export const useHillMatches = (slug: string, filter?: HillMatchesFilter) =>
@@ -270,4 +287,28 @@ export const useMe = () => useQuery(meQuery())
 export function useMyBots() {
   const signedIn = Boolean(useMe().data)
   return useQuery({ ...myBotsQuery(), enabled: signedIn })
+}
+
+/** The signed-in user's API tokens; asks nothing while nobody is signed in. */
+export function useApiTokens() {
+  const signedIn = Boolean(useMe().data)
+  return useQuery({ ...apiTokensQuery(), enabled: signedIn })
+}
+
+/** Makes an API token (`POST /api/me/tokens`), then reads the list again. */
+export function useCreateApiToken() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: createApiToken,
+    onSuccess: () => client.invalidateQueries({ queryKey: apiTokensQuery().queryKey }),
+  })
+}
+
+/** Revokes an API token (`DELETE /api/me/tokens/:id`), then reads the list again. */
+export function useRevokeApiToken() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: revokeApiToken,
+    onSuccess: () => client.invalidateQueries({ queryKey: apiTokensQuery().queryKey }),
+  })
 }

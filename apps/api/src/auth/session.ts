@@ -11,12 +11,19 @@
  *    `Origin` is not refused, since the CLI and scripts send none, but its cookie counts for
  *    nothing: only a browser holds the cookie, and a browser always says where it came from.
  * A double-submit token would add nothing to either.
+ *
+ * API tokens (`token.ts`): a script or an AI agent signs in with `Authorization: Bearer asmb_...`,
+ * and that counts on a write with no `Origin`, unlike the cookie. The reasoning above still holds:
+ * a browser never sends an `Authorization` header on its own, as it sends a cookie, and a page on
+ * another site cannot set one on a request here (CORS allows only `Content-Type`), so no other
+ * site can make a request that carries someone's token.
  */
 import type { Context, MiddlewareHandler } from 'hono'
 import { deleteCookie, getSignedCookie, setCookie, setSignedCookie } from 'hono/cookie'
 import type { CookieOptions } from 'hono/utils/cookie'
 import type { AppEnv } from '../env'
 import { errorResponse } from '../middleware'
+import { bearerToken, tokenSession } from './token'
 
 /** `__Host-`: Secure, `Path=/`, and no `Domain`, so a subdomain cannot plant one. */
 const SESSION_COOKIE = 'session'
@@ -38,8 +45,14 @@ export interface Session {
   ua: string
 }
 
+/**
+ * The request's session: a cookie's (`id` its KV key's) or an API token's (`id` is
+ * `token:<token id>`, `createdAt` when the token was made, nothing in KV).
+ */
 export interface ActiveSession extends Session {
   id: string
+  /** How it signed in: the site's cookie, or an API token. */
+  via?: 'cookie' | 'token'
 }
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
@@ -125,11 +138,15 @@ export async function startSession(c: Context<AppEnv>, userId: string): Promise<
   return { id, ...session }
 }
 
-/** Ends the request's session, if any, in KV and in the browser. */
+/**
+ * Ends the request's session, if any, in KV and in the browser. An API token's has neither: it
+ * ends only for this request (the token stays until its user revokes it).
+ */
 export async function endSession(c: Context<AppEnv>): Promise<void> {
   const session = c.get('session')
-  if (session) await dropSession(c.env.KV, session.userId, session.id)
   c.set('session', null)
+  if (session?.via === 'token') return
+  if (session) await dropSession(c.env.KV, session.userId, session.id)
   deleteCookie(c, SESSION_COOKIE, { path: '/', secure: true, prefix: SESSION_PREFIX })
   deleteCookie(c, SIGNED_IN_COOKIE, { path: '/', secure: true })
 }
@@ -150,7 +167,9 @@ export const sameOrigin: MiddlewareHandler<AppEnv> = async (c, next) => {
 
 /**
  * Sets `session` from the cookie. A bad signature, an expired session, or a write with no `Origin`
- * leaves it null.
+ * leaves it null. With no cookie session, an `Authorization: Bearer` API token signs its user in
+ * (`tokenSession`); a token that is not one, or was revoked, is 401 then and there, not a
+ * request from nobody, so a script with a bad token hears so.
  */
 export const loadSession: MiddlewareHandler<AppEnv> = async (c, next) => {
   c.set('session', null)
@@ -160,8 +179,26 @@ export const loadSession: MiddlewareHandler<AppEnv> = async (c, next) => {
     const id = await getSignedCookie(c, secret, SESSION_COOKIE, SESSION_PREFIX)
     if (id) {
       const session = await c.env.KV.get<Session>(sessionKey(id), 'json')
-      if (session) c.set('session', { id, ...session })
+      if (session) c.set('session', { id, ...session, via: 'cookie' })
     }
+  }
+  const token = c.get('session') === null ? bearerToken(c.req.header('Authorization')) : null
+  if (token !== null) {
+    const session = await tokenSession(c, token)
+    if (session === null) return errorResponse(c, 'unauthorized', 'the api token is not valid')
+    c.set('session', session)
+  }
+  await next()
+}
+
+/**
+ * 403 for a request an API token signed in: what only a person on the site may do (the tokens
+ * themselves, deleting the account, sign-out, the admin routes). A leaked token cannot make more
+ * tokens, nor lock its user out.
+ */
+export const refuseToken: MiddlewareHandler<AppEnv> = async (c, next) => {
+  if (c.get('session')?.via === 'token') {
+    return errorResponse(c, 'forbidden', 'sign in on the site to do this')
   }
   await next()
 }

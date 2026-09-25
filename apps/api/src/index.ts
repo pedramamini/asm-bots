@@ -7,7 +7,7 @@
 import { Hono } from 'hono'
 import { requestId } from 'hono/request-id'
 import { auth } from './auth/github'
-import { loadSession, sameOrigin } from './auth/session'
+import { loadSession, refuseToken, sameOrigin } from './auth/session'
 import { scheduled } from './cron'
 import type { AppEnv, Env } from './env'
 import { appCors, errorResponse, isApi, onError, requestLog, securityHeaders } from './middleware'
@@ -48,6 +48,9 @@ app.use('/api/*', appCors)
 app.on(['POST', 'PUT', 'PATCH', 'DELETE'], '/api/*', sameOrigin)
 // The session before the limits: they count a signed-in user's requests by user, not by IP.
 app.use('/api/*', loadSession)
+// An API token may not sign out or read the admin stats (`me.ts` refuses the rest it may not do).
+app.use('/api/auth/*', refuseToken)
+app.use('/api/admin/*', refuseToken)
 app.on(['POST', 'PUT', 'PATCH', 'DELETE'], '/api/*', rateLimit(WRITE_LIMIT))
 app.use('/api/auth/*', rateLimit(AUTH_LIMIT))
 app.post('/api/assemble', rateLimit(ASSEMBLE_LIMIT))

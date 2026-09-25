@@ -198,6 +198,50 @@ export type Me = z.output<typeof Me>
 export const UpdateMe = z.object({ handle: z.string().check(z.maxLength(64)) })
 export type UpdateMe = z.output<typeof UpdateMe>
 
+/** The most API tokens a user may have. */
+export const MAX_API_TOKENS = 10
+
+/**
+ * A personal API token: `asmb_` and 64 lowercase hex digits (32 random bytes). A script or an AI
+ * agent sends it as `Authorization: Bearer <token>` to act as its user.
+ */
+export const API_TOKEN = /^asmb_[0-9a-f]{64}$/
+
+/**
+ * One of the signed-in user's API tokens, as `GET /api/me/tokens` lists it: never the token
+ * itself. `prefix` is its first 12 characters (`asmb_` and 7 more), so a person can tell tokens
+ * apart. `lastUsedAt` is null until it signs a request in, and moves at most once an hour.
+ */
+export const ApiToken = z.object({
+  id: Id,
+  name: z.string(),
+  prefix: z.string(),
+  createdAt: Timestamp,
+  lastUsedAt: z.nullable(Timestamp),
+})
+export type ApiToken = z.output<typeof ApiToken>
+
+/** `GET /api/me/tokens`: the signed-in user's API tokens, the newest first. */
+export const ApiTokenList = z.object({ tokens: z.array(ApiToken) })
+export type ApiTokenList = z.output<typeof ApiTokenList>
+
+/** `POST /api/me/tokens`: a new token's name, 1..40 characters once trimmed. */
+export const NewApiToken = z.object({
+  name: z
+    .string()
+    .check(
+      z.refine((name) => /^[^\n\r]{1,40}$/.test(name.trim()), 'a token name is 1..40 characters'),
+    ),
+})
+export type NewApiToken = z.output<typeof NewApiToken>
+
+/**
+ * `POST /api/me/tokens`: the token made, and `secret`, the token itself. It is shown only this
+ * once: the server keeps its SHA-256, not the token.
+ */
+export const CreatedApiToken = z.object({ token: ApiToken, secret: matching(API_TOKEN) })
+export type CreatedApiToken = z.output<typeof CreatedApiToken>
+
 /**
  * A tournament in a list: its entrant count, the matches it has played (`done`) of the ones its
  * entrants make (`of`: every pair of a round robin, one fewer than the entrants of a bracket and
@@ -467,13 +511,16 @@ export const AUDIT_ACTIONS = [
   'hill.submit',
   'tournament.create',
   'tournament.enter',
+  'token.create',
+  'token.delete',
 ] as const
 export const AuditAction = z.enum(AUDIT_ACTIONS)
 export type AuditAction = z.output<typeof AuditAction>
 
 /**
  * One change the user made: `target` is what it changed, a bot id for `bot.*` (`<bot id>/v<n>`
- * for `bot.version`), a submission id for `hill.submit`, a tournament id for `tournament.*`.
+ * for `bot.version`), a submission id for `hill.submit`, a tournament id for `tournament.*`, an
+ * API token id for `token.*`.
  */
 export const AuditEntry = z.object({
   id: Id,

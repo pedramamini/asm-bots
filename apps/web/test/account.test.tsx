@@ -176,6 +176,7 @@ describe('the settings account panel', () => {
     server.use(
       answer('/me', onboarded),
       answer('/me/bots', { bots: [] }),
+      answer('/me/tokens', { tokens: [] }),
       answerPatch({ error: { code: 'conflict', message: 'taken-one is taken' } }, 409, seen),
     )
     renderWith(() => <SettingsPage />)
@@ -209,6 +210,7 @@ describe('the settings account panel', () => {
     server.use(
       answer('/me', onboarded),
       answer('/me/bots', { bots: [] }),
+      answer('/me/tokens', { tokens: [] }),
       http.delete('*/api/me', () => {
         deleted++
         return new HttpResponse(null, { status: 204 })

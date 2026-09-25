@@ -139,7 +139,7 @@ Scoring: pMARS points (ISA_SPEC §5.5). Ratings: Glicko-2 per bot across hill hi
 | Live rooms | Durable Object `LiveRoom` per tournament/hill: WebSocket fan-out of `{ matchStarted, matchFinished, standings }`; spectators simulate locally from the same inputs |
 | Long-running hill/tournament execution | Durable Object `Runner` with alarms: one match per alarm, results persisted to D1 as they land; resumable; CPU-bounded per alarm |
 | Scheduled championships | Cron trigger (weekly, Saturdays 18:00 UTC) starts the week's open championship in a `Runner` (a bracket of up to 32, seeded by rating) and makes next week's, which takes entries for six days |
-| Auth | GitHub OAuth (players are developers) + guest sessions (play locally without an account; upload requires sign-in). Session cookie, HttpOnly, SameSite=Lax, 30 days, stored in KV |
+| Auth | GitHub OAuth (players are developers) + guest sessions (play locally without an account; upload requires sign-in). Session cookie, HttpOnly, SameSite=Lax, 30 days, stored in KV. Personal API tokens (`Authorization: Bearer asmb_...`) for scripts, the CLI, and AI agents: made on the settings page, hashed in D1, never able to manage tokens, delete the account, or sign out |
 | Abuse controls | bot size cap, per-user submission rate limit (KV), assembler runs server-side on submit, no arbitrary code ever runs server-side except the deterministic engine |
 | Observability | Workers Analytics Engine for match counts and durations; `wrangler tail` in dev; structured JSON logs |
 
@@ -158,6 +158,7 @@ tournament_entries(tournament_id, bot_version_id, seed, user_id, entered_at)  --
 matches(id, tournament_id, hill_id, a_version_id, b_version_id, participants_json, rounds, seed, result_json, replay_key, finished_at, match_key)  -- match_key: tourney matchHash
 ratings(bot_version_id, hill_id, rating, rd, volatility, updated_at)          -- Glicko-2; each hill submission is one rating period
 audit(id, user_id, action, target, at)                                     -- action: protocol AUDIT_ACTIONS
+api_tokens(id, user_id, name, prefix, hash, created_at, last_used_at)     -- personal API tokens: SHA-256 of the token, never the token
 hill_submissions(id, hill_id, bot_version_id, user_id, status, score, rank, needed, created_at)  -- one Runner job each; one queued|running per user per hill
 hill_history(id, hill_id, submission_id, event, bot_version_id, rank, score, delta, at)  -- event: entered|rejected|evicted|replaced; the hill page's feed
 ```

@@ -1,6 +1,6 @@
 {
   "name": "@asmbots/cli",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "bin": {
@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "tsc -b",
+    "bundle": "bun build src/main.ts --target=node --outfile dist/asmbots.js && bun scripts/node-shebang.ts dist/asmbots.js",
     "test": "bun test"
   },
   "dependencies": {

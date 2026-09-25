@@ -1,5 +1,6 @@
 /** The write routes the web app calls (`apps/api/src/routes`). */
 import {
+  CreatedApiToken,
   HillSubmitted,
   ImportBotsResult,
   Me,
@@ -83,6 +84,16 @@ export function deleteBot(id: string): Promise<void> {
 /** `DELETE /api/me`: deletes the account, its cloud bots, and every session it has. */
 export function deleteAccount(): Promise<void> {
   return apiDelete('/me')
+}
+
+/** `POST /api/me/tokens`: a new API token; its `secret` is shown this once. */
+export function createApiToken(name: string): Promise<CreatedApiToken> {
+  return apiPost('/me/tokens', { name }, (v) => parse(CreatedApiToken, v, 'the token'))
+}
+
+/** `DELETE /api/me/tokens/:id`: revokes the token at once. */
+export function revokeApiToken(id: string): Promise<void> {
+  return apiDelete(`/me/tokens/${segment(id)}`)
 }
 
 /** `POST /api/auth/logout`: ends the session here and on the server. */

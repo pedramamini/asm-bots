@@ -1,6 +1,13 @@
-import { handleProblem, type Me } from '@asmbots/protocol'
+import {
+  type ApiToken,
+  type CreatedApiToken,
+  handleProblem,
+  MAX_API_TOKENS,
+  type Me,
+} from '@asmbots/protocol'
 import {
   Button,
+  EmptyState,
   Input,
   Kbd,
   KeyHelp,
@@ -15,14 +22,21 @@ import {
 } from '@asmbots/ui'
 import { applyTheme, THEMES, type Theme } from '@asmbots/ui/themes'
 import { useQueryClient } from '@tanstack/react-query'
-import { Download, LogOut, Trash2, Upload, UserX } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { Copy, Download, KeyRound, LogOut, Trash2, Upload, UserX } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { ApiRequestError } from '../api/client'
-import { useMe, useMyBots } from '../api/queries'
+import {
+  useApiTokens,
+  useCreateApiToken,
+  useMe,
+  useMyBots,
+  useRevokeApiToken,
+} from '../api/queries'
 import { deleteAccount, updateMe } from '../api/writes'
 import { forgetAccount, SignInButton, useSignOut } from '../features/account/AccountSlot'
 import { HandleField } from '../features/account/HandleField'
-import { plural, UserLink } from '../features/hills/links'
+import { ago, day, plural, UserLink } from '../features/hills/links'
 import { appSound, toggleSound } from '../features/sound/engine'
 import {
   botsToZip,
@@ -54,7 +68,10 @@ export function exportFileName(now = new Date()): string {
   return `asmbots-bots-${now.toISOString().slice(0, 10)}.zip`
 }
 
-/** `/settings` (PRODUCT_SPEC §8): theme, arena effects, sound, keys, account, and data. */
+/**
+ * `/settings` (PRODUCT_SPEC §8): theme, arena effects, sound, keys, account, data, and, signed in,
+ * the API tokens.
+ */
 export function SettingsPage() {
   return (
     <PanelGrid className="p-3">
@@ -63,6 +80,7 @@ export function SettingsPage() {
       <SoundPanel />
       <AccountPanel />
       <DataPanel />
+      <ApiTokensPanel />
       <KeysPanel />
     </PanelGrid>
   )
@@ -491,6 +509,223 @@ function DataPanel() {
         </p>
       </Modal>
     </Panel>
+  )
+}
+
+/** A link in running text: underlined, as DESIGN_SYSTEM §8 asks. */
+const TEXT_LINK =
+  'rounded-sm text-accent-fg underline underline-offset-2 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent'
+
+/**
+ * The signed-in user's API tokens (`/api/me/tokens`): what a token is for, the list (name, prefix,
+ * when made and last used) with a revoke each, confirmed in a dialog, and a form that makes one.
+ * A new token's secret shows once, here, in a box to copy, with a warning that it will not show
+ * again. Signed out, there is no panel.
+ */
+function ApiTokensPanel() {
+  const { data: me } = useMe()
+  const tokens = useApiTokens()
+  const create = useCreateApiToken()
+  const [name, setName] = useState('')
+  const [made, setMade] = useState<CreatedApiToken | null>(null)
+  const [revoking, setRevoking] = useState<ApiToken | null>(null)
+  const nameInput = useRef<HTMLInputElement>(null)
+  if (!me) return null
+  const list = tokens.data?.tokens
+  const full = list !== undefined && list.length >= MAX_API_TOKENS
+  const trimmed = name.trim()
+
+  const submit = async () => {
+    if (trimmed === '' || full || create.isPending) return
+    try {
+      setMade(await create.mutateAsync(trimmed))
+      setName('')
+    } catch {
+      // `create.error` says why, under the form.
+    }
+  }
+
+  return (
+    <Panel
+      className="col-span-12"
+      title="api tokens"
+      status={list === undefined ? undefined : `${list.length} of ${MAX_API_TOKENS}`}
+    >
+      <div className="flex flex-col gap-3">
+        <p className="text-muted">
+          a token lets a script or an AI agent push bots and submit them to hills as you. see the{' '}
+          <Link to="/docs/$" params={{ _splat: 'tools/agents' }} className={TEXT_LINK}>
+            agents page
+          </Link>{' '}
+          in the docs.
+        </p>
+        {made && <NewTokenSecret made={made} onDone={() => setMade(null)} />}
+        {tokens.isError ? (
+          <p role="alert" className="text-danger">
+            could not load your tokens: {tokens.error.message}
+          </p>
+        ) : list === undefined ? (
+          <p className="text-muted">loading your tokens…</p>
+        ) : list.length === 0 ? (
+          <EmptyState
+            dense
+            action={{ label: 'name one below', onClick: () => nameInput.current?.focus() }}
+          >
+            no api tokens yet.
+          </EmptyState>
+        ) : (
+          <ul aria-label="your api tokens" className="flex flex-col divide-y divide-border">
+            {list.map((token) => (
+              <li key={token.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-1.5">
+                <span className="min-w-32 font-medium text-text">{token.name}</span>
+                <code className="text-code text-muted">{token.prefix}…</code>
+                <span className="text-muted">created {day(token.createdAt)}</span>
+                <span className="text-muted">
+                  last used {token.lastUsedAt === null ? 'never' : ago(token.lastUsedAt)}
+                </span>
+                <span className="ml-auto">
+                  <Button
+                    variant="ghost"
+                    icon={Trash2}
+                    aria-label={`revoke ${token.name}`}
+                    onClick={() => setRevoking(token)}
+                  >
+                    revoke
+                  </Button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form
+          aria-label="new api token"
+          className="flex w-full max-w-md flex-col gap-1"
+          onSubmit={(event) => {
+            event.preventDefault()
+            void submit()
+          }}
+        >
+          <div className="flex items-start gap-2">
+            <Input
+              ref={nameInput}
+              aria-label="token name"
+              aria-describedby={create.isError ? 'api-token-problem' : undefined}
+              className="flex-1"
+              placeholder="my agent"
+              maxLength={40}
+              autoComplete="off"
+              spellCheck={false}
+              value={name}
+              onChange={(event) => {
+                setName(event.currentTarget.value)
+                create.reset()
+              }}
+            />
+            <Button
+              type="submit"
+              icon={KeyRound}
+              loading={create.isPending}
+              disabled={trimmed === '' || full}
+            >
+              create token
+            </Button>
+          </div>
+          {full && (
+            <p className="text-muted">
+              you have {MAX_API_TOKENS} tokens: revoke one to make another.
+            </p>
+          )}
+          {create.isError && (
+            <p id="api-token-problem" role="alert" className="text-danger">
+              {create.error instanceof ApiRequestError
+                ? create.error.message
+                : 'could not make the token: try again'}
+            </p>
+          )}
+        </form>
+      </div>
+      {revoking && <RevokeToken token={revoking} onClose={() => setRevoking(null)} />}
+    </Panel>
+  )
+}
+
+/** A new token's secret, once: a box to copy it from, and the warning that it is not shown again. */
+function NewTokenSecret({ made, onDone }: { made: CreatedApiToken; onDone: () => void }) {
+  const { toast } = useToast()
+  const copy = () => {
+    navigator.clipboard.writeText(made.secret).then(
+      () => toast('copied.', { variant: 'accent' }),
+      () => toast('could not copy the token: select it and copy.', { variant: 'danger' }),
+    )
+  }
+  return (
+    <div
+      role="note"
+      aria-label="new token"
+      className="flex flex-col gap-2 border-l-2 border-warn bg-panel-2 px-3 py-2"
+    >
+      <p className="text-warn">copy it now: it is not shown again.</p>
+      <p className="text-muted">
+        {made.token.name}: use it as <code className="text-code">ASMBOTS_TOKEN</code>, or with{' '}
+        <code className="text-code">asmbots login</code>.
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          readOnly
+          aria-label="the token"
+          className="min-w-0 flex-1"
+          spellCheck={false}
+          value={made.secret}
+          onFocus={(event) => event.currentTarget.select()}
+        />
+        <Button icon={Copy} onClick={copy}>
+          copy
+        </Button>
+        <Button variant="ghost" onClick={onDone}>
+          done
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+/** The confirm step of `revoke`: the token stops working at once. */
+function RevokeToken({ token, onClose }: { token: ApiToken; onClose: () => void }) {
+  const revoke = useRevokeApiToken()
+  const { toast } = useToast()
+  const run = async () => {
+    try {
+      await revoke.mutateAsync(token.id)
+    } catch (error) {
+      const why = error instanceof ApiRequestError ? error.message : 'the server did not answer'
+      toast(`could not revoke the token: ${why}.`, { variant: 'danger' })
+      return
+    }
+    toast(`revoked ${token.name}.`)
+    onClose()
+  }
+  return (
+    <Modal
+      open
+      onClose={revoke.isPending ? () => {} : onClose}
+      title="revoke api token"
+      size="sm"
+      actions={
+        <>
+          <Button variant="ghost" onClick={onClose} disabled={revoke.isPending}>
+            cancel
+          </Button>
+          <Button variant="danger" loading={revoke.isPending} onClick={() => void run()}>
+            revoke
+          </Button>
+        </>
+      }
+    >
+      <p>
+        revokes <b>{token.name}</b> ({token.prefix}…) now. a script or an agent that uses it gets
+        401 from then on.
+      </p>
+    </Modal>
   )
 }
 

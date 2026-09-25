@@ -1,25 +1,98 @@
 # API
 
-<Note>
+The server at `https://asmbots.io` answers JSON under `/api`. Anyone may read the hills, the public bots, the tournaments, and the replays. To save a bot or submit one to a hill, you sign in: with the site's cookie in a browser, or with an API token from a script or an [AI agent](/docs/tools/agents). The [CLI](/docs/tools/cli) wraps the routes an agent needs.
 
-The API is not live yet. It arrives with the server: the hills, accounts, cloud bots, and stored replays. This page will list its routes then. Until it does, everything in ASM BOTS runs in your browser, and the [CLI](/docs/tools/cli) runs the same code in a shell.
+## Sign in with a token
 
-</Note>
+Sign in on the site, open [settings](/settings), name a token under `api tokens`, and create it. The token is `asmb_` and 64 hex digits. The site shows it once: copy it then. Send it on each request:
 
-## What is planned
+```sh
+export ASMBOTS_TOKEN=asmb_...
+curl -H "Authorization: Bearer $ASMBOTS_TOKEN" https://asmbots.io/api/me
+```
 
-A read API first, then writes behind sign-in:
+A token acts as you: it can save bots, change them, submit them to hills, and enter tournaments. It cannot make or revoke tokens, delete your account, or sign out: those answer 403, and only the site does them. A token that is not one, or one you revoked, answers 401 with `the api token is not valid`, even on a read. An account holds 10 tokens. Settings shows when each was last used (to the hour), and revokes one at once.
 
-| route | gives |
+<Warn>
+
+A token is a password. Keep it out of a repository and out of a shared log. Give an agent its own token, and revoke it when the agent is done.
+
+</Warn>
+
+## Errors and limits
+
+Every error is `{ "error": { "code", "message" } }`, and the message says what went wrong in one sentence.
+
+| status | code | when |
+|---|---|---|
+| 400 | `bad_request` | the body is not the JSON the route takes |
+| 401 | `unauthorized` | nobody is signed in, or the token is not valid |
+| 403 | `forbidden` | it is not yours, or a token may not do it |
+| 404 | `not_found` | no such thing, or not one you may see |
+| 409 | `conflict` | a limit: 200 bots, 100 versions a bot, one submission at a time on a hill |
+| 413 | `payload_too_large` | the body is too big |
+| 422 | `unprocessable` | the source does not assemble (the message has its first error), or the bot is too big for the hill |
+| 429 | `rate_limited` | too many requests: wait the seconds `Retry-After` says |
+
+The limits count per account when you are signed in: 60 writes a minute, 20 bot saves a minute, and 5 hill submissions an hour (a refused one does not count).
+
+## Your account
+
+| route | does |
 |---|---|
-| `GET /api/health` | the server's version and ISA |
-| `GET /api/bots/:id` | a bot, and its versions |
-| `GET /api/replays/:key` | a stored replay, in the [replay format](/docs/tools/replay-format)'s shared successor |
-| `GET /api/hills`, `GET /api/hills/:slug` | the hills, and a hill's standings |
-| `GET /api/tournaments/:id` | a tournament |
-| `POST /api/assemble` | the bytes and the diagnostics of a source, assembled on the server |
-| `POST /api/replays` | stores a replay after the server has run it again and checked its result hashes |
+| `GET /api/me` | `{ user, onboarded }`: who you are signed in as |
+| `GET /api/me/bots` | `{ bots: [{ bot, latest }] }`: your bots, private ones too, each with its latest version |
+| `GET /api/me/tokens` | your API tokens: name, prefix, when made, when last used (the site only) |
+| `POST /api/me/tokens` | `{ name }` makes a token and answers its secret once (the site only) |
+| `DELETE /api/me/tokens/:id` | revokes a token (the site only) |
 
-Errors will come as `{ "error": { "code", "message" } }`. The server runs the same engine and the same tournament code as the browser, so a result from the API is one you can run again here (see [verification](/docs/tournaments/verification)).
+## Bots
+
+| route | does |
+|---|---|
+| `POST /api/bots` | `{ name, source, visibility? }` makes a bot at version 1 → 201 `{ bot, version }`. The server assembles the source. `visibility` is `public`, `unlisted`, or `private` (the default) |
+| `POST /api/bots/:id/versions` | `{ source }` saves the next version → 201 `{ bot, version, created: true }`. The same bytes as the latest version make none: 200 with `created: false` |
+| `PATCH /api/bots/:id` | `{ name?, visibility? }` renames the bot or shows it |
+| `DELETE /api/bots/:id` | deletes the bot; its hill entries and matches keep their history |
+| `GET /api/bots/:id` | the bot, its owner, its versions, its hill places, and its fights |
+| `GET /api/bots/:id/versions/:v` | one version, with its source when the bot is public or yours |
+
+A bot's page is `https://asmbots.io/bots/<id>`. To send a source as JSON, let `jq` quote it:
+
+```sh
+jq -Rs '{ name: "Spin", source: ., visibility: "public" }' spin.asm |
+  curl -H "Authorization: Bearer $ASMBOTS_TOKEN" -H 'Content-Type: application/json' \
+    --data @- https://asmbots.io/api/bots
+```
+
+## Hills
+
+| route | does |
+|---|---|
+| `GET /api/hills` | every hill, its entrant count, and its king |
+| `GET /api/hills/:slug` | the hill, its rules, and its standings with each entry's score and rating |
+| `POST /api/hills/:slug/submit` | `{ botVersionId }`: a version of your bot challenges the hill → 201 `{ submissionId, liveRoom }` |
+| `GET /api/hills/:slug/submissions/:id` | the submission: its `status` (`queued`, `running`, `finished`, `cancelled`, `failed`), how far its matches are, and once it has finished its score, its rank (null when it did not stay), and `needed`, the score it had to beat |
+| `GET /api/hills/:slug/history` | what each submission did to the board, newest first |
+
+A submission plays the hill's matches on the server, which can take a few minutes. Ask for it every few seconds until its status is no longer `queued` or `running`:
+
+```sh
+curl -H "Authorization: Bearer $ASMBOTS_TOKEN" -H 'Content-Type: application/json' \
+  --data '{ "botVersionId": "<version id>" }' https://asmbots.io/api/hills/main/submit
+curl https://asmbots.io/api/hills/main/submissions/<submission id>
+```
+
+The server assembles every bot itself and runs the same engine as your browser, so each result is one you can run again (see [verification](/docs/tournaments/verification)).
+
+## Tournaments and replays
+
+| route | does |
+|---|---|
+| `GET /api/tournaments`, `GET /api/tournaments/:id` | the tournaments, and one with its entrants and matches |
+| `POST /api/tournaments/:id/enter` | `{ botVersionId }`: your bot enters an open tournament before its deadline |
+| `GET /api/replays/:key` | a stored replay, in the [replay format](/docs/tools/replay-format) |
+| `POST /api/assemble` | `{ source }` → the bytes, the size, and the diagnostics, assembled on the server |
+| `GET /api/health` | the server's version and ISA |
 
 See also: [share links](/docs/tools/share-links), which work with no server at all.

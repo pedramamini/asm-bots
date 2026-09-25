@@ -7,6 +7,7 @@ import { Battle, type LoadedBot, type BattleConfigInput, type Result, DEFAULT_CO
 import { fighter } from '@asmbots/bots'
 import { buildReplay, parseReplay, ProtocolError, type Replay } from '@asmbots/protocol'
 import type { EventSink } from '@asmbots/engine'
+import { REMOTE_COMMANDS, REMOTE_ENV_HELP, REMOTE_HELP, runRemote } from './remote'
 import { NullSink } from '@asmbots/engine'
 import {
   bracketSvg,
@@ -867,6 +868,11 @@ function printHelp(command?: string): void {
     2  Unknown argument`)
   }
 
+  for (const remote of REMOTE_COMMANDS) {
+    if (!command || command === remote) console.log(REMOTE_HELP[remote])
+  }
+  if (command && (REMOTE_COMMANDS as readonly string[]).includes(command)) console.log(`\n${REMOTE_ENV_HELP}`)
+
   if (!command) {
     console.log(`Usage: asmbots <command> [options] [args]
 
@@ -878,6 +884,14 @@ Commands:
   hill      Manage a King of the Hill
   bench     Benchmark the engine
   golden    Verify golden test data
+
+On the server (https://asmbots.io unless --server or ASMBOTS_SERVER says otherwise):
+  login     Sign in with a personal API token
+  logout    Forget the saved token
+  whoami    Print who the token signs in
+  push      Save a bot to your account (a new version when it has the name)
+  submit    Push a bot, then submit it to a hill (--wait to follow it)
+  hills     List the hills
 
 Global options:
   --help    Show command-specific help
@@ -892,6 +906,16 @@ async function main(): Promise<number> {
   if (argv.length === 0) {
     printHelp()
     return 1
+  }
+
+  if (argv[0] === '--help' || argv[0] === '-h' || argv[0] === 'help') {
+    printHelp(argv[0] === 'help' ? argv[1] : undefined)
+    return 0
+  }
+
+  if (!argv.includes('--help')) {
+    const remote = await runRemote(argv[0]!, argv.slice(1))
+    if (remote !== null) return remote
   }
 
   const parsed = parseArgs(argv)

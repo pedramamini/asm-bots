@@ -4,6 +4,7 @@
  * ours, so the mappers trust them rather than parse them again.
  */
 import {
+  type ApiToken,
   type AuditAction,
   type AuditEntry,
   type Bot,
@@ -1140,6 +1141,93 @@ export async function listAudit(
   return results.map((row) => ({ id: row.id, action: row.action, target: row.target, at: row.at }))
 }
 
+export interface ApiTokenRow {
+  id: string
+  user_id: string
+  name: string
+  prefix: string
+  /** SHA-256 of the token, lowercase hex: all the server keeps of it. */
+  hash: string
+  created_at: string
+  last_used_at: string | null
+}
+
+/** A token row as the settings page lists it: never its hash. */
+export function toApiToken(row: ApiTokenRow): ApiToken {
+  return {
+    id: row.id,
+    name: row.name,
+    prefix: row.prefix,
+    createdAt: row.created_at,
+    lastUsedAt: row.last_used_at,
+  }
+}
+
+/** The API tokens of `userId`, the newest first. */
+export async function listApiTokens(db: D1Database, userId: string): Promise<ApiToken[]> {
+  const { results } = await db
+    .prepare('SELECT * FROM api_tokens WHERE user_id = ? ORDER BY created_at DESC, rowid DESC')
+    .bind(userId)
+    .all<ApiTokenRow>()
+  return results.map(toApiToken)
+}
+
+/** How many API tokens `userId` has. */
+export async function countApiTokens(db: D1Database, userId: string): Promise<number> {
+  const row = await db
+    .prepare('SELECT COUNT(*) AS n FROM api_tokens WHERE user_id = ?')
+    .bind(userId)
+    .first<{ n: number }>()
+  return row?.n ?? 0
+}
+
+/** The token whose SHA-256 is `hash`, or null: a token never made, or revoked. */
+export async function getApiTokenByHash(db: D1Database, hash: string): Promise<ApiTokenRow | null> {
+  return db.prepare('SELECT * FROM api_tokens WHERE hash = ?').bind(hash).first<ApiTokenRow>()
+}
+
+/**
+ * Makes API token `id` of `userId`, with its `token.create` audit row, in one batch. The caller
+ * hashed the token; the token itself is never stored.
+ */
+export async function insertApiToken(
+  db: D1Database,
+  token: { id: string; userId: string; name: string; prefix: string; hash: string },
+): Promise<ApiToken> {
+  const [made] = await db.batch([
+    db
+      .prepare(
+        'INSERT INTO api_tokens (id, user_id, name, prefix, hash) VALUES (?, ?, ?, ?, ?) RETURNING *',
+      )
+      .bind(token.id, token.userId, token.name, token.prefix, token.hash),
+    auditInsert(db, token.userId, 'token.create', token.id),
+  ])
+  return toApiToken(made?.results[0] as ApiTokenRow)
+}
+
+/**
+ * Deletes API token `id` when it is `userId`'s, with its `token.delete` audit row, in one batch:
+ * the audit row goes in first, and only when the token is theirs. False when it is not.
+ */
+export async function deleteApiToken(db: D1Database, userId: string, id: string): Promise<boolean> {
+  const results = await db.batch([
+    db
+      .prepare(
+        `INSERT INTO audit (id, user_id, action, target)
+         SELECT ?1, ?2, 'token.delete', ?3
+         WHERE EXISTS (SELECT 1 FROM api_tokens WHERE id = ?3 AND user_id = ?2)`,
+      )
+      .bind(crypto.randomUUID(), userId, id),
+    db.prepare('DELETE FROM api_tokens WHERE id = ? AND user_id = ?').bind(id, userId),
+  ])
+  return (results.at(-1)?.meta.changes ?? 0) > 0
+}
+
+/** Marks API token `id` used at `at`. */
+export function touchApiToken(db: D1Database, id: string, at: string): Promise<D1Result> {
+  return db.prepare('UPDATE api_tokens SET last_used_at = ? WHERE id = ?').bind(at, id).run()
+}
+
 /** The user that owns what deleted accounts leave on hills and in tournaments. */
 export const DELETED_USER = { id: 'deleted', handle: DELETED_HANDLE } as const
 
@@ -1162,8 +1250,9 @@ const UNSTARTED = "SELECT id FROM tournaments WHERE status IN ('draft', 'schedul
  * tournament: those stay, so standings and brackets keep their shape, owned by `DELETED_USER`,
  * named and authored `[deleted]`, with no source, and deleted (404 to all). Their other
  * tournaments pass to `DELETED_USER`, as do their hill submissions and tournament entries of the
- * versions that stay (the others go with their versions). Their audit rows go with them
- * (cascade). Sessions are in KV: the caller ends them. False when there was no such user.
+ * versions that stay (the others go with their versions). Their API tokens go, by name here and
+ * not only by cascade, so no token outlives its user. Their audit rows go with them (cascade).
+ * Sessions are in KV: the caller ends them. False when there was no such user.
  */
 export async function deleteAccount(db: D1Database, userId: string): Promise<boolean> {
   const now = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')"
@@ -1202,6 +1291,7 @@ export async function deleteAccount(db: D1Database, userId: string): Promise<boo
     db
       .prepare('UPDATE tournament_entries SET user_id = ? WHERE user_id = ?')
       .bind(DELETED_USER.id, userId),
+    db.prepare('DELETE FROM api_tokens WHERE user_id = ?').bind(userId),
     db.prepare('DELETE FROM users WHERE id = ?').bind(userId),
   ])
   return (results.at(-1)?.meta.changes ?? 0) > 0
