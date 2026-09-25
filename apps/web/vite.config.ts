@@ -40,8 +40,8 @@ const SWATCH_TOKENS = [
  * e2e preview's is the seeded one on :8788 (playwright.config.ts).
  */
 const API_PROXY = {
-  // `changeOrigin`: the Host header follows the target, so `API_ORIGIN` may name a deployed Worker.
-  '/api': { target: process.env.API_ORIGIN ?? 'http://localhost:8787', ws: true, changeOrigin: true },
+  // No `changeOrigin`: the live sockets' handshake wants Host to match Origin (the page's own).
+  '/api': { target: process.env.API_ORIGIN ?? 'http://localhost:8787', ws: true },
 }
 
 /** The build's version stamp, and its release's name from CHANGELOG.md: the version chip's. */
