@@ -105,8 +105,8 @@ Theme (five swatches, live preview), arena effects (bloom, scanlines, vignette, 
 
 - Anonymous: everything local works (arena, editor, debugger, local tournaments, roster). Local bots persist in IndexedDB.
 - Sign in with GitHub: cloud bots, hill submissions, tournament creation, profile. First sign-in asks for a handle (prefilled from GitHub), then offers to import local bots.
-- Boot screen: opening the site at `/` boots the core first, once a browser session (never on a deep link). The logo and a boot log sit on a panel over a core dump that zeroes, loads four bots, and runs them; `enter` (Enter or Escape) goes in. A browser a script drives skips it unless the URL has `?boot=1`.
-- Welcome tour: on a first visit `enter` opens six steps (the core, a bot, turns and processes, death, winning, where everything is), then `watch the first battle` starts the arena's guided intro (Dwarf vs Imp, first blood, then `pick bots`). `skip the tour` on the boot screen or in the tour puts it away for good; the home page's `take the tour` opens it again.
+- Boot screen: every load of `/` boots the core first (never on a deep link). The logo and a boot log sit on a panel over a core dump that zeroes, loads four bots, and runs them; under it, two equal buttons: `take tour` (Enter) and `enter site` (Escape). A browser a script drives skips it unless the URL has `?boot=1`.
+- Welcome tour: `take tour` opens six steps (the core, a bot, turns and processes, death, winning, where everything is), then `watch the first battle` starts the arena's guided intro (Dwarf vs Imp, first blood, then `pick bots`). `enter site` on the boot screen, or `skip the tour` in the tour, marks it seen; the home page's `take the tour` opens it again.
 - First visit to the arena: a 3-step coach mark (roster → fight → watch), dismissible, never shown again.
 - Every main page explains itself: a lead line and an `ⓘ` dialog (how it works, key terms, a docs link) on the arena setup, the hills and each hill, the tournaments and each tournament, and a bot's page; the editor has the `ⓘ` in its toolbar. The home page has `how it works` (write, fight, climb).
 

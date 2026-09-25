@@ -1,18 +1,14 @@
 /**
  * The boot screen and the welcome tour (PRODUCT_SPEC §9). Opening the site at `/` boots the core
- * first: the logo over a core dump that zeroes, loads bots, and runs. `enter` puts it away. On a
- * first visit `enter` opens the welcome tour, which ends on the arena's guided first battle; its
- * `skip` (and the boot screen's `skip the tour`) put the tour away for good. The boot shows once a
- * browser session, and never on a deep link: a shared replay or bot opens at once.
+ * first: the logo over a core dump that zeroes, loads bots, and runs. `take tour` opens the welcome
+ * tour, which ends on the arena's guided first battle; `enter site` goes straight in. The boot shows
+ * on every load of `/`, and never on a deep link: a shared replay or bot opens at once.
  */
 import { create } from 'zustand'
 import { useSettings } from '../../store/settings'
 
 /** The welcome tour's id in the settings' `coachMarksSeen`. */
 export const WELCOME_TOUR = 'welcome'
-
-/** sessionStorage's mark that this tab has booted: a reload or a return to `/` does not again. */
-export const BOOTED_KEY = 'asmbots:booted'
 
 /** `?boot=1` boots whatever else holds: the e2e specs' way in, and a way to see it again. */
 export const BOOT_PARAM = 'boot'
@@ -22,19 +18,12 @@ export type BootPhase = 'boot' | 'tour' | 'off'
 
 interface BootState {
   phase: BootPhase
-  /** `enter` on the boot screen: the tour on a first visit, else the page. */
-  enter: () => void
-  /** `skip the tour`: the page, and the tour never shows by itself again. */
+  /** `enter site` on the boot screen: the page, and the tour is marked seen. */
   skip: () => void
-  /** Opens the tour again (the home page's `take the tour`). */
+  /** Opens the tour: the boot screen's `take tour`, and the home page's `take the tour`. */
   openTour: () => void
   /** The tour is over, done or skipped: it never shows by itself again. */
   closeTour: () => void
-}
-
-/** Whether the welcome tour is still to come: the user has not finished or skipped it. */
-export function firstVisit(): boolean {
-  return !useSettings.getState().coachMarksSeen.includes(WELCOME_TOUR)
 }
 
 function tourSeen(): void {
@@ -43,7 +32,6 @@ function tourSeen(): void {
 
 export const useBoot = create<BootState>()((set) => ({
   phase: 'off',
-  enter: () => set({ phase: firstVisit() ? 'tour' : 'off' }),
   skip: () => {
     tourSeen()
     set({ phase: 'off' })
@@ -63,36 +51,25 @@ export interface BootContext {
   search: string
   /** `navigator.webdriver`: a browser a script drives (Playwright, Lighthouse) skips the boot. */
   automated: boolean
-  /** This tab has booted already (`BOOTED_KEY`). */
-  booted: boolean
 }
 
 /**
- * Whether a page that loads in `context` boots: at `/` only, once a session, and not for a
- * browser a script drives, unless `?boot=1` asks.
+ * Whether a page that loads in `context` boots: at `/` only, on every load, and not for a browser
+ * a script drives, unless `?boot=1` asks.
  */
-export function shouldBoot({ path, search, automated, booted }: BootContext): boolean {
+export function shouldBoot({ path, search, automated }: BootContext): boolean {
   if (path !== '/') return false
   if (new URLSearchParams(search).get(BOOT_PARAM) === '1') return true
-  return !automated && !booted
+  return !automated
 }
 
 /**
- * Called once, as the app starts (`main.tsx`): boots when `shouldBoot` says so, marks the tab
- * booted, and takes `?boot=1` off the URL, so a reload does not ask again. Tests that render a
- * page never call it, so nothing boots there.
+ * Called once, as the app starts (`main.tsx`): boots when `shouldBoot` says so, and takes
+ * `?boot=1` off the URL. Tests that render a page never call it, so nothing boots there.
  */
 export function armBoot(): void {
   const { pathname, search, hash } = window.location
-  const booted = attempt(() => sessionStorage.getItem(BOOTED_KEY) !== null, false)
-  const boot = shouldBoot({
-    path: pathname,
-    search,
-    automated: navigator.webdriver === true,
-    booted,
-  })
-  if (!boot) return
-  attempt(() => sessionStorage.setItem(BOOTED_KEY, '1'), undefined)
+  if (!shouldBoot({ path: pathname, search, automated: navigator.webdriver === true })) return
   const params = new URLSearchParams(search)
   if (params.has(BOOT_PARAM)) {
     params.delete(BOOT_PARAM)
@@ -104,12 +81,4 @@ export function armBoot(): void {
     )
   }
   useBoot.setState({ phase: 'boot' })
-}
-
-function attempt<T>(run: () => T, fallback: T): T {
-  try {
-    return run()
-  } catch {
-    return fallback
-  }
 }

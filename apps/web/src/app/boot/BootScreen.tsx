@@ -1,9 +1,9 @@
-import { Button, cx, Kbd } from '@asmbots/ui'
-import { CornerDownLeft } from 'lucide-react'
+import { Button, cx } from '@asmbots/ui'
+import { Compass, CornerDownLeft } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { useMotionReduced, useSettings } from '../../store/settings'
+import { useMotionReduced } from '../../store/settings'
 import { LogoMark } from '../Logo'
-import { useBoot, WELCOME_TOUR } from './boot'
+import { useBoot } from './boot'
 import {
   CoreDump,
   DUMP_BOTS,
@@ -27,15 +27,14 @@ export const BOOT_LOG: readonly { label: string; value: string; at: number }[] =
 
 /**
  * The boot screen: the logo and the boot log on a panel in the middle of a core dump that boots
- * behind it (`core-dump.ts`). A modal dialog, so the page under it is inert until `enter`, which
- * has the focus: Enter (or Escape) goes in. A first visit is told the tour comes next, and can skip it.
+ * behind it (`core-dump.ts`). A modal dialog, so the page under it is inert until the user goes in.
+ * Every load gets `take tour` (with the focus, so Enter takes it) beside `enter site` (Escape).
  */
 export function BootScreen() {
   const dialog = useRef<HTMLDialogElement>(null)
-  const enterButton = useRef<HTMLButtonElement>(null)
+  const tourButton = useRef<HTMLButtonElement>(null)
   const reduced = useMotionReduced()
-  const first = useSettings((state) => !state.coachMarksSeen.includes(WELCOME_TOUR))
-  const enter = useBoot((state) => state.enter)
+  const openTour = useBoot((state) => state.openTour)
   const skip = useBoot((state) => state.skip)
   const [leaving, setLeaving] = useState(false)
   const lines = useBootLog(reduced)
@@ -45,7 +44,7 @@ export function BootScreen() {
     if (node === null) return
     if (typeof node.showModal === 'function') node.showModal()
     else node.setAttribute('open', '')
-    enterButton.current?.focus()
+    tourButton.current?.focus()
     return () => {
       if (node.open && typeof node.close === 'function') node.close()
     }
@@ -67,7 +66,7 @@ export function BootScreen() {
       data-boot=""
       onCancel={(event) => {
         event.preventDefault()
-        leave(enter)
+        leave(skip)
       }}
       className={cx(
         'fixed inset-0 z-modal m-0 grid size-full max-h-none max-w-none place-items-center overflow-hidden border-0 bg-arena-bg p-3 text-body text-text backdrop:bg-arena-bg',
@@ -113,28 +112,20 @@ export function BootScreen() {
             </li>
           ))}
         </ol>
-        <div className="flex flex-col gap-2">
+        {/* Two equal halves: the tour (which has the focus) and straight in. */}
+        <div className="grid grid-cols-2 gap-2">
           <Button
-            ref={enterButton}
+            ref={tourButton}
             variant="primary"
-            icon={CornerDownLeft}
-            className="w-full justify-center"
-            onClick={() => leave(enter)}
+            icon={Compass}
+            className="justify-center"
+            onClick={() => leave(openTour)}
           >
-            enter
+            take tour
           </Button>
-          {first ? (
-            <div className="flex items-center justify-between gap-3 text-data text-muted">
-              <span>first time here? a short tour comes next.</span>
-              <Button variant="ghost" size="sm" onClick={() => leave(skip)}>
-                skip the tour
-              </Button>
-            </div>
-          ) : (
-            <p className="flex items-center gap-1.5 text-data text-muted">
-              welcome back. press <Kbd>enter</Kbd>
-            </p>
-          )}
+          <Button icon={CornerDownLeft} className="justify-center" onClick={() => leave(skip)}>
+            enter site
+          </Button>
         </div>
       </div>
     </dialog>

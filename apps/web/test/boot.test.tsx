@@ -6,7 +6,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { http } from 'msw'
 import { useDom, window } from '../../../packages/ui/test/dom'
 import { BOOT_LOG } from '../src/app/boot/BootScreen'
-import { armBoot, BOOTED_KEY, shouldBoot, useBoot, WELCOME_TOUR } from '../src/app/boot/boot'
+import { armBoot, shouldBoot, useBoot, WELCOME_TOUR } from '../src/app/boot/boot'
 import { TOUR_STEPS } from '../src/app/boot/WelcomeTour'
 import { INTRO_SEED } from '../src/features/arena/intro'
 import { stringifySearch } from '../src/router'
@@ -50,36 +50,33 @@ async function open(path = '/') {
 }
 
 describe('shouldBoot', () => {
-  const at = { path: '/', search: '', automated: false, booted: false }
+  const at = { path: '/', search: '', automated: false }
 
-  it('boots a first load of `/` in a session', () => {
+  it('boots every load of `/`', () => {
     expect(shouldBoot(at)).toBe(true)
   })
 
-  it('never on a deep link, a second load, or for a driven browser', () => {
+  it('never on a deep link, or for a driven browser', () => {
     expect(shouldBoot({ ...at, path: '/arena' })).toBe(false)
-    expect(shouldBoot({ ...at, booted: true })).toBe(false)
     expect(shouldBoot({ ...at, automated: true })).toBe(false)
   })
 
   it('`?boot=1` boots `/` whatever else holds, and nowhere else', () => {
-    expect(shouldBoot({ ...at, search: '?boot=1', automated: true, booted: true })).toBe(true)
+    expect(shouldBoot({ ...at, search: '?boot=1', automated: true })).toBe(true)
     expect(shouldBoot({ ...at, path: '/docs', search: '?boot=1' })).toBe(false)
   })
 })
 
 describe('armBoot', () => {
-  it('boots once a session: it marks the tab booted', () => {
+  it('boots on every load, not once a session', () => {
     armBoot()
     expect(useBoot.getState().phase).toBe('boot')
-    expect(window.sessionStorage.getItem(BOOTED_KEY)).toBe('1')
     useBoot.setState({ phase: 'off' })
     armBoot()
-    expect(useBoot.getState().phase).toBe('off')
+    expect(useBoot.getState().phase).toBe('boot')
   })
 
   it('takes `?boot=1` off the URL and keeps the rest', () => {
-    window.sessionStorage.setItem(BOOTED_KEY, '1')
     window.history.replaceState(null, '', '/?boot=1&x=2#top')
     armBoot()
     expect(useBoot.getState().phase).toBe('boot')
@@ -96,7 +93,7 @@ describe('armBoot', () => {
 })
 
 describe('the boot screen', () => {
-  it('shows the logo, the boot log, and `enter` with the focus, over an inert page', async () => {
+  it('shows the logo, the boot log, and `take tour` with the focus, over an inert page', async () => {
     useBoot.setState({ phase: 'boot' })
     await open()
     const boot = screen.getByRole('dialog', { name: 'asm bots' })
@@ -104,17 +101,16 @@ describe('the boot screen', () => {
     const log = within(boot).getByRole('list', { name: 'boot log' })
     expect(within(log).getAllByRole('listitem')).toHaveLength(BOOT_LOG.length)
     expect(log.textContent).toContain('zeroing core')
-    const enter = within(boot).getByRole('button', { name: 'enter' })
-    expect(document.activeElement).toBe(enter)
-    // A first visit is told the tour comes next.
-    expect(boot.textContent).toContain('a short tour comes next')
+    const tour = within(boot).getByRole('button', { name: 'take tour' })
+    expect(document.activeElement).toBe(tour)
+    expect(within(boot).getByRole('button', { name: 'enter site' })).toBeTruthy()
   })
 
-  it('first visit: enter opens the tour, and the tour ends on the guided first battle', async () => {
+  it('first visit: `take tour` opens the tour, and the tour ends on the guided first battle', async () => {
     useBoot.setState({ phase: 'boot' })
     const router = await open()
     const boot = screen.getByRole('dialog', { name: 'asm bots' })
-    fireEvent.click(within(boot).getByRole('button', { name: 'enter' }))
+    fireEvent.click(within(boot).getByRole('button', { name: 'take tour' }))
     expect(screen.queryByRole('dialog', { name: 'asm bots' })).toBeNull()
     const tour = await screen.findByRole('dialog', { name: 'the tour' })
     expect(tour.textContent).toContain(`1 / ${TOUR_STEPS.length} · the core`)
@@ -153,26 +149,24 @@ describe('the boot screen', () => {
     })
   })
 
-  it('`skip the tour` goes in and puts the tour away for good', async () => {
+  it('`enter site` goes in and puts the tour away for good', async () => {
     useBoot.setState({ phase: 'boot' })
     await open()
     const boot = screen.getByRole('dialog', { name: 'asm bots' })
-    fireEvent.click(within(boot).getByRole('button', { name: 'skip the tour' }))
+    fireEvent.click(within(boot).getByRole('button', { name: 'enter site' }))
     expect(useBoot.getState().phase).toBe('off')
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(useSettings.getState().coachMarksSeen).toContain(WELCOME_TOUR)
   })
 
-  it('a returning user: welcome back, and enter goes straight in', async () => {
+  it('a returning user gets the same choice, and `take tour` opens the tour again', async () => {
     useSettings.setState({ coachMarksSeen: [WELCOME_TOUR] })
     useBoot.setState({ phase: 'boot' })
     await open()
     const boot = screen.getByRole('dialog', { name: 'asm bots' })
-    expect(boot.textContent).toContain('welcome back')
-    expect(within(boot).queryByRole('button', { name: 'skip the tour' })).toBeNull()
-    fireEvent.click(within(boot).getByRole('button', { name: 'enter' }))
-    expect(useBoot.getState().phase).toBe('off')
-    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(within(boot).getByRole('button', { name: 'enter site' })).toBeTruthy()
+    fireEvent.click(within(boot).getByRole('button', { name: 'take tour' }))
+    expect(await screen.findByRole('dialog', { name: 'the tour' })).toBeTruthy()
   })
 
   it('Escape on the tour skips it', async () => {
