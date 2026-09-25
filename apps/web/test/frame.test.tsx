@@ -213,9 +213,14 @@ describe('Frame', () => {
     act(() => useFps.getState().setFps(59.6))
     const chip = within(footer).getByText('60 fps')
     expect(chip.className).toContain('text-accent-fg')
-    // A Tab stop, so the keyboard reads the tooltip too.
+    // A Tab stop, so the keyboard reads the tooltip too. Tab to it: jsdom's `:focus-visible` reads
+    // the last event of the window, which the files before this one share (a click there makes a
+    // bare `focus()` a pointer's).
     expect(chip.tabIndex).toBe(0)
-    act(() => chip.focus())
+    act(() => {
+      fireEvent.keyDown(document.documentElement, { key: 'Tab' })
+      chip.focus()
+    })
     expect((await screen.findByRole('tooltip', {}, { timeout: 2_000 })).textContent).toBe(
       'frames a second the arena draws.',
     )

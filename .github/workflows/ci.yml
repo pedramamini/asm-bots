@@ -10,6 +10,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.6
       - run: bun install --frozen-lockfile
       - run: sudo apt-get install -y nasm
       # The web build against its budgets (apps/web/README.md "Budgets"), on its own ahead of
@@ -95,6 +97,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.6
       - run: bun install --frozen-lockfile
       - run: bun run lighthouse
       - uses: actions/upload-artifact@v4
