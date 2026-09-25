@@ -44,18 +44,56 @@ export function matchScore({ match }: MatchSummary): string {
       : ''
 }
 
-/** The columns; `compact`, a narrow panel's: `verify` as an icon. */
+/**
+ * The match's name with its winner lit in the accent, for a table with no room for a winner
+ * column: `Dwarf vs Imp` with Dwarf in accent; a draw, or a melee, in plain text. The title
+ * spells it out for the pointer, and the accessible name for a screen reader.
+ */
+function MatchCell({ match }: { match: MatchSummary }) {
+  const title = matchTitle(match)
+  const winner = matchWinner(match)
+  const names = match.bots.length === 2 ? match.bots.map(nameOf) : null
+  const said = winner === null ? title : `${title} · ${winner === 'draw' ? 'draw' : `${winner} won`}`
+  if (names === null || winner === null || winner === 'draw') {
+    return (
+      <span className="text-bright" title={said} aria-label={said}>
+        {title}
+      </span>
+    )
+  }
+  const [a, b] = names as [string, string]
+  const lit = (name: string) => (
+    <span className={name === winner ? 'text-accent-fg' : undefined}>{name}</span>
+  )
+  return (
+    <span className="text-bright" title={said} aria-label={said}>
+      {lit(a)}
+      <span className="text-muted"> vs </span>
+      {lit(b)}
+    </span>
+  )
+}
+
+/**
+ * The columns; `compact`, a narrow panel's: no winner column (the winner lights up in the match's
+ * name instead, so the names have room), and `verify` as an icon.
+ */
 const columns = (compact: boolean): TableColumn<MatchSummary>[] => [
   {
     id: 'match',
     header: 'match',
-    cell: (m) => (
-      <span className="text-bright" title={matchTitle(m)}>
-        {matchTitle(m)}
-      </span>
-    ),
+    cell: (m) =>
+      compact ? (
+        <MatchCell match={m} />
+      ) : (
+        <span className="text-bright" title={matchTitle(m)}>
+          {matchTitle(m)}
+        </span>
+      ),
   },
-  { id: 'winner', header: 'winner', cell: (m) => matchWinner(m) ?? '' },
+  ...(compact
+    ? []
+    : [{ id: 'winner', header: 'winner', cell: (m: MatchSummary) => matchWinner(m) ?? '' }]),
   { id: 'points', header: 'points', cell: matchScore, align: 'right', className: 'w-16' },
   {
     id: 'verify',

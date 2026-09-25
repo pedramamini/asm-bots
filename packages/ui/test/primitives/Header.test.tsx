@@ -51,16 +51,19 @@ describe('Header', () => {
   it('is 40 px with a hairline bottom and 12 px sides (DESIGN_SYSTEM §4)', () => {
     render(<Header brand={brand} />)
     expect(screen.getByRole('banner').className.split(' ')).toEqual(
-      expect.arrayContaining(['h-10', 'border-b', 'border-border', 'bg-bg', 'px-3', 'z-header']),
+      expect.arrayContaining(['h-10', 'border-b', 'border-border', 'bg-bg', 'md:px-3', 'z-header']),
     )
   })
 
   it('sets the brand in brand type and accent, the stat in muted data type', () => {
     render(<Header brand={brand} stat="8 bots" />)
     expect(screen.getByRole('link', { name: 'ASM BOTS // ARENA' }).parentElement?.className).toBe(
-      'shrink-0 text-brand text-accent-fg',
+      'min-w-0 shrink truncate text-brand text-accent-fg',
     )
-    expect(screen.getByText('8 bots').className).toBe('min-w-0 truncate text-data text-muted')
+    // The stat steps aside under `md`: a phone's header has no room for it.
+    expect(screen.getByText('8 bots').className).toBe(
+      'min-w-0 truncate text-data text-muted max-md:hidden',
+    )
   })
 
   it('centers the stat in the space between brand and nav', () => {

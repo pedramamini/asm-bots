@@ -1,5 +1,6 @@
 import {
   Chip,
+  cx,
   Header,
   IconButton,
   Kbd,
@@ -207,12 +208,15 @@ function useGlobalKeys(toggleKeys: () => void): void {
   useKeys(commands)
 }
 
+/** `ASM BOTS // ARENA`; under `md` the page's name goes, since the nav's active button says it. */
 function Brand() {
   const { label } = useRouteHead()
   return (
     <>
       {BRAND}
-      {label !== null && <span className="text-muted">{` // ${label.toUpperCase()}`}</span>}
+      {label !== null && (
+        <span className="text-muted max-md:hidden">{` // ${label.toUpperCase()}`}</span>
+      )}
     </>
   )
 }
@@ -222,11 +226,12 @@ function HeaderStat() {
   return useHeaderStat((state) => state.stat)
 }
 
+/** The five routes; under `md` each is its icon alone, its label left to screen readers. */
 function Nav() {
   const pathname = useLocation({ select: (location) => location.pathname })
   return NAV.map(({ to, label, icon }) => (
     <NavLink key={to} to={to} icon={icon} active={pathname === to || pathname.startsWith(`${to}/`)}>
-      {label}
+      <span className="max-md:sr-only">{label}</span>
     </NavLink>
   ))
 }
@@ -238,20 +243,35 @@ function HeaderActions({ onKeys }: { onKeys: () => void }) {
   return (
     <>
       {/* The guided demo (PRODUCT_SPEC §9): the arena plays Dwarf vs Imp and says what happens. */}
-      <NavLink to="/arena" search={{ intro: true }} icon={CirclePlay} className="mr-1">
+      <NavLink to="/arena" search={{ intro: true }} icon={CirclePlay} className="mr-1 max-md:hidden">
         intro
       </NavLink>
       <IconButton icon={Palette} label={`theme: ${theme}`} shortcut="t" onClick={cycleTheme} />
+      {/* Under `md` the palette button alone cycles the themes: the menu and the keys (a keyboard's
+          help) go, so the row fits a phone. */}
       <Menu
         placement="bottom-end"
-        trigger={<IconButton icon={ChevronDown} label="pick a theme" size="sm" />}
+        trigger={
+          <IconButton
+            icon={ChevronDown}
+            label="pick a theme"
+            size="sm"
+            className="max-md:hidden"
+          />
+        }
         items={THEMES.map((name) => ({
           label: name,
           icon: name === theme ? Check : undefined,
           onSelect: () => setTheme(name),
         }))}
       />
-      <IconButton icon={Keyboard} label="keys" shortcut="?" onClick={onKeys} />
+      <IconButton
+        icon={Keyboard}
+        label="keys"
+        shortcut="?"
+        onClick={onKeys}
+        className="max-md:hidden"
+      />
       <AccountSlot />
     </>
   )
@@ -309,7 +329,12 @@ function FrameStatus() {
       className="mb-2"
       left={<NetworkStatus />}
       center={
-        <a href="https://runmaestro.ai" target="_blank" rel="noreferrer" className={CHIP_FOCUS}>
+        <a
+          href="https://runmaestro.ai"
+          target="_blank"
+          rel="noreferrer"
+          className={cx(CHIP_FOCUS, 'max-md:hidden')}
+        >
           <Chip className={CHIP_LINK}>made with maestro</Chip>
         </a>
       }

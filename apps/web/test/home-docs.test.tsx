@@ -78,7 +78,8 @@ describe('HomePage', () => {
     ).toEqual(['rank', 'bot', 'author', 'score', 'rating', 'age'])
     expect(within(hill).getByText('loading')).toBeTruthy()
     const matches = screen.getByRole('region', { name: 'recent matches' })
-    expect(within(matches).getAllByRole('columnheader')).toHaveLength(5)
+    // Compact: no winner column; the winner lights up in the match's name.
+    expect(within(matches).getAllByRole('columnheader')).toHaveLength(4)
     const cup = screen.getByRole('region', { name: 'championship' })
     expect(within(cup).getByRole('button', { name: 'enter' })).toHaveProperty('disabled', true)
   })

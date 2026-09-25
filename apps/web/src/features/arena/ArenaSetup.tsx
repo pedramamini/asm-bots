@@ -533,7 +533,8 @@ function BotCard({
           {bot.author || 'anonymous'} · {broken ? '—' : `${bytes.length} B`}
         </p>
         {blurb !== '' && (
-          <p className="truncate text-data text-muted" title={blurb}>
+          // Two lines: a card is wide enough for most blurbs whole, and the hover holds the rest.
+          <p className="line-clamp-2 text-data text-muted" title={blurb}>
             {blurb}
           </p>
         )}

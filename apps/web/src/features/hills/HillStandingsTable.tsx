@@ -1,10 +1,12 @@
 /**
  * A hill's standings (PRODUCT_SPEC §5): rank, bot, author, score, rating ± RD, W/T/L, age, and
  * an action per row (the hill page's `challenge`). The home page's top 10 leaves W/T/L and the RD
- * out. The king's name takes the accent.
+ * out. The king's name takes the accent. Under `md` (a phone) the table keeps the rank, the bot,
+ * the score, and the rating alone: the table is `table-fixed`, and with every column in, the
+ * bot's name, the one column with no width of its own, is what gets squeezed to nothing.
  */
 import type { HillStanding } from '@asmbots/protocol'
-import { Skeleton, Table, type TableColumn } from '@asmbots/ui'
+import { Skeleton, Table, type TableColumn, useMediaQuery, WIDE } from '@asmbots/ui'
 import type { ReactNode } from 'react'
 import { authorOf, BotLink, count } from './links'
 
@@ -84,13 +86,15 @@ const FULL = [
   AGE,
 ]
 const COMPACT = [RANK, BOT, AUTHOR, SCORE, RATING, AGE]
+/** A phone's, full or compact: the rating without its RD, and no author, record, or age. */
+const NARROW = [RANK, BOT, SCORE, RATING]
 
 export interface HillStandingsTableProps {
   /** Undefined while they load. */
   standings: readonly HillStanding[] | undefined
   /** The home page's panel: no W/T/L, no RD. */
   compact?: boolean | undefined
-  /** A last column: what a row offers (the hill page's `challenge`). */
+  /** A last column: what a row offers (the hill page's `challenge`). A phone's table has none. */
   action?: ((standing: HillStanding) => ReactNode) | undefined
   /** Skeleton rows while loading. */
   rows?: number | undefined
@@ -109,16 +113,16 @@ export function HillStandingsTable({
   'aria-label': label,
   className,
 }: HillStandingsTableProps) {
+  const wide = useMediaQuery(WIDE)
+  const base = wide ? (compact ? COMPACT : FULL) : NARROW
   return (
     <Table
       aria-label={label}
       columns={
-        action === undefined
-          ? compact
-            ? COMPACT
-            : FULL
+        action === undefined || !wide
+          ? base
           : [
-              ...(compact ? COMPACT : FULL),
+              ...base,
               {
                 id: 'action',
                 header: <span className="sr-only">challenge</span>,

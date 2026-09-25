@@ -15,10 +15,17 @@ export function signIn(): void {
 }
 
 /** `sign in with github`: `signIn`. */
-export function SignInButton({ children = 'sign in with github' }: { children?: string }) {
+export function SignInButton({
+  children = 'sign in with github',
+  compact = false,
+}: {
+  children?: string
+  /** The header's: under `md` the icon alone shows, the words left to screen readers. */
+  compact?: boolean | undefined
+}) {
   return (
     <Button size="sm" icon={LogIn} onClick={signIn}>
-      {children}
+      {compact ? <span className="max-md:sr-only">{children}</span> : children}
     </Button>
   )
 }
@@ -56,7 +63,7 @@ export function AccountSlot() {
   const { data: me } = useMe()
   const router = useRouter()
   const signOutHere = useSignOut()
-  if (!me) return <SignInButton />
+  if (!me) return <SignInButton compact />
   const { handle } = me.user
   return (
     <Menu

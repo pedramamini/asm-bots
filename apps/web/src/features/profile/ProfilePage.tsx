@@ -1,5 +1,13 @@
-import type { Bot, ChampionshipResult, HillBest } from '@asmbots/protocol'
-import { EmptyState, Panel, PanelGrid, Skeleton, Table, type TableColumn } from '@asmbots/ui'
+import type { Bot, ChampionshipResult, HillBest, UserDetail } from '@asmbots/protocol'
+import {
+  EmptyState,
+  Panel,
+  PanelGrid,
+  Skeleton,
+  Stat,
+  Table,
+  type TableColumn,
+} from '@asmbots/ui'
 import { Link } from '@tanstack/react-router'
 import { isNotFound } from '../../api/client'
 import { useUser } from '../../api/queries'
@@ -79,6 +87,33 @@ const CHAMPIONSHIP_COLUMNS: TableColumn<ChampionshipResult>[] = [
 ]
 
 /**
+ * The profile at a glance (the bot page's tiles): how many bots, the best rank on any hill and
+ * where, and the championships won.
+ */
+function ProfileStats({ data }: { data: UserDetail }) {
+  const best = data.hills.reduce<HillBest | null>(
+    (top, h) => (top === null || h.entry.rank < top.entry.rank ? h : top),
+    null,
+  )
+  const won = data.championships.filter((r) => r.champion).length
+  return (
+    <div className="flex flex-wrap gap-4">
+      <Stat label="bots" value={count(data.bots.length)} />
+      <Stat
+        label="best rank"
+        value={best === null ? '–' : `#${best.entry.rank}`}
+        note={best === null ? 'on no hill yet' : `on ${best.hill.name}, with ${best.bot.name}`}
+      />
+      <Stat
+        label="championships"
+        value={count(won)}
+        note={data.championships.length === 0 ? 'none entered' : `won of ${count(data.championships.length)} entered`}
+      />
+    </div>
+  )
+}
+
+/**
  * `/u/$handle` (PRODUCT_SPEC §6): who they are, since when, their bots (the public ones, or all of
  * them for the user themself), their best place on each hill, and their championship results. The
  * avatars' connection opens while the user loads.
@@ -110,11 +145,14 @@ export function ProfilePage({ handle }: { handle: string }) {
         status={readStatus(data, error, (d) => `joined ${day(d.user.createdAt)}`)}
       >
         {data !== undefined ? (
-          <div className="flex items-center gap-3">
-            {data.user.avatarUrl !== null && (
-              <img src={data.user.avatarUrl} alt="" className="size-10 rounded-sm" />
-            )}
-            <h1 className="text-modal-title text-bright">{data.user.handle}</h1>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              {data.user.avatarUrl !== null && (
+                <img src={data.user.avatarUrl} alt="" className="size-10 rounded-sm" />
+              )}
+              <h1 className="text-modal-title text-bright">{data.user.handle}</h1>
+            </div>
+            <ProfileStats data={data} />
           </div>
         ) : error !== null ? (
           <LoadFailure read={read} />

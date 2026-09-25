@@ -3,10 +3,10 @@
 exports[`Header draws brand, stat, nav, and the right slot 1`] = `
 "<div>
   <header
-    class="relative z-header flex h-10 items-center gap-3 border-b border-border bg-bg px-3"
+    class="relative z-header flex h-10 items-center gap-2 border-b border-border bg-bg px-2 md:gap-3 md:px-3"
   >
     <div
-      class="shrink-0 text-brand text-accent-fg"
+      class="min-w-0 shrink truncate text-brand text-accent-fg"
     >
       <a
         href="/"
@@ -23,7 +23,7 @@ exports[`Header draws brand, stat, nav, and the right slot 1`] = `
       class="flex min-w-0 flex-1 justify-center"
     >
       <div
-        class="min-w-0 truncate text-data text-muted"
+        class="min-w-0 truncate text-data text-muted max-md:hidden"
       >
         8 bots · 41 procs · cycle 12,480
       </div>
