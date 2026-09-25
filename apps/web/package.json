@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --configLoader runner",
-    "build": "tsc -b && vite build --configLoader runner",
-    "build:vite": "vite build --configLoader runner",
+    "build": "tsc -b && bun run build:vite",
+    "build:vite": "vite build --configLoader runner && bun scripts/agent-docs.ts",
     "preview": "vite preview --configLoader runner",
     "test": "bun test",
     "e2e": "playwright test"

@@ -44,7 +44,7 @@ export const SECTION_META: Readonly<Record<string, SectionMeta>> = {
   },
   tools: {
     icon: Wrench,
-    summary: 'The cli, replays, share links, the keys, and the api.',
+    summary: 'The cli, replays, share links, the keys, the api, and agents.',
   },
   changelog: {
     icon: History,

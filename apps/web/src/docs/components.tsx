@@ -5,6 +5,7 @@ import type { MDXComponents } from 'mdx/types'
 import { type ComponentProps, isValidElement, type ReactNode } from 'react'
 import { sitePath } from '../app/site'
 import { Asm } from './Asm'
+import { isAgentFile } from './agent-files'
 import { Fig, Keys, Note, Shot, Warn } from './blocks'
 import { KeyMap } from './keymap'
 import { Encoding, Flags } from './reference'
@@ -22,10 +23,18 @@ const LINK = cx(
 /**
  * A docs link: an app path goes through the router (no reload), its `#anchor` as the router's
  * hash, and so does a link to the canonical site (CHANGELOG.md's, which reads on GitHub too);
+ * a file the build writes for agents (`/llms.txt`, the skill's zip) loads as a file, in place;
  * anything else leaves the app.
  */
 function DocLink({ href: given = '', children }: ComponentProps<'a'>) {
   const href = sitePath(given) ?? given
+  if (isAgentFile(href.split('#')[0] ?? '')) {
+    return (
+      <a href={href} className={LINK}>
+        {children}
+      </a>
+    )
+  }
   if (href.startsWith('/')) {
     const at = href.indexOf('#')
     const to = at < 0 ? { to: href } : { to: href.slice(0, at), hash: href.slice(at + 1) }

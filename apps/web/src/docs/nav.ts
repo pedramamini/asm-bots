@@ -237,8 +237,14 @@ export const DOCS: readonly DocSection[] = [
       {
         slug: 'tools/api',
         title: 'api',
-        blurb: 'the server api: not live yet.',
+        blurb: 'the server api: sign in with a token, push bots, submit to hills.',
         load: () => import('./tools/api.mdx'),
+      },
+      {
+        slug: 'tools/agents',
+        title: 'agents',
+        blurb: 'the docs as markdown, the skill download, and api tokens for ai agents.',
+        load: () => import('./tools/agents.mdx'),
       },
     ],
   },

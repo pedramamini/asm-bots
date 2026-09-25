@@ -6,7 +6,7 @@ Query, Zustand, and the `@asmbots/ui` kit.
 | Script | What it does |
 | --- | --- |
 | `bun run --filter @asmbots/web dev` | Dev server on http://localhost:5173 |
-| `bun run --filter @asmbots/web build` | `tsc -b`, then the production build in `dist/` |
+| `bun run --filter @asmbots/web build` | `tsc -b`, then `build:vite`: the production build in `dist/`, then the docs for agents (see "Docs for agents") |
 | `bun run --filter @asmbots/web preview` | Serves `dist/` on http://localhost:4173 |
 | `bun run --filter @asmbots/web test` | Unit and component tests (`test/`), the arena Worker in Bun's real `Worker` |
 | `bun run --filter @asmbots/web e2e` | Playwright (`e2e/`) against the build and the seeded e2e Worker: see "End to end" |
@@ -30,7 +30,7 @@ import (`src/docs/components.tsx`):
 
 A code block's colors and links load once the page has painted and gone idle
 (`src/docs/asm-runtime.ts`: the CM tokenizer and the share codec; `usePaintedAndIdle` in
-`src/app/paint.ts`, which the home demo also waits on). In a block, comments are `--text-muted`,
+`src/app/paint.ts`, which the site's art and footer also wait on). In a block, comments are `--text-muted`,
 not the editor's `--text-dim`: in the docs they are prose. Links in prose are underlined, not
 only accent-colored. The sidebar's search (`/`) reads a prebuilt index of every page's
 headings and prose, `src/docs/generated/search-index.json`: run `bun run docs-index` after
@@ -44,7 +44,26 @@ or a page, and they say which words no longer hold.
 `bun run docs-links` (in `bun run check`) checks every link of every page: a `/docs/…` path is a
 page of `nav.ts` and its `#anchor` one of its headings, any other path a route of
 `routeTree.gen.ts`, an outside link `https://` (not fetched), no relative paths, and each `Fig`
-and `Shot` a real file. It prints `file:line: why` per broken link.
+and `Shot` a real file. It prints `file:line: why` per broken link. A link to a file of the docs
+for agents (below, listed in `src/docs/agent-files.ts`) passes, and loads as a file, not a route.
+
+### Docs for agents
+
+`build:vite` runs `scripts/agent-docs.ts` after Vite, which writes into `dist/` from the same MDX
+(`bun scripts/agent-docs.ts [dist]` runs it alone on a build):
+
+| File | What it holds |
+| --- | --- |
+| `llms.txt` | The [llmstxt.org](https://llmstxt.org) index: a summary, the key rules, a link to every page's `.md` by section, and the agents' files |
+| `llms-full.txt` | Every page in reading order, each under its `#` heading and URL |
+| `docs/<slug>.md` | One page as Markdown: `Note`/`Warn` as quotes, `Flags`, `Encoding`, and `KeyMap` as tables of their data, `Fig` as its description, `Shot` as an image, `Keys` as code, no fence meta, and site links to `https://asmbots.io/docs/<slug>.md` |
+| `skill/SKILL.md` | The agent skill's instructions: `skill/SKILL.md` here, with the references and examples lists filled in |
+| `skill/asm-bots.zip` | The skill folder `asm-bots/`: `SKILL.md`, `references/` (every page, links as sibling files), `examples/` (the roster's six families), and `bin/asmbots.js` (the CLI's `bundle`, for Node). Entries sorted, one fixed time: the same files make the same bytes |
+
+A component with no Markdown form fails the build (add it to `toMarkdown`). `public/_headers`
+gives these files `Access-Control-Allow-Origin: *` and an hour's cache, and `run_worker_first` in
+`apps/api/wrangler.jsonc` leaves them to the static assets, which type `.md` as `text/markdown`
+and `.txt` as `text/plain`. `test/agent-docs.test.ts` converts every page without a build.
 
 ## Arena
 
@@ -94,7 +113,7 @@ the first render: the page boots when it loads at `/`, once a session (`sessionS
 when `navigator.webdriver` is set, so Playwright and Lighthouse see `/` as before; `?boot=1`
 forces it (`e2e/boot.spec.ts`, the a11y spec). `core-dump.ts` is the backdrop: a seeded model of a
 core that zeroes, loads four bots, and runs them, drawn on a 2D canvas one changed cell at a time;
-under reduced motion it is a still. The home demo waits for the boot to end. The tour
+under reduced motion it is a still. The tour
 (`WelcomeTour.tsx`, its own chunk) ends on `/arena?intro=true`.
 
 The home page's hero is `demo/HomeDemo.tsx`, driven by `demo/demo.ts`: Spiral and LCG painters,
@@ -119,8 +138,8 @@ cue) turns it on. No AudioContext exists before the page's first gesture (`keydo
 budget: 12 cues in any second; tick, write, and death at most every 125 ms and 8 a second; clicks
 10; bot deaths and the victory the rest. Writes coalesce into one click per 250 ms, as loud as the
 writes it stands for. `sound/arena.ts`'s `useArenaSound` plays a battle's cues in `ArenaBattle`
-(`/arena` and replays); full frames (a load, a seek) are silent. The home demo, the live panel, and
-a tournament's watch modal play by themselves and stay silent. The synth builds as a small
+(`/arena` and replays); full frames (a load, a seek) are silent. The 404 page's imp, the live panel,
+and a tournament's watch modal play by themselves and stay silent. The synth builds as a small
 chunk of its own (`engine-*.js`, named after its file); a `manualChunks` rule for it would pull
 the kit out of the entry. Tests: `test/sound.test.ts` on `test/fake-audio.ts`, and
 `e2e/sound.spec.ts`, which takes away the user activation Playwright's `goto` gives a page.
@@ -545,7 +564,7 @@ Rules for new UI, each learned from a violation this pass fixed:
 
 The arena speaks every 2 s while it plays (`battle/Announcer.tsx`, a polite status region):
 `cycle 12,480; 3 bots alive; dwarf-v3 leads footprint`. The victory's headline is a live region
-too. The embed and the home demo say nothing: a frame on someone else's page, and a decoration.
+too. The embed and the 404 page's imp say nothing: a frame on someone else's page, and a decoration.
 
 ## Budgets
 
@@ -567,7 +586,7 @@ about 5% over its page, so what grows one is a choice, made here and in `BUDGETS
 | What | Now | Budget | Note |
 | --- | ---: | ---: | --- |
 | shell, every page | 166.2 KB | 175 KB | the entry and `vendor`; 185.2 KB before this pass |
-| `/` | 177.1 KB | 185 KB | |
+| `/` | 184.0 KB | 185 KB | the overview's cards and `how it works` copy; the art and the footer load after paint |
 | `/arena` | 242.4 KB | 250 KB | engine + renderer + shell; 263.2 KB before |
 | `/arena/$replayId` | 234.1 KB | 250 KB | |
 | `/editor` | 418.8 KB | 440 KB | CodeMirror 127 KB of it |
@@ -582,8 +601,9 @@ about 5% over its page, so what grows one is a choice, made here and in `BUDGETS
 | `/docs/$` | 181.4 KB | 190 KB | |
 | `/settings` | 183.5 KB | 195 KB | |
 | `/embed/arena` | 214.2 KB | 225 KB | |
-| / home demo, after paint | 34.5 KB | 40 KB | 65 KB before: it fights prebuilt bots too |
-| 404 live imp, after the shell | 34.3 KB | 36 KB | the 404 page's imp: the arena's renderer and client, which it shares with the home demo |
+| / art, after paint | 5.0 KB | 10 KB | `src/art`: the dither plates, the schematic, the scope trace, the hex band (DESIGN_SYSTEM §10) |
+| site footer, after paint | 3.1 KB | 6 KB | every page that scrolls; the dither scenes it shares with the art |
+| 404 live imp, after the shell | 34.0 KB | 36 KB | the 404 page's imp: the arena's renderer and client |
 | arena Worker, at the first fight | 14.2 KB | 20 KB | |
 | assembler Worker, with the editor | 15.8 KB | 20 KB | |
 | fonts | 104.3 KB | 120 KB | 5 woff2 subsets, as shipped |

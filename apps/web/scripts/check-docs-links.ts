@@ -5,6 +5,8 @@
  * - `/docs/<slug>` names a page of the tree, and its `#anchor` one of that page's `##`/`###`
  *   headings (the ids `text.ts` gives them, read as `gen-docs-index.ts` reads them); a bare
  *   `#anchor` one of this page's;
+ * - a file the build writes for agents (`src/docs/agent-files.ts`: `/llms.txt`, the skill) is
+ *   fine, and `/docs/<slug>.md` names a page of the tree;
  * - any other app path (`/editor`, `/hills/<slug>`) matches a route of `src/routeTree.gen.ts`;
  * - a link to the canonical site (`https://asmbots.io/docs/...`, which the app follows as its own
  *   path: CHANGELOG.md reads on GitHub too) is checked as that path;
@@ -20,6 +22,7 @@ import { relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createProcessor } from '@mdx-js/mdx'
 import { sitePath } from '../src/app/site'
+import { isAgentFile, markdownSlug } from '../src/docs/agent-files'
 import { SHOT_PATH } from '../src/docs/blocks'
 import { FIGURES } from '../src/docs/figures'
 import { DOCS, type DocPage, type DocSource, docSource } from '../src/docs/nav'
@@ -134,6 +137,11 @@ export function linkProblem(slug: string, link: PageLink, ctx: LinkContext): str
   const hash = at < 0 ? undefined : decodeURIComponent(url.slice(at + 1))
   if (path !== '' && !path.startsWith('/')) {
     return `${url}: a relative link; write the path from the root (/docs/…)`
+  }
+  if (isAgentFile(path)) {
+    // A file the build writes (scripts/agent-docs.ts): a fixed one, or a page's Markdown.
+    const target = markdownSlug(path)
+    return target === null || ctx.anchors.has(target) ? undefined : `${url}: no docs page ${target}`
   }
   if (path === '' || path.startsWith('/docs/')) {
     const target = path === '' ? slug : path.slice('/docs/'.length).replace(/\/$/, '')

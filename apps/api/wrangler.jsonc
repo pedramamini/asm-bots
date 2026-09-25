@@ -14,9 +14,19 @@
     "directory": "../web/dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    // The Worker first for everything but the build's hashed files and pictures: /api/..., and each
-    // page, so it can write the page's own head for link previews (src/site/), and /sitemap.xml.
-    "run_worker_first": ["/*", "!/assets/*", "!/docs-shots/*", "!/favicon.svg"]
+    // The Worker first for everything but the build's hashed files and pictures, and the docs for
+    // AI agents (apps/web/scripts/agent-docs.ts): /api/..., and each page, so it can write the
+    // page's own head for link previews (src/site/), and /sitemap.xml.
+    "run_worker_first": [
+      "/*",
+      "!/assets/*",
+      "!/docs-shots/*",
+      "!/favicon.svg",
+      "!/llms.txt",
+      "!/llms-full.txt",
+      "!/docs/*.md",
+      "!/skill/*"
+    ]
   },
   "d1_databases": [
     {

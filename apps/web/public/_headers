@@ -9,3 +9,22 @@
   Cache-Control: public, max-age=86400
 /favicon.svg
   Cache-Control: public, max-age=86400
+# The docs for AI agents (scripts/agent-docs.ts): any site may fetch them, and they keep their
+# names across deploys, so an hour. Their types come from the extension: `.md` is
+# text/markdown, `.txt` text/plain, both utf-8. No Content-Type here: a missing `.md` falls back
+# to the app's HTML, which must not claim to be Markdown.
+/llms.txt
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=3600
+/llms-full.txt
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=3600
+/docs/*.md
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=3600
+/skill/SKILL.md
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=3600
+/skill/asm-bots.zip
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=3600
