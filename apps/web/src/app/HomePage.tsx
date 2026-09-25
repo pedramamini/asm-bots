@@ -1,7 +1,7 @@
 import type { Tournament, TournamentSummary } from '@asmbots/protocol'
 import { Button, EmptyState, Panel, PanelGrid, RadarLoader, Stat } from '@asmbots/ui'
 import { Link } from '@tanstack/react-router'
-import { CodeXml, Grid2x2 } from 'lucide-react'
+import { CodeXml, Compass, Grid2x2, Mountain } from 'lucide-react'
 import { type ComponentType, lazy, Suspense, useState } from 'react'
 import { useHill, useHillMatches, useTournament, useTournaments } from '../api/queries'
 import type { HomeDemoProps } from '../features/arena/demo/HomeDemo'
@@ -9,9 +9,12 @@ import { HillStandingsTable } from '../features/hills/HillStandingsTable'
 import { CELL_LINK, count, day } from '../features/hills/links'
 import { MatchesTable } from '../features/hills/MatchesTable'
 import { EnterButton } from '../features/tournaments/EnterModal'
+import { useBoot } from './boot/boot'
 import { NavLink } from './Frame'
 import { LoadFailure, readStatus } from './LoadFailure'
+import { LogoMark } from './Logo'
 import { useLinkAction } from './link-action'
+import { DocsLink } from './PageIntro'
 import { usePaintedAndIdle } from './paint'
 
 /** The rows the hill and match panels hold (PRODUCT_SPEC §1): a top 10, and the last 10. */
@@ -31,14 +34,16 @@ export interface HomePageProps {
 }
 
 /**
- * `/` (PRODUCT_SPEC §1): the hero over the live demo battle, then the main hill's top 10, its
- * recent matches, and the next championship, read from the API; until each read lands its panel
- * holds a skeleton. The championship's `enter` takes one of my bots while its entries are open.
+ * `/` (PRODUCT_SPEC §1): the hero over the live demo battle, how the game works in three steps,
+ * then the main hill's top 10, its recent matches, and the next championship, read from the API;
+ * until each read lands its panel holds a skeleton. The championship's `enter` takes one of my
+ * bots while its entries are open.
  */
 export function HomePage({ demo = HomeDemo }: HomePageProps) {
   return (
     <PanelGrid className="p-3">
       <Hero demo={demo} />
+      <HowItWorks />
       <MainHill />
       <RecentMatches />
       <Championship />
@@ -191,7 +196,9 @@ function Championship() {
  */
 function Hero({ demo: Demo }: { demo: ComponentType<HomeDemoProps> }) {
   const [status, setStatus] = useState('4 bots · loading')
-  const idle = usePaintedAndIdle()
+  // Not under the boot screen: the demo starts when the page shows.
+  const booting = useBoot((state) => state.phase === 'boot')
+  const idle = usePaintedAndIdle() && !booting
   const loader = (
     <div className="absolute inset-0 grid place-items-center">
       <RadarLoader label="loading the demo battle" framed />
@@ -208,7 +215,10 @@ function Hero({ demo: Demo }: { demo: ComponentType<HomeDemoProps> }) {
           loader
         )}
         <div className="absolute bottom-3 left-3 flex flex-col gap-2 rounded-md border border-border bg-panel p-4">
-          <h1 className="text-modal-title text-bright">ASM BOTS</h1>
+          <h1 className="flex items-center gap-2 text-modal-title text-bright">
+            <LogoMark size={24} />
+            ASM BOTS
+          </h1>
           <p className="text-body text-muted">Write 8086 assembly. Fight for 64 KB.</p>
           <div className="mt-1 flex gap-2">
             <NavLink to="/arena" icon={Grid2x2}>
@@ -218,6 +228,70 @@ function Hero({ demo: Demo }: { demo: ComponentType<HomeDemoProps> }) {
               write a bot
             </NavLink>
           </div>
+        </div>
+      </div>
+    </Panel>
+  )
+}
+
+/** A step of `HowItWorks`. */
+interface HowStep {
+  title: string
+  text: string
+  link: { to: '/editor' | '/arena' | '/hills'; label: string; icon: typeof Grid2x2 }
+}
+
+const HOW: readonly HowStep[] = [
+  {
+    title: 'write',
+    text: 'A bot is a small 8086 program, 512 bytes at most. The editor assembles it as you type, and its debugger steps it one instruction at a time.',
+    link: { to: '/editor', label: 'open the editor', icon: CodeXml },
+  },
+  {
+    title: 'fight',
+    text: 'Load two or more bots into one 64 KB core. They take turns, one instruction each. A process that runs a zero byte dies; the last bot running wins.',
+    link: { to: '/arena', label: 'pick a fight', icon: Grid2x2 },
+  },
+  {
+    title: 'climb',
+    text: 'Submit a bot to a hill, a ladder that never closes, and see where it ranks. Or enter the weekly championship.',
+    link: { to: '/hills', label: 'see the hills', icon: Mountain },
+  },
+]
+
+/** Three steps, write, fight, climb, and the tour again for whoever wants it. */
+function HowItWorks() {
+  const openTour = useBoot((state) => state.openTour)
+  return (
+    <Panel className="col-span-12" title="how it works" status="core war, in 8086">
+      <div className="flex flex-col gap-4">
+        <ol className="grid gap-3 md:grid-cols-3">
+          {HOW.map((step, index) => (
+            <li
+              key={step.title}
+              className="flex flex-col gap-2 rounded-md border border-border bg-panel-2 p-3"
+            >
+              <p className="flex items-baseline gap-2 text-panel-title">
+                <span className="text-muted">{`0${index + 1}`}</span>
+                <span className="text-accent-fg">{step.title}</span>
+              </p>
+              <p className="flex-1 text-body text-text">{step.text}</p>
+              <div>
+                <NavLink to={step.link.to} icon={step.link.icon}>
+                  {step.link.label}
+                </NavLink>
+              </div>
+            </li>
+          ))}
+        </ol>
+        <div className="flex flex-wrap items-center gap-3 text-data text-muted">
+          <Button icon={Compass} onClick={openTour}>
+            take the tour
+          </Button>
+          <span>
+            six steps, then a guided first battle. or read{' '}
+            <DocsLink to="start-here">start here</DocsLink>.
+          </span>
         </div>
       </div>
     </Panel>

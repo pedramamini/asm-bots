@@ -5,7 +5,7 @@
  * frame (about 5 s at 60 fps), points at the events log when first blood happens, and hands over
  * to the setup: about 30 s from the link to `pick bots`. Each step is a coach mark with `skip`.
  */
-import { CoachMark } from '@asmbots/ui'
+import { CoachMark, Kbd } from '@asmbots/ui'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { useStore } from 'zustand'
 import type { BattleLog } from './battle/log'
@@ -186,7 +186,9 @@ export function useIntroGuide(
             action={{ label: 'pick bots', onClick: intro.onPickBots }}
             onDismiss={end}
           >
-            your turn: pick bots and fight, or write your own in the editor.
+            your turn: pick two bots or more and fight. when you want a bot of your own, write it in
+            the editor (<Kbd>g</Kbd> <Kbd>e</Kbd>), then send it up a hill (<Kbd>g</Kbd>{' '}
+            <Kbd>h</Kbd>).
           </CoachMark>
         ),
       }

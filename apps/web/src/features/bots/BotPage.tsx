@@ -13,8 +13,10 @@ import {
 import { Link } from '@tanstack/react-router'
 import { isNotFound } from '../../api/client'
 import { useBot, useBotVersion } from '../../api/queries'
+import { BOT_ABOUT } from '../../app/intros/bots'
 import { LoadFailure, readStatus } from '../../app/LoadFailure'
 import { useLinkAction } from '../../app/link-action'
+import { PageIntro } from '../../app/PageIntro'
 import { Placeholder } from '../../app/Placeholder'
 import { CELL_LINK, count, day, longAgo, UserLink } from '../hills/links'
 import { BotActions } from './BotActions'
@@ -104,6 +106,7 @@ export function BotPage({ id }: { id: string }) {
   const text = source.data?.version.source
   return (
     <PanelGrid className="p-3">
+      <PageIntro about={BOT_ABOUT} />
       <Panel
         className="col-span-12 xl:col-span-4"
         title="bot"

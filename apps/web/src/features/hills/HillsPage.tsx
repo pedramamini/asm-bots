@@ -2,10 +2,10 @@ import type { HillBest, HillSummary } from '@asmbots/protocol'
 import { EmptyState, Panel, PanelGrid, Skeleton, Table, type TableColumn } from '@asmbots/ui'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useHills, useMaybeUser, useMe } from '../../api/queries'
+import { HILLS_ABOUT } from '../../app/intros/hills'
 import { LoadFailure, readStatus } from '../../app/LoadFailure'
 import { useLinkAction } from '../../app/link-action'
 import { PageIntro } from '../../app/PageIntro'
-import { HILLS_ABOUT } from '../../app/page-intros'
 import { BotLink, CELL_LINK, count, rules } from './links'
 
 const COLUMNS: TableColumn<HillSummary>[] = [

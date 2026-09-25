@@ -24,10 +24,10 @@ import {
   useRef,
   useState,
 } from 'react'
+import { ARENA_ABOUT } from '../../app/intros/arena'
 import { ROUTE_SEARCH } from '../../app/keys'
 import { useLinkAction } from '../../app/link-action'
 import { PageIntro } from '../../app/PageIntro'
-import { ARENA_ABOUT } from '../../app/page-intros'
 import { useRouteStat } from '../../app/slots'
 import { type LocalBot, useLocalBotActions, useLocalBots } from '../../store/local-bots'
 import { useSettings } from '../../store/settings'

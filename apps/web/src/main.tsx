@@ -4,11 +4,15 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider } from '@tanstack/react-router'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { armBoot } from './app/boot/boot'
 import { ErrorBoundary } from './app/ErrorPage'
 import { createAppRouter, createQueryClient } from './router'
 
 // index.html's boot script has applied the theme already; this covers a page without it (tests).
 initTheme()
+
+// Opening the site at `/` boots the core first (`app/boot`): decided before the first render.
+armBoot()
 
 const queryClient = createQueryClient()
 const router = createAppRouter(queryClient)

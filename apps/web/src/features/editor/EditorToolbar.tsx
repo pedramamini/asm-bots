@@ -16,6 +16,8 @@ import {
   Swords,
 } from 'lucide-react'
 import type { ChangeEvent, MouseEvent } from 'react'
+import { EDITOR_ABOUT } from '../../app/intros/editor'
+import { AboutButton } from '../../app/PageIntro'
 import { type CatalogBot, rosterCatalog } from '../arena/setup/bots'
 import type { SharedBot } from '../arena/setup/url'
 import type { AsmResult } from './asm/protocol'
@@ -207,6 +209,7 @@ export function EditorToolbar(props: EditorToolbarProps) {
           pressed={props.listing}
           onClick={props.onListing}
         />
+        <AboutButton about={EDITOR_ABOUT} tooltip="bottom" />
       </div>
     </>
   )

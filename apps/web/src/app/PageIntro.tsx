@@ -16,9 +16,9 @@ export interface PageAbout {
   readonly docs: string
 }
 
-/** A link inside an intro's text. */
+/** A link inside an intro's text: underlined, as a link in running text is (DESIGN_SYSTEM §8). */
 const INTRO_LINK =
-  'rounded-sm text-accent-fg underline-offset-2 hover:underline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent'
+  'rounded-sm text-accent-fg underline underline-offset-2 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent'
 
 export interface PageIntroProps {
   about: PageAbout
@@ -31,8 +31,6 @@ export interface PageIntroProps {
  * with its `details` and a link to its docs. It sits in the page's `PanelGrid`.
  */
 export function PageIntro({ about, className }: PageIntroProps) {
-  const [open, setOpen] = useState(false)
-  const close = () => setOpen(false)
   return (
     <section
       aria-label={`about ${about.name}`}
@@ -42,10 +40,30 @@ export function PageIntro({ about, className }: PageIntroProps) {
       )}
     >
       <p className="min-w-0 flex-1 text-body text-muted">{about.lead}</p>
+      <AboutButton about={about} />
+    </section>
+  )
+}
+
+/**
+ * The `ⓘ` alone, for a page with no room for a lead (the editor's toolbar): it opens the dialog
+ * with the page's `details` and its docs link.
+ */
+export function AboutButton({
+  about,
+  tooltip = 'left',
+}: {
+  about: PageAbout
+  tooltip?: 'left' | 'bottom' | undefined
+}) {
+  const [open, setOpen] = useState(false)
+  const close = () => setOpen(false)
+  return (
+    <>
       <IconButton
         icon={Info}
         label={`about ${about.name}`}
-        tooltip="left"
+        tooltip={tooltip}
         onClick={() => setOpen(true)}
       />
       <Modal
@@ -66,7 +84,7 @@ export function PageIntro({ about, className }: PageIntroProps) {
       >
         <div className="flex flex-col gap-3 text-body text-text">{about.details}</div>
       </Modal>
-    </section>
+    </>
   )
 }
 

@@ -153,6 +153,21 @@ for (const theme of THEMES) {
       await expectClean(page, 'victory')
     })
 
+    test('the boot screen, and each step of the welcome tour', async ({ page }) => {
+      // `?boot=1`: a driven browser skips the boot unless asked.
+      await page.goto('/?boot=1')
+      const boot = page.getByRole('dialog', { name: 'asm bots' })
+      await expect(boot.getByRole('list', { name: 'boot log' })).toContainText('live')
+      await expectClean(page, 'boot screen')
+      await page.keyboard.press('Enter')
+      const tour = page.getByRole('dialog', { name: 'the tour' })
+      for (let step = 1; step <= 6; step++) {
+        await expect(tour).toContainText(`${step} / 6`)
+        await expectClean(page, `tour, step ${step}`)
+        await page.keyboard.press('ArrowRight')
+      }
+    })
+
     test('the dialogs and menus of the frame', async ({ page }) => {
       await open(page, '/')
       await page.keyboard.press('?')

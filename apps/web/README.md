@@ -89,6 +89,14 @@ to 16 bots, 10 rounds, 1M cycles, 256 processes a bot) before anything loads. On
 copies its link, `download replay` saves it as it came, and `setup` goes to `/arena`. A link with
 no `#r=` loads the replay from the API (`GET /api/replays/:key`).
 
+The boot screen and the welcome tour live in `src/app/boot/`. `main.tsx` calls `armBoot()` before
+the first render: the page boots when it loads at `/`, once a session (`sessionStorage`), and not
+when `navigator.webdriver` is set, so Playwright and Lighthouse see `/` as before; `?boot=1`
+forces it (`e2e/boot.spec.ts`, the a11y spec). `core-dump.ts` is the backdrop: a seeded model of a
+core that zeroes, loads four bots, and runs them, drawn on a 2D canvas one changed cell at a time;
+under reduced motion it is a still. The home demo waits for the boot to end. The tour
+(`WelcomeTour.tsx`, its own chunk) ends on `/arena?intro=true`.
+
 The home page's hero is `demo/HomeDemo.tsx`, driven by `demo/demo.ts`: Spiral and LCG painters,
 Dwarf, and Paper in the duel config, 400 cycles a frame, a new random seed that places them each
 battle, and 3 s on each battle's end before the next. `DemoLoop` pauses the battle while the tab

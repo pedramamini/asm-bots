@@ -19,6 +19,8 @@ const PAGES = [
   ['/arena', 'the arena', 'sandbox', '/docs/start-here'],
   ['/hills', 'hills', 'king', '/docs/tournaments/hills'],
   ['/tournaments', 'tournaments', 'champion', '/docs/tournaments/formats'],
+  // A hill's own page says what a hill is too: a shared link lands there first.
+  ['/hills/main', 'hills', 'king', '/docs/tournaments/hills'],
 ] as const
 
 async function open(path: string) {
@@ -55,4 +57,15 @@ describe('page intros', () => {
       expect(screen.queryByRole('dialog')).toBeNull()
     })
   }
+
+  it("the editor's ⓘ sits in its toolbar, with no lead to take the workspace's room", async () => {
+    await open('/editor')
+    const tools = await screen.findByRole('region', { name: 'editor tools' })
+    expect(screen.queryByRole('region', { name: 'about the editor' })).toBeNull()
+    fireEvent.click(within(tools).getByRole('button', { name: 'about the editor' }))
+    const dialog = await screen.findByRole('dialog', { name: 'about the editor' })
+    expect(dialog.textContent).toContain('test vs')
+    const link = within(dialog).getByRole('link', { name: 'read the docs' })
+    expect(link.getAttribute('href')).toBe('/docs/machine/debugger')
+  })
 })

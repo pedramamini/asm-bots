@@ -19,7 +19,9 @@ import { useEffect, useMemo } from 'react'
 import { isNotFound } from '../../api/client'
 import { useMe, useTournament } from '../../api/queries'
 import { startTournament } from '../../api/writes'
+import { TOURNAMENTS_ABOUT } from '../../app/intros/tournaments'
 import { LoadFailure } from '../../app/LoadFailure'
+import { PageIntro } from '../../app/PageIntro'
 import { Placeholder } from '../../app/Placeholder'
 import type { ArenaClient } from '../arena/worker/client'
 import { plural } from '../hills/links'
@@ -92,6 +94,7 @@ export function ServerTournamentPage({ id, live, createArenaClient }: ServerTour
   const ended = t.status === 'finished' || t.status === 'cancelled'
   return (
     <PanelGrid className="p-3">
+      <PageIntro about={TOURNAMENTS_ABOUT} />
       <div className="col-span-12 flex min-w-0 flex-col gap-3 xl:col-span-8">
         <ServerHeader detail={detail} tournament={t} />
       </div>

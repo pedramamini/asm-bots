@@ -42,6 +42,7 @@ import { createPortal } from 'react-dom'
 import { useMe } from '../api/queries'
 import { AccountSlot } from '../features/account/AccountSlot'
 import { useSettings } from '../store/settings'
+import { BootLayer } from './boot/BootLayer'
 import { GLOBAL_KEYS, goKey } from './keymaps'
 import {
   focusRouteSearch,
@@ -123,6 +124,7 @@ export function Frame({ children }: { children: ReactNode }) {
         <KeyHelp bindings={bindings} />
       </Modal>
       <Onboarding />
+      <BootLayer />
     </div>
   )
 }
