@@ -24,7 +24,7 @@ import type { ReactNode } from 'react'
 import * as runtime from 'react/jsx-runtime'
 import { useDom, window } from '../../../packages/ui/test/dom'
 import { DocsArticle, DocsFrame } from '../src/app/DocsFrame'
-import { DocsHome } from '../src/app/DocsHome'
+import { CARD_PAGES, DocsHome } from '../src/app/DocsHome'
 import { focusRouteSearch } from '../src/app/keys'
 import {
   DOCS,
@@ -677,7 +677,7 @@ describe('DocsFrame', () => {
 })
 
 describe('the docs home', () => {
-  it('has a card for each section with pages, at its anchor, listing each page', async () => {
+  it('has a card for each section with pages, at its anchor, listing its pages', async () => {
     await renderDocs('/docs', { docs: TEST_DOCS })
     const home = screen.getByRole('region', { name: 'docs home' })
     expect(within(home).getByRole('heading', { level: 1 }).textContent).toBe(
@@ -694,10 +694,34 @@ describe('the docs home', () => {
         .getAllByRole('link')
         .map((a) => [a.getAttribute('href'), a.textContent]),
     ).toEqual([
-      ['/docs/strategy/imp', '01impcopy yourself one word ahead.'],
-      ['/docs/strategy/paper', '02papercopy the whole bot.'],
+      ['/docs/strategy/imp', 'imp'],
+      ['/docs/strategy/paper', 'paper'],
     ])
     expect(within(home).queryByRole('region', { name: 'tools' })).toBeNull()
+  })
+
+  it("lists a long section's first pages, and `all N pages` opens its first", async () => {
+    await renderDocs('/docs')
+    const home = screen.getByRole('region', { name: 'docs home' })
+    const long = DOCS.find(({ pages }) => pages.length > CARD_PAGES)
+    if (long === undefined) throw new Error('no section is longer than a card')
+    const card = within(home).getByRole('region', { name: long.title })
+    const links = within(card).getAllByRole('link')
+    expect(links.map((a) => a.getAttribute('href'))).toEqual([
+      ...long.pages.slice(0, CARD_PAGES).map(({ slug }) => `/docs/${slug}`),
+      `/docs/${long.pages[0]?.slug}`,
+    ])
+    expect(links.at(-1)?.textContent).toBe(`all ${long.pages.length} pages`)
+  })
+
+  it('points an AI agent at its files and its page', async () => {
+    await renderDocs('/docs')
+    const agents = screen.getByRole('region', { name: 'for AI agents' })
+    expect(
+      within(agents)
+        .getAllByRole('link')
+        .map((a) => a.getAttribute('href')),
+    ).toEqual(['/llms.txt', '/llms-full.txt', '/skill/asm-bots.zip', '/docs/tools/agents'])
   })
 
   it("points its ways in at real pages, and its search button at the sidebar's field", async () => {

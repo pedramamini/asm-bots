@@ -1,10 +1,9 @@
 /**
- * The home page's demo battle (PRODUCT_SPEC §1): four roster bots in the arena at 400 cycles a
- * frame, a new random seed each battle, over and over. `DemoLoop` drives an `ArenaClient`
- * through it. Under reduced motion the demo is a still instead: `stillFrame` gets one battle's
- * core at one cycle, and `paintStill` draws its owner map. The demo makes no sound.
+ * A battle that plays by itself (the 404 page's imp, `LiveImp`): its bots in the arena, a new
+ * random seed each battle, over and over. `DemoLoop` drives an `ArenaClient` through it. Under
+ * reduced motion it is a still instead: `stillFrame` gets one battle's core at one cycle. It
+ * makes no sound.
  */
-import { rosterImage } from '@asmbots/bots'
 import {
   type BattleConfigInput,
   DEFAULT_CONFIG,
@@ -12,45 +11,21 @@ import {
   PlacementError,
   place,
 } from '@asmbots/engine'
-import type { Theme } from '@asmbots/ui/themes'
-import { CorePainter } from '../render/canvas2d'
-import { ArenaScene, SIDE } from '../render/scene'
 import { randomSeed } from '../setup/config'
 import type { ArenaClient } from '../worker/client'
 import type { ArenaBot, FrameMessage, Speed } from '../worker/protocol'
 
-/**
- * The demo's bots, in hue order: two painters that fill the core with color, a bomber, and a
- * replicator. Paper outlasts the rest in most seeds.
- */
-export const DEMO_SLUGS = ['painter-lcg', 'painter-spiral', 'dwarf', 'paper'] as const
-
-/**
- * Cycles per frame. The duel config ends most of these battles at 30,000 to 80,000 cycles: 2 to
- * 4 s at 60 fps.
- */
+/** Cycles per frame, unless the loop says: most four-bot battles end in 2 to 4 s at 60 fps. */
 export const DEMO_SPEED: Speed = 400
 
 /** How long the demo holds a battle's end before the next battle, ms. */
 export const DEMO_HOLD_MS = 3000
 
-/**
- * The still under reduced motion: all four bots alive, and each one's mark plain (the LCG's
- * clouds, the spiral, the dwarf's stripes, paper's streaks).
- */
-export const STILL_SEED = 62
-export const STILL_CYCLE = 24_000
+/** The seed the loop falls back to when its random seeds do not place the bots. */
+export const FALLBACK_SEED = 62
 
-/** Random seeds the demo draws before it falls back to `STILL_SEED`, which places the bots. */
+/** Random seeds the loop draws before it falls back to `FALLBACK_SEED`. */
 const SEED_TRIES = 32
-
-/** The demo's bots as the Worker loads them. */
-export function demoBots(): ArenaBot[] {
-  return DEMO_SLUGS.map((slug) => {
-    const { name, author, strategy, version, bytes } = rosterImage(slug)
-    return { name, bytes, meta: { author, strategy, version } }
-  })
-}
 
 /** Whether images of `sizes` place with `seed` at the engine's spacing (ISA §5.5). */
 function places(sizes: readonly number[], seed: number): boolean {
@@ -70,7 +45,7 @@ export function demoSeed(bots: readonly ArenaBot[], random: () => number = rando
     const seed = random()
     if (places(sizes, seed)) return seed
   }
-  return STILL_SEED
+  return FALLBACK_SEED
 }
 
 export interface DemoLoopOptions {
@@ -169,12 +144,12 @@ function nextFrame(client: ArenaClient): Promise<FrameMessage> {
   })
 }
 
-/** A still's frame: battle `seed` at `cycle` (the demo's by default), the whole core. */
+/** A still's frame: battle `seed` at `cycle`, the whole core. */
 export async function stillFrame(
   client: ArenaClient,
   bots: readonly ArenaBot[],
-  seed = STILL_SEED,
-  cycle = STILL_CYCLE,
+  seed: number,
+  cycle: number,
 ): Promise<FrameMessage> {
   const loaded = nextFrame(client)
   client.load(bots, { seed })
@@ -182,21 +157,4 @@ export async function stillFrame(
   const seeked = nextFrame(client)
   client.seek(cycle)
   return seeked
-}
-
-/**
- * Paints the core of `frame`, a full frame, onto `canvas`, a pixel a byte (`SIDE` x `SIDE`),
- * as the 2D renderer paints it: each bot's territory in its hue over the arena's black.
- */
-export function paintStill(canvas: HTMLCanvasElement, frame: FrameMessage, theme: Theme): void {
-  const context = canvas.getContext('2d')
-  if (context === null) return
-  const scene = new ArenaScene()
-  scene.apply(frame)
-  scene.advance(0)
-  const painter = new CorePainter(undefined, theme)
-  painter.paint(scene)
-  const image = context.createImageData(SIDE, SIDE)
-  image.data.set(painter.pixels)
-  context.putImageData(image, 0, 0)
 }

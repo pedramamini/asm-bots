@@ -8,8 +8,8 @@ import {
   Outlet,
   RouterProvider,
 } from '@tanstack/react-router'
-import { act, render, screen, waitFor, within } from '@testing-library/react'
-import { lazy, type ReactElement, type ReactNode, useEffect } from 'react'
+import { act, render, screen, within } from '@testing-library/react'
+import type { ReactElement, ReactNode } from 'react'
 import { useDom, window } from '../../../packages/ui/test/dom'
 import { HomePage } from '../src/app/HomePage'
 import { NotFound } from '../src/app/NotFound'
@@ -20,7 +20,6 @@ import {
   type TickerFeed,
   tickerFeed,
 } from '../src/app/ticker'
-import type { HomeDemoProps } from '../src/features/arena/demo/HomeDemo'
 import { hang, useApiServer, WithQueries } from './api-server'
 import { TICKER } from './fixtures/api'
 
@@ -55,20 +54,35 @@ async function renderAt(content: () => ReactNode, path = '/') {
   return router
 }
 
-/** A demo that never loads: the hero keeps its loader. */
-const NeverLoads = lazy(() => new Promise<never>(() => {}))
-
 describe('HomePage', () => {
-  it('draws the hero, its two ways in, and the three panels in skeleton', async () => {
-    await renderAt(() => <HomePage demo={NeverLoads} />)
-    expect(screen.getByRole('region', { name: 'live demo' }).textContent).toContain(
-      '4 bots · loading',
-    )
+  it('names the site, a card for each part of it, and the three panels in skeleton', async () => {
+    await renderAt(() => <HomePage />)
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('ASM BOTS')
     expect(screen.getByText('Write 8086 assembly. Fight for 64 KB.')).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'open arena' }).getAttribute('href')).toBe('/arena')
-    expect(screen.getByRole('link', { name: 'write a bot' }).getAttribute('href')).toBe('/editor')
-    expect(screen.getByRole('status').textContent).toContain('loading the demo battle')
+    // Each part's name is its link.
+    const parts = screen.getByRole('list', { name: 'the site' })
+    expect(
+      within(parts)
+        .getAllByRole('heading', { level: 2 })
+        .map((h) => [h.textContent, within(h).getByRole('link').getAttribute('href')]),
+    ).toEqual([
+      ['arena', '/arena'],
+      ['editor', '/editor'],
+      ['hills', '/hills'],
+      ['tournaments', '/tournaments'],
+      ['docs', '/docs'],
+      ['for agents', '/docs/tools/agents'],
+    ])
+    expect(
+      within(parts).getByRole('link', { name: 'watch the intro fight' }).getAttribute('href'),
+    ).toBe('/arena?intro=true')
+    expect(within(parts).getByRole('link', { name: 'llms.txt' }).getAttribute('href')).toBe(
+      '/llms.txt',
+    )
+    // No demo battle: nothing on the page plays.
+    expect(screen.queryByRole('region', { name: 'live demo' })).toBeNull()
+    expect(document.querySelector('canvas')).toBeNull()
+    expect(screen.getByRole('region', { name: 'how it works' })).toBeTruthy()
 
     const hill = screen.getByRole('region', { name: 'main hill' })
     expect(
@@ -82,22 +96,6 @@ describe('HomePage', () => {
     expect(within(matches).getAllByRole('columnheader')).toHaveLength(4)
     const cup = screen.getByRole('region', { name: 'championship' })
     expect(within(cup).getByRole('button', { name: 'enter' })).toHaveProperty('disabled', true)
-  })
-
-  it('puts the demo under the hero once the page is idle, and its status in the panel', async () => {
-    function Demo({ onStatus }: HomeDemoProps) {
-      useEffect(() => onStatus?.('4 bots · seed 7'), [onStatus])
-      return <p>the demo</p>
-    }
-    await renderAt(() => <HomePage demo={Demo} />)
-    const hero = screen.getByRole('region', { name: 'live demo' })
-    // The loader first: the demo waits for the load event and an idle moment.
-    expect(within(hero).getByRole('status').textContent).toContain('loading the demo battle')
-    expect(within(hero).queryByText('the demo')).toBeNull()
-    expect(await within(hero).findByText('the demo')).toBeTruthy()
-    // The demo reports from an effect, which may run a task after the commit that drew it.
-    await waitFor(() => expect(hero.textContent).toContain('4 bots · seed 7'))
-    expect(within(hero).queryByRole('status')).toBeNull()
   })
 })
 

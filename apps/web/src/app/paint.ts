@@ -76,9 +76,9 @@ export function paintedAndIdle(signal?: AbortSignal): Promise<void> {
 }
 
 /**
- * Whether the page has painted and the browser has since been idle. The home demo and the docs'
- * code blocks wait for it, so their chunks (the arena, CodeMirror) take no bandwidth or
- * main-thread time from the page's first paint.
+ * Whether the page has painted and the browser has since been idle. The site's art, its footer,
+ * and the docs' code blocks wait for it, so their chunks (the art, CodeMirror) take no bandwidth
+ * or main-thread time from the page's first paint.
  */
 export function usePaintedAndIdle(): boolean {
   const [idle, setIdle] = useState(false)

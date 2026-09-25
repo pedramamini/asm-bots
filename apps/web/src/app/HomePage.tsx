@@ -1,21 +1,18 @@
 import type { Tournament, TournamentSummary } from '@asmbots/protocol'
-import { Button, EmptyState, Panel, PanelGrid, RadarLoader, Stat } from '@asmbots/ui'
+import { Button, cx, EmptyState, Panel, PanelGrid, Stat } from '@asmbots/ui'
 import { Link } from '@tanstack/react-router'
-import { CodeXml, Compass, Grid2x2, Mountain } from 'lucide-react'
-import { type ComponentType, lazy, Suspense, useState } from 'react'
+import { BookOpen, Bot, CodeXml, Grid2x2, type LucideIcon, Mountain, Trophy } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { useHill, useHillMatches, useTournament, useTournaments } from '../api/queries'
-import type { HomeDemoProps } from '../features/arena/demo/HomeDemo'
+import { Plate } from '../art/lazy'
 import { HillStandingsTable } from '../features/hills/HillStandingsTable'
 import { CELL_LINK, count, day } from '../features/hills/links'
 import { MatchesTable } from '../features/hills/MatchesTable'
 import { EnterButton } from '../features/tournaments/EnterModal'
-import { useBoot } from './boot/boot'
-import { NavLink } from './Frame'
+import { HowItWorks } from './HowItWorks'
 import { LoadFailure, readStatus } from './LoadFailure'
 import { LogoMark } from './Logo'
 import { useLinkAction } from './link-action'
-import { DocsLink } from './PageIntro'
-import { usePaintedAndIdle } from './paint'
 
 /** The rows the hill and match panels hold (PRODUCT_SPEC §1): a top 10, and the last 10. */
 const ROWS = 10
@@ -23,31 +20,161 @@ const ROWS = 10
 /** The hill the home page shows. */
 const MAIN_HILL = 'main'
 
-/** The demo battle, and the arena with it, load after the page: the page does not wait for them. */
-const HomeDemo = lazy(() =>
-  import('../features/arena/demo/HomeDemo').then((module) => ({ default: module.HomeDemo })),
+/** A keyboard focus: the kit's 1 px accent outline, 2 px out. */
+const FOCUS = 'focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent'
+
+/** A part's name, its link: the title's accent, underlined under the pointer. */
+const NAME = cx('rounded-sm underline-offset-2 hover:underline', FOCUS)
+
+/** A link in a part's text: the accent, underlined, as a link in running text is. */
+const TEXT_LINK = cx(
+  'rounded-sm text-accent-fg underline decoration-accent-45 underline-offset-2 hover:decoration-accent',
+  FOCUS,
 )
 
-export interface HomePageProps {
-  /** The hero's battle. Default: the arena's demo (`features/arena/demo`). */
-  demo?: ComponentType<HomeDemoProps> | undefined
+/** A part of the site, as the home page's overview names it. */
+interface Part {
+  readonly key: string
+  /** The nav's icon for it (DESIGN_SYSTEM §6). */
+  readonly icon: LucideIcon
+  /** The part's name, a link to it. */
+  readonly name: ReactNode
+  readonly text: string
+  /** More ways in, under the text. */
+  readonly more?: ReactNode
 }
 
+const PARTS: readonly Part[] = [
+  {
+    key: 'arena',
+    icon: Grid2x2,
+    name: (
+      <Link to="/arena" className={NAME}>
+        arena
+      </Link>
+    ),
+    text: 'Load two bots, or eight, into one 64 KB core and watch them fight, a cell a byte. The same bots and seed give the same fight, so every battle replays from a link.',
+    more: (
+      <Link to="/arena" search={{ intro: true }} className={TEXT_LINK}>
+        watch the intro fight
+      </Link>
+    ),
+  },
+  {
+    key: 'editor',
+    icon: CodeXml,
+    name: (
+      <Link to="/editor" className={NAME}>
+        editor
+      </Link>
+    ),
+    text: 'Write a bot in 8086 assembly, 512 bytes at most. It assembles as you type, and the debugger steps it forward and back.',
+  },
+  {
+    key: 'hills',
+    icon: Mountain,
+    name: (
+      <Link to="/hills" className={NAME}>
+        hills
+      </Link>
+    ),
+    text: 'Ladders that never close. Submit a bot, it fights every bot on the hill, and its rank is its score.',
+  },
+  {
+    key: 'tournaments',
+    icon: Trophy,
+    name: (
+      <Link to="/tournaments" className={NAME}>
+        tournaments
+      </Link>
+    ),
+    text: 'Brackets, round robins, and melees, and the weekly championship: one bracket, one champion.',
+  },
+  {
+    key: 'docs',
+    icon: BookOpen,
+    name: (
+      <Link to="/docs" className={NAME}>
+        docs
+      </Link>
+    ),
+    text: 'The manual: the machine, every instruction, and the strategies that win.',
+    more: (
+      <Link to="/docs/$" params={{ _splat: 'start-here' }} className={TEXT_LINK}>
+        start here
+      </Link>
+    ),
+  },
+  {
+    key: 'agents',
+    icon: Bot,
+    name: (
+      <Link to="/docs/$" params={{ _splat: 'tools/agents' }} className={NAME}>
+        for agents
+      </Link>
+    ),
+    text: 'The docs as llms.txt, a skill to download, and API tokens, so an AI agent can write, test, and push bots.',
+    more: (
+      <>
+        <a href="/llms.txt" className={TEXT_LINK}>
+          llms.txt
+        </a>
+        <a href="/skill/asm-bots.zip" className={TEXT_LINK}>
+          the skill
+        </a>
+      </>
+    ),
+  },
+]
+
 /**
- * `/` (PRODUCT_SPEC §1): the hero over the live demo battle, how the game works in three steps,
- * then the main hill's top 10, its recent matches, and the next championship, read from the API;
- * until each read lands its panel holds a skeleton. The championship's `enter` takes one of my
- * bots while its entries are open.
+ * `/` (PRODUCT_SPEC §1): the name and one line, a card for each part of the site (what it is,
+ * and the way in), how the game works with its art (`HowItWorks`, where the tour is), then the
+ * main hill's top 10, its recent matches, and the next championship, read from the API; until
+ * each read lands its panel holds a skeleton. The championship's `enter` takes one of my bots
+ * while its entries are open. Nothing on the page moves (DESIGN_SYSTEM §10).
  */
-export function HomePage({ demo = HomeDemo }: HomePageProps) {
+export function HomePage() {
   return (
     <PanelGrid className="p-3">
-      <Hero demo={demo} />
+      <Overview />
       <HowItWorks />
       <MainHill />
       <RecentMatches />
       <Championship />
     </PanelGrid>
+  )
+}
+
+/** The name, the one line, and the parts of the site, in cards of equal height. */
+function Overview() {
+  return (
+    <section aria-labelledby="home-title" className="col-span-12 flex flex-col gap-3">
+      <div className="flex flex-col gap-1 px-1 pt-1">
+        <h1 id="home-title" className="flex items-center gap-2 text-modal-title text-bright">
+          <LogoMark size={24} />
+          ASM BOTS
+        </h1>
+        <p className="text-body text-muted">Write 8086 assembly. Fight for 64 KB.</p>
+      </div>
+      <ul aria-label="the site" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {PARTS.map(({ key, icon: Icon, name, text, more }) => (
+          <li
+            key={key}
+            className="flex flex-col gap-2 rounded-md border border-border bg-panel p-3"
+          >
+            <h2 className="flex items-center gap-2 text-panel-title text-accent-fg">
+              <Icon aria-hidden="true" className="size-3.5 shrink-0" />
+              {name}
+            </h2>
+            <p className="flex-1 text-body text-text">{text}</p>
+            {more !== undefined && (
+              <p className="flex flex-wrap gap-x-4 gap-y-1 text-data">{more}</p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 
@@ -148,6 +275,10 @@ function Championship() {
         <LoadFailure read={list} />
       ) : (
         <div className="flex flex-1 flex-col gap-4">
+          {/* The cup, as art; the box holds its space while it loads. */}
+          <div className="h-28 overflow-hidden rounded-sm border border-border bg-panel-2">
+            <Plate name="trophy" />
+          </div>
           <Stat
             label="next event"
             loading={loading}
@@ -186,117 +317,6 @@ function Championship() {
           </div>
         </div>
       )}
-    </Panel>
-  )
-}
-
-/**
- * The demo battle on the arena's black, and the name, the one line, and the two ways in. They sit
- * on a panel: the arena is black in every theme, and paper's text is dark. Under `xl` the name
- * card sits over the battle; from `xl` on the black box is only the map (the core's 20rem square
- * and the row ruler's 44 px), with the card left of it and the demo's legend right of it.
- */
-function Hero({ demo: Demo }: { demo: ComponentType<HomeDemoProps> }) {
-  const [status, setStatus] = useState('4 bots · loading')
-  // Not under the boot screen: the demo starts when the page shows.
-  const booting = useBoot((state) => state.phase === 'boot')
-  const idle = usePaintedAndIdle() && !booting
-  const loader = (
-    <div className="absolute inset-0 grid place-items-center">
-      <RadarLoader label="loading the demo battle" framed />
-    </div>
-  )
-  return (
-    <Panel className="col-span-12" title="live demo" status={status}>
-      <div className="relative grid h-80 grid-cols-1 grid-rows-1 xl:grid-cols-[minmax(0,1fr)_calc(20rem_+_44px)_minmax(0,1fr)] xl:gap-4">
-        <div className="col-start-1 row-start-1 rounded-sm border border-border bg-arena-bg xl:col-start-2" />
-        {idle ? (
-          <Suspense fallback={loader}>
-            <Demo onStatus={setStatus} />
-          </Suspense>
-        ) : (
-          loader
-        )}
-        <div className="absolute bottom-3 left-3 flex flex-col gap-2 rounded-md border border-border bg-panel p-4 xl:relative xl:col-start-1 xl:row-start-1 xl:self-end xl:justify-self-end">
-          <h1 className="flex items-center gap-2 text-modal-title text-bright">
-            <LogoMark size={24} />
-            ASM BOTS
-          </h1>
-          <p className="text-body text-muted">Write 8086 assembly. Fight for 64 KB.</p>
-          <div className="mt-1 flex gap-2">
-            <NavLink to="/arena" icon={Grid2x2}>
-              open arena
-            </NavLink>
-            <NavLink to="/editor" icon={CodeXml}>
-              write a bot
-            </NavLink>
-          </div>
-        </div>
-      </div>
-    </Panel>
-  )
-}
-
-/** A step of `HowItWorks`. */
-interface HowStep {
-  title: string
-  text: string
-  link: { to: '/editor' | '/arena' | '/hills'; label: string; icon: typeof Grid2x2 }
-}
-
-const HOW: readonly HowStep[] = [
-  {
-    title: 'write',
-    text: 'A bot is a small 8086 program, 512 bytes at most. The editor assembles it as you type, and its debugger steps it one instruction at a time.',
-    link: { to: '/editor', label: 'open the editor', icon: CodeXml },
-  },
-  {
-    title: 'fight',
-    text: 'Load two or more bots into one 64 KB core. They take turns, one instruction each. A process that runs a zero byte dies; the last bot running wins.',
-    link: { to: '/arena', label: 'pick a fight', icon: Grid2x2 },
-  },
-  {
-    title: 'climb',
-    text: 'Submit a bot to a hill, a ladder that never closes, and see where it ranks. Or enter the weekly championship.',
-    link: { to: '/hills', label: 'see the hills', icon: Mountain },
-  },
-]
-
-/** Three steps, write, fight, climb, and the tour again for whoever wants it. */
-function HowItWorks() {
-  const openTour = useBoot((state) => state.openTour)
-  return (
-    <Panel className="col-span-12" title="how it works" status="core war, in 8086">
-      <div className="flex flex-col gap-4">
-        <ol className="grid gap-3 md:grid-cols-3">
-          {HOW.map((step, index) => (
-            <li
-              key={step.title}
-              className="flex flex-col gap-2 rounded-md border border-border bg-panel-2 p-3"
-            >
-              <p className="flex items-baseline gap-2 text-panel-title">
-                <span className="text-muted">{`0${index + 1}`}</span>
-                <span className="text-accent-fg">{step.title}</span>
-              </p>
-              <p className="flex-1 text-body text-text">{step.text}</p>
-              <div>
-                <NavLink to={step.link.to} icon={step.link.icon}>
-                  {step.link.label}
-                </NavLink>
-              </div>
-            </li>
-          ))}
-        </ol>
-        <div className="flex flex-wrap items-center gap-3 text-data text-muted">
-          <Button icon={Compass} onClick={openTour}>
-            take the tour
-          </Button>
-          <span>
-            six steps, then a guided first battle. or read{' '}
-            <DocsLink to="start-here">start here</DocsLink>.
-          </span>
-        </div>
-      </div>
     </Panel>
   )
 }

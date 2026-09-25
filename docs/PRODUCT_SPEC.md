@@ -19,8 +19,10 @@ Every screen, every interaction, every state. The playbooks implement this; the 
 ## 1. Home `/`
 
 - Ticker: latest hill event, latest tournament result, next scheduled championship countdown.
-- Hero: a live, autoplaying 4-bot demo battle in the arena renderer (roster bots, random seed, muted, loops). Overlaid: `ASM BOTS`, one line ("Write 8086 assembly. Fight for 64 KB."), two actions: `open arena` and `write a bot`.
+- Overview: `ASM BOTS`, one line ("Write 8086 assembly. Fight for 64 KB."), then a card for each part of the site (arena, editor, hills, tournaments, docs, for agents): its nav icon, its name as a link, and one or two sentences on what it is. The arena's card also links the intro fight (`/arena?intro=true`). Nothing on the page moves.
+- How it works: the core, write, fight, climb, each with its art (DESIGN_SYSTEM §10) and a screenshot, then `take the tour`.
 - Three panels: **Main hill** top 10 (rank, bot, author, score, rating, age); **Recent matches** (10 rows, click → replay); **Championship** (next event, entrants so far, `enter` button).
+- The site footer (every page that scrolls): the hills as a dither range, and the site's links.
 - Footer status: version stamp (its release's name in a tooltip, from `CHANGELOG.md`; a link to the changelog), ISA version, `made with maestro` attribution chip center.
 
 ## 2. Arena `/arena`

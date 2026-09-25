@@ -18,8 +18,9 @@ export interface HeaderProps extends ComponentProps<'header'> {
 /**
  * The top bar under the ticker (DESIGN_SYSTEM §4): 40 px, hairline bottom. Brand left, the live
  * stat centered in the space between the brand and the nav, then the nav and the right slot.
- * Under `md` the stat goes (a narrow screen has no room for it beside the nav) and the gaps
- * close up; the nav and the right slot decide for themselves what to shed there.
+ * Under `md` the stat goes (a narrow screen has no room for it beside the nav), the gaps close
+ * up, and the brand's letters too; the nav and the right slot decide for themselves what to shed
+ * there.
  */
 export function Header({
   brand,
@@ -34,12 +35,16 @@ export function Header({
     <header
       {...rest}
       className={cx(
-        'relative z-header flex h-10 items-center gap-2 border-b border-border bg-bg px-2 md:gap-3 md:px-3',
+        'relative z-header flex h-10 items-center gap-1.5 border-b border-border bg-bg px-2 md:gap-3 md:px-3',
         className,
       )}
     >
+      {/* It clips 2 px out, so a brand that is a link keeps its focus ring. Under `md` its letters
+          close up, so the name fits beside a full nav. */}
       {hasContent(brand) && (
-        <div className="min-w-0 shrink truncate text-brand text-accent-fg">{brand}</div>
+        <div className="min-w-0 shrink truncate-ring text-brand text-accent-fg max-md:tracking-normal">
+          {brand}
+        </div>
       )}
       <div className="flex min-w-0 flex-1 justify-center">
         {hasContent(stat) && (

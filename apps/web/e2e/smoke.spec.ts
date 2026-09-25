@@ -74,7 +74,10 @@ test('frames each route: brand, nav, and status row', async ({ page }) => {
   await page.goto('/hills/main')
   const header = page.getByRole('banner')
   await expect(header).toContainText('ASM BOTS // HILLS')
-  await expect(header.getByRole('link', { name: 'hills' })).toHaveAttribute('aria-current', 'page')
+  await expect(header.getByRole('link', { name: 'hills', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  )
   await expect(page.getByRole('contentinfo')).toContainText('x16c v1')
   await expect(page.getByRole('link', { name: 'made with maestro' })).toHaveAttribute(
     'href',

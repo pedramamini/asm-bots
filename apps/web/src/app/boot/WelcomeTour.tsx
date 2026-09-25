@@ -21,6 +21,7 @@ interface Step {
 
 /** What each nav page is for, in the tour's last step. */
 const PLACES: Readonly<Record<(typeof NAV)[number]['to'], string>> = {
+  '/': 'what each part of the site is, and the live hill',
   '/arena': 'fight any bots, and watch every byte',
   '/editor': 'write a bot; assemble, test, and debug it',
   '/tournaments': 'brackets, round robins, melees, the weekly championship',

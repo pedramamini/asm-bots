@@ -1,4 +1,4 @@
-/** Whether anyone can see a demo: the home page's battle, and the 404 page's imp. */
+/** Whether anyone can see a battle that plays by itself: the 404 page's imp. */
 import { type RefObject, useEffect, useState, useSyncExternalStore } from 'react'
 
 function subscribeVisibility(changed: () => void): () => void {

@@ -11,7 +11,7 @@ import {
 } from '@tanstack/react-router'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useDom, window } from '../../../packages/ui/test/dom'
-import { FPS_WARN, Frame, FrameToolbar } from '../src/app/Frame'
+import { FPS_WARN, Frame, FrameToolbar, hasFooter, navActive } from '../src/app/Frame'
 import { CHORD_WINDOW, createKeymap, type KeyCommand, ROUTE_SEARCH } from '../src/app/keys'
 import { useFps, useHeaderStat, useRouteStat } from '../src/app/slots'
 import { titleHead } from '../src/app/title'
@@ -159,7 +159,7 @@ describe('Frame', () => {
         <FrameToolbar aria-label="filters">
           <input aria-label="search" {...{ [ROUTE_SEARCH]: '' }} />
         </FrameToolbar>
-        <p>home</p>
+        <p>the home page</p>
       </>
     )
   }
@@ -184,7 +184,7 @@ describe('Frame', () => {
       within(nav)
         .getAllByRole('link')
         .map((link) => link.textContent),
-    ).toEqual(['arena', 'editor', 'tournaments', 'hills', 'docs'])
+    ).toEqual(['home', 'arena', 'editor', 'tournaments', 'hills', 'docs'])
     expect(screen.getByRole('toolbar', { name: 'filters' })).toBeTruthy()
     const footer = screen.getByRole('contentinfo')
     expect(within(footer).getByText('x16c v1')).toBeTruthy()
@@ -257,19 +257,44 @@ describe('Frame', () => {
     expect(screen.getByRole('complementary', { name: 'ticker' }).textContent).not.toBe('')
     const tools = screen.getByRole('region', { name: 'filters tools' })
     expect(within(tools).getByRole('toolbar', { name: 'filters' })).toBeTruthy()
-    expect(screen.getByRole('main').textContent).toContain('home')
+    expect(screen.getByRole('main').textContent).toContain('the home page')
   })
 
-  it('links the intro, the guided demo, from the header', async () => {
-    await renderAndWait()
+  it('links home from the brand and the first nav button, current only on /', async () => {
+    const router = await renderAndWait()
     const header = screen.getByRole('banner')
-    const intro = within(header).getByRole('link', { name: 'intro' })
-    expect(intro.getAttribute('href')).toBe('/arena?intro=true')
-    // Not a route of the nav: it is never the current page.
-    expect(
-      within(within(header).getByRole('navigation')).queryByRole('link', { name: 'intro' }),
-    ).toBeNull()
-    expect(intro.getAttribute('aria-current')).toBeNull()
+    const brand = within(header).getByRole('link', { name: /^ASM BOTS/ })
+    expect(brand.getAttribute('href')).toBe('/')
+    const nav = within(header).getByRole('navigation')
+    const home = within(nav).getByRole('link', { name: 'home' })
+    expect(home.getAttribute('href')).toBe('/')
+    expect(home.getAttribute('aria-current')).toBe('page')
+    // The intro is the home page's link now, not the header's.
+    expect(within(header).queryByRole('link', { name: 'intro' })).toBeNull()
+    await act(() => router.navigate({ to: '/arena' }))
+    await screen.findByText('the arena')
+    expect(home.getAttribute('aria-current')).toBeNull()
+    // Home again with `g o`, and from the brand.
+    key('g')
+    key('o')
+    await waitFor(() => expect(home.getAttribute('aria-current')).toBe('page'))
+    expect(router.state.location.pathname).toBe('/')
+  })
+
+  it('knows which nav button holds a page: home only /, the others their subpages', () => {
+    expect(navActive('/', '/')).toBe(true)
+    expect(navActive('/', '/arena')).toBe(false)
+    expect(navActive('/hills', '/hills/main')).toBe(true)
+    expect(navActive('/hills', '/hillside')).toBe(false)
+  })
+
+  it('ends a scrolling page in the site footer, and leaves the full-screen routes without', () => {
+    expect(hasFooter('/')).toBe(true)
+    expect(hasFooter('/docs/strategy/imps')).toBe(true)
+    expect(hasFooter('/hills/main')).toBe(true)
+    for (const path of ['/arena', '/editor', '/editor/abc', '/embed/arena']) {
+      expect(hasFooter(path)).toBe(false)
+    }
   })
 
   it('says offline in the status bar, and what still works, until the network is back', async () => {
@@ -302,6 +327,7 @@ describe('Frame', () => {
       '?show the keys',
       'tnext theme',
       '/search this page',
+      'g ogo to home',
       'g ago to arena',
       'g ego to editor',
       'g tgo to tournaments',
@@ -362,7 +388,7 @@ describe('Frame', () => {
 
   async function renderAndWait() {
     const router = renderFrame()
-    await screen.findByText('home')
+    await screen.findByText('the home page')
     return router
   }
 })

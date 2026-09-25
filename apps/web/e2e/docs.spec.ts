@@ -103,13 +103,14 @@ test('the keyboard map draws every group of keys', async ({ page }) => {
 test('the strategy, tournament, and tools pages load with no errors', async ({ page }) => {
   const errors = watch(page)
   await page.goto('/docs')
+  // The sidebar lists every page; the home's cards list only each section's first few.
   const links = page
-    .getByRole('region', { name: 'docs home' })
-    .locator(
-      'ol a[href^="/docs/strategy/"], ol a[href^="/docs/tournaments/"], ol a[href^="/docs/tools/"]',
-    )
-  // The home is a lazy route: wait for its cards before reading them.
-  await expect(links).toHaveCount(21)
+    .getByRole('navigation', { name: 'docs pages' })
+    .locator('a[href^="/docs/strategy/"], a[href^="/docs/tournaments/"], a[href^="/docs/tools/"]')
+  // The home is a lazy route: wait for the links before reading them. A closed section's links
+  // are in the page but hidden.
+  await expect(links.first()).toBeAttached()
+  expect(await links.count()).toBeGreaterThanOrEqual(21)
   const hrefs = await links.evaluateAll((as) => as.map((a) => a.getAttribute('href') as string))
   for (const href of [...hrefs, '/docs/changelog', '/docs/isa-versions']) {
     await page.goto(href)
@@ -158,15 +159,16 @@ test('the imp page: open in arena lands on a loaded arena that fights', async ({
   expect(errors).toEqual([])
 })
 
-/** The article's width, and the width of 72 of its `0`s: the reading measure. */
+/** The article's width, and the width of the panel it fills (the panel's padding in). */
 function measure(page: Page) {
   return page.locator('article').evaluate((article) => {
-    const probe = document.createElement('div')
-    probe.style.width = '72ch'
-    article.append(probe)
-    const ch72 = probe.getBoundingClientRect().width
-    probe.remove()
-    return { width: article.getBoundingClientRect().width, ch72 }
+    const panel = article.parentElement as HTMLElement
+    const style = getComputedStyle(panel)
+    const inner =
+      panel.clientWidth -
+      Number.parseFloat(style.paddingLeft) -
+      Number.parseFloat(style.paddingRight)
+    return { width: article.getBoundingClientRect().width, panel: inner }
   })
 }
 
@@ -188,18 +190,19 @@ function codeBlocks(page: Page) {
   )
 }
 
-test('a page reads at 72ch, and its code scrolls sideways rather than wrap', async ({ page }) => {
+test('a page fills its panel, and its code scrolls sideways rather than wrap', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/docs/strategy/imps')
   await expect(page.locator('article pre code span[style*="--accent"]').first()).toBeVisible()
+  // No reading measure holds the text narrow: the article is as wide as its panel.
   const wide = await measure(page)
-  expect(wide.width).toBeCloseTo(wide.ch72, 0)
+  expect(wide.width).toBeCloseTo(wide.panel, 0)
 
-  // A phone: the article is narrower than 72ch, the docs do not scroll sideways, the code does.
+  // A phone: the article still fills its panel, the docs do not scroll sideways, the code does.
   // (The page's own `main` scrolls the docs; the app header above it is the kit's.)
   await page.setViewportSize({ width: 390, height: 844 })
   const narrow = await measure(page)
-  expect(narrow.width).toBeLessThan(narrow.ch72)
+  expect(narrow.width).toBeCloseTo(narrow.panel, 0)
   expect(await page.locator('main').evaluate((main) => main.scrollWidth <= main.clientWidth)).toBe(
     true,
   )

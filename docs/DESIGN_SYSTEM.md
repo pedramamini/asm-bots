@@ -131,3 +131,23 @@ WCAG 2.2 AA; axe in Playwright finds no violation on any route in any theme. Con
 ## 9. Voice
 
 Terse, technical, lowercase in controls, uppercase in labels. "8 bots · 41 procs" not "There are 8 bots with 41 processes." Errors name the fix: "jump out of range (+142); use `jmp near` or invert the branch." Empty hill: "no entrants yet. submit a bot →".
+
+## 10. Art
+
+The site's pictures are drawn by code from the machine's own parts, in the theme's tokens, so each one follows the theme with no second copy. Four styles (studies: `docs/art-styles.html` in the parent folder):
+
+| Style | What it is | Where |
+|---|---|---|
+| Dither plate | 1-bit ordered (Bayer 4 × 4) scenes: the accent, `--text-bright` for a flag or a gleam, 3 px cells with a 1 px gap. Scenes: `footer` (the hills, a flag each for `tiny`, `main`, `melee`), `climb`, `trophy`, `chip`. | The footer, the home page, the championship panel |
+| Schematic | Hairline technical drawings of the VM: boxes, a bus, a dimension line, UPPER callouts, a drawing number. | Home `the core`; docs |
+| Scope trace | Bots' process counts as phosphor traces on a graticule, on the arena's black, in the bots' hues. | Home `fight` |
+| Hex band | A core dump whose lit bytes, the imp's `A5 90`, spell a word in a 5 × 7 face among the empty core's zeros. | Home, over the tour |
+
+Rules:
+
+- **Art is not content.** Every drawing is `aria-hidden`; the text beside it says what it shows. Text inside an SVG drawing may use `--text-dim`.
+- **Nothing moves.** A plate draws once, and again only on a resize or a theme change.
+- **After the paint.** The art is one chunk (`src/art`), loaded once the page has painted and gone idle; its box holds the space before, so nothing shifts.
+- **Screenshots** on the home page are the docs' (`public/docs-shots`), small, framed as a window with its `ASM BOTS // PAGE` bar, lazy, and each opens its page.
+- **The footer** ends every page that scrolls; the arena, the editor, and embeds fill the screen and have none.
+- Empty states stay text (§4): no art there.

@@ -21,9 +21,9 @@ import {
   BookOpen,
   Check,
   ChevronDown,
-  CirclePlay,
   CodeXml,
   Grid2x2,
+  House,
   Keyboard,
   Mountain,
   Palette,
@@ -53,13 +53,18 @@ import {
   useKeys,
 } from './keys'
 import { useOnline } from './online'
+import { usePaintedAndIdle } from './paint'
 import { useFps, useHeaderStat } from './slots'
 import { useTicker } from './ticker'
 import { BRAND, useRouteHead } from './title'
 import { RELEASE, VERSION, versionTitle } from './version'
 
-/** The header's routes (DESIGN_SYSTEM §6 icons), and the second key of each `g` chord. */
+/**
+ * The header's routes (DESIGN_SYSTEM §6 icons), and the second key of each `g` chord. Home is
+ * first, and current only on `/` itself: every other route starts with `/` too.
+ */
 export const NAV = [
+  { to: '/', label: 'home', icon: House, key: 'o' },
   { to: '/arena', label: 'arena', icon: Grid2x2, key: 'a' },
   { to: '/editor', label: 'editor', icon: CodeXml, key: 'e' },
   { to: '/tournaments', label: 'tournaments', icon: Trophy, key: 't' },
@@ -81,6 +86,17 @@ const FirstSignIn = lazy(() =>
   import('../features/account/FirstSignIn').then((m) => ({ default: m.FirstSignIn })),
 )
 
+/** The site's footer, the hills' dither range and the links: after the page paints, in a chunk of its own. */
+const SiteFooter = lazy(() => import('./SiteFooter').then((m) => ({ default: m.SiteFooter })))
+
+/** The routes that fill the screen, and so have no footer: an app, not a page. */
+const FULL_SCREEN = ['/arena', '/editor', '/embed'] as const
+
+/** Whether a page at `pathname` ends in the footer. */
+export function hasFooter(pathname: string): boolean {
+  return !FULL_SCREEN.some((path) => pathname === path || pathname.startsWith(`${path}/`))
+}
+
 /** Where a route's `FrameToolbar` renders: the row between the header and the content. */
 const ToolbarSlot = createContext<HTMLElement | null>(null)
 
@@ -95,6 +111,8 @@ export function Frame({ children }: { children: ReactNode }) {
   const bindings = useKeyBindings()
   useGlobalKeys(useCallback(() => setKeysOpen((open) => !open), []))
   useKeymapListener()
+  const footer = hasFooter(useLocation({ select: (location) => location.pathname }))
+  const idle = usePaintedAndIdle()
 
   return (
     <div className="flex h-dvh flex-col bg-bg text-text">
@@ -117,7 +135,19 @@ export function Frame({ children }: { children: ReactNode }) {
           tabIndex={-1}
           className="relative min-h-0 flex-1 scroll-py-2 overflow-auto outline-none"
         >
-          {children}
+          {footer ? (
+            // The page fills the height at least, so a short page's footer stands at the bottom.
+            <div className="flex min-h-full flex-col">
+              <div className="flex-1">{children}</div>
+              {idle && (
+                <Suspense fallback={null}>
+                  <SiteFooter />
+                </Suspense>
+              )}
+            </div>
+          ) : (
+            children
+          )}
         </main>
       </ToolbarSlot>
       <FrameStatus />
@@ -208,16 +238,22 @@ function useGlobalKeys(toggleKeys: () => void): void {
   useKeys(commands)
 }
 
-/** `ASM BOTS // ARENA`; under `md` the page's name goes, since the nav's active button says it. */
+/**
+ * `ASM BOTS // ARENA`, a link home; under `md` the page's name goes, since the nav's active button
+ * says it.
+ */
 function Brand() {
   const { label } = useRouteHead()
   return (
-    <>
+    <Link
+      to="/"
+      className="rounded-sm focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
+    >
       {BRAND}
       {label !== null && (
         <span className="text-muted max-md:hidden">{` // ${label.toUpperCase()}`}</span>
       )}
-    </>
+    </Link>
   )
 }
 
@@ -226,11 +262,16 @@ function HeaderStat() {
   return useHeaderStat((state) => state.stat)
 }
 
-/** The five routes; under `md` each is its icon alone, its label left to screen readers. */
+/** Whether the nav's `to` is the page at `pathname`, or holds it. Home holds nothing. */
+export function navActive(to: string, pathname: string): boolean {
+  return pathname === to || (to !== '/' && pathname.startsWith(`${to}/`))
+}
+
+/** The six routes; under `md` each is its icon alone, its label left to screen readers. */
 function Nav() {
   const pathname = useLocation({ select: (location) => location.pathname })
   return NAV.map(({ to, label, icon }) => (
-    <NavLink key={to} to={to} icon={icon} active={pathname === to || pathname.startsWith(`${to}/`)}>
+    <NavLink key={to} to={to} icon={icon} active={navActive(to, pathname)}>
       <span className="max-md:sr-only">{label}</span>
     </NavLink>
   ))
@@ -242,22 +283,13 @@ function HeaderActions({ onKeys }: { onKeys: () => void }) {
   const setTheme = useSettings((state) => state.setTheme)
   return (
     <>
-      {/* The guided demo (PRODUCT_SPEC §9): the arena plays Dwarf vs Imp and says what happens. */}
-      <NavLink to="/arena" search={{ intro: true }} icon={CirclePlay} className="mr-1 max-md:hidden">
-        intro
-      </NavLink>
       <IconButton icon={Palette} label={`theme: ${theme}`} shortcut="t" onClick={cycleTheme} />
       {/* Under `md` the palette button alone cycles the themes: the menu and the keys (a keyboard's
           help) go, so the row fits a phone. */}
       <Menu
         placement="bottom-end"
         trigger={
-          <IconButton
-            icon={ChevronDown}
-            label="pick a theme"
-            size="sm"
-            className="max-md:hidden"
-          />
+          <IconButton icon={ChevronDown} label="pick a theme" size="sm" className="max-md:hidden" />
         }
         items={THEMES.map((name) => ({
           label: name,

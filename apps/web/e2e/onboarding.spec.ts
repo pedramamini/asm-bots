@@ -1,6 +1,6 @@
 /**
  * Onboarding in Chromium, against the production build (PRODUCT_SPEC §9): the arena's first-visit
- * tour (roster → fight → watch, then never again), the header's intro (Dwarf vs Imp at 200 cycles a
+ * tour (roster → fight → watch, then never again), the home page's intro (Dwarf vs Imp at 200 cycles a
  * frame, first blood pointed out on the events log, then the setup), and the status bar's offline
  * banner over an arena that fights on.
  */
@@ -61,7 +61,7 @@ test('skip the tour puts it away at once', async ({ page }) => {
 test('the intro plays Dwarf vs Imp at 200 a frame and points at first blood', async ({ page }) => {
   const errors = watch(page)
   await page.goto('/')
-  await page.getByRole('banner').getByRole('link', { name: 'intro' }).click()
+  await page.getByRole('link', { name: 'watch the intro fight' }).click()
   // The setup it runs is in the URL, so a reload keeps the bots.
   await expect(page).toHaveURL(/\/arena\?b=roster:dwarf,roster:imp&seed=263&cycles=100000&/)
   const bots = mark(page, 'intro-bots')

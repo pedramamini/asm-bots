@@ -5,7 +5,6 @@
 import { describe, expect, it } from 'bun:test'
 import { fireEvent, renderHook, screen, waitFor, within } from '@testing-library/react'
 import { HttpResponse, http } from 'msw'
-import { lazy } from 'react'
 import { useDom, window } from '../../../packages/ui/test/dom'
 import { ApiRequestError, apiGet, shouldRetry } from '../src/api/client'
 import { useHills, useReplay } from '../src/api/queries'
@@ -363,10 +362,8 @@ describe('/u/$handle', () => {
 })
 
 describe('/ panels', () => {
-  const NeverLoads = lazy(() => new Promise<never>(() => {}))
-
   it('fills the main hill’s top 10, its recent matches, and the next championship', async () => {
-    await renderAt('/', () => <HomePage demo={NeverLoads} />)
+    await renderAt('/', () => <HomePage />)
     const hill = screen.getByRole('region', { name: 'main hill' })
     const top = within(hill).getByRole('table', { name: 'main hill, top 10' })
     await waitFor(() => expect(cells(top)).toHaveLength(3))
@@ -416,7 +413,7 @@ describe('/ panels', () => {
         tournaments: [...TOURNAMENTS.tournaments, summary(earlier), cup8],
       }),
     )
-    await renderAt('/', () => <HomePage demo={NeverLoads} />)
+    await renderAt('/', () => <HomePage />)
     const cup = screen.getByRole('region', { name: 'championship' })
     await waitFor(() => expect(cup.textContent).toContain('last: Dwarf won Weekly 8'))
     expect(await within(cup).findByRole('button', { name: 'sign in to enter' })).toBeTruthy()
@@ -424,7 +421,7 @@ describe('/ panels', () => {
 
   it('holds skeletons while the server has not answered', async () => {
     server.use(hang('/hills/main'), hang('/hills/main/matches'), hang('/tournaments'))
-    await renderAt('/', () => <HomePage demo={NeverLoads} />)
+    await renderAt('/', () => <HomePage />)
     const hill = screen.getByRole('region', { name: 'main hill' })
     expect(within(hill).getByText('loading')).toBeTruthy()
     expect(
@@ -436,7 +433,7 @@ describe('/ panels', () => {
 
   it('says none is scheduled when no championship is', async () => {
     server.use(answer('/tournaments', { tournaments: [] }))
-    await renderAt('/', () => <HomePage demo={NeverLoads} />)
+    await renderAt('/', () => <HomePage />)
     const cup = screen.getByRole('region', { name: 'championship' })
     await waitFor(() => expect(cup.textContent).toContain('none scheduled'))
   })
@@ -446,7 +443,7 @@ describe('/ panels', () => {
       answer('/hills/main', { ...MAIN_DETAIL, standings: [] }),
       answer('/hills/main/matches', { matches: [] }),
     )
-    await renderAt('/', () => <HomePage demo={NeverLoads} />)
+    await renderAt('/', () => <HomePage />)
     const hill = screen.getByRole('region', { name: 'main hill' })
     expect(await within(hill).findByText('no entrants yet.')).toBeTruthy()
     expect(within(hill).getByRole('link', { name: 'submit a bot' }).getAttribute('href')).toBe(
@@ -463,7 +460,7 @@ describe('/ panels', () => {
       refuse('/hills/main', 500, 'internal', 'hill down'),
       refuse('/tournaments', 500, 'internal', 'cups down'),
     )
-    await renderAt('/', () => <HomePage demo={NeverLoads} />)
+    await renderAt('/', () => <HomePage />)
     const hill = screen.getByRole('region', { name: 'main hill' })
     const cup = screen.getByRole('region', { name: 'championship' })
     expect(await within(hill).findByText('could not load: hill down')).toBeTruthy()

@@ -102,8 +102,8 @@ export function DocsFrame({
 
 /**
  * A docs page's panel, named by its title: over the text, where the page sits (its trail and its
- * place in its section); the text in reading width (72ch); under it, the pages before and after.
- * Its contents stand beside it on a wide screen.
+ * place in its section); the text, which fills the panel so code and tables have room; under it,
+ * the pages before and after. Its contents stand beside it on a wide screen.
  */
 export function DocsArticle({
   title,
@@ -121,9 +121,7 @@ export function DocsArticle({
     <div className="flex items-start gap-3">
       <Panel aria-label={title} className="min-w-0 flex-1">
         {slug !== undefined && <DocsTrail slug={slug} docs={docs} />}
-        <article ref={article} className="max-w-[72ch]">
-          {children}
-        </article>
+        <article ref={article}>{children}</article>
         {slug !== undefined && <PrevNext slug={slug} docs={docs} />}
       </Panel>
       {slug !== undefined && <OnThisPage slug={slug} article={article} />}
@@ -299,7 +297,7 @@ function PrevNext({ slug, docs }: { slug: string; docs: readonly DocSection[] })
   return (
     <nav
       aria-label="previous and next pages"
-      className="mt-8 grid max-w-[72ch] gap-3 border-t border-border pt-4 sm:grid-cols-2"
+      className="mt-8 grid gap-3 border-t border-border pt-4 sm:grid-cols-2"
     >
       {prev !== undefined && <Neighbor entry={prev} rel="prev" />}
       {next !== undefined && <Neighbor entry={next} rel="next" />}

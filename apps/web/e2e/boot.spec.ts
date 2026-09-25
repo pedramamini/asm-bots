@@ -58,7 +58,7 @@ test('a first visit: the core boots, take tour opens the tour, and the tour star
   await expect(tour).toContainText('2 / 6 · a bot is a program')
   for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowRight')
   await expect(tour).toContainText('6 / 6 · where everything is')
-  await expect(tour.getByRole('list', { name: 'the pages' }).getByRole('listitem')).toHaveCount(5)
+  await expect(tour.getByRole('list', { name: 'the pages' }).getByRole('listitem')).toHaveCount(6)
   await tour.getByRole('button', { name: 'watch the first battle' }).click()
 
   // The arena's guided demo: Dwarf vs Imp, the first coach mark on the transport.

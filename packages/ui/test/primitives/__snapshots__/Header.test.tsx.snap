@@ -3,10 +3,10 @@
 exports[`Header draws brand, stat, nav, and the right slot 1`] = `
 "<div>
   <header
-    class="relative z-header flex h-10 items-center gap-2 border-b border-border bg-bg px-2 md:gap-3 md:px-3"
+    class="relative z-header flex h-10 items-center gap-1.5 border-b border-border bg-bg px-2 md:gap-3 md:px-3"
   >
     <div
-      class="min-w-0 shrink truncate text-brand text-accent-fg"
+      class="min-w-0 shrink truncate-ring text-brand text-accent-fg max-md:tracking-normal"
     >
       <a
         href="/"

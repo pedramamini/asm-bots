@@ -199,7 +199,11 @@ test('sign in, save a bot to the account, and submit it to a hill', async ({ pag
   await page.keyboard.press('g')
   await page.keyboard.press('h')
   await expect(page).toHaveTitle('ASM BOTS // HILLS')
-  await tabTo(page, page.getByRole('link', { name: 'main', exact: true }))
+  // The hills table's link: the footer's `main` flag also opens the hill.
+  await tabTo(
+    page,
+    page.getByRole('table', { name: 'hills' }).getByRole('link', { name: 'main', exact: true }),
+  )
   await page.keyboard.press('Enter')
   await expect(page).toHaveTitle('ASM BOTS // HILLS · main')
   await tabTo(page, page.getByRole('button', { name: 'submit', exact: true }))

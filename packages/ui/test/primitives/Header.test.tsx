@@ -58,7 +58,7 @@ describe('Header', () => {
   it('sets the brand in brand type and accent, the stat in muted data type', () => {
     render(<Header brand={brand} stat="8 bots" />)
     expect(screen.getByRole('link', { name: 'ASM BOTS // ARENA' }).parentElement?.className).toBe(
-      'min-w-0 shrink truncate text-brand text-accent-fg',
+      'min-w-0 shrink truncate-ring text-brand text-accent-fg max-md:tracking-normal',
     )
     // The stat steps aside under `md`: a phone's header has no room for it.
     expect(screen.getByText('8 bots').className).toBe(

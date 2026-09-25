@@ -4,7 +4,7 @@
  * falling tone for a bot's death, three rising notes when a match ends with one winner, and a
  * click when the battle plays, pauses, or changes speed. A full frame (a load, a seek) carries no
  * activity and makes no sound, but one cycle back is a step back, and ticks. The arena's battle
- * view plays them; the home demo and the other arenas that play by themselves stay silent.
+ * view plays them; the 404 page's imp and the other arenas that play by themselves stay silent.
  */
 import { meleeStandings } from '@asmbots/tourney'
 import { useEffect } from 'react'

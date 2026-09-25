@@ -159,11 +159,11 @@ test('the settings page plays the click it turns on, and each cue it turns on', 
   expect((await audio(page)).contexts).toBe(1)
 })
 
-test('the home demo makes no sound, even with sound on', async ({ page }) => {
+test('the home page makes no sound, even with sound on', async ({ page }) => {
   await countAudio(page)
   await storeSoundOn(page)
   await page.goto('/')
-  await expect(page.locator('[data-demo="live"]')).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'ASM BOTS' })).toBeVisible()
   await gesture(page)
   await page.waitForTimeout(1500)
   expect(await audio(page)).toEqual({ contexts: 0, sources: 0 })

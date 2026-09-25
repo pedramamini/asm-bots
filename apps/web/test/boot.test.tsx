@@ -129,6 +129,7 @@ describe('the boot screen', () => {
         .getAllByRole('listitem')
         .map((li) => li.textContent),
     ).toEqual([
+      expect.stringContaining('home'),
       expect.stringContaining('arena'),
       expect.stringContaining('editor'),
       expect.stringContaining('tournaments'),
@@ -182,7 +183,8 @@ describe('the boot screen', () => {
     useSettings.setState({ coachMarksSeen: [WELCOME_TOUR] })
     await open()
     const how = await screen.findByRole('region', { name: 'how it works' })
-    expect(within(how).getAllByRole('listitem')).toHaveLength(3)
+    // The game's four ideas: the core, write, fight, climb.
+    expect(within(how).getAllByRole('heading', { level: 3 })).toHaveLength(4)
     fireEvent.click(within(how).getByRole('button', { name: 'take the tour' }))
     expect(await screen.findByRole('dialog', { name: 'the tour' })).toBeTruthy()
   })

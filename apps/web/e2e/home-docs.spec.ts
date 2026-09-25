@@ -3,15 +3,32 @@
  */
 import { expect, test } from '@playwright/test'
 
-test('home: the hero, its two ways in, and the three panels', async ({ page }) => {
+test('home: the name, a card for each part of the site, the art, the panels, the footer', async ({
+  page,
+}) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { level: 1, name: 'ASM BOTS' })).toBeVisible()
-  for (const name of ['live demo', 'main hill', 'recent matches', 'championship']) {
+  const parts = page.getByRole('list', { name: 'the site' })
+  await expect(parts.getByRole('heading', { level: 2 })).toHaveText([
+    'arena',
+    'editor',
+    'hills',
+    'tournaments',
+    'docs',
+    'for agents',
+  ])
+  for (const name of ['how it works', 'main hill', 'recent matches', 'championship']) {
     await expect(page.getByRole('region', { name, exact: true })).toBeVisible()
   }
+  // Nothing on the page plays: no canvas, no demo.
+  await expect(page.locator('main canvas')).toHaveCount(0)
+  await expect(page.getByRole('navigation', { name: 'site' })).toBeAttached()
   await expect(page.getByRole('marquee')).toContainText('NEXT CHAMPIONSHIP')
-  await page.getByRole('link', { name: 'write a bot' }).click()
+  await parts.getByRole('link', { name: 'editor', exact: true }).click()
   await expect(page).toHaveTitle('ASM BOTS // EDITOR')
+  // Home again from the nav's first button.
+  await page.getByRole('banner').getByRole('link', { name: 'home', exact: true }).click()
+  await expect(page).toHaveURL(/\/$/)
 })
 
 test('docs: the sidebar search takes /, and Enter opens the MDX page', async ({ page }) => {

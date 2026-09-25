@@ -29,8 +29,7 @@ function volatile(page: Page) {
     page.getByRole('complementary', { name: 'ticker' }),
     page.locator('a[aria-label$=": the changelog"]'),
     page.locator('canvas'),
-    // Home: the demo draws its bots and seed at random; the next championship is a date.
-    page.getByRole('region', { name: 'live demo' }),
+    // Home: the next championship is a date.
     page.getByRole('region', { name: 'championship' }),
   ]
 }
