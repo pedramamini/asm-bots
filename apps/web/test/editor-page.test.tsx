@@ -422,7 +422,7 @@ describe('the editor page', () => {
     const view = await editorView()
     const panel = within(newBot() as HTMLElement)
     const templates = within(panel.getByRole('list', { name: 'templates' })).getAllByRole('button')
-    expect(templates.map((row) => row.getAttribute('aria-label'))).toEqual([
+    expect(templates.map((row) => row.textContent)).toEqual([
       'blank',
       'imp',
       'dwarf',
@@ -763,12 +763,13 @@ describe('the debugger', () => {
   it('pins the coach mark under run on the first visit, until got it, and never again', async () => {
     const first = await dwarfVsImp()
     const transport = screen.getByRole('group', { name: 'debugger transport' })
-    const tip = within(transport).getByRole('note', { name: 'tip' })
+    const tip = screen.getByRole('note', { name: 'tip' })
     expect(tip.querySelector('p')?.textContent).toBe(
       'assemble runs as you type; press F5 to debug.',
     )
-    // In the run button's box, which it points at.
-    expect(within(tip.parentElement as HTMLElement).getByRole('button', { name: 'run' })).toBe(
+    // Under the transport, whose first button is run, which its caret points at.
+    expect(transport.nextElementSibling).toBe(tip)
+    expect(within(transport).getAllByRole('button')[0]).toBe(
       screen.getByRole('button', { name: 'run' }),
     )
     fireEvent.click(within(tip).getByRole('button', { name: 'got it' }))

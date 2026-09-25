@@ -10,6 +10,7 @@ import { PAGES_MANIFEST } from '../../packages/protocol/src/pages'
 // The token parser alone: the kit's index would pull React into the config.
 import { parseTokenRules, themeTokens } from '../../packages/ui/src/css-tokens'
 import { readReleases, releaseOf } from '../../scripts/changelog'
+import { textImport } from '../../scripts/text-import'
 import { getVersion } from '../../scripts/version'
 import { defaultHeadTags, pageManifest, robotsTxt, SITE_URL, sitemap } from './src/app/pages'
 import { themeBootScript } from './src/app/theme-boot'
@@ -55,7 +56,8 @@ export default defineConfig({
     themeBoot(),
     preloadFonts(),
     inlineStylesheet(),
-    textImport(),
+    // The roster's `.asm` sources and the docs' figures, imported as text.
+    textImport((file) => file.endsWith('.svg') && file.startsWith(FIGURES)),
     sitePages(),
   ],
   define: {
@@ -105,48 +107,8 @@ export default defineConfig({
   },
 })
 
-/**
- * A text import's attribute, after the specifier: `from './dwarf.asm' with { type: 'text' }`, or
- * a docs figure's `from './modrm.svg' with { type: 'text' }`.
- */
-const TEXT_IMPORT =
-  /(from\s*(['"])[^'"]+\.(?:asm|svg)\2)\s*with\s*\{\s*type\s*:\s*(['"])text\3\s*\}/g
-
-/**
- * The roster's sources and the docs' figures, imported as text (`import dwarf from
- * '../roster/dwarf.asm' with { type: 'text' }`) the way Bun reads them. Browsers take only the
- * `json` and `css` import types, and Rollup would parse the file as JavaScript: this drops the
- * attribute from the importer and makes each such file a module whose default export is its text.
- */
-function textImport(): Plugin {
-  return {
-    name: 'asmbots:text-import',
-    enforce: 'pre',
-    load(id) {
-      const file = textFile(id)
-      if (file === null) return null
-      return { code: `export default ${JSON.stringify(readFileSync(file, 'utf8'))}`, map: null }
-    },
-    transform(code, id) {
-      if (textFile(id) !== null || !/\.(asm|svg)['"]/.test(code)) return null
-      const stripped = code.replace(TEXT_IMPORT, '$1')
-      return stripped === code ? null : { code: stripped, map: null }
-    },
-  }
-}
-
 /** The docs' figures: the only SVG files read as text (any other SVG stays an asset URL). */
 const FIGURES = fileURLToPath(new URL('./src/docs/figures/', import.meta.url))
-
-/**
- * The path of a text module id (an `.asm` file, or a docs figure), or null. Vite adds `?import`
- * to a file it does not know as code.
- */
-function textFile(id: string): string | null {
-  const file = id.split('?')[0] ?? id
-  if (file.endsWith('.asm')) return file
-  return file.endsWith('.svg') && file.startsWith(FIGURES) ? file : null
-}
 
 /** The tokens a theme swatch on `/settings` draws, per theme, from the kit's tokens.css. */
 function themeSwatches(): Record<string, Record<string, string>> {

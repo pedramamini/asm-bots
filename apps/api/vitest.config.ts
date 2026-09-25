@@ -1,5 +1,6 @@
 import { cloudflareTest, readD1Migrations } from '@cloudflare/vitest-pool-workers'
 import { defineConfig } from 'vitest/config'
+import { textImport } from '../../scripts/text-import'
 
 /**
  * The API's tests run inside workerd with the bindings from `wrangler.jsonc`, each test file on
@@ -9,6 +10,8 @@ export default defineConfig(async () => {
   const migrations = await readD1Migrations('src/db/migrations')
   return {
     plugins: [
+      // The roster's `.asm` sources, for the goldens (`test/goldens.test.ts`).
+      textImport(),
       cloudflareTest({
         wrangler: { configPath: './wrangler.jsonc' },
         // Never a remote binding: a binding marked `remote` would run the tests on production data.

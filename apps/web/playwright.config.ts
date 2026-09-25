@@ -15,7 +15,7 @@ const DEV = 'http://localhost:5173'
  */
 export const WORKER = 'http://localhost:8788'
 const WORKER_STATE = '.wrangler/e2e'
-const WORKER_COMMAND = [
+export const WORKER_COMMAND = [
   'cd ../api',
   `rm -rf ${WORKER_STATE}`,
   `bunx wrangler d1 migrations apply asmbots --local --persist-to ${WORKER_STATE}`,

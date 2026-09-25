@@ -682,13 +682,13 @@ async function cmdBench(flags: Record<string, string | boolean>): Promise<number
 async function cmdGolden(inputs: string[], flags: Record<string, string | boolean>): Promise<number> {
   try {
     // Import the golden function from the scripts package
-    // Since it's not easily importable from outside, we use bun.run
-    const result = await Bun.run({
-      cmd: ['bun', 'run', 'scripts/golden.ts', flags.update ? '--update' : ''],
+    // Since it's not easily importable from outside, we run it in a Bun process of its own
+    const proc = Bun.spawn({
+      cmd: ['bun', 'run', 'scripts/golden.ts', ...(flags.update ? ['--update'] : [])],
       stdout: 'inherit',
       stderr: 'inherit',
     })
-    return result.exitCode
+    return await proc.exited
   } catch (err) {
     console.error(colorize(`error: ${err instanceof Error ? err.message : String(err)}`, 'red'))
     return 3

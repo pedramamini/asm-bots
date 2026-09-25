@@ -53,19 +53,23 @@ export function EmptyEditor({ empty, onTemplate, onClose }: EmptyEditorProps) {
         <p className="text-muted">start from a template, or type over this one.</p>
         <ul aria-label="templates" className="mt-1 flex flex-col">
           {TEMPLATES.map((template) => (
-            <li key={template.id}>
+            <li key={template.id} className="relative">
               <button
                 type="button"
-                aria-label={template.label}
                 aria-describedby={`${id}-${template.id}`}
                 onClick={() => onTemplate(template.id)}
                 className={ROW}
               >
                 <span className="w-36 shrink-0 text-accent-fg">{template.label}</span>
-                <span id={`${id}-${template.id}`} className="min-w-0 truncate text-muted">
-                  {template.detail}
-                </span>
               </button>
+              {/* Over the button's second column, not in it: the name is the visible text of the
+                  button (WCAG 2.5.3), and this describes it. A press goes through to the button. */}
+              <span
+                id={`${id}-${template.id}`}
+                className="pointer-events-none absolute top-1/2 right-2 left-41 -translate-y-1/2 truncate text-data text-muted"
+              >
+                {template.detail}
+              </span>
             </li>
           ))}
         </ul>

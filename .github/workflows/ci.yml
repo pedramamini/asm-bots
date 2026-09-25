@@ -17,7 +17,6 @@ jobs:
       - run: bun run bundle
       - run: bun run check
       - run: bun run build
-      - run: bun run golden
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -54,4 +53,53 @@ jobs:
         with:
           name: e2e-traces-${{ matrix.shard }}
           path: apps/web/test-results/
+          retention-days: 7
+
+  # PRODUCT_SPEC §11: `bun run golden` reproduces identical results in Bun, Chrome, and Miniflare.
+  # Each leg plays every golden round from the roster's sources and checks it against the one
+  # committed file, packages/bots/goldens/results.json, hash for hash: all three green is one hash
+  # set. Bun: the main thread and a Worker (scripts/golden.ts). Chromium: a module Worker on a
+  # harness page (apps/web/e2e/goldens.spec.ts). Miniflare: workerd (apps/api/test/goldens.test.ts).
+  determinism:
+    name: determinism (${{ matrix.runtime }})
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --ipc=host
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runtime: bun
+            dir: .
+            run: bun run golden
+          - runtime: chromium
+            dir: apps/web
+            run: bunx playwright test --project=chromium e2e/goldens.spec.ts
+          - runtime: miniflare
+            dir: apps/api
+            run: bunx vitest run test/goldens.test.ts
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install -g bun@1.3.6
+      - run: bun install --frozen-lockfile
+      - name: The goldens in ${{ matrix.runtime }}
+        working-directory: ${{ matrix.dir }}
+        run: ${{ matrix.run }}
+
+  # Lighthouse CI (lighthouserc.json) on /, /arena, /editor, /docs, and /hills/main: the build
+  # under `vite preview`, its /api on the seeded e2e Worker, three runs a page, desktop preset.
+  # Performance, accessibility, best practices, and SEO must each be 0.95 or more (median run).
+  lighthouse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run lighthouse
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse
+          path: .lighthouseci/
           retention-days: 7

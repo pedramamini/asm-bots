@@ -78,7 +78,7 @@ Known gaps in this build:
 - `fight --rounds K` runs K rounds with the seeds `seed` to `seed + K - 1`, but it does not rotate the bot order as a match does, and it prints only the last round. For a match, use `tourney roundrobin` with two bots.
 - `tourney` has no `--seed`, and only a bracket's `--out` file records the seeds it used.
 - `hill submit` does not work: the second bot fails with "is 8192 bytes, not 1..512". Hills arrive with the server.
-- `golden` fails with "Bun.run is not a function". Use `bun run golden` at the repository root.
+- `golden` runs `bun run golden`, which it finds only at the repository root: run it there.
 - `--json` does nothing for `asm` and `dis`.
 
 </Warn>

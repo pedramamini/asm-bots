@@ -261,7 +261,8 @@ describe('tools/cli', () => {
     expect(run('fight', 'roster:nope', 'roster:imp').code).toBe(3)
     expect(run('fight', 'roster:imp', 'roster:dwarf', '--trace-bot', 'Nobody').code).toBe(1)
     expect(run('asm', `${ROSTER_DIR}dwarf.asm`, '--max-bytes', '8').code).toBe(2)
-    expect(run('golden').text).toContain('Bun.run is not a function')
+    // The test runs at the repository root, the one place `golden` finds its script.
+    expect(run('golden').code).toBe(0)
     expect(run('asm', '--help').text).toContain('(not yet implemented)')
     expect(MAX_BOT_BYTES).toBe(512)
   })

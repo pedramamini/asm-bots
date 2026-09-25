@@ -120,12 +120,11 @@ export function HillPage({ slug, submission = null, live, createArenaClient }: H
           <LoadFailure read={hill} />
         ) : (
           <div className="flex min-h-0 flex-1 flex-col gap-2">
-            {detail !== undefined && (
-              <p className="text-data text-muted">
-                {detail.hill.description} {detail.standings.length} of {detail.hill.size} places
-                taken.
-              </p>
-            )}
+            {/* Its line held while the hill loads, so the standings do not move down. */}
+            <p className="min-h-lh text-data text-muted">
+              {detail !== undefined &&
+                `${detail.hill.description} ${detail.standings.length} of ${detail.hill.size} places taken.`}
+            </p>
             <HillStandingsTable
               aria-label="standings"
               standings={detail?.standings}
@@ -136,7 +135,10 @@ export function HillPage({ slug, submission = null, live, createArenaClient }: H
         )}
       </Panel>
       <div className="col-span-12 flex min-w-0 flex-col gap-3 xl:col-span-4">
-        {detail !== undefined && <LivePanel live={room} createClient={createArenaClient} />}
+        {/* While the hill loads too (its room joins once it has one), so nothing under it moves. */}
+        {(detail !== undefined || hill.error === null) && (
+          <LivePanel live={room} createClient={createArenaClient} />
+        )}
         {submission !== null && detail !== undefined && (
           <SubmissionPanel
             hill={detail.hill}

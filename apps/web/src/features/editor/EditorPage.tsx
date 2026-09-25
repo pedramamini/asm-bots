@@ -825,7 +825,7 @@ function Workbench({
               notify={notify}
               coach={
                 coachOpen && (
-                  <CoachMark onDismiss={dismissCoach} className="max-w-[100cqw]">
+                  <CoachMark placement="inline" onDismiss={dismissCoach}>
                     assemble runs as you type; press <Kbd>F5</Kbd> to debug.
                   </CoachMark>
                 )

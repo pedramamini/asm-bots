@@ -16,5 +16,8 @@
     "@asmbots/protocol": "workspace:*",
     "@asmbots/tourney": "workspace:*",
     "@asmbots/bots": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.6"
   }
 }

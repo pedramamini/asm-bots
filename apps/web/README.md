@@ -64,8 +64,8 @@ URL holds the setup, `?b=roster:dwarf,local:<id>&seed=42&cycles=100000&rounds=3&
 sources in `#src=` (deflated JSON, base64url). `setup/search.ts`, the route's `validateSearch`,
 imports nothing, since it rides the entry chunk. `setup/config.ts` has the limits and the presets,
 and `setup/bots.ts` the roster, the local and shared bots, dropped files, and the fight button's
-words. `vite.config.ts` loads the roster's `.asm` imports as text (`textImport`, which also reads the docs'
-figures).
+words. `vite.config.ts` loads the roster's `.asm` imports as text (`textImport` of the repo's
+`scripts/text-import.ts`, which also reads the docs' figures; the API's Vitest pool uses it too).
 
 `ArenaBattle.tsx` is the battle, its parts in `battle/`: `Hud.tsx` (a band over the core that the
 camera keeps clear), `Transport.tsx` (the scrub bar marks keyframes and bot deaths), the rail's
@@ -663,6 +663,49 @@ each load).
 
 ## Lighthouse
 
+### The release gate
+
+`bun run lighthouse` (the repo root) builds the app and runs Lighthouse CI (`@lhci/cli` 0.15.1,
+`lighthouserc.json`) on `/`, `/arena`, `/editor`, `/docs`, and `/hills/main`: the build under
+`vite preview`, its `/api` on the seeded e2e Worker (`scripts/lighthouse-servers.ts` starts both,
+with playwright.config.ts's `WORKER_COMMAND`), three runs a page, the desktop preset. Performance,
+accessibility, best practices, and SEO must each be 95 or more in the median run (PRODUCT_SPEC
+§11). CI runs it as the `lighthouse` job and keeps the reports (`.lighthouseci/`) as an artifact.
+On a Mac, point it at Playwright's Chrome for Testing:
+
+```sh
+CHROME_PATH="$HOME/Library/Caches/ms-playwright/chromium-1243/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing" \
+  bun run lighthouse
+```
+
+2026-09-25, three runs a page:
+
+| Page | Performance | Accessibility | Best practices | SEO | Mobile, one run |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `/` | 100 | 100 | 100 | 100 | 92 / 100 / 100 / 100 |
+| `/arena` | 99 | 100 | 100 | 100 | 87 / 100 / 100 / 100 |
+| `/editor` | 98 | 100 | 100 | 100 | 76 / 96 / 100 / 100 |
+| `/docs` | 100 | 100 | 100 | 100 | 94 / 100 / 100 / 100 |
+| `/hills/main` | 99 to 100 | 100 | 100 | 100 | 79 / 100 / 100 / 100 |
+
+The gate is the desktop preset: the app is a dense desktop layout (DESIGN_SYSTEM §3; the header
+does not fit a phone), and §11's other bars are desktop ones (Chrome, M1). Mobile is not gated. Its
+first paint waits for the entry and `vendor` chunks over simulated slow 4G (FCP 2.3 to 3.2 s), and
+nothing short of HTML prerendered for each route moves that.
+
+What the gate took:
+
+- `/editor` accessibility 96 to 100. The templates' rows had an `aria-label` of the template alone
+  over visible text of the template and its detail (axe `label-content-name-mismatch`): the detail
+  now sits over the row beside the button and describes it. The first visit's coach mark hung
+  over the registers panel, and its `got it` covered part of the `si` field (axe `target-size`): it
+  is now `inline` under the transport.
+- `/hills/main` performance 96 to 99, CLS 0.10 to 0.03: the hill's description line and the live
+  panel held their room while the hill loads, instead of pushing the standings and the right
+  column down when it came.
+
+### Before the gate
+
 Lighthouse 12.8.2 on `/` from `preview`, Chromium 1243 (Playwright's), headless, 2026-09-23, with
 the home demo (EXEC 2.3), three mobile runs and two desktop runs.
 
@@ -699,7 +742,7 @@ Mobile `/docs`: FCP 2.1 s, LCP 2.6 s (the ticker, as on `/`), CLS 0. What it too
 - Accessibility 96 to 100: prose links were told apart by color alone (1.48:1 against body text),
   and code comments, block labels, and flag-table captions were `--text-dim` (3.07:1).
 
-Open items. None is under 90, so they wait for the release gate (PRODUCT_SPEC §11: 95 or more):
+Open items then, for mobile, which the gate does not measure:
 
 - Mobile performance: the `vendor` chunk carries about 55 KiB that `/` does not run. A content
   page's own chunks come one round trip after the entry's (reference pages 92 to 93).
@@ -747,6 +790,7 @@ What covers each PRODUCT_SPEC section:
 | Settings persist | `settings`, `smoke` |
 | Keyboard only | `keyboard`, `focus` |
 | Five themes on `/`, `/arena`, `/editor`: compared screenshots | `themes` |
+| The goldens in a Chromium Worker (CI's determinism matrix) | `goldens` |
 
 ### Screenshots
 

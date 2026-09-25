@@ -14,6 +14,7 @@
     "test:api": "bun run --filter @asmbots/api test",
     "contrast": "bun run scripts/check-contrast.ts",
     "bundle": "bun run --filter @asmbots/web build:vite && bun run scripts/check-bundle.ts",
+    "lighthouse": "bun run --filter @asmbots/web build:vite && bunx @lhci/cli@0.15.1 autorun",
     "dev": "concurrently --kill-others --names web,api --prefix-colors magenta,cyan \"bun run --filter @asmbots/web dev\" \"bun run dev:worker\"",
     "dev:worker": "bun run --filter @asmbots/api dev",
     "build": "bun run --filter @asmbots/web build && bun run --filter @asmbots/api build",
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
-    "concurrently": "10.0.5"
+    "concurrently": "10.0.5",
+    "typescript": "5.9.3"
   }
 }

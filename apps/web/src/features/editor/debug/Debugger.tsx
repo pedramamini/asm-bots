@@ -58,7 +58,10 @@ export interface DebuggerProps {
   cursorAddress: () => number | string
   /** Tells the user why a control did nothing. */
   notify: (message: string) => void
-  /** A coach mark to pin under the run button: the editor's first visit (PRODUCT_SPEC §9). */
+  /**
+   * A coach mark under the transport, its caret at run: the editor's first visit (PRODUCT_SPEC §9).
+   * Inline: over the panels, its button would sit on their fields.
+   */
   coach?: ReactNode | undefined
   className?: string | undefined
 }
@@ -80,13 +83,8 @@ export function Debugger({
   return (
     <div className={cx('@container flex min-w-0 flex-col gap-3', className)}>
       <LoadBar model={model} />
-      <Transport
-        model={model}
-        commands={commands}
-        cursorAddress={cursorAddress}
-        notify={notify}
-        coach={coach}
-      />
+      <Transport model={model} commands={commands} cursorAddress={cursorAddress} notify={notify} />
+      {coach}
       <StopLine state={state} running={running} model={model} />
       {snapshot.error !== null && (
         <p role="alert" className="text-data text-danger">
@@ -248,7 +246,6 @@ interface TransportProps {
   commands: DebugCommands
   cursorAddress: () => number | string
   notify: (message: string) => void
-  coach: ReactNode
 }
 
 /** Cycles `run N` runs until the user types another count. */
@@ -258,7 +255,7 @@ const RUN_N = 1000
  * The debugger's transport (PRODUCT_SPEC §3): run and pause, step, step over, step out, run to
  * cursor, run until death, run N cycles, step back, reset, and the speed of a run.
  */
-function Transport({ model, commands, cursorAddress, notify, coach }: TransportProps) {
+function Transport({ model, commands, cursorAddress, notify }: TransportProps) {
   const { controller, snapshot, names } = model
   const { state, running, speed } = snapshot
   const [cycles, setCycles] = useState(String(RUN_N))
@@ -283,17 +280,14 @@ function Transport({ model, commands, cursorAddress, notify, coach }: TransportP
   }
   return (
     <fieldset aria-label="debugger transport" className="flex min-w-0 flex-wrap items-center gap-1">
-      <span className="relative flex">
-        <IconButton
-          icon={running === null ? Play : Pause}
-          label={running === null ? 'run' : 'pause'}
-          shortcut={running === null ? 'F5' : 'F6'}
-          pressed={running !== null}
-          disabled={!loaded || (over && running === null)}
-          onClick={running === null ? commands.run : commands.pause}
-        />
-        {coach}
-      </span>
+      <IconButton
+        icon={running === null ? Play : Pause}
+        label={running === null ? 'run' : 'pause'}
+        shortcut={running === null ? 'F5' : 'F6'}
+        pressed={running !== null}
+        disabled={!loaded || (over && running === null)}
+        onClick={running === null ? commands.run : commands.pause}
+      />
       <IconButton
         icon={ArrowDownToDot}
         label="step"
