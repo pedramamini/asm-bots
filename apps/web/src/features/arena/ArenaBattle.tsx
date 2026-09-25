@@ -5,6 +5,7 @@ import { Settings2, Trophy } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from 'zustand'
 import { useRouteStat } from '../../app/slots'
+import { useArenaSound } from '../sound/arena'
 import { ArenaCanvas, type ArenaCanvasHandle } from './ArenaCanvas'
 import { BotsPanel } from './battle/BotsPanel'
 import { EventsPanel } from './battle/EventsPanel'
@@ -68,8 +69,9 @@ const count = (n: number) => n.toLocaleString('en-US')
  * The arena in battle (PRODUCT_SPEC §2): the canvas with its HUD and the transport under it at 8
  * of 12 columns; the rail at 4: the bots, the events log, and, for a match of more rounds, the
  * standings. When the match is over, the victory overlay; between rounds, the round's end and
- * `next round`. The arena's keys (`space . , [ ] 0 1-9 f s`) live in the app's registry while it
- * shows. A replay (`replay`) shows its check beside the arena's title.
+ * `next round`. The arena's keys (`space . , [ ] 0 1-9 f s m`) live in the app's registry while it
+ * shows, and its sound cues play while it shows (`sound/arena.ts`). A replay (`replay`) shows its
+ * check beside the arena's title.
  */
 export function ArenaBattle({
   client,
@@ -200,6 +202,7 @@ export function ArenaBattle({
     onFullscreen: toggleFullscreen,
     onScreenshot: () => void screenshot(),
   })
+  useArenaSound(client)
 
   const roundStatus =
     rounds > 1 ? `round ${round + 1}/${rounds} · seed ${roundSeed}` : `seed ${seed}`

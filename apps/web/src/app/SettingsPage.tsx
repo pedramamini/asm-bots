@@ -2,6 +2,7 @@ import { handleProblem, type Me } from '@asmbots/protocol'
 import {
   Button,
   Input,
+  Kbd,
   KeyHelp,
   Modal,
   Panel,
@@ -22,6 +23,7 @@ import { deleteAccount, updateMe } from '../api/writes'
 import { forgetAccount, SignInButton, useSignOut } from '../features/account/AccountSlot'
 import { HandleField } from '../features/account/HandleField'
 import { plural, UserLink } from '../features/hills/links'
+import { appSound, toggleSound } from '../features/sound/engine'
 import {
   botsToZip,
   LOCAL_BOTS_KEY,
@@ -34,6 +36,8 @@ import {
   type ArenaEffects,
   MOTION_PREFERENCES,
   type MotionPreference,
+  SOUND_CUES,
+  type SoundCue,
   useSettings,
 } from '../store/settings'
 import { useKeyBindings } from './keys'
@@ -172,26 +176,64 @@ function EffectsPanel() {
   )
 }
 
+/** Each cue's toggle, and what it sounds for: its tooltip. */
+const CUE_WORDS: Readonly<Record<SoundCue, { label: string; hint: string }>> = {
+  tick: { label: 'tick', hint: 'a tick for a step, and at the slowest speeds' },
+  write: { label: 'writes', hint: 'a soft click for a burst of writes' },
+  death: { label: 'proc death', hint: 'a low thud when a process dies' },
+  botDeath: { label: 'bot death', hint: 'a falling tone when a bot dies, at its own pitch' },
+  victory: { label: 'victory', hint: 'three rising notes when a match ends with one winner' },
+  click: { label: 'clicks', hint: 'a click when the battle plays, pauses, or changes speed' },
+}
+
+/** Sound on or off, the volume, and each cue: a change plays what it changed, once sound is on. */
 function SoundPanel() {
   const sound = useSettings((state) => state.sound)
   const setSound = useSettings((state) => state.setSound)
+  const setCue = useSettings((state) => state.setCue)
   return (
     <Panel className="col-span-12 lg:col-span-6" title="sound" status={sound.on ? 'on' : 'off'}>
-      <div className="flex items-center gap-3">
-        <Toggle pressed={sound.on} onPressedChange={(on) => setSound({ on })}>
-          sound
-        </Toggle>
-        <Slider
-          aria-label="volume"
-          className="w-48"
-          min={0}
-          max={100}
-          value={Math.round(sound.volume * 100)}
-          onValueChange={(volume) => setSound({ volume: volume / 100 })}
-          format={(volume) => `${volume}%`}
-          showValue
-          disabled={!sound.on}
-        />
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <Toggle pressed={sound.on} onPressedChange={() => toggleSound()}>
+            sound
+          </Toggle>
+          <Slider
+            aria-label="volume"
+            className="w-48"
+            min={0}
+            max={100}
+            value={Math.round(sound.volume * 100)}
+            onValueChange={(volume) => {
+              setSound({ volume: volume / 100 })
+              appSound().preview('click')
+            }}
+            format={(volume) => `${volume}%`}
+            showValue
+            disabled={!sound.on}
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-panel-status text-muted">cues</span>
+          {SOUND_CUES.map((cue) => (
+            <Toggle
+              key={cue}
+              pressed={sound.cues[cue]}
+              disabled={!sound.on}
+              title={CUE_WORDS[cue].hint}
+              onPressedChange={(on) => {
+                setCue(cue, on)
+                if (on) appSound().preview(cue)
+              }}
+            >
+              {CUE_WORDS[cue].label}
+            </Toggle>
+          ))}
+        </div>
+        <p className="text-muted">
+          the cues play in the arena and its replays. <Kbd>m</Kbd> in a battle turns sound on or
+          off.
+        </p>
       </div>
     </Panel>
   )

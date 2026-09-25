@@ -21,6 +21,7 @@ import {
   DEFAULT_SETTINGS,
   motionReduced,
   SETTINGS_STORAGE_KEY,
+  SOUND_CUES,
   sanitizeSettings,
   useSettings,
 } from '../src/store/settings'
@@ -49,10 +50,11 @@ describe('useSettings', () => {
     settings.markCoachSeen('arena')
     settings.markCoachSeen('arena')
     settings.setTheme('amber')
+    settings.setCue('tick', false)
     expect(stored()).toEqual({
       effects: { bloom: true, scanlines: false, vignette: true },
       motion: 'reduce',
-      sound: { on: true, volume: 0.8 },
+      sound: { on: true, volume: 0.8, cues: { ...DEFAULT_SETTINGS.sound.cues, tick: false } },
       coachMarksSeen: ['arena'],
       lastArenaConfig: null,
     })
@@ -75,7 +77,7 @@ describe('useSettings', () => {
         state: {
           effects: { bloom: false, scanlines: 'yes' },
           motion: 'sideways',
-          sound: { on: true, volume: 7 },
+          sound: { on: true, volume: 7, cues: { tick: false, write: 'no', nope: false } },
           coachMarksSeen: ['editor', 3, 'editor'],
           lastArenaConfig: config,
         },
@@ -86,7 +88,11 @@ describe('useSettings', () => {
     const state = useSettings.getState()
     expect(state.effects).toEqual({ bloom: false, scanlines: true, vignette: true })
     expect(state.motion).toBe('system')
-    expect(state.sound).toEqual({ on: true, volume: 1 })
+    expect(state.sound).toEqual({
+      on: true,
+      volume: 1,
+      cues: { ...DEFAULT_SETTINGS.sound.cues, tick: false },
+    })
     expect(state.coachMarksSeen).toEqual(['editor'])
     expect(state.lastArenaConfig).toEqual(config)
   })
@@ -94,6 +100,15 @@ describe('useSettings', () => {
   it('ignores stored junk', () => {
     expect(sanitizeSettings('nope')).toEqual({})
     expect(sanitizeSettings({ lastArenaConfig: { rounds: -1 } })).toEqual({})
+    expect(sanitizeSettings({ sound: { on: 'yes', volume: 1 } })).toEqual({})
+  })
+
+  it('reads sound stored before the cues as every cue on', () => {
+    expect(sanitizeSettings({ sound: { on: true, volume: 0.25 } }).sound).toEqual({
+      on: true,
+      volume: 0.25,
+      cues: Object.fromEntries(SOUND_CUES.map((cue) => [cue, true])),
+    })
   })
 
   it('reduces motion when asked, or when the system asks under `system`', () => {
@@ -214,14 +229,27 @@ describe('SettingsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'bloom' }))
     fireEvent.click(screen.getByRole('radio', { name: 'reduce' }))
     const volume = screen.getByRole('slider', { name: 'volume' }) as HTMLInputElement
+    const cue = (name: string) => screen.getByRole('button', { name }) as HTMLButtonElement
+    // A toggle a cue, each with what it sounds for.
+    const labels = ['tick', 'writes', 'proc death', 'bot death', 'victory', 'clicks']
+    expect(labels.map((name) => [cue(name).disabled, cue(name).title !== ''])).toEqual(
+      labels.map(() => [true, true]),
+    )
     expect(volume.disabled).toBe(true)
     fireEvent.click(screen.getByRole('button', { name: 'sound' }))
     expect(volume.disabled).toBe(false)
     fireEvent.change(volume, { target: { value: '30' } })
+    expect(cue('writes').getAttribute('title')).toBe('a soft click for a burst of writes')
+    fireEvent.click(cue('writes'))
+    expect(cue('writes').getAttribute('aria-pressed')).toBe('false')
     const state = useSettings.getState()
     expect(state.effects.bloom).toBe(false)
     expect(state.motion).toBe('reduce')
-    expect(state.sound).toEqual({ on: true, volume: 0.3 })
+    expect(state.sound).toEqual({
+      on: true,
+      volume: 0.3,
+      cues: { ...DEFAULT_SETTINGS.sound.cues, write: false },
+    })
   })
 
   it('shows the account signed out, with the sign-in button', () => {

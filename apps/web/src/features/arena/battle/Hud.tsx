@@ -1,6 +1,7 @@
 import { Chip, IconButton } from '@asmbots/ui'
 import { Camera, Map as MapIcon, Maximize, Minimize, ZoomIn, ZoomOut } from 'lucide-react'
 import { useStore } from 'zustand'
+import { SoundButton } from '../../sound/SoundButton'
 import { RendererChip, useArenaCanvas } from '../ArenaCanvas'
 import { MAX_ZOOM, MIN_ZOOM } from '../render/camera'
 import type { ArenaClient } from '../worker/client'
@@ -30,8 +31,9 @@ export const HUD_BAND = 36
 
 /**
  * The arena's HUD (PRODUCT_SPEC §2), in a band over the core: on the left the cycle, the speed,
- * the frame rate, and the zoom; on the right zoom in and out, the minimap, fullscreen (`f`), and
- * the screenshot (`s`). The controls sit on a panel: paper's dark text would vanish on black.
+ * the frame rate, and the zoom; on the right zoom in and out, the minimap, sound (`m`), fullscreen
+ * (`f`), and the screenshot (`s`). The controls sit on a panel: paper's dark text would vanish on
+ * black.
  */
 export function Hud({
   client,
@@ -88,6 +90,7 @@ export function Hud({
           pressed={minimap}
           onClick={() => onMinimap(!minimap)}
         />
+        <SoundButton size="sm" />
         <IconButton
           size="sm"
           icon={fullscreen ? Minimize : Maximize}

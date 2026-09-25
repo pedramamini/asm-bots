@@ -5,7 +5,7 @@
  * of a match, and the victory overlay's actions. The canvas has a fake 2D context: the pixels are
  * `e2e/arena-render.spec.ts`'s, the battle in Chromium `e2e/arena.spec.ts`'s.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it, mock } from 'bun:test'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, mock, spyOn } from 'bun:test'
 import { fighter } from '@asmbots/bots'
 import { Battle, type LoadedBot, NullSink } from '@asmbots/engine'
 import { replayConfig, replayMatch } from '@asmbots/protocol'
@@ -30,7 +30,9 @@ import type { ArenaFight } from '../src/features/arena/setup/bots'
 import { DEFAULT_ARENA_CONFIG } from '../src/features/arena/setup/config'
 import { validateArenaSearch } from '../src/features/arena/setup/search'
 import type { ArenaClient } from '../src/features/arena/worker/client'
+import { appSound } from '../src/features/sound/engine'
 import { stringifySearch } from '../src/router'
+import { useSettings } from '../src/store/settings'
 import { stubCanvas } from './fake-canvas'
 import { manualSchedule, sessionClient } from './session-worker'
 
@@ -200,6 +202,31 @@ describe('the battle', () => {
     expect(arena().textContent).toContain('max')
     fireEvent.click(screen.getByRole('button', { name: 'back to 50/f' }))
     expect(client.store.getState().speed).toBe(50)
+  })
+
+  it('turns sound on and off with m and the HUD’s button, and sounds the battle', async () => {
+    const play = spyOn(appSound(), 'play')
+    try {
+      const { frames } = await renderBattle()
+      const hud = screen.getByRole('toolbar', { name: 'arena view' })
+      const button = within(hud).getByRole('button', { name: 'sound' })
+      expect(button.getAttribute('aria-pressed')).toBe('false')
+      press('m')
+      expect(useSettings.getState().sound.on).toBe(true)
+      expect(button.getAttribute('aria-pressed')).toBe('true')
+      press('.')
+      await settle()
+      press(' ')
+      frames.tick()
+      await settle()
+      // The step: its write and its tick; play: a click; a frame of 100 cycles: its writes.
+      expect(play.mock.calls.map(([cue]) => cue)).toEqual(['write', 'tick', 'click', 'write'])
+      fireEvent.click(button)
+      expect(useSettings.getState().sound.on).toBe(false)
+      expect(button.getAttribute('aria-pressed')).toBe('false')
+    } finally {
+      play.mockRestore()
+    }
   })
 
   it('leaves space to a focused button', async () => {

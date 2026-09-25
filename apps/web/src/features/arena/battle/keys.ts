@@ -1,11 +1,12 @@
 /**
  * The arena's keys (PRODUCT_SPEC §2), in the app's key registry while a battle shows: `space`
  * play and pause, `.` step, `,` step back, `[` and `]` speed, `0` reset the zoom, `1`..`9`
- * isolate a bot, `f` fullscreen, `s` screenshot. `?` lists them.
+ * isolate a bot, `f` fullscreen, `s` screenshot, `m` sound on or off. `?` lists them.
  */
 import { type RefObject, useMemo } from 'react'
 import { ARENA_KEYS, DIGIT_BOTS, isolateKey } from '../../../app/keymaps'
 import { type KeyCommand, useKeys } from '../../../app/keys'
+import { toggleSound } from '../../sound/engine'
 import type { ArenaCanvasHandle } from '../ArenaCanvas'
 import type { ArenaClient } from '../worker/client'
 import { faster, slower } from './speed'
@@ -81,6 +82,7 @@ export function useArenaKeys({
       })),
       { ...ARENA_KEYS.fullscreen, run: onFullscreen },
       { ...ARENA_KEYS.screenshot, run: onScreenshot },
+      { ...ARENA_KEYS.mute, run: toggleSound },
     ]
   }, [client, canvas, bots, onFullscreen, onScreenshot])
   useKeys(commands)

@@ -31,11 +31,17 @@ export function motionReduced(motion: MotionPreference, systemReduced: boolean):
   return motion === 'reduce' || (motion === 'system' && systemReduced)
 }
 
-/** The sound cues (DESIGN_SYSTEM §7): off by default. */
+/** The arena's sound cues (DESIGN_SYSTEM §7), each of which the user can turn off. */
+export const SOUND_CUES = ['tick', 'write', 'death', 'botDeath', 'victory', 'click'] as const
+export type SoundCue = (typeof SOUND_CUES)[number]
+
+/** The sound (DESIGN_SYSTEM §7): off by default. */
 export interface SoundSettings {
   on: boolean
   /** Master volume, 0..1. */
   volume: number
+  /** Each cue on or off. `on` rules over them all. */
+  cues: Record<SoundCue, boolean>
 }
 
 /** The arena setup the user last fought with (PRODUCT_SPEC §2), so the next visit starts there. */
@@ -69,7 +75,8 @@ export interface SettingsState extends Settings {
   cycleTheme: () => void
   setEffect: (effect: keyof ArenaEffects, on: boolean) => void
   setMotion: (motion: MotionPreference) => void
-  setSound: (sound: Partial<SoundSettings>) => void
+  setSound: (sound: Partial<Omit<SoundSettings, 'cues'>>) => void
+  setCue: (cue: SoundCue, on: boolean) => void
   /** Records that the user dismissed a coach mark; it never shows again. */
   markCoachSeen: (id: string) => void
   setLastArenaConfig: (config: ArenaConfig | null) => void
@@ -80,10 +87,15 @@ export interface SettingsState extends Settings {
 export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
   effects: { bloom: true, scanlines: true, vignette: true },
   motion: 'system',
-  sound: { on: false, volume: 0.5 },
+  sound: { on: false, volume: 0.5, cues: allCues(true) },
   coachMarksSeen: [],
   lastArenaConfig: null,
 })
+
+/** Every cue, each `on`. */
+function allCues(on: boolean): Record<SoundCue, boolean> {
+  return Object.fromEntries(SOUND_CUES.map((cue) => [cue, on])) as Record<SoundCue, boolean>
+}
 
 /** The theme after `theme`, wrapping. */
 export function nextTheme(theme: Theme): Theme {
@@ -144,6 +156,8 @@ export const useSettings = create<SettingsState>()(
       setMotion: (motion) => set({ motion }),
       setSound: (sound) =>
         set((state) => ({ sound: sanitizeSound({ ...state.sound, ...sound }) ?? state.sound })),
+      setCue: (cue, on) =>
+        set((state) => ({ sound: { ...state.sound, cues: { ...state.sound.cues, [cue]: on } } })),
       markCoachSeen: (id) =>
         set((state) =>
           state.coachMarksSeen.includes(id)
@@ -201,10 +215,18 @@ export function sanitizeSettings(stored: unknown): Partial<Settings> {
   return out
 }
 
+/** `sound` when its switch and volume are well formed, with its cues' switches; a missing one is on. */
 function sanitizeSound(sound: unknown): SoundSettings | null {
   if (!isRecord(sound) || typeof sound.on !== 'boolean') return null
   if (typeof sound.volume !== 'number' || Number.isNaN(sound.volume)) return null
-  return { on: sound.on, volume: Math.min(1, Math.max(0, sound.volume)) }
+  const cues = allCues(true)
+  if (isRecord(sound.cues)) {
+    for (const cue of SOUND_CUES) {
+      const on = sound.cues[cue]
+      if (typeof on === 'boolean') cues[cue] = on
+    }
+  }
+  return { on: sound.on, volume: Math.min(1, Math.max(0, sound.volume)), cues }
 }
 
 function isArenaConfig(value: unknown): value is ArenaConfig {

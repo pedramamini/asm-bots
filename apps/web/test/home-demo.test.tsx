@@ -3,7 +3,7 @@
  * after another at 400 cycles a frame, paused out of sight, the reduced-motion still, and
  * `HomeDemo` in jsdom on a real `ArenaClient` whose Worker is an `ArenaSession` in the same thread.
  */
-import { afterAll, beforeAll, describe, expect, it, mock } from 'bun:test'
+import { afterAll, beforeAll, describe, expect, it, mock, spyOn } from 'bun:test'
 import { fighter } from '@asmbots/bots'
 import { DEFAULT_CONFIG, Pcg32, PlacementError, place } from '@asmbots/engine'
 import { parseHex } from '@asmbots/ui'
@@ -23,7 +23,8 @@ import {
 import { HomeDemo } from '../src/features/arena/demo/HomeDemo'
 import { OWNED, OWNED_ZERO, SIDE } from '../src/features/arena/render/scene'
 import type { ArenaBot } from '../src/features/arena/worker/protocol'
-import { useSettings } from '../src/store/settings'
+import { appSound } from '../src/features/sound/engine'
+import { DEFAULT_SETTINGS, useSettings } from '../src/store/settings'
 import { fakeContext, stubCanvas } from './fake-canvas'
 import { manualSchedule, type SessionWorker, sessionClient } from './session-worker'
 
@@ -282,6 +283,30 @@ describe('HomeDemo', () => {
         .getAllByRole('listitem')
         .map((item) => item.textContent),
     ).toEqual(['LCG Painter', 'Spiral Painter', 'Dwarf', 'Paper'])
+  })
+
+  it('makes no sound, even with sound on', async () => {
+    useSettings.setState({ motion: 'full', sound: { ...DEFAULT_SETTINGS.sound, on: true } })
+    const sound = appSound()
+    const play = spyOn(sound, 'play')
+    const preview = spyOn(sound, 'preview')
+    try {
+      const { made, frames, unmount } = renderDemo()
+      await screen.findByRole('img', { name: /^demo battle:/ })
+      await settle()
+      for (let i = 0; i < 3; i++) {
+        frames.tick()
+        await settle()
+      }
+      const { client } = made[made.length - 1] as (typeof made)[number]
+      expect(client.store.getState().cycle).toBe(1200)
+      unmount()
+      expect([play.mock.calls.length, preview.mock.calls.length]).toEqual([0, 0])
+    } finally {
+      play.mockRestore()
+      preview.mockRestore()
+      useSettings.setState({ sound: DEFAULT_SETTINGS.sound })
+    }
   })
 
   it('pauses while the tab is hidden, and its Worker ends with it', async () => {

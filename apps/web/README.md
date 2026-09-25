@@ -70,7 +70,7 @@ figures).
 `ArenaBattle.tsx` is the battle, its parts in `battle/`: `Hud.tsx` (a band over the core that the
 camera keeps clear), `Transport.tsx` (the scrub bar marks keyframes and bot deaths), the rail's
 `BotsPanel.tsx`, `EventsPanel.tsx`, and `StandingsPanel.tsx`, `Victory.tsx`, the hover tooltip
-`HoverTip.tsx`, and the keys (`space . , [ ] 0 1-9 f s`) in `keys.ts`. `log.ts` turns the Worker's
+`HoverTip.tsx`, and the keys (`space . , [ ] 0 1-9 f s m`) in `keys.ts`. `log.ts` turns the Worker's
 messages into the round's timeline, `view.ts` holds what the player picked (isolated bots, the
 minimap, autoplay), `screenshot.ts` and `replay.ts` write the PNG and the `.asmreplay.json`. A load
 is a match: the Worker plays round i with `@asmbots/tourney`'s `roundOrder` and `roundSeed` and
@@ -99,6 +99,23 @@ cycle 24,000, all four bots alive, painted by the 2D renderer's `CorePainter` on
 canvas. `HomePage.tsx` loads the demo after the page's first contentful paint and an idle moment,
 so its 65 KB gz (the renderer, the roster, the engine, and the Worker) costs `/` nothing in
 Lighthouse. The demo makes no sound.
+
+### Sound
+
+`src/features/sound/engine.ts` synthesizes DESIGN_SYSTEM §7's cues with WebAudio, no samples: a
+tick, a write click (band-passed noise), a process death's thud, a bot death's falling tone (from a
+pentatonic step per hue), the victory (root, fifth, octave), and the transport's click. Sound is
+off until `m` in a battle, the HUD's sound button, or `/settings` (master volume, one switch per
+cue) turns it on. No AudioContext exists before the page's first gesture (`keydown` but `esc`,
+`mousedown`, a touch's `pointerup`), so a replay that plays at load stays silent until one. The
+budget: 12 cues in any second; tick, write, and death at most every 125 ms and 8 a second; clicks
+10; bot deaths and the victory the rest. Writes coalesce into one click per 250 ms, as loud as the
+writes it stands for. `sound/arena.ts`'s `useArenaSound` plays a battle's cues in `ArenaBattle`
+(`/arena` and replays); full frames (a load, a seek) are silent. The home demo, the live panel, and
+a tournament's watch modal play by themselves and stay silent. The synth builds as a small
+`engine-*.js` chunk beside the machine's `engine-*.js`; a `manualChunks` rule for it would pull
+the kit out of the entry. Tests: `test/sound.test.ts` on `test/fake-audio.ts`, and
+`e2e/sound.spec.ts`, which takes away the user activation Playwright's `goto` gives a page.
 
 ### Worker protocol
 
