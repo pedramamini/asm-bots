@@ -99,7 +99,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     path: '/',
     target: 'ul[aria-label="the site"]',
     title: 'the site',
-    body: <p>One card for each part of the site: what it is, and the way in.</p>,
+    body: <p>Each part of the site: what it is, and the way in.</p>,
   },
   {
     id: 'how-it-works',

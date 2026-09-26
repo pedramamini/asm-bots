@@ -55,7 +55,7 @@ async function renderAt(content: () => ReactNode, path = '/') {
 }
 
 describe('HomePage', () => {
-  it('names the site, a card for each part of it, and the three panels in skeleton', async () => {
+  it('names the site, each part of it, and the three panels in skeleton', async () => {
     await renderAt(() => <HomePage />)
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('ASM BOTS')
     expect(screen.getByText('Write 8086 assembly. Fight for 64 KB.')).toBeTruthy()
@@ -63,7 +63,7 @@ describe('HomePage', () => {
     const parts = screen.getByRole('list', { name: 'the site' })
     expect(
       within(parts)
-        .getAllByRole('heading', { level: 2 })
+        .getAllByRole('heading', { level: 3 })
         .map((h) => [h.textContent, within(h).getByRole('link').getAttribute('href')]),
     ).toEqual([
       ['arena', '/arena'],

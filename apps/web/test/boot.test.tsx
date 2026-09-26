@@ -209,9 +209,10 @@ describe('the boot screen', () => {
     useSettings.setState({ coachMarksSeen: [WELCOME_TOUR] })
     await open()
     const how = await screen.findByRole('region', { name: 'how it works' })
-    // The game's four ideas: the core, write, fight, climb.
-    expect(within(how).getAllByRole('heading', { level: 3 })).toHaveLength(4)
-    fireEvent.click(within(how).getByRole('button', { name: 'take the tour' }))
+    // The six parts of the site, then the game's four ideas: the core, write, fight, climb.
+    expect(within(how).getAllByRole('heading', { level: 3 })).toHaveLength(10)
+    const banner = screen.getByRole('region', { name: 'ASM BOTS' })
+    fireEvent.click(within(banner).getByRole('button', { name: 'take the tour' }))
     expect(await screen.findByRole('dialog', { name: 'the tour' })).toBeTruthy()
   })
 })

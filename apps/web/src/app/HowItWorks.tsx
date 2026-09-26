@@ -1,9 +1,8 @@
-import { Button, Chip, cx, Panel } from '@asmbots/ui'
+import { Chip, cx, Panel } from '@asmbots/ui'
 import { Link } from '@tanstack/react-router'
-import { CodeXml, Compass, Grid2x2, Mountain, Trophy } from 'lucide-react'
+import { CodeXml, Grid2x2, Mountain, Trophy } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { HexBand, Plate, Schematic, ScopeTrace } from '../art/lazy'
-import { useBoot } from './boot/boot'
+import { Plate, Schematic, ScopeTrace } from '../art/lazy'
 import { NavLink } from './Frame'
 import { DocsLink } from './PageIntro'
 
@@ -192,10 +191,10 @@ const CONCEPTS: readonly Concept[] = [
 
 /**
  * `how it works`: the game's four ideas, the core, write, fight, climb, each with its art and a
- * screenshot of the page that does it, then the name in the imp's bytes and the tour again.
+ * screenshot of the page that does it. `site` (the parts of the site) heads the first idea's
+ * text, in the room its drawing leaves.
  */
-export function HowItWorks() {
-  const openTour = useBoot((state) => state.openTour)
+export function HowItWorks({ site }: { site?: ReactNode }) {
   return (
     <Panel
       className="col-span-12"
@@ -207,7 +206,7 @@ export function HowItWorks() {
         {CONCEPTS.map((concept, index) => (
           <li
             key={concept.title}
-            className="grid gap-4 border-b border-border py-6 first:pt-2 lg:grid-cols-12 lg:gap-8"
+            className="grid gap-4 border-b border-border py-6 first:pt-2 last:border-b-0 last:pb-2 lg:grid-cols-12 lg:gap-8"
           >
             <div
               className={cx(
@@ -215,6 +214,9 @@ export function HowItWorks() {
                 index % 2 === 1 && 'lg:order-2',
               )}
             >
+              {index === 0 && site !== undefined && (
+                <div className="mb-3 border-b border-border pb-5">{site}</div>
+              )}
               <p className="flex items-baseline gap-2 text-panel-title">
                 <span className="text-muted">{`0${index + 1}`}</span>
                 <span className="text-accent-fg">{concept.title}</span>
@@ -242,25 +244,6 @@ export function HowItWorks() {
           </li>
         ))}
       </ol>
-      <div className="flex flex-col gap-4 pt-6">
-        {/* The name, drawn in the imp's bytes; each box holds its drawing's size. A phone gets
-            the short name in fewer bytes a row, so the bytes stay big enough to read. */}
-        <div className="hidden aspect-[1202/147] overflow-hidden sm:block">
-          <HexBand word="ASM BOTS" />
-        </div>
-        <div className="aspect-[482/147] overflow-hidden sm:hidden">
-          <HexBand word="ASM" cols={24} />
-        </div>
-        <div className="flex flex-wrap items-center gap-3 text-data text-muted">
-          <Button icon={Compass} onClick={openTour}>
-            take the tour
-          </Button>
-          <span>
-            six steps, then a guided first battle. or read{' '}
-            <DocsLink to="start-here">start here</DocsLink>.
-          </span>
-        </div>
-      </div>
     </Panel>
   )
 }

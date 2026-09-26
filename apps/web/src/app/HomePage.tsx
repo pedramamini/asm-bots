@@ -1,18 +1,29 @@
 import type { Tournament, TournamentSummary } from '@asmbots/protocol'
 import { Button, cx, EmptyState, Panel, PanelGrid, Stat } from '@asmbots/ui'
 import { Link } from '@tanstack/react-router'
-import { BookOpen, Bot, CodeXml, Grid2x2, type LucideIcon, Mountain, Trophy } from 'lucide-react'
+import {
+  BookOpen,
+  Bot,
+  CodeXml,
+  Compass,
+  Grid2x2,
+  type LucideIcon,
+  Mountain,
+  Trophy,
+} from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useHill, useHillMatches, useTournament, useTournaments } from '../api/queries'
-import { Plate } from '../art/lazy'
+import { HexBand, Plate } from '../art/lazy'
 import { HillStandingsTable } from '../features/hills/HillStandingsTable'
 import { CELL_LINK, count, day } from '../features/hills/links'
 import { MatchesTable } from '../features/hills/MatchesTable'
 import { EnterButton } from '../features/tournaments/EnterModal'
+import { useBoot } from './boot/boot'
 import { HowItWorks } from './HowItWorks'
 import { LoadFailure, readStatus } from './LoadFailure'
 import { LogoMark } from './Logo'
 import { useLinkAction } from './link-action'
+import { DocsLink } from './PageIntro'
 
 /** The rows the hill and match panels hold (PRODUCT_SPEC §1): a top 10, and the last 10. */
 const ROWS = 10
@@ -53,7 +64,7 @@ const PARTS: readonly Part[] = [
         arena
       </Link>
     ),
-    text: 'Load two bots, or eight, into one 64 KB core and watch them fight, a cell a byte. The same bots and seed give the same fight, so every battle replays from a link.',
+    text: 'Load bots into one 64 KB core and watch them fight. Every battle replays from a link.',
     more: (
       <Link to="/arena" search={{ intro: true }} className={TEXT_LINK}>
         watch the intro fight
@@ -68,7 +79,7 @@ const PARTS: readonly Part[] = [
         editor
       </Link>
     ),
-    text: 'Write a bot in 8086 assembly, 512 bytes at most. It assembles as you type, and the debugger steps it forward and back.',
+    text: 'Write 8086 assembly, 512 bytes at most. The debugger steps it forward and back.',
   },
   {
     key: 'hills',
@@ -78,7 +89,7 @@ const PARTS: readonly Part[] = [
         hills
       </Link>
     ),
-    text: 'Ladders that never close. Submit a bot, it fights every bot on the hill, and its rank is its score.',
+    text: 'Ladders that never close. Its rank on the hill is its score.',
   },
   {
     key: 'tournaments',
@@ -88,7 +99,7 @@ const PARTS: readonly Part[] = [
         tournaments
       </Link>
     ),
-    text: 'Brackets, round robins, and melees, and the weekly championship: one bracket, one champion.',
+    text: 'Brackets, round robins, melees, and the weekly championship.',
   },
   {
     key: 'docs',
@@ -98,7 +109,7 @@ const PARTS: readonly Part[] = [
         docs
       </Link>
     ),
-    text: 'The manual: the machine, every instruction, and the strategies that win.',
+    text: 'The machine, every instruction, and the strategies that win.',
     more: (
       <Link to="/docs/$" params={{ _splat: 'start-here' }} className={TEXT_LINK}>
         start here
@@ -113,7 +124,7 @@ const PARTS: readonly Part[] = [
         for agents
       </Link>
     ),
-    text: 'The docs as llms.txt, a skill to download, and API tokens, so an AI agent can write, test, and push bots.',
+    text: 'The docs, a skill, and API tokens, so an AI agent can write and push bots.',
     more: (
       <>
         <a href="/llms.txt" className={TEXT_LINK}>
@@ -128,8 +139,8 @@ const PARTS: readonly Part[] = [
 ]
 
 /**
- * `/` (PRODUCT_SPEC §1): the name and one line, a card for each part of the site (what it is,
- * and the way in), how the game works with its art (`HowItWorks`, where the tour is), then the
+ * `/` (PRODUCT_SPEC §1): the banner (the name in the imp's bytes, the one line, and the tour),
+ * how the game works with its art (`HowItWorks`, the parts of the site at its head), then the
  * main hill's top 10, its recent matches, and the next championship, read from the API; until
  * each read lands its panel holds a skeleton. The championship's `enter` takes one of my bots
  * while its entries are open. Nothing on the page moves (DESIGN_SYSTEM §10).
@@ -137,8 +148,8 @@ const PARTS: readonly Part[] = [
 export function HomePage() {
   return (
     <PanelGrid className="p-3">
-      <Overview />
-      <HowItWorks />
+      <Banner />
+      <HowItWorks site={<SiteParts />} />
       <MainHill />
       <RecentMatches />
       <Championship />
@@ -146,35 +157,59 @@ export function HomePage() {
   )
 }
 
-/** The name, the one line, and the parts of the site, in cards of equal height. */
-function Overview() {
+/** The name drawn in the imp's bytes, the name and the one line, and the tour. */
+function Banner() {
+  const openTour = useBoot((state) => state.openTour)
   return (
-    <section aria-labelledby="home-title" className="col-span-12 flex flex-col gap-3">
-      <div className="flex flex-col gap-1 px-1 pt-1">
-        <h1 id="home-title" className="flex items-center gap-2 text-modal-title text-bright">
-          <LogoMark size={24} />
-          ASM BOTS
-        </h1>
-        <p className="text-body text-muted">Write 8086 assembly. Fight for 64 KB.</p>
+    <section
+      aria-labelledby="home-title"
+      className="col-span-12 flex flex-col gap-3 rounded-md border border-border bg-panel p-3"
+    >
+      {/* Each box holds its drawing's size. A phone gets the short name in fewer bytes a row, so
+          the bytes stay big enough to read. */}
+      <div className="hidden aspect-[1202/147] overflow-hidden sm:block">
+        <HexBand word="ASM BOTS" />
       </div>
-      <ul aria-label="the site" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {PARTS.map(({ key, icon: Icon, name, text, more }) => (
-          <li
-            key={key}
-            className="flex flex-col gap-2 rounded-md border border-border bg-panel p-3"
-          >
-            <h2 className="flex items-center gap-2 text-panel-title text-accent-fg">
-              <Icon aria-hidden="true" className="size-3.5 shrink-0" />
-              {name}
-            </h2>
-            <p className="flex-1 text-body text-text">{text}</p>
-            {more !== undefined && (
-              <p className="flex flex-wrap gap-x-4 gap-y-1 text-data">{more}</p>
-            )}
-          </li>
-        ))}
-      </ul>
+      <div className="aspect-[482/147] overflow-hidden sm:hidden">
+        <HexBand word="ASM" cols={24} />
+      </div>
+      <div className="flex flex-wrap items-end justify-between gap-3 px-1">
+        <div className="flex flex-col gap-1">
+          <h1 id="home-title" className="flex items-center gap-2 text-modal-title text-bright">
+            <LogoMark size={24} />
+            ASM BOTS
+          </h1>
+          <p className="text-body text-muted">Write 8086 assembly. Fight for 64 KB.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 text-data text-muted">
+          <Button icon={Compass} onClick={openTour}>
+            take the tour
+          </Button>
+          <span>
+            six steps, then a guided first battle. or read{' '}
+            <DocsLink to="start-here">start here</DocsLink>.
+          </span>
+        </div>
+      </div>
     </section>
+  )
+}
+
+/** The parts of the site, a line each: the name (its link), what it is, and more ways in. */
+function SiteParts() {
+  return (
+    <ul aria-label="the site" className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+      {PARTS.map(({ key, icon: Icon, name, text, more }) => (
+        <li key={key} className="flex min-w-0 flex-col gap-0.5">
+          <h3 className="flex items-center gap-2 text-panel-title text-accent-fg">
+            <Icon aria-hidden="true" className="size-3.5 shrink-0" />
+            {name}
+          </h3>
+          <p className="text-data text-muted">{text}</p>
+          {more !== undefined && <p className="flex flex-wrap gap-x-4 text-data">{more}</p>}
+        </li>
+      ))}
+    </ul>
   )
 }
 

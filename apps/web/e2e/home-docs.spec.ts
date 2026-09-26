@@ -3,13 +3,11 @@
  */
 import { expect, test } from '@playwright/test'
 
-test('home: the name, a card for each part of the site, the art, the panels, the footer', async ({
-  page,
-}) => {
+test('home: the name, each part of the site, the art, the panels, the footer', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { level: 1, name: 'ASM BOTS' })).toBeVisible()
   const parts = page.getByRole('list', { name: 'the site' })
-  await expect(parts.getByRole('heading', { level: 2 })).toHaveText([
+  await expect(parts.getByRole('heading', { level: 3 })).toHaveText([
     'arena',
     'editor',
     'hills',

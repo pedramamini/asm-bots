@@ -150,7 +150,7 @@ test('enter site: in at once, and the next load boots with the same choice', asy
 
   // The tour stays in reach: the home page's `take the tour`.
   await page
-    .getByRole('region', { name: 'how it works' })
+    .getByRole('region', { name: 'ASM BOTS' })
     .getByRole('button', { name: 'take the tour' })
     .click()
   const tour = page.getByRole('dialog', { name: 'the tour' })
