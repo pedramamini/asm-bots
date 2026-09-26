@@ -17,6 +17,8 @@ export interface Keymap {
   register(commands: readonly KeyCommand[]): () => void
   /** Every live binding, the earliest layer first, each key sequence once (the winning one). */
   bindings(): readonly KeyBinding[]
+  /** The live commands of `bindings()`, in its order: what the command menu can run. */
+  commands(): readonly KeyCommand[]
   subscribe(listener: () => void): () => void
   /** Runs the command of a keydown. Returns whether the key was taken (its default prevented). */
   handle(event: KeyboardEvent): boolean
@@ -41,6 +43,7 @@ export function createKeymap({
   now = () => performance.now(),
 }: KeymapOptions = {}): Keymap {
   let layers: (readonly KeyCommand[])[] = []
+  let winning: readonly KeyCommand[] = []
   let snapshot: readonly KeyBinding[] = []
   const listeners = new Set<() => void>()
   /** The keys of a chord so far, and when the last came. */
@@ -56,10 +59,8 @@ export function createKeymap({
       const id = command.keys.join(' ')
       if (!winners.has(id)) winners.set(id, command)
     }
-    snapshot = layers
-      .flat()
-      .filter((command) => winners.get(command.keys.join(' ')) === command)
-      .map(({ keys, description, group }) => ({ keys, description, group }))
+    winning = layers.flat().filter((command) => winners.get(command.keys.join(' ')) === command)
+    snapshot = winning.map(({ keys, description, group }) => ({ keys, description, group }))
     for (const listener of listeners) listener()
   }
 
@@ -80,6 +81,7 @@ export function createKeymap({
       }
     },
     bindings: () => snapshot,
+    commands: () => winning,
     subscribe(listener) {
       listeners.add(listener)
       return () => listeners.delete(listener)

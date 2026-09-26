@@ -46,7 +46,11 @@ describe('page intros', () => {
       expect(intro.textContent).toContain(word)
       expect(screen.queryByRole('dialog')).toBeNull()
 
-      fireEvent.click(within(intro).getByRole('button', { name: `about ${name}` }))
+      // The ⓘ stands in the header, beside the page's name.
+      expect(within(intro).queryByRole('button', { name: `about ${name}` })).toBeNull()
+      const info = screen.getByRole('button', { name: `about ${name}` })
+      expect(info.closest('header')).not.toBeNull()
+      fireEvent.click(info)
       const dialog = await screen.findByRole('dialog', { name: `about ${name}` })
       const link = within(dialog).getByRole('link', { name: 'read the docs' })
       expect(link.getAttribute('href')).toBe(docs)
@@ -58,11 +62,13 @@ describe('page intros', () => {
     })
   }
 
-  it("the editor's ⓘ sits in its toolbar, with no lead to take the workspace's room", async () => {
+  it("the editor's ⓘ sits in the header, with no lead to take the workspace's room", async () => {
     await open('/editor')
-    const tools = await screen.findByRole('region', { name: 'editor tools' })
+    await screen.findByRole('region', { name: 'editor tools' })
     expect(screen.queryByRole('region', { name: 'about the editor' })).toBeNull()
-    fireEvent.click(within(tools).getByRole('button', { name: 'about the editor' }))
+    const info = screen.getByRole('button', { name: 'about the editor' })
+    expect(info.closest('header')).not.toBeNull()
+    fireEvent.click(info)
     const dialog = await screen.findByRole('dialog', { name: 'about the editor' })
     expect(dialog.textContent).toContain('test vs')
     const link = within(dialog).getByRole('link', { name: 'read the docs' })

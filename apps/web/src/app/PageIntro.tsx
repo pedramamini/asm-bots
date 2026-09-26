@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { BookOpen, Info } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { NavLink } from './Frame'
+import { useRouteAbout } from './slots'
 
 /** What a page says about itself: a line at its top, and more behind the `ⓘ`. */
 export interface PageAbout {
@@ -32,10 +33,12 @@ export interface PageIntroProps {
 }
 
 /**
- * The top of a page that explains itself: the page's `lead` beside an `ⓘ`, which opens a dialog
- * with its `details` and a link to its docs. It sits in the page's `PanelGrid`.
+ * The top of a page that explains itself: the page's `lead`, and its `ⓘ` in the header beside the
+ * page's name, which opens a dialog with its `details` and a link to its docs. It sits in the
+ * page's `PanelGrid`.
  */
 export function PageIntro({ about, art, className }: PageIntroProps) {
+  useRouteAbout(about)
   return (
     <section
       aria-label={`about ${about.name}`}
@@ -47,22 +50,15 @@ export function PageIntro({ about, art, className }: PageIntroProps) {
     >
       <p className="min-w-0 flex-1 text-body text-muted">{about.lead}</p>
       {art}
-      <AboutButton about={about} />
     </section>
   )
 }
 
 /**
- * The `ⓘ` alone, for a page with no room for a lead (the editor's toolbar): it opens the dialog
+ * The `ⓘ`, which the header draws beside the page's name (`useRouteAbout`): it opens the dialog
  * with the page's `details` and its docs link.
  */
-export function AboutButton({
-  about,
-  tooltip = 'left',
-}: {
-  about: PageAbout
-  tooltip?: 'left' | 'bottom' | undefined
-}) {
+export function AboutButton({ about }: { about: PageAbout }) {
   const [open, setOpen] = useState(false)
   const close = () => setOpen(false)
   return (
@@ -70,7 +66,7 @@ export function AboutButton({
       <IconButton
         icon={Info}
         label={`about ${about.name}`}
-        tooltip={tooltip}
+        size="sm"
         onClick={() => setOpen(true)}
       />
       <Modal

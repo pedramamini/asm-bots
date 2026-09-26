@@ -359,8 +359,12 @@ describe('Frame', () => {
     const dialog = await screen.findByRole('dialog', { name: 'commands' })
     const groups = within(dialog)
       .getAllByRole('group')
-      .map((group) => within(group).getAllByRole('option').length)
-    expect(groups).toEqual([NAV.length, THEMES.length, 3])
+      .map((group) => group.getAttribute('aria-labelledby') && group.firstChild?.textContent)
+    expect(groups).toEqual(['go', 'site', 'theme', 'settings', 'docs', 'account'])
+    // The page's own keys, as the keymap holds them: the route has a search, so `/` is there.
+    expect(within(dialog).getByRole('option', { name: 'search this page' })).toBeTruthy()
+    expect(within(dialog).queryByRole('option', { name: 'commands and themes' })).toBeNull()
+    expect(within(dialog).getAllByRole('option', { name: /^go to / })).toHaveLength(NAV.length + 1)
     // From the menu's own field.
     mod({ key: 'k', ctrlKey: true })
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())

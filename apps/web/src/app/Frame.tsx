@@ -19,7 +19,6 @@ import { createLink, Link, useLocation, useRouter } from '@tanstack/react-router
 import {
   BookOpen,
   CodeXml,
-  GitFork,
   Grid2x2,
   House,
   Keyboard,
@@ -42,6 +41,7 @@ import { useMe } from '../api/queries'
 import { AccountSlot } from '../features/account/AccountSlot'
 import { useSettings } from '../store/settings'
 import { BootLayer } from './boot/BootLayer'
+import { GitHubIcon } from './github-icon'
 import { GLOBAL_KEYS, goKey } from './keymaps'
 import {
   focusRouteSearch,
@@ -51,9 +51,10 @@ import {
   useKeys,
 } from './keys'
 import { useOnline } from './online'
+import { AboutButton } from './PageIntro'
 import { usePaintedAndIdle } from './paint'
 import { SOURCE_URL } from './site'
-import { useFps, useHeaderStat } from './slots'
+import { useFps, useHeaderAbout, useHeaderStat } from './slots'
 import { useTicker } from './ticker'
 import { BRAND, useRouteHead } from './title'
 import { RELEASE, VERSION, versionTitle } from './version'
@@ -164,7 +165,7 @@ export function Frame({ children }: { children: ReactNode }) {
       </Modal>
       {menu !== null && (
         <Suspense fallback={null}>
-          <CommandMenu query={menu} onClose={() => setMenu(null)} onKeys={openKeys} />
+          <CommandMenu query={menu} onClose={() => setMenu(null)} />
         </Suspense>
       )}
       <Onboarding />
@@ -251,21 +252,25 @@ function useGlobalKeys(toggleKeys: () => void, toggleMenu: () => void): void {
 }
 
 /**
- * `ASM BOTS // ARENA`, a link home; under `md` the page's name goes, since the nav's active button
- * says it.
+ * `ASM BOTS // ARENA`, a link home, and the page's `ⓘ` when it has one (`useRouteAbout`). Under
+ * `md` the page's name goes, since the nav's active button says it; the `ⓘ` stays.
  */
 function Brand() {
   const { label } = useRouteHead()
+  const about = useHeaderAbout((state) => state.about)
   return (
-    <Link
-      to="/"
-      className="rounded-sm focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
-    >
-      {BRAND}
-      {label !== null && (
-        <span className="text-muted max-md:hidden">{` // ${label.toUpperCase()}`}</span>
-      )}
-    </Link>
+    <span className="flex min-w-0 items-center gap-2">
+      <Link
+        to="/"
+        className="min-w-0 truncate-ring rounded-sm focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
+      >
+        {BRAND}
+        {label !== null && (
+          <span className="text-muted max-md:hidden">{` // ${label.toUpperCase()}`}</span>
+        )}
+      </Link>
+      {about !== null && <AboutButton about={about} />}
+    </span>
   )
 }
 
@@ -305,7 +310,7 @@ function HeaderActions({ onKeys, onThemes }: { onKeys: () => void; onThemes: () 
       />
       {/* Under `md` the footer's source link stands in: the row fits a phone. */}
       <IconLink
-        icon={GitFork}
+        icon={GitHubIcon}
         label="source on github"
         href={SOURCE_URL}
         className="max-md:hidden"

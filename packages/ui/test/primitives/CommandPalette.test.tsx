@@ -3,6 +3,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { Grid2x2, Palette } from 'lucide-react'
 import { useState } from 'react'
 import { CommandPalette, filterCommands, type PaletteCommand } from '../../src/index'
+import { fuzzyScore } from '../../src/primitives/CommandPalette'
 import { useDom } from '../dom'
 
 useDom()
@@ -121,12 +122,43 @@ describe('CommandPalette', () => {
 })
 
 describe('filterCommands', () => {
+  const ids = (query: string) => filterCommands(commands(), query).map((command) => command.id)
+
   it('keeps the order, and every command for an empty search', () => {
     const list = commands()
     expect(filterCommands(list, '   ')).toEqual(list)
-    expect(filterCommands(list, 'GO').map((command) => command.id)).toEqual([
-      'go to arena',
-      'go to hills',
-    ])
+    expect(ids('GO')).toEqual(['go to arena', 'go to hills'])
+  })
+
+  it('matches word starts, and letters in order anywhere when nothing matches better', () => {
+    expect(ids('gtar')).toEqual(['go to arena'])
+    expect(ids('snl')).toEqual(['sentinel'])
+    expect(ids('arnx')).toEqual([])
+  })
+
+  it('lists loose matches only when nothing matches strictly, and ranks the label first', () => {
+    const list: PaletteCommand[] = [
+      { id: 'the machine', label: 'the machine', run: () => {} },
+      { id: 'ice', label: 'ice', group: 'theme', run: () => {} },
+      { id: 'hills', label: 'go to hills', keywords: 'ice', run: () => {} },
+    ]
+    const ranked = (query: string) => filterCommands(list, query).map((command) => command.id)
+    // `the machine` holds t-h-e-m-e in order, but a group holds `theme` whole.
+    expect(ranked('theme')).toEqual(['ice'])
+    expect(ranked('tmchn')).toEqual(['the machine'])
+    expect(ranked('ice')).toEqual(['ice', 'hills'])
+  })
+})
+
+describe('fuzzyScore', () => {
+  it('scores runs and word starts over gaps, and misses letters out of order', () => {
+    expect(fuzzyScore('ga', 'go to arena')).toBeGreaterThan(fuzzyScore('ga', 'gxxxxxa'))
+    expect(fuzzyScore('ar', 'arena')).toBeGreaterThan(fuzzyScore('ar', 'bazaar'))
+    expect(fuzzyScore('ra', 'arena')).toBeGreaterThan(Number.NEGATIVE_INFINITY)
+    expect(fuzzyScore('zz', 'arena')).toBe(Number.NEGATIVE_INFINITY)
+    // Strict: a gap must land on a word's start, unless the word is a substring.
+    expect(fuzzyScore('theme', 'the machine', true)).toBe(Number.NEGATIVE_INFINITY)
+    expect(fuzzyScore('gta', 'go to arena', true)).toBeGreaterThan(Number.NEGATIVE_INFINITY)
+    expect(fuzzyScore('ren', 'arena', true)).toBeGreaterThan(Number.NEGATIVE_INFINITY)
   })
 })
