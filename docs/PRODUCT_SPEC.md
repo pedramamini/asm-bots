@@ -49,7 +49,7 @@ Keyboard: `space` play/pause, `.` step, `,` step back, `[`/`]` speed, `0` reset 
 
 ## 3. Editor and debugger `/editor`, `/editor/:botId`
 
-Tiled workspace, default: library and editor left, debugger right, arena strip and trace bottom. Every panel (source, problems, library, debug controls, registers, processes, memory, watch, breakpoints, trace, arena strip) is a tile: drag its title row to dock it beside another panel, swap with it, or dock it along the page's edge; drag or arrow-key the dividers to size; hide from its grip menu (the source stays); `layout ▾` shows hidden panels and offers presets (`default`, `writing`, `debugging`). The layout persists in `localStorage`; a moved or hidden panel keeps its state.
+Tiled workspace, default the `writing` layout: library, the source over its problems, and help; the machine hidden. Every panel (source, problems, library, help, debug controls, registers, processes, memory, watch, breakpoints, trace, arena strip) is a tile: drag its title row to dock it beside another panel, swap with it, or dock it along the page's edge, a lit box showing where it lands; drag or arrow-key the dividers to size; hide from its grip menu (the source stays); `layout ▾` shows hidden panels and offers presets (`writing`, `debugging`, `phone`). A debugger key (F5, F10, F11) or the arena's `open in debugger` while the debug controls are hidden opens the `debugging` layout. Help: the instruction, directive, or register under the cursor (forms, flags, an example), a search over them all, and a link to its reference page. The layout persists in `localStorage` exactly as the user leaves it, a phone's apart from a wide window's; a moved or hidden panel keeps its state. The debugger's seed, opponents, speed, `run N` count, and strip lock persist too.
 
 **Editor**:
 - CodeMirror 6, x16c mode, theme-matched. Listing gutter (address, bytes) updated on every successful assemble. Diagnostics inline (squiggle + gutter mark + problems panel). Hover on a mnemonic: opcode doc card (encoding, flags, one example). Autocomplete for mnemonics, registers, labels, `%` directives.
@@ -101,7 +101,7 @@ Every code block has `copy` and `open in editor`.
 
 ## 8. Settings `/settings`
 
-Theme (five swatches, live preview), arena effects (bloom, scanlines, vignette, reduced motion), sound, keyboard map (view), account (GitHub link/unlink, handle), data (export my bots as a zip, delete account).
+Theme (seven swatches, live preview), arena effects (bloom, scanlines, vignette, reduced motion), sound, keyboard map (view), account (GitHub link/unlink, handle), data (export my bots as a zip, delete account).
 
 ## 9. Auth and onboarding
 
@@ -127,5 +127,5 @@ Theme (five swatches, live preview), arena effects (bloom, scanlines, vignette, 
 - Cold load ≤ 250 KB JS gzipped on `/arena` (engine + renderer + shell; editor lazy).
 - Zero console errors on every route in Playwright.
 - Every roster bot assembles, formats idempotently, and has a golden.
-- All five themes pass the contrast script.
+- All seven themes pass the contrast script.
 - `bun run golden` reproduces identical results in Bun, Chrome, and Miniflare.

@@ -76,7 +76,7 @@ export function Gallery() {
                 ASM BOTS <span className="text-muted">{'// gallery'}</span>
               </>
             }
-            stat="32 primitives · 3 layouts · 5 themes"
+            stat="33 primitives · 3 layouts · 7 themes"
             nav={SECTIONS.map(({ id, label, icon }) => (
               <NavButton key={id} href={`#${id}`} icon={icon}>
                 {label}
@@ -126,7 +126,7 @@ export function Gallery() {
               <ControlSpecimens />
             </PanelGrid>
           </Section>
-          <Section id="data" title="data display and feedback" note="13 primitives">
+          <Section id="data" title="data display and feedback" note="14 primitives">
             <PanelGrid>
               <DataSpecimens />
             </PanelGrid>

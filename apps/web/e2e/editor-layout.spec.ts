@@ -1,7 +1,8 @@
 /**
- * The editor's layout in a real browser (PRODUCT_SPEC §3): a panel dragged by its grip lands
- * beside another, the source keeps its text as it moves, a divider drag sizes two panels, and the
- * layout is the same after a reload. Escape drops a drag; the layout menu puts the default back.
+ * The editor's layout in a real browser (PRODUCT_SPEC §3): a panel dragged by its grip shows where
+ * it lands and lands beside another, the source keeps its text as it moves, a divider drag sizes
+ * two panels, and the layout is the same after a reload. Escape drops a drag; the layout menu puts
+ * a preset back.
  */
 import { expect, type Page, test } from '@playwright/test'
 
@@ -27,20 +28,29 @@ async function box(page: Page, id: string) {
 
 /**
  * Drags panel `id` by the grip in its title row (a narrow tile's title may truncate away) to
- * `x, y`; `drop: false` lets go after Escape.
+ * `x, y`; `drop: false` lets go after Escape. `midway` runs with the pointer there, before it
+ * lets go.
  */
-async function drag(page: Page, id: string, x: number, y: number, drop = true) {
+async function drag(
+  page: Page,
+  id: string,
+  x: number,
+  y: number,
+  drop = true,
+  midway?: () => Promise<void>,
+) {
   const grip = await slot(page, id).locator('[data-panel-grip]').first().boundingBox()
   if (grip === null) throw new Error(`no grip for ${id}`)
   await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2)
   await page.mouse.down()
   await page.mouse.move(grip.x - 30, grip.y + 30, { steps: 4 })
   await page.mouse.move(x, y, { steps: 10 })
+  await midway?.()
   if (!drop) await page.keyboard.press('Escape')
   await page.mouse.up()
 }
 
-test('drags the memory beside the source, sizes the library, and keeps it all on a reload', async ({
+test('drags the memory beside the source, sizes the problems, and keeps it all on a reload', async ({
   page,
 }) => {
   const errors = watch(page)
@@ -61,8 +71,18 @@ test('drags the memory beside the source, sizes the library, and keeps it all on
   await drag(page, 'memory', source.x + 12, source.y + source.height / 2, false)
   expect(await box(page, 'memory')).toEqual(before)
 
-  // Near the source's left edge: the memory lands left of it, and the two share its space.
-  await drag(page, 'memory', source.x + 12, source.y + source.height / 2)
+  // Near the source's left edge: the preview lights its left half and says so, and the memory
+  // lands there, the two sharing its space.
+  await drag(page, 'memory', source.x + 12, source.y + source.height / 2, true, async () => {
+    const preview = page.locator('[data-drop="left"]')
+    await expect(preview).toContainText('memory · left of source')
+    await expect
+      .poll(async () => {
+        const lit = await preview.boundingBox()
+        return lit === null ? null : [Math.round(lit.x), Math.round(lit.width)]
+      })
+      .toEqual([Math.round(source.x), Math.round(source.width / 2)])
+  })
   await expect
     .poll(async () => (await box(page, 'memory')).x)
     .toBeLessThan((await box(page, 'source')).x)
@@ -71,27 +91,27 @@ test('drags the memory beside the source, sizes the library, and keeps it all on
   expect(Math.abs(memory.width - moved.width)).toBeLessThanOrEqual(2)
   await expect(page.locator('.cm-content')).toHaveText(text ?? '')
 
-  // The library's divider, dragged 120 px right: the library is that much wider.
-  const library = await box(page, 'library')
-  const divider = page.getByRole('separator', { name: 'library width' })
+  // The problems' divider, dragged 60 px up: the problems are that much taller.
+  const problems = await box(page, 'problems')
+  const divider = page.getByRole('separator', { name: 'problems height' })
   const grip = await divider.boundingBox()
   if (grip === null) throw new Error('no divider')
   await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2)
   await page.mouse.down()
-  await page.mouse.move(grip.x + grip.width / 2 + 120, grip.y + grip.height / 2, { steps: 6 })
+  await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2 - 60, { steps: 6 })
   await page.mouse.up()
-  const wider = await box(page, 'library')
-  expect(Math.abs(wider.width - (library.width + 120))).toBeLessThanOrEqual(3)
+  const taller = await box(page, 'problems')
+  expect(Math.abs(taller.height - (problems.height + 60))).toBeLessThanOrEqual(3)
 
   // A reload keeps the layout.
   await page.reload()
   await expect(page.locator('.cm-editor')).toBeVisible()
   expect((await box(page, 'memory')).x).toBeLessThan((await box(page, 'source')).x)
-  expect(Math.abs((await box(page, 'library')).width - wider.width)).toBeLessThanOrEqual(2)
+  expect(Math.abs((await box(page, 'problems')).height - taller.height)).toBeLessThanOrEqual(2)
 
-  // The default layout puts it all back.
+  // The debugging layout puts it all back.
   await page.getByRole('button', { name: 'layout ▾' }).click()
-  await page.getByRole('menuitem', { name: 'default layout' }).click()
+  await page.getByRole('menuitem', { name: 'debugging layout' }).click()
   await expect
     .poll(async () => (await box(page, 'memory')).x)
     .toBeGreaterThan((await box(page, 'source')).x)

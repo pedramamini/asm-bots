@@ -1,7 +1,7 @@
 /**
  * Accessibility (DESIGN_SYSTEM §8): axe over every route of the app and the states a user reaches
  * on them (a battle and its end, the debugger, a results matrix, the dialogs and menus, the signed
- * in hill page), in all five themes, with no violation of any rule axe runs by default: WCAG 2.2 A
+ * in hill page), in all seven themes, with no violation of any rule axe runs by default: WCAG 2.2 A
  * and AA and axe's best practices. Against the Worker that serves the build and the API on one
  * origin as production does, seeded with the hills, the roster, and their replays. Keyboard-only
  * use and the focus ring are `keyboard.spec.ts` and `focus.spec.ts`.
@@ -187,9 +187,9 @@ for (const theme of THEMES) {
       await expect(page.getByRole('dialog', { name: 'keys' })).toBeVisible()
       await expectClean(page, 'key help')
       await page.keyboard.press('Escape')
-      await page.getByRole('button', { name: 'pick a theme' }).click()
-      await expect(page.getByRole('menuitem', { name: 'paper' })).toBeVisible()
-      await expectClean(page, 'theme menu')
+      await page.keyboard.press('ControlOrMeta+k')
+      await expect(page.getByRole('option', { name: /^paper/ })).toBeVisible()
+      await expectClean(page, 'command menu')
       await page.keyboard.press('Escape')
       await open(page, '/docs/start-here')
       await page.keyboard.press('/')

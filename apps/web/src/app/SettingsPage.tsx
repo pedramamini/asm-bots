@@ -95,7 +95,11 @@ function ThemePanel() {
   useEffect(() => () => preview(null), [])
   return (
     <Panel className="col-span-12" title="theme" status={theme}>
-      <div role="radiogroup" aria-label="theme" className="grid grid-cols-5 gap-3">
+      <div
+        role="radiogroup"
+        aria-label="theme"
+        className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7"
+      >
         {THEMES.map((name) => (
           <ThemeSwatch
             key={name}

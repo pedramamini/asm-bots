@@ -304,7 +304,10 @@ describe('the editor page', () => {
     act(() => void fireEvent.keyDown(document.body, { key: 'l' }))
     expect(view.dom.querySelector('.cm-listing-gutter')).toBeNull()
     expect(useEditorPrefs.getState().listing).toBe(false)
-    expect(useEditorPrefs.getState().layout.hidden).toEqual(['library'])
+    expect(useEditorPrefs.getState().layout.hidden).toEqual([
+      ...PRESETS.writing().hidden,
+      'library',
+    ])
     fireEvent.click(toolbar().getByRole('button', { name: 'listing' }))
     expect(view.dom.querySelector('.cm-listing-gutter')).not.toBeNull()
   })
@@ -516,6 +519,34 @@ describe('the editor page', () => {
     expect(sharedFragment([])).toBe('')
   })
 
+  it('explains the word under the cursor in the help, links the docs, and searches', async () => {
+    await renderEditor()
+    const view = await editorView()
+    const help = screen.getByRole('region', { name: 'help' })
+    // The first visit's tip tops the help while the debug controls are hidden.
+    expect(within(help).getByRole('note', { name: 'tip' })).toBeTruthy()
+    const at = view.state.doc.toString().indexOf('jmp')
+    act(() => view.dispatch({ selection: { anchor: at + 1 } }))
+    const card = await within(help).findByRole('article', { name: 'jmp' })
+    expect(within(help).getByText('at the cursor')).toBeTruthy()
+    const more = within(card).getByRole('link', { name: /read more in the docs/ })
+    expect(more.getAttribute('href')).toBe('/docs/reference/control#jmp')
+    expect(more.getAttribute('target')).toBe('_blank')
+    // A search, and Enter opens its first find until the cursor moves to another word.
+    const search = within(help).getByRole('textbox', { name: /search the instructions/ })
+    fireEvent.change(search, { target: { value: 'stosw' } })
+    expect(within(help).getByRole('list', { name: 'search results' })).toBeTruthy()
+    fireEvent.keyDown(search, { key: 'Enter' })
+    expect(within(help).getByRole('article', { name: 'stosw' })).toBeTruthy()
+    expect(within(help).getByText('picked')).toBeTruthy()
+    act(() => view.dispatch({ selection: { anchor: view.state.doc.toString().indexOf('%name') } }))
+    expect(await within(help).findByRole('article', { name: '%name' })).toBeTruthy()
+    // Off any word: the guide, whose index opens an instruction.
+    act(() => view.dispatch({ selection: { anchor: view.state.doc.length } }))
+    fireEvent.click(await within(help).findByRole('button', { name: 'lea' }))
+    expect(within(help).getByRole('article', { name: 'lea' })).toBeTruthy()
+  })
+
   it('keeps unsaved text as a draft, and opens it again', async () => {
     const first = await renderEditor()
     const view = await editorView()
@@ -705,6 +736,7 @@ describe('the debugger', () => {
   })
 
   it('loads a new assemble by itself until the session moves, then waits for reload', async () => {
+    useEditorPrefs.getState().applyPreset('debugging')
     await renderEditor('/editor?t=dwarf')
     const view = await editorView()
     await waitFor(() => expect(view.state.doc.toString()).toContain('%name     "Dwarf"'))
@@ -746,6 +778,7 @@ describe('the debugger', () => {
   })
 
   it('flashes a new process in, and fades a dead one out of the processes panel', async () => {
+    useEditorPrefs.getState().applyPreset('debugging')
     await renderEditor()
     const view = await editorView()
     // Each child dies on its first instruction.
@@ -816,14 +849,15 @@ describe('the debugger', () => {
     expect(screen.getByRole('separator', { name: 'arena strip height' })).toBeTruthy()
     await panelMenu('arena strip', 'hide arena strip')
     await waitFor(() => expect(screen.queryByRole('region', { name: 'arena strip' })).toBeNull())
-    expect(useEditorPrefs.getState().layout.hidden).toEqual(['arena'])
+    // The arena's setup opened the debugging layout: the library and the help hidden.
+    expect(useEditorPrefs.getState().layout.hidden).toEqual(['library', 'help', 'arena'])
     expect(screen.queryByRole('separator', { name: 'arena strip height' })).toBeNull()
     expect(await editorView()).toBe(view)
     await layoutMenu('show arena strip')
     await waitFor(() =>
       expect(screen.getByRole('application', { name: 'debug arena' })).toBeTruthy(),
     )
-    expect(useEditorPrefs.getState().layout.hidden).toEqual([])
+    expect(useEditorPrefs.getState().layout.hidden).toEqual(['library', 'help'])
     expect(await editorView()).toBe(view)
   })
 
@@ -889,27 +923,73 @@ describe('the debugger', () => {
       const shown = [...document.querySelectorAll<HTMLElement>('[data-panel]')].map(
         (slot) => slot.dataset.panel,
       )
-      expect(shown).toEqual(['source', 'problems'])
+      expect(shown).toEqual(['source', 'problems', 'help'])
       expect(screen.queryByRole('region', { name: 'bot library' })).toBeNull()
       await layoutMenu('show memory')
       await waitFor(() => expect(screen.getByRole('region', { name: 'memory' })).toBeTruthy())
       expect(useEditorPrefs.getState().layout).toBe(stored)
+      // The phone's layout is kept too, as the user left it.
+      expect(useEditorPrefs.getState().phoneLayout.hidden).not.toContain('memory')
     } finally {
       if (previous === undefined) Reflect.deleteProperty(globalThis, 'matchMedia')
       else Object.defineProperty(globalThis, 'matchMedia', previous)
     }
   })
 
-  it('puts the panels as a preset has them', async () => {
+  it('puts the panels as a preset has them, the writing one first', async () => {
     await renderEditor()
-    await layoutMenu('writing layout')
-    await waitFor(() => expect(screen.queryByRole('region', { name: 'memory' })).toBeNull())
+    expect(screen.queryByRole('region', { name: 'memory' })).toBeNull()
     expect(screen.getByRole('region', { name: 'bot library' })).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'help' })).toBeTruthy()
     await layoutMenu('debugging layout')
     await waitFor(() => expect(screen.getByRole('region', { name: 'memory' })).toBeTruthy())
     expect(screen.queryByRole('region', { name: 'bot library' })).toBeNull()
-    await layoutMenu('default layout')
+    expect(screen.queryByRole('region', { name: 'help' })).toBeNull()
+    await layoutMenu('writing layout')
     await waitFor(() => expect(screen.getByRole('region', { name: 'bot library' })).toBeTruthy())
-    expect(useEditorPrefs.getState().layout).toEqual(PRESETS.default())
+    expect(useEditorPrefs.getState().layout).toEqual(PRESETS.writing())
+  })
+
+  it("keeps the debugger's seed, opponents, speed, run count, and lock for the next visit", async () => {
+    useEditorPrefs.getState().applyPreset('debugging')
+    const first = await renderEditor()
+    const seed = screen.getByLabelText('placement seed')
+    fireEvent.change(seed, { target: { value: '77' } })
+    fireEvent.keyDown(seed, { key: 'Enter' })
+    fireEvent.click(screen.getByRole('button', { name: 'opponent ▾' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'imp' }))
+    key(']')
+    const cycles = screen.getByLabelText('cycles to run')
+    fireEvent.change(cycles, { target: { value: '40' } })
+    await waitFor(() => expect(stopLine()).toMatch(/^cycle0·/))
+    fireEvent.keyDown(cycles, { key: 'Enter' })
+    fireEvent.click(screen.getByRole('button', { name: 'lock on ip' }))
+    const kept = useEditorPrefs.getState().debug
+    expect(kept).toMatchObject({
+      seed: 77,
+      opponents: ['roster:imp'],
+      runCycles: 40,
+      lockIp: false,
+    })
+    first.unmount()
+    await renderEditor()
+    expect((screen.getByLabelText('placement seed') as HTMLInputElement).value).toBe('77')
+    expect(within(screen.getByRole('list', { name: 'opponents' })).getByText('Imp')).toBeTruthy()
+    expect((screen.getByLabelText('cycles to run') as HTMLInputElement).value).toBe('40')
+    expect(screen.getByRole('button', { name: 'lock on ip' }).getAttribute('aria-pressed')).toBe(
+      'false',
+    )
+    expect(useEditorPrefs.getState().debug.speed).toBe(kept.speed)
+  })
+
+  it('opens the debugging layout when F5 runs the debugger its controls hide', async () => {
+    await renderEditor()
+    expect(screen.queryByRole('region', { name: 'debug controls' })).toBeNull()
+    key('F5')
+    await waitFor(() => expect(screen.getByRole('region', { name: 'debug controls' })).toBeTruthy())
+    expect(useEditorPrefs.getState().layout).toEqual(PRESETS.debugging())
+    expect(
+      await screen.findByText('the debugging layout: layout ▾ puts the writing one back.'),
+    ).toBeTruthy()
   })
 })

@@ -1,6 +1,6 @@
 /**
  * The x16c editor mode in Chromium (src/features/editor/cm): each token class in its theme color
- * in all five themes, one editor recolored in place by a theme switch, the hover card, and the
+ * in all seven themes, one editor recolored in place by a theme switch, the hover card, and the
  * completion popup with its card. The page is `e2e/harness/editor.html`, which only the dev server
  * serves: DEV_URL says where it listens (default: Vite's http://localhost:5173).
  */

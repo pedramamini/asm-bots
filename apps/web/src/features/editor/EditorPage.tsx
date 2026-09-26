@@ -45,7 +45,14 @@ import { useCoachMark } from '../../store/settings'
 import type { ArenaCanvasHandle } from '../arena/ArenaCanvas'
 import { type CatalogBot, fightSeed, rosterCatalog } from '../arena/setup/bots'
 import { battleConfig, randomSeed } from '../arena/setup/config'
-import { searchFromSetup, sharedFragment, shareUrl } from '../arena/setup/url'
+import {
+  type BotRef,
+  formatRef,
+  parseRefs,
+  searchFromSetup,
+  sharedFragment,
+  shareUrl,
+} from '../arena/setup/url'
 import { copyLink } from '../arena/share'
 import { ArenaClient, createArenaStore } from '../arena/worker/client'
 import { type CloudSave, localCopyOf, saveToCloud } from '../bots/cloud'
@@ -66,6 +73,9 @@ import { type DocTarget, docKey, paramOf, pathOf } from './doc'
 import { Editor, type EditorCommands } from './Editor'
 import { EditorToolbar, type SaveState, type TestState } from './EditorToolbar'
 import { EmptyEditor } from './EmptyEditor'
+import { createCursorTopic } from './help/cursor'
+import { HelpPanel } from './help/HelpPanel'
+import { topicAtLine } from './help/topics'
 import { Library } from './Library'
 import { TileFrame } from './layout/TileFrame'
 import { type Layout, type PanelId, PRESETS, type PresetId, setHidden } from './layout/tree'
@@ -274,24 +284,24 @@ function Workbench({
   const recent = useEditorPrefs((state) => state.recent)
   const stored = useEditorPrefs((state) => state.layout)
   const { toggleListing, setLint, visit, setDraft } = useEditorPrefs.getState()
-  // Under `md` the tiles do not fit side by side: the page shows the phone preset for the
-  // session, and the layout the user keeps waits, as it was, for a wide window.
+  // Under `md` the tiles do not fit side by side: the page shows the phone's layout, kept apart,
+  // and the wide window's waits, as it was. Each is kept as the user leaves it.
   const wide = useMediaQuery(WIDE)
-  const [phone, setPhone] = useState<Layout>(PRESETS.phone)
+  const phone = useEditorPrefs((state) => state.phoneLayout)
   const layout = wide ? stored : phone
-  const { toggleLibrary, setLayout, setPanelHidden, applyPreset } = useMemo(
-    () =>
-      wide
-        ? useEditorPrefs.getState()
-        : {
-            toggleLibrary: () =>
-              setPhone((l) => setHidden(l, 'library', !l.hidden.includes('library'))),
-            setLayout: setPhone,
-            setPanelHidden: (id: PanelId, hide: boolean) => setPhone((l) => setHidden(l, id, hide)),
-            applyPreset: (preset: PresetId) => setPhone(PRESETS[preset]()),
-          },
-    [wide],
-  )
+  const { toggleLibrary, setLayout, setPanelHidden, applyPreset } = useMemo(() => {
+    if (wide) return useEditorPrefs.getState()
+    const setPhone = (next: (l: Layout) => Layout) => {
+      const prefs = useEditorPrefs.getState()
+      prefs.setPhoneLayout(next(prefs.phoneLayout))
+    }
+    return {
+      toggleLibrary: () => setPhone((l) => setHidden(l, 'library', !l.hidden.includes('library'))),
+      setLayout: (next: Layout) => setPhone(() => next),
+      setPanelHidden: (id: PanelId, hide: boolean) => setPhone((l) => setHidden(l, id, hide)),
+      applyPreset: (preset: PresetId) => setPhone(() => PRESETS[preset]()),
+    }
+  }, [wide])
   const libraryOn = !layout.hidden.includes('library')
   const stripOn = !layout.hidden.includes('arena')
 
@@ -305,22 +315,70 @@ function Workbench({
   const [test, setTest] = useState<TestState>({ status: 'idle' })
   const arena = useRef<ArenaClient | null>(null)
   const { result, pending, assembleNow } = useAssembler(source, assembler, assembleDelay)
+  // The debugger starts as the user left it, unless the arena hands a setup over.
+  const [debugPrefs] = useState(() => useEditorPrefs.getState().debug)
+  const [setup] = useState<DebugSetup>(() =>
+    debugSetup !== DEFAULT_DEBUG_SETUP
+      ? debugSetup
+      : {
+          ...DEFAULT_DEBUG_SETUP,
+          opponents: parseRefs(debugPrefs.opponents.join(',')),
+          seed: debugPrefs.seed,
+        },
+  )
+  const setDebugPrefs = useEditorPrefs((state) => state.setDebug)
+  const lockIp = useEditorPrefs((state) => state.debug.lockIp)
   const debug = useDebugger({
     view,
     source,
     result,
-    setup: debugSetup,
+    setup,
     local: localBots.data,
     shared,
+    speed: debugPrefs.speed,
+    onSetup: useCallback(
+      (opponents: readonly BotRef[], seed: number) =>
+        setDebugPrefs({ opponents: opponents.map(formatRef), seed }),
+      [setDebugPrefs],
+    ),
   })
+  // The speed the user left: the transport, the slider, and `[` `]` all set it.
+  const speed = debug.snapshot.speed
+  useEffect(() => setDebugPrefs({ speed }), [speed, setDebugPrefs])
   const stripCanvas = useRef<ArenaCanvasHandle | null>(null)
+  // The help panel's word: the one under the cursor, set as it moves.
+  const [cursorTopic] = useState(createCursorTopic)
+  const onCursor = useCallback(
+    (line: string, at: number) => cursorTopic.set(topicAtLine(line, at)?.name ?? null),
+    [cursorTopic],
+  )
   const notify = useCallback((message: string) => toast(message), [toast])
+  const debugShown = !layout.hidden.includes('debug')
+  // A key that runs or steps the debugger while its controls are hidden shows it: the layout for
+  // debugging, which the layout menu puts back; on a phone, the controls in their place.
+  const reveal = useCallback(() => {
+    if (debugShown) return
+    if (!wide) {
+      setPanelHidden('debug', false)
+      return
+    }
+    applyPreset('debugging')
+    toast('the debugging layout: layout ▾ puts the writing one back.')
+  }, [debugShown, wide, setPanelHidden, applyPreset, toast])
   useDebugKeys({
     controller: debug.controller,
     cursorAddress: debug.cursorAddress,
     strip: stripCanvas,
     notify,
+    reveal,
   })
+  // The arena's `open in debugger` hands a setup over: the page opens on the debugger.
+  const handedOver = useRef(debugSetup !== DEFAULT_DEBUG_SETUP)
+  useEffect(() => {
+    if (!handedOver.current) return
+    handedOver.current = false
+    reveal()
+  }, [reveal])
   const debugActions = useMemo(
     () => debugCommands(debug.controller, debug.cursorAddress, notify),
     [debug.controller, debug.cursorAddress, notify],
@@ -439,6 +497,7 @@ function Workbench({
   )
 
   // The first visit's coach mark goes once the user dismisses it, or once the debugger has run.
+  // It hangs under the run button, or tops the help while the debug controls are hidden.
   const { open: coachOpen, dismiss: dismissCoach } = useCoachMark(COACH_MARK)
   const debugged = (debug.snapshot.state?.cycle ?? 0) > 0
   useEffect(() => {
@@ -810,10 +869,24 @@ function Workbench({
                 onChange={setSource}
                 onProblems={setProblems}
                 onView={setView}
+                onCursor={onCursor}
                 commands={commands}
               />
               <OutsideChip debug={debug} />
             </TileFrame>
+          ),
+          help: (
+            <HelpPanel
+              cursor={cursorTopic}
+              coach={
+                coachOpen &&
+                !debugShown && (
+                  <CoachMark placement="inline" onDismiss={dismissCoach}>
+                    assemble runs as you type; press <Kbd>F5</Kbd> to debug.
+                  </CoachMark>
+                )
+              }
+            />
           ),
           problems: (
             <Problems problems={problems} result={result} pending={pending} onJump={jump} />
@@ -838,7 +911,8 @@ function Workbench({
               cursorAddress={debug.cursorAddress}
               notify={notify}
               coach={
-                coachOpen && (
+                coachOpen &&
+                debugShown && (
                   <CoachMark placement="inline" onDismiss={dismissCoach}>
                     assemble runs as you type; press <Kbd>F5</Kbd> to debug.
                   </CoachMark>
@@ -853,6 +927,8 @@ function Workbench({
               state={debug.snapshot.state}
               open={stripOn}
               canvas={stripCanvas}
+              lock={lockIp}
+              onLock={(lock) => setDebugPrefs({ lockIp: lock })}
             />
           ),
         }}

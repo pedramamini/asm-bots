@@ -1,9 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { DitherPlate } from '../art/DitherPlate'
 import { FOOTER_HILLS, FOOTER_PEAKS, footerRange } from '../art/scenes'
-
-/** The repository, for the footer's `source` link. */
-const REPO = 'https://github.com/pedramamini/asm-bots'
+import { SOURCE_URL } from './site'
 
 /** A keyboard focus: the kit's 1 px accent outline, 2 px out (DESIGN_SYSTEM §8). */
 const FOCUS = 'focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent'
@@ -47,7 +45,7 @@ const COLUMNS: readonly Column[] = [
   {
     title: 'project',
     links: [
-      { label: 'source', href: REPO },
+      { label: 'source', href: SOURCE_URL },
       { label: 'command line', to: '/docs/tools/cli' },
       { label: 'api', to: '/docs/tools/api' },
       { label: 'for agents', to: '/docs/tools/agents' },

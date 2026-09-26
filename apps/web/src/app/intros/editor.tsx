@@ -37,6 +37,7 @@ export const EDITOR_ABOUT: PageAbout = {
       </Steps>
       <Terms
         items={[
+          ['help', 'the instruction under the cursor, with a link to the docs.'],
           ['layout ▾', 'show, hide, and reset the panels. Drag a panel by its title to move it.'],
           ['listing', 'the bytes of every line, beside the source (l).'],
           ['arena strip', 'the debugger’s battle, drawn as the arena draws it.'],

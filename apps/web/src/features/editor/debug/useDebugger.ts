@@ -15,6 +15,7 @@ import { assembleCached } from '../../arena/setup/assembly'
 import { resolveSelection, type SetupBot } from '../../arena/setup/bots'
 import { battleConfig, DEFAULT_ARENA_CONFIG } from '../../arena/setup/config'
 import { type BotRef, formatRef } from '../../arena/setup/url'
+import type { Speed } from '../../arena/worker/protocol'
 import { type AsmResult, resultErrors } from '../asm/protocol'
 import { assemblyOf } from '../catalog'
 import { ipLine, lineBytes, lineOfAddress, setDebugLines, setDebugMarks } from '../cm/debug'
@@ -50,6 +51,10 @@ export interface UseDebuggerOptions {
   /** Where local opponents come from: this browser's bots, and a share link's. */
   readonly local: readonly LocalBot[] | undefined
   readonly shared: ReadonlyMap<string, string>
+  /** The speed runs start at: the user's, kept between visits. */
+  readonly speed?: Speed | undefined
+  /** Tells the page the user changed the opponents or the seed, to keep them. */
+  readonly onSetup?: ((opponents: readonly BotRef[], seed: number) => void) | undefined
 }
 
 /** The debugger, as the page shows it. */
@@ -109,8 +114,14 @@ export function useDebugger({
   setup,
   local,
   shared,
+  speed,
+  onSetup,
 }: UseDebuggerOptions): DebuggerModel {
-  const [controller] = useState(() => new DebugController())
+  const [controller] = useState(() => {
+    const made = new DebugController()
+    if (speed !== undefined) made.setSpeed(speed)
+    return made
+  })
   // Leaving stops a run. The controller holds nothing else to let go, and a dev remount (Strict
   // Mode runs this cleanup once) must find it working.
   useEffect(() => () => controller.pause(), [controller])
@@ -249,8 +260,14 @@ export function useDebugger({
     opponents,
     seed,
     config,
-    setOpponents: setOpponentRefs,
-    setSeed,
+    setOpponents: (refs) => {
+      setOpponentRefs(refs)
+      onSetup?.(refs, seed)
+    },
+    setSeed: (next) => {
+      setSeed(next)
+      onSetup?.(opponentRefs, next)
+    },
     reload,
     toggleLine,
     cursorAddress,

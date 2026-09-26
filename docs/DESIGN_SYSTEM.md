@@ -29,31 +29,31 @@ Reference: [atxsentinel.com](https://atxsentinel.com), measured 2026-09-21 (scre
 
 CSS variables on `:root[data-theme="…"]`. Tailwind 4 `@theme` maps them to utilities. The shader receives the same palette as a uniform.
 
-| Token | sentinel | amber | pedurple | ice | paper |
-|---|---|---|---|---|---|
-| `--bg` | `#0A0F0A` | `#0F0A00` | `#0B0810` | `#050A0F` | `#F4F1EA` |
-| `--panel` | `#111A11` | `#1A1200` | `#141020` | `#0A141C` | `#FFFFFF` |
-| `--panel-2` | `#0D140D` | `#140E00` | `#100C1A` | `#081018` | `#EEEBE3` |
-| `--border` | `#1A2F1A` | `#33260A` | `#2A1F45` | `#123040` | `#D8D3C6` |
-| `--border-strong` | `#2A4A2A` | `#4D3A10` | `#3F2F66` | `#1C4A60` | `#B8B2A2` |
-| `--text` | `#A0C0A0` | `#D6B070` | `#B8A8D8` | `#A0C8DC` | `#1F2A1F` |
-| `--text-muted` | `#7D9B7D` | `#9E8B62` | `#8B7FA7` | `#6B93A6` | `#596359` |
-| `--text-dim` | `#4A6A4A` | `#5E5030` | `#4E4466` | `#3C5A6A` | `#9AA39A` |
-| `--text-bright` | `#E0FFE0` | `#FFE0A0` | `#E8DCFF` | `#D8F4FF` | `#000000` |
-| `--accent` | `#00FF88` | `#FFB000` | `#9146FF` | `#00E5FF` | `#0A7A4A` |
-| `--accent-2` | `#00C46A` | `#E09800` | `#9F6AE9` | `#00B8CC` | `#08603A` |
-| `--accent-fg` | `#00FF88` | `#FFB000` | `#AD74FF` | `#00E5FF` | `#08603A` |
-| `--warn` | `#FB923C` | `#FF6A00` | `#FF4FA3` | `#FFB74D` | `#9D4808` |
-| `--danger` | `#FF5959` | `#FF4949` | `#FF3355` | `#FF5A5A` | `#B91C1C` |
-| `--info` | `#FFAA00` | `#FFD166` | `#FFAA00` | `#FFD166` | `#92400E` |
-| `--arena-bg` | `#000000` | `#000000` | `#000000` | `#000000` | `#000000` |
-| `--arena-lattice` | `#0E160E` | `#160F00` | `#120C1C` | `#081218` | `#111111` |
-| `--arena-ruler` | `#3A5A3A` | `#5A4620` | `#4A3A6A` | `#2A5A6A` | `#666666` |
-| `--arena-ip` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` |
-| `--arena-exec` | `#FFEB3B` | `#FFEB3B` | `#FFEB3B` | `#FFEB3B` | `#FFEB3B` |
-| `--arena-write` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` |
+| Token | sentinel | amber | pedurple | ice | tokyo-night | catppuccin | paper |
+|---|---|---|---|---|---|---|---|
+| `--bg` | `#0A0F0A` | `#0F0A00` | `#0B0810` | `#050A0F` | `#16161E` | `#11111B` | `#F4F1EA` |
+| `--panel` | `#111A11` | `#1A1200` | `#141020` | `#0A141C` | `#1A1B26` | `#1E1E2E` | `#FFFFFF` |
+| `--panel-2` | `#0D140D` | `#140E00` | `#100C1A` | `#081018` | `#181922` | `#181825` | `#EEEBE3` |
+| `--border` | `#1A2F1A` | `#33260A` | `#2A1F45` | `#123040` | `#292E42` | `#313244` | `#D8D3C6` |
+| `--border-strong` | `#2A4A2A` | `#4D3A10` | `#3F2F66` | `#1C4A60` | `#414868` | `#45475A` | `#B8B2A2` |
+| `--text` | `#A0C0A0` | `#D6B070` | `#B8A8D8` | `#A0C8DC` | `#A9B1D6` | `#BAC2DE` | `#1F2A1F` |
+| `--text-muted` | `#7D9B7D` | `#9E8B62` | `#8B7FA7` | `#6B93A6` | `#8C94C0` | `#9399B2` | `#596359` |
+| `--text-dim` | `#4A6A4A` | `#5E5030` | `#4E4466` | `#3C5A6A` | `#565F89` | `#6C7086` | `#9AA39A` |
+| `--text-bright` | `#E0FFE0` | `#FFE0A0` | `#E8DCFF` | `#D8F4FF` | `#D8DEFF` | `#F4F6FF` | `#000000` |
+| `--accent` | `#00FF88` | `#FFB000` | `#9146FF` | `#00E5FF` | `#7AA2F7` | `#94E2D5` | `#0A7A4A` |
+| `--accent-2` | `#00C46A` | `#E09800` | `#9F6AE9` | `#00B8CC` | `#BB9AF7` | `#CBA6F7` | `#08603A` |
+| `--accent-fg` | `#00FF88` | `#FFB000` | `#AD74FF` | `#00E5FF` | `#7DCFFF` | `#94E2D5` | `#08603A` |
+| `--warn` | `#FB923C` | `#FF6A00` | `#FF4FA3` | `#FFB74D` | `#FF9E64` | `#FAB387` | `#9D4808` |
+| `--danger` | `#FF5959` | `#FF4949` | `#FF3355` | `#FF5A5A` | `#F7768E` | `#F38BA8` | `#B91C1C` |
+| `--info` | `#FFAA00` | `#FFD166` | `#FFAA00` | `#FFD166` | `#E0AF68` | `#F9E2AF` | `#92400E` |
+| `--arena-bg` | `#000000` | `#000000` | `#000000` | `#000000` | `#000000` | `#000000` | `#000000` |
+| `--arena-lattice` | `#0E160E` | `#160F00` | `#120C1C` | `#081218` | `#10111A` | `#0F0F18` | `#111111` |
+| `--arena-ruler` | `#3A5A3A` | `#5A4620` | `#4A3A6A` | `#2A5A6A` | `#414868` | `#585B70` | `#666666` |
+| `--arena-ip` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` |
+| `--arena-exec` | `#FFEB3B` | `#FFEB3B` | `#FFEB3B` | `#FFEB3B` | `#FFEB3B` | `#FFEB3B` | `#FFEB3B` |
+| `--arena-write` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` |
 
-`--accent` draws borders, focus rings, and fills; `--accent-fg` is the accent as text (`text-accent-fg`). They are one color where the accent reads at 4.5:1 as small text; pedurple's `#9146FF` does not on its panels, so its text is a lighter violet, and paper's text is its darker green, which holds on the fills. Accent alphas used as fills: `--accent-10` (0.10), `--accent-25`, `--accent-45`, `--accent-80`. Theme persists in `localStorage.theme`; `prefers-color-scheme: light` defaults to `paper` on first visit, otherwise `sentinel`.
+`--accent` draws borders, focus rings, and fills; `--accent-fg` is the accent as text (`text-accent-fg`). They are one color where the accent reads at 4.5:1 as small text; pedurple's `#9146FF` does not on its panels, so its text is a lighter violet; tokyo-night's text is its cyan, as Maestro's is; and paper's text is its darker green, which holds on the fills. tokyo-night and catppuccin (Mocha) take their palettes from Maestro's themes of those names, their bright text lifted to hold 4.5:1 on the accent fills. Accent alphas used as fills: `--accent-10` (0.10), `--accent-25`, `--accent-45`, `--accent-80`. Theme persists in `localStorage.theme`; `prefers-color-scheme: light` defaults to `paper` on first visit, otherwise `sentinel`.
 
 Bot palette (12 hues, per theme file; sentinel shown). Chosen for ≥ 3:1 contrast on black and mutual distinguishability at 4 px cells:
 
@@ -118,7 +118,7 @@ Bot 13+ wraps with a hatched marker in the roster so two bots never share an unm
 
 ## 6. Iconography
 
-Lucide icons, 12 px in nav/chips, 16 px in toolbars, stroke 1.75. Semantic set: arena `grid-2x2`, editor `code-2`, tournaments `trophy`, hills `mountain`, docs `book-open`, play `play`, pause `pause`, step `step-forward`, step-back `step-back`, seek `gauge`, theme `palette`, keys `keyboard`, share `link`, verified `shield-check`. No emoji in UI chrome. Bot avatars are 8x8 identicons generated from the bot's bytes hash in its hue.
+Lucide icons, 12 px in nav/chips, 16 px in toolbars, stroke 1.75. Semantic set: arena `grid-2x2`, editor `code-2`, tournaments `trophy`, hills `mountain`, docs `book-open`, play `play`, pause `pause`, step `step-forward`, step-back `step-back`, seek `gauge`, theme `palette`, keys `keyboard`, share `link`, verified `shield-check`, source `git-fork` (lucide has no brand marks). No emoji in UI chrome. Bot avatars are 8x8 identicons generated from the bot's bytes hash in its hue.
 
 ## 7. Sound (opt-in, default off, persisted)
 
@@ -126,7 +126,7 @@ Tiny synthesized cues via WebAudio, no samples: tick per cycle at low speeds, so
 
 ## 8. Accessibility
 
-WCAG 2.2 AA; axe in Playwright finds no violation on any route in any theme. Contrast, checked in CI by `bun run contrast` over all five themes: every text token at 4.5:1 on `--bg`, `--panel`, `--panel-2`, and the `--accent-10` fill; `--text-bright` also on `--accent-25` and `--accent-45` (text on those fills is bright: white is now); `--accent` at 3:1 as the focus ring. The accent as text is `--accent-fg`. `--text-dim` is never content: placeholders, the prompt glyph, list markers. A link in running text is underlined. Full keyboard operation: a skip link is the first Tab stop, every Tab stop shows focus (a 1 px accent outline 1 px out, which nothing may clip; inputs and the source turn their border accent), and nothing traps focus (Esc leaves the source). Every part of the page sits in a landmark, and each page has one `h1`. Arena has an ARIA live region summarizing state every 2 s when playing ("cycle 12,480; 3 bots alive; dwarf-v3 leads footprint"). Reduced motion, the system's or the setting's over it, disables bloom pulses, ripples, the ticker scroll, and the coach marks' and dialogs' transitions.
+WCAG 2.2 AA; axe in Playwright finds no violation on any route in any theme. Contrast, checked in CI by `bun run contrast` over all seven themes: every text token at 4.5:1 on `--bg`, `--panel`, `--panel-2`, and the `--accent-10` fill; `--text-bright` also on `--accent-25` and `--accent-45` (text on those fills is bright: white is now); `--accent` at 3:1 as the focus ring. The accent as text is `--accent-fg`. `--text-dim` is never content: placeholders, the prompt glyph, list markers. A link in running text is underlined. Full keyboard operation: a skip link is the first Tab stop, every Tab stop shows focus (a 1 px accent outline 1 px out, which nothing may clip; inputs and the source turn their border accent), and nothing traps focus (Esc leaves the source). Every part of the page sits in a landmark, and each page has one `h1`. Arena has an ARIA live region summarizing state every 2 s when playing ("cycle 12,480; 3 bots alive; dwarf-v3 leads footprint"). Reduced motion, the system's or the setting's over it, disables bloom pulses, ripples, the ticker scroll, and the coach marks' and dialogs' transitions.
 
 ## 9. Voice
 

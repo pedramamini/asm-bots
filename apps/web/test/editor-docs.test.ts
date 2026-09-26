@@ -19,10 +19,14 @@ import {
 import { PRESETS } from '../src/features/editor/layout/tree'
 import { validateEditorSearch } from '../src/features/editor/search'
 import {
+  DEFAULT_DEBUG_PREFS,
   DEFAULT_EDITOR_PREFS,
+  EDITOR_PREFS_VERSION,
   EDITOR_STORAGE_KEY,
   MAX_DRAFTS,
   MAX_RECENT,
+  migrateEditorPrefs,
+  sanitizeDebugPrefs,
   sanitizeEditorPrefs,
   useEditorPrefs,
 } from '../src/features/editor/store'
@@ -166,13 +170,103 @@ describe('editor prefs', () => {
       }),
     ).toEqual({
       // A store from before layouts: its library switch hides the library.
-      layout: { ...PRESETS.default(), hidden: ['library'] },
+      layout: { ...PRESETS.writing(), hidden: [...PRESETS.writing().hidden, 'library'] },
       recent: ['a', 'b'],
       drafts: { ok: { source: 's', name: 'n', at: 2 } },
     })
     expect(sanitizeEditorPrefs('junk')).toEqual({})
   })
+
+  it('starts the old default layout over as the writing one, and keeps one the user made', () => {
+    expect(DEFAULT_EDITOR_PREFS.layout).toEqual(PRESETS.writing())
+    const old = { listing: false, layout: OLD_DEFAULT, recent: ['a'], drafts: {} }
+    const migrated = migrateEditorPrefs(JSON.parse(JSON.stringify(old)), 1)
+    expect(migrated).toEqual({ listing: false, recent: ['a'], drafts: {} })
+    expect(sanitizeEditorPrefs(migrated).layout).toBeUndefined()
+    // A divider moved, or a panel hidden: the user's, kept as it is.
+    const moved = structuredClone(OLD_DEFAULT) as { root: { weights: number[] }; hidden: string[] }
+    moved.root.weights = [0.6, 0.4]
+    expect(migrateEditorPrefs({ ...old, layout: moved }, 1)).toEqual({ ...old, layout: moved })
+    const hid = { ...OLD_DEFAULT, hidden: ['trace'] }
+    expect(migrateEditorPrefs({ ...old, layout: hid }, 1)).toEqual({ ...old, layout: hid })
+    // A store of this version keeps its layout.
+    expect(migrateEditorPrefs(old, EDITOR_PREFS_VERSION)).toBe(old)
+  })
+
+  it("keeps the debugger's preferences, each well-formed field over the defaults", () => {
+    expect(DEFAULT_EDITOR_PREFS.debug).toEqual(DEFAULT_DEBUG_PREFS)
+    expect(
+      sanitizeDebugPrefs({
+        speed: 250,
+        runCycles: 40,
+        lockIp: false,
+        opponents: ['roster:imp', 3],
+        seed: 7,
+      }),
+    ).toEqual({ speed: 250, runCycles: 40, lockIp: false, opponents: ['roster:imp'], seed: 7 })
+    expect(sanitizeDebugPrefs({ speed: 0, runCycles: -1, lockIp: 'no', seed: 1.5 })).toEqual(
+      DEFAULT_DEBUG_PREFS,
+    )
+    expect(sanitizeDebugPrefs({ speed: 'max' })?.speed).toBe('max')
+    expect(sanitizeDebugPrefs('junk')).toBeNull()
+    const { setDebug, setPhoneLayout } = useEditorPrefs.getState()
+    setDebug({ seed: 42 })
+    setPhoneLayout({ ...PRESETS.phone(), hidden: ['library'] })
+    const stored = JSON.parse(localStorage.getItem(EDITOR_STORAGE_KEY) ?? '{}').state
+    expect(stored.debug).toEqual({ ...DEFAULT_DEBUG_PREFS, seed: 42 })
+    expect(sanitizeEditorPrefs(stored).phoneLayout?.hidden).toEqual(['library'])
+  })
 })
+
+/** The default layout before version 2, as that version's store wrote it. */
+const OLD_DEFAULT = (() => {
+  const panel = (id: string) => ({ kind: 'panel', id })
+  const split = (dir: string, ...parts: [object, number][]) => {
+    const sum = parts.reduce((total, [, w]) => total + w, 0)
+    return {
+      kind: 'split',
+      dir,
+      children: parts.map(([n]) => n),
+      weights: parts.map(([, w]) => w / sum),
+    }
+  }
+  const machine = split(
+    'column',
+    [panel('debug'), 0.1],
+    [
+      split(
+        'row',
+        [split('column', [panel('registers'), 0.3], [panel('processes'), 0.7]), 0.44],
+        [
+          split(
+            'column',
+            [panel('memory'), 0.6],
+            [panel('watch'), 0.2],
+            [panel('breakpoints'), 0.2],
+          ),
+          0.56,
+        ],
+      ),
+      0.9,
+    ],
+  )
+  return {
+    root: split(
+      'column',
+      [
+        split(
+          'row',
+          [panel('library'), 0.13],
+          [split('column', [panel('source'), 0.8], [panel('problems'), 0.2]), 0.41],
+          [machine, 0.46],
+        ),
+        0.74,
+      ],
+      [split('row', [panel('arena'), 0.72], [panel('trace'), 0.28]), 0.26],
+    ),
+    hidden: [] as string[],
+  }
+})()
 
 describe('bot versions', () => {
   beforeEach(async () => {

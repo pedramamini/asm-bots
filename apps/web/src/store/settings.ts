@@ -5,13 +5,12 @@ import {
   initTheme,
   isTheme,
   THEME_STORAGE_KEY,
-  THEMES,
   type Theme,
 } from '@asmbots/ui/themes'
 import { useCallback } from 'react'
 import { create } from 'zustand'
-import { useBoot } from '../app/boot/boot'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
+import { useBoot } from '../app/boot/boot'
 
 /** The localStorage key of the persisted settings (the theme keeps its own: `THEME_STORAGE_KEY`). */
 export const SETTINGS_STORAGE_KEY = 'asmbots:settings'
@@ -72,8 +71,6 @@ export interface SettingsState extends Settings {
   theme: Theme
   /** Applies `theme` and stores it. */
   setTheme: (theme: Theme) => void
-  /** The next theme in `THEMES` order, after the last the first: the `t` key. */
-  cycleTheme: () => void
   setEffect: (effect: keyof ArenaEffects, on: boolean) => void
   setMotion: (motion: MotionPreference) => void
   setSound: (sound: Partial<Omit<SoundSettings, 'cues'>>) => void
@@ -96,11 +93,6 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
 /** Every cue, each `on`. */
 function allCues(on: boolean): Record<SoundCue, boolean> {
   return Object.fromEntries(SOUND_CUES.map((cue) => [cue, on])) as Record<SoundCue, boolean>
-}
-
-/** The theme after `theme`, wrapping. */
-export function nextTheme(theme: Theme): Theme {
-  return THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length] ?? DEFAULT_THEME
 }
 
 /** The theme on the page: the boot script (or `initTheme()`) has put it on `<html>`. */
@@ -140,16 +132,10 @@ function defaults(): Settings {
  */
 export const useSettings = create<SettingsState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       ...defaults(),
       theme: pageTheme(),
       setTheme: (theme) => {
-        applyTheme(theme)
-        set({ theme })
-      },
-      cycleTheme: () => {
-        // From the chosen theme, not the page's: the settings page may be previewing another.
-        const theme = nextTheme(get().theme)
         applyTheme(theme)
         set({ theme })
       },
@@ -238,9 +224,6 @@ function sanitizeSound(sound: unknown): SoundSettings | null {
   return { on: sound.on, volume: Math.min(1, Math.max(0, sound.volume)), cues }
 }
 
-/** The arena's first-visit tour's id in `coachMarksSeen` (`features/arena/tour.tsx`). */
-export const ARENA_TOUR = 'arena'
-
 function isArenaConfig(value: unknown): value is ArenaConfig {
   if (!isRecord(value)) return false
   const counts = ['rounds', 'maxCycles', 'maxProcesses', 'minSpacing'] as const
@@ -254,6 +237,9 @@ function isArenaConfig(value: unknown): value is ArenaConfig {
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
+
+/** The arena's first-visit tour's id in `coachMarksSeen` (`features/arena/tour.tsx`). */
+export const ARENA_TOUR = 'arena'
 
 /**
  * A first-visit coach mark (PRODUCT_SPEC §9) by id (`arena`, `editor`): open until the user

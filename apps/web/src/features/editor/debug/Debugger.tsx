@@ -39,6 +39,7 @@ import { type CatalogBot, rosterCatalog } from '../../arena/setup/bots'
 import { MAX_ARENA_BOTS, randomSeed, SEED } from '../../arena/setup/config'
 import type { BotRef } from '../../arena/setup/url'
 import { MAX_CYCLES_PER_FRAME } from '../../arena/worker/protocol'
+import { useEditorPrefs } from '../store'
 import { BreakpointsPanel } from './BreakpointsPanel'
 import type { RunGoal } from './controller'
 import { labelOf } from './image'
@@ -67,7 +68,11 @@ export interface DebugControlsProps {
 
 const count = (n: number) => n.toLocaleString('en-US')
 
-/** The debugger's controls: what it loads, the transport, and where it stopped. */
+/**
+ * The debugger's controls, top down: where it stands, the transport, the speed and `run N`, and
+ * under a hairline what it loads. Each group of controls wraps as one, so a narrow tile breaks the
+ * rows between groups, never inside one.
+ */
 export function DebugControls({
   model,
   commands,
@@ -78,8 +83,13 @@ export function DebugControls({
   const { snapshot } = model
   return (
     <Panel dense title="debug" aria-label="debug controls">
-      <div className="flex min-w-0 flex-col gap-3">
-        <LoadBar model={model} />
+      <div className="flex min-w-0 flex-col gap-2">
+        <StopLine state={snapshot.state} running={snapshot.running} model={model} />
+        {snapshot.error !== null && (
+          <p role="alert" className="text-data text-danger">
+            {snapshot.error}
+          </p>
+        )}
         <Transport
           model={model}
           commands={commands}
@@ -87,14 +97,20 @@ export function DebugControls({
           notify={notify}
         />
         {coach}
-        <StopLine state={snapshot.state} running={snapshot.running} model={model} />
-        {snapshot.error !== null && (
-          <p role="alert" className="text-data text-danger">
-            {snapshot.error}
-          </p>
-        )}
+        <RunControls model={model} notify={notify} />
+        <LoadBar model={model} />
       </div>
     </Panel>
+  )
+}
+
+/** A group of controls that wraps as one: `label` names it for a screen reader. */
+function Group({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    // biome-ignore lint/a11y/useSemanticElements: a row of buttons inside the transport's fieldset, not a form's fields.
+    <div role="group" aria-label={label} className="flex shrink-0 items-center gap-1">
+      {children}
+    </div>
   )
 }
 
@@ -199,43 +215,48 @@ function LoadBar({ model }: { model: DebuggerModel }) {
     }
   }
   return (
-    <section aria-label="debug setup" className="flex min-w-0 flex-wrap items-center gap-2">
-      <span className="text-data text-muted">vs</span>
-      {opponents.length === 0 && (
-        <span className="text-data text-muted">nobody: the bot alone</span>
-      )}
-      <ul aria-label="opponents" className="flex flex-wrap items-center gap-1">
-        {opponents.map((o, i) => (
-          <li
-            key={`${i}:${o.name}`}
-            className="flex h-6 items-center gap-1.5 rounded-sm border border-border pr-0.5 pl-2 text-data"
-          >
-            <HueSwatch hue={i + 1} size={8} />
-            <span
-              className={o.state === 'ready' ? 'text-text' : 'text-danger'}
-              title={o.state === 'ready' ? undefined : `${o.state}: left out`}
+    <section
+      aria-label="debug setup"
+      className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-2"
+    >
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <span className="text-data text-muted">vs</span>
+        {opponents.length === 0 && (
+          <span className="text-data text-muted">nobody: the bot alone</span>
+        )}
+        <ul aria-label="opponents" className="flex flex-wrap items-center gap-1">
+          {opponents.map((o, i) => (
+            <li
+              key={`${i}:${o.name}`}
+              className="flex h-6 items-center gap-1.5 rounded-sm border border-border pr-0.5 pl-2 text-data"
             >
-              {o.name}
-            </span>
-            <IconButton
-              icon={X}
-              size="sm"
-              label={`drop ${o.name}`}
-              className="border-transparent"
-              onClick={() => model.setOpponents(refs.filter((_, j) => j !== i))}
-            />
-          </li>
-        ))}
-      </ul>
-      <Menu
-        trigger={
-          <Button size="sm" icon={Plus} disabled={full}>
-            opponent ▾
-          </Button>
-        }
-        items={items}
-      />
-      <span className="ml-auto flex items-center gap-1.5 text-data text-muted">
+              <HueSwatch hue={i + 1} size={8} />
+              <span
+                className={o.state === 'ready' ? 'text-text' : 'text-danger'}
+                title={o.state === 'ready' ? undefined : `${o.state}: left out`}
+              >
+                {o.name}
+              </span>
+              <IconButton
+                icon={X}
+                size="sm"
+                label={`drop ${o.name}`}
+                className="border-transparent"
+                onClick={() => model.setOpponents(refs.filter((_, j) => j !== i))}
+              />
+            </li>
+          ))}
+        </ul>
+        <Menu
+          trigger={
+            <Button size="sm" icon={Plus} disabled={full}>
+              opponent ▾
+            </Button>
+          }
+          items={items}
+        />
+      </div>
+      <div className="ml-auto flex shrink-0 items-center gap-1.5 text-data text-muted">
         <span aria-hidden="true">seed</span>
         <Input
           aria-label="placement seed"
@@ -245,25 +266,25 @@ function LoadBar({ model }: { model: DebuggerModel }) {
           onChange={(event) => setSeedText(event.currentTarget.value.replace(/\D/g, ''))}
           onBlur={commitSeed}
           onKeyDown={onSeedKey}
-          className="w-24"
+          className="w-20"
         />
-      </span>
-      <IconButton icon={Dices} label="a new seed" onClick={() => model.setSeed(randomSeed())} />
-      {stale && (
-        <Chip variant="warn" title="the editor's text changed since the debugger loaded it">
-          source changed
-        </Chip>
-      )}
-      <Button
-        size="sm"
-        icon={RefreshCw}
-        variant={stale ? 'primary' : 'default'}
-        disabled={!canReload}
-        title={canReload ? "load the editor's text again" : 'fix the errors to load the bot'}
-        onClick={model.reload}
-      >
-        reload
-      </Button>
+        <IconButton icon={Dices} label="a new seed" onClick={() => model.setSeed(randomSeed())} />
+        {stale && (
+          <Chip variant="warn" title="the editor's text changed since the debugger loaded it">
+            source changed
+          </Chip>
+        )}
+        <Button
+          size="sm"
+          icon={RefreshCw}
+          variant={stale ? 'primary' : 'default'}
+          disabled={!canReload}
+          title={canReload ? "load the editor's text again" : 'fix the errors to load the bot'}
+          onClick={model.reload}
+        >
+          reload
+        </Button>
+      </div>
     </section>
   )
 }
@@ -275,21 +296,109 @@ interface TransportProps {
   notify: (message: string) => void
 }
 
-/** Cycles `run N` runs until the user types another count. */
-const RUN_N = 1000
-
 /**
- * The debugger's transport (PRODUCT_SPEC §3): run and pause, step, step over, step out, run to
- * cursor, run until death, run N cycles, step back, reset, and the speed of a run.
+ * The debugger's transport (PRODUCT_SPEC §3): run and pause, named; then the steps, step, step
+ * over, and step out; the runs to a place, the cursor and a death; and back, step back and reset.
  */
 function Transport({ model, commands, cursorAddress, notify }: TransportProps) {
   const { controller, snapshot, names } = model
-  const { state, running, speed } = snapshot
-  const [cycles, setCycles] = useState(String(RUN_N))
+  const { state, running } = snapshot
   const loaded = state !== null
   const over = state?.over ?? false
   const bot = state?.selectedProc.bot ?? 0
   const botName = names[bot] ?? 'the bot'
+  const toCursor = () => {
+    const at = cursorAddress()
+    if (typeof at === 'string') notify(at)
+    else controller.run({ kind: 'cursor', addr: at })
+  }
+  return (
+    <fieldset
+      aria-label="debugger transport"
+      className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2"
+    >
+      <Button
+        size="sm"
+        variant="primary"
+        icon={running === null ? Play : Pause}
+        aria-keyshortcuts={running === null ? 'F5' : 'F6'}
+        title={running === null ? 'run to the next stop · F5' : 'pause · F6'}
+        disabled={!loaded || (over && running === null)}
+        onClick={running === null ? commands.run : commands.pause}
+        className="w-20"
+      >
+        {running === null ? 'run' : 'pause'}
+      </Button>
+      <Group label="step">
+        <IconButton
+          icon={ArrowDownToDot}
+          label="step"
+          shortcut="F11"
+          disabled={!loaded || over}
+          onClick={commands.step}
+        />
+        <IconButton
+          icon={RedoDot}
+          label="step over"
+          shortcut="F10"
+          disabled={!loaded || over}
+          onClick={commands.stepOver}
+        />
+        <IconButton
+          icon={ArrowUpFromDot}
+          label="step out"
+          shortcut="shift F11"
+          disabled={!loaded || over}
+          onClick={commands.stepOut}
+        />
+      </Group>
+      <Group label="run to">
+        <IconButton
+          icon={TextCursorInput}
+          label="run to cursor"
+          disabled={!loaded || over}
+          onClick={toCursor}
+        />
+        <IconButton
+          icon={Skull}
+          label={`run until ${botName} dies`}
+          disabled={!loaded || over}
+          onClick={() => controller.run({ kind: 'death', bot })}
+        />
+      </Group>
+      <Group label="back">
+        <IconButton
+          icon={StepBack}
+          label="step back"
+          shortcut=","
+          disabled={!loaded || !(state?.canStepBack ?? false)}
+          onClick={commands.stepBack}
+        />
+        <IconButton
+          icon={RotateCcw}
+          label="reset"
+          disabled={!loaded}
+          onClick={() => controller.reset()}
+        />
+      </Group>
+    </fieldset>
+  )
+}
+
+/** The speed of a run, the max switch beside it, and `run N` cycles. */
+function RunControls({
+  model,
+  notify,
+}: {
+  model: DebuggerModel
+  notify: (message: string) => void
+}) {
+  const { controller, snapshot } = model
+  const { state, speed } = snapshot
+  const runCycles = useEditorPrefs((prefs) => prefs.debug.runCycles)
+  const setDebugPrefs = useEditorPrefs((prefs) => prefs.setDebug)
+  const [cycles, setCycles] = useState(String(runCycles))
+  const over = state?.over ?? false
   const [lastCount, setLastCount] = useState(speed === 'max' ? MAX_CYCLES_PER_FRAME : speed)
   const shown = speed === 'max' ? lastCount : speed
   const runN = () => {
@@ -298,112 +407,58 @@ function Transport({ model, commands, cursorAddress, notify }: TransportProps) {
       notify('run N takes a count of cycles, 1 or more.')
       return
     }
+    setDebugPrefs({ runCycles: n })
     controller.run({ kind: 'cycles', until: state.cycle + n })
   }
-  const toCursor = () => {
-    const at = cursorAddress()
-    if (typeof at === 'string') notify(at)
-    else controller.run({ kind: 'cursor', addr: at })
-  }
   return (
-    <fieldset aria-label="debugger transport" className="flex min-w-0 flex-wrap items-center gap-1">
-      <IconButton
-        icon={running === null ? Play : Pause}
-        label={running === null ? 'run' : 'pause'}
-        shortcut={running === null ? 'F5' : 'F6'}
-        pressed={running !== null}
-        disabled={!loaded || (over && running === null)}
-        onClick={running === null ? commands.run : commands.pause}
-      />
-      <IconButton
-        icon={ArrowDownToDot}
-        label="step"
-        shortcut="F11"
-        disabled={!loaded || over}
-        onClick={commands.step}
-      />
-      <IconButton
-        icon={RedoDot}
-        label="step over"
-        shortcut="F10"
-        disabled={!loaded || over}
-        onClick={commands.stepOver}
-      />
-      <IconButton
-        icon={ArrowUpFromDot}
-        label="step out"
-        shortcut="shift F11"
-        disabled={!loaded || over}
-        onClick={commands.stepOut}
-      />
-      <IconButton
-        icon={TextCursorInput}
-        label="run to cursor"
-        disabled={!loaded || over}
-        onClick={toCursor}
-      />
-      <IconButton
-        icon={Skull}
-        label={`run until ${botName} dies`}
-        disabled={!loaded || over}
-        onClick={() => controller.run({ kind: 'death', bot })}
-      />
-      <span aria-hidden="true" className="mx-1 h-4 w-px shrink-0 bg-border" />
-      <Input
-        aria-label="cycles to run"
-        prompt={null}
-        inputMode="numeric"
-        value={cycles}
-        onChange={(event) => setCycles(event.currentTarget.value.replace(/\D/g, ''))}
-        onKeyDown={(event) => {
-          if (event.key !== 'Enter') return
-          event.preventDefault()
-          runN()
-        }}
-        className="w-20"
-      />
-      <IconButton
-        icon={ChevronsRight}
-        label="run N cycles"
-        disabled={!loaded || over}
-        onClick={runN}
-      />
-      <span aria-hidden="true" className="mx-1 h-4 w-px shrink-0 bg-border" />
-      <IconButton
-        icon={StepBack}
-        label="step back"
-        shortcut=","
-        disabled={!loaded || !(state?.canStepBack ?? false)}
-        onClick={commands.stepBack}
-      />
-      <IconButton
-        icon={RotateCcw}
-        label="reset"
-        disabled={!loaded}
-        onClick={() => controller.reset()}
-      />
-      <span aria-hidden="true" className="mx-1 h-4 w-px shrink-0 bg-border" />
-      <Slider
-        aria-label="run speed"
-        min={1}
-        max={MAX_CYCLES_PER_FRAME}
-        scale="log"
-        value={shown}
-        onValueChange={(n) => {
-          setLastCount(n)
-          controller.setSpeed(n)
-        }}
-        format={(n) => `${count(n)}/f`}
-        className={cx('w-24 shrink-0', speed === 'max' && 'opacity-60')}
-      />
-      <IconButton
-        icon={FastForward}
-        label={speed === 'max' ? `runs at ${count(lastCount)}/f` : 'runs at max speed'}
-        shortcut="]"
-        pressed={speed === 'max'}
-        onClick={() => controller.setSpeed(speed === 'max' ? lastCount : 'max')}
-      />
-    </fieldset>
+    <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 text-data text-muted">
+      <Group label="speed">
+        <span aria-hidden="true">speed</span>
+        <Slider
+          aria-label="run speed"
+          min={1}
+          max={MAX_CYCLES_PER_FRAME}
+          scale="log"
+          value={shown}
+          onValueChange={(n) => {
+            setLastCount(n)
+            controller.setSpeed(n)
+          }}
+          format={(n) => `${count(n)}/f`}
+          className={cx('w-24 shrink-0', speed === 'max' && 'opacity-60')}
+        />
+        <IconButton
+          icon={FastForward}
+          label={speed === 'max' ? `runs at ${count(lastCount)}/f` : 'runs at max speed'}
+          shortcut="]"
+          pressed={speed === 'max'}
+          onClick={() => controller.setSpeed(speed === 'max' ? lastCount : 'max')}
+        />
+      </Group>
+      <Group label="run N cycles">
+        <span aria-hidden="true">run</span>
+        <Input
+          aria-label="cycles to run"
+          prompt={null}
+          inputMode="numeric"
+          value={cycles}
+          onChange={(event) => setCycles(event.currentTarget.value.replace(/\D/g, ''))}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter') return
+            event.preventDefault()
+            runN()
+          }}
+          className="w-16"
+        />
+        <span aria-hidden="true">cycles</span>
+        <IconButton
+          icon={ChevronsRight}
+          label="run N cycles"
+          disabled={state === null || over}
+          onClick={runN}
+        />
+      </Group>
+    </div>
   )
 }
 
@@ -467,7 +522,7 @@ function StopLine({
 }) {
   if (state === null) {
     return (
-      <p className="text-data text-muted">
+      <p className="rounded-sm border border-border bg-panel-2 px-2 py-1 text-data text-muted">
         {model.unassembled ? 'fix the errors to debug the bot.' : 'assembling the bot…'}
       </p>
     )
@@ -475,7 +530,10 @@ function StopLine({
   const stopped = state.stop.kind
   const alarm = stopped === 'breakpoint' || stopped === 'int3' || stopped === 'died'
   return (
-    <p aria-live="polite" className="flex min-w-0 items-baseline gap-2 text-data">
+    <p
+      aria-live="polite"
+      className="flex min-w-0 items-baseline gap-2 rounded-sm border border-border bg-panel-2 px-2 py-1 text-data"
+    >
       <span className="shrink-0 text-muted">cycle</span>
       <span className="shrink-0 text-bright tabular-nums">{count(state.cycle)}</span>
       <span className="text-muted">·</span>

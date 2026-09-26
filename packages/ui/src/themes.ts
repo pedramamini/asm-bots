@@ -1,11 +1,19 @@
 import { parseHex } from './color'
 
 /**
- * The five themes (DESIGN_SYSTEM §2). tokens.css holds every token of every theme. This module
+ * The seven themes (DESIGN_SYSTEM §2); tokyo-night and catppuccin (Mocha) after Maestro's. tokens.css holds every token of every theme. This module
  * holds what code needs without a stylesheet: the names, the switch, and the colors that the arena
  * renderer uploads as a uniform.
  */
-export const THEMES = ['sentinel', 'amber', 'pedurple', 'ice', 'paper'] as const
+export const THEMES = [
+  'sentinel',
+  'amber',
+  'pedurple',
+  'ice',
+  'tokyo-night',
+  'catppuccin',
+  'paper',
+] as const
 export type Theme = (typeof THEMES)[number]
 
 /** The theme of a first visit, unless the system prefers light. */
@@ -45,6 +53,8 @@ export const BOT_HUES: Readonly<Record<Theme, readonly string[]>> = {
   amber: HUES,
   pedurple: HUES,
   ice: HUES,
+  'tokyo-night': HUES,
+  catppuccin: HUES,
   paper: HUES,
 }
 
@@ -64,6 +74,8 @@ export const ARENA_COLORS: Readonly<Record<Theme, ArenaColors>> = {
   amber: arena('#160F00', '#5A4620'),
   pedurple: arena('#120C1C', '#4A3A6A'),
   ice: arena('#081218', '#2A5A6A'),
+  'tokyo-night': arena('#10111A', '#414868'),
+  catppuccin: arena('#0F0F18', '#585B70'),
   paper: arena('#111111', '#666666'),
 }
 

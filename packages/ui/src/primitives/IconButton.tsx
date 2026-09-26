@@ -68,3 +68,46 @@ export function IconButton({
     </Tooltip>
   )
 }
+
+export interface IconLinkProps extends Omit<ComponentProps<'a'>, 'children'> {
+  /** The lucide icon: 16 px at md, 12 px at sm. */
+  icon: LucideIcon
+  /** The link's name, lowercase, and its tooltip: "source on github". */
+  label: string
+  /** Where it goes. */
+  href: string
+  /** `md` is 24 px square, `sm` 20 px. */
+  size?: 'sm' | 'md' | undefined
+  /** The tooltip's side. */
+  tooltip?: Placement | undefined
+}
+
+/** An `IconButton` that goes somewhere: the header's source link. The same box, a link's role. */
+export function IconLink({
+  icon,
+  label,
+  href,
+  size = 'md',
+  tooltip = 'bottom',
+  className,
+  ...rest
+}: IconLinkProps) {
+  return (
+    <Tooltip content={label} placement={tooltip} describe={false}>
+      <a
+        href={href}
+        aria-label={label}
+        {...rest}
+        className={cx(
+          CONTROL_BOX,
+          size === 'sm' ? 'size-5' : 'size-6',
+          FOCUS_RING,
+          'border-border text-text hover:border-border-strong hover:text-bright',
+          className,
+        )}
+      >
+        {drawIcon(icon, size === 'sm' ? 12 : 16)}
+      </a>
+    </Tooltip>
+  )
+}

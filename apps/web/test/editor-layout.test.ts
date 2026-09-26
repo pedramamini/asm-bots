@@ -54,23 +54,50 @@ describe('the presets', () => {
     }
   })
 
-  it('lay out the library, the source over the problems, the debugger, and the strip under all', () => {
-    const { root } = DEFAULT_LAYOUT
+  it('start on the writing layout: the library, the source over its problems, and the help', () => {
+    expect(DEFAULT_LAYOUT).toEqual(PRESETS.writing())
+    expect(Object.keys(PRESETS)).toEqual(['writing', 'debugging', 'phone'])
+    const { root, hidden } = DEFAULT_LAYOUT
     expect(root.kind === 'split' && root.dir).toBe('column')
-    expect(panelsOf(nodeAt(root, [1]) as LayoutNode)).toEqual(['arena', 'trace'])
     expect(panelsOf(nodeAt(root, [0, 0]) as LayoutNode)).toEqual(['library'])
     expect(panelsOf(nodeAt(root, [0, 1]) as LayoutNode)).toEqual(['source', 'problems'])
+    expect(panelsOf(nodeAt(root, [0, 2]) as LayoutNode)).toEqual(['help'])
+    // The machine is hidden in its place: the debugger right of the help, the strip under all.
+    expect(panelsOf(nodeAt(root, [0, 3]) as LayoutNode)).toContain('memory')
+    expect(panelsOf(nodeAt(root, [1]) as LayoutNode)).toEqual(['arena', 'trace'])
+    expect(sorted(hidden)).toEqual(
+      sorted([
+        'debug',
+        'registers',
+        'processes',
+        'watch',
+        'breakpoints',
+        'memory',
+        'trace',
+        'arena',
+      ]),
+    )
   })
 
-  it('put a phone in one column: the source over its problems, the rest hidden', () => {
+  it('debug with the source beside the machine, the library and the help hidden', () => {
+    const { root, hidden } = PRESETS.debugging()
+    expect(sorted(hidden)).toEqual(['help', 'library'])
+    const top = nodeAt(root, [0])
+    expect(top?.kind === 'split' && top.dir).toBe('row')
+    expect(panelsOf(nodeAt(root, [0, 1]) as LayoutNode)).toEqual(['source', 'problems'])
+    expect(panelsOf(nodeAt(root, [0, 3]) as LayoutNode)[0]).toBe('debug')
+    expect(panelsOf(nodeAt(root, [1]) as LayoutNode)).toEqual(['arena', 'trace'])
+  })
+
+  it('put a phone in one column: the source, its problems, and the help; the rest hidden', () => {
     const { root, hidden } = PRESETS.phone()
     expect(root.kind === 'split' && root.dir).toBe('column')
     expect(root.kind === 'split' && root.children.every((child) => child.kind === 'panel')).toBe(
       true,
     )
-    expect(panelsOf(root).slice(0, 2)).toEqual(['source', 'problems'])
+    expect(panelsOf(root).slice(0, 4)).toEqual(['source', 'problems', 'help', 'debug'])
     expect(sorted(hidden)).toEqual(
-      sorted(PANEL_IDS.filter((id) => id !== 'source' && id !== 'problems')),
+      sorted(PANEL_IDS.filter((id) => !['source', 'problems', 'help'].includes(id))),
     )
   })
 })
@@ -141,11 +168,12 @@ describe('sizes and hiding', () => {
   })
 
   it('hides a panel in its place and shows it there again; never the source', () => {
-    const hidden = setHidden(DEFAULT_LAYOUT, 'memory', true)
+    const all = { ...DEFAULT_LAYOUT, hidden: [] }
+    const hidden = setHidden(all, 'memory', true)
     expect(hidden.hidden).toEqual(['memory'])
     expect(hidden.root).toBe(DEFAULT_LAYOUT.root)
     expect(setHidden(hidden, 'memory', false).hidden).toEqual([])
-    expect(setHidden(DEFAULT_LAYOUT, 'source', true)).toBe(DEFAULT_LAYOUT)
+    expect(setHidden(all, 'source', true)).toBe(all)
     const off = new Set<PanelId>(['arena', 'trace'])
     expect(shows(nodeAt(DEFAULT_LAYOUT.root, [1]) as LayoutNode, off)).toBe(false)
     expect(shows(DEFAULT_LAYOUT.root, off)).toBe(true)
@@ -156,8 +184,8 @@ describe('least sizes', () => {
   it('add up along a split and take the most across one, as the panels show', () => {
     const { root } = PRESETS.writing()
     const hidden = new Set(PRESETS.writing().hidden)
-    // The library beside the source over the problems.
-    expect(minSize(root, hidden, 'width')).toBe(TILE_MIN.width * 2 + GUTTER)
+    // The library, the source over the problems, and the help.
+    expect(minSize(root, hidden, 'width')).toBe(TILE_MIN.width * 3 + GUTTER * 2)
     expect(minSize(root, hidden, 'height')).toBe(TILE_MIN.height * 2 + GUTTER)
     // The registers' least height is their content's.
     expect(minSize(leaf('registers'), new Set(), 'height')).toBeGreaterThan(TILE_MIN.height)

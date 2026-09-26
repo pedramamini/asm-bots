@@ -1,8 +1,9 @@
-import { Download, Play, Swords, Trash2 } from 'lucide-react'
+import { CodeXml, Download, Grid2x2, Palette, Play, Swords, Trash2 } from 'lucide-react'
 import { Fragment, type ReactNode, useState } from 'react'
 import { hexByte } from '../hex'
 import { Button } from '../primitives/Button'
 import { CoachMark } from '../primitives/CoachMark'
+import { CommandPalette, type PaletteCommand } from '../primitives/CommandPalette'
 import { EmptyState } from '../primitives/EmptyState'
 import { Hex } from '../primitives/Hex'
 import { HueSwatch } from '../primitives/HueSwatch'
@@ -111,7 +112,7 @@ const ROSTER = [
 
 /**
  * Table, Stat, Sparkline, Identicon, HueSwatch, Hex, Modal, Toast, Skeleton, RadarLoader,
- * EmptyState, and KeyHelp: each in each of its states.
+ * EmptyState, KeyHelp, and CommandPalette: each in each of its states.
  */
 export function DataSpecimens() {
   return (
@@ -335,6 +336,10 @@ export function DataSpecimens() {
         <KeyHelp bindings={KEYS} />
       </Specimen>
 
+      <Specimen name="CommandPalette" status="mod+k · type · ↑ ↓ · enter" className="col-span-4">
+        <CommandPaletteSheet />
+      </Specimen>
+
       <Specimen name="CoachMark" status="first visit · got it" className="col-span-4">
         <CoachMarkSheet />
       </Specimen>
@@ -485,6 +490,49 @@ function ModalSheet() {
       >
         <KeyHelp bindings={KEYS} />
       </Modal>
+    </>
+  )
+}
+
+/** A button that opens the palette on a few routes and themes; a theme picked is checked next time. */
+function CommandPaletteSheet() {
+  const [open, setOpen] = useState(false)
+  const [theme, setTheme] = useState('sentinel')
+  const commands: PaletteCommand[] = [
+    {
+      id: 'arena',
+      group: 'go',
+      label: 'go to arena',
+      icon: Grid2x2,
+      keys: ['g', 'a'],
+      run: () => {},
+    },
+    {
+      id: 'editor',
+      group: 'go',
+      label: 'go to editor',
+      icon: CodeXml,
+      keys: ['g', 'e'],
+      run: () => {},
+    },
+    ...['sentinel', 'amber', 'ice'].map((name) => ({
+      id: name,
+      group: 'theme',
+      label: name,
+      icon: Palette,
+      current: name === theme,
+      run: () => setTheme(name),
+    })),
+  ]
+  return (
+    <>
+      <Button size="sm" onClick={() => setOpen(true)}>
+        open the palette
+      </Button>
+      <p className="mt-3 text-data text-muted">
+        every word typed must match; the field keeps the focus. picked: {theme}.
+      </p>
+      <CommandPalette open={open} onClose={() => setOpen(false)} commands={commands} />
     </>
   )
 }

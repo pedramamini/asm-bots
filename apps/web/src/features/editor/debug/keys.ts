@@ -22,7 +22,12 @@ export interface DebugKeysOptions {
   readonly strip: RefObject<ArenaCanvasHandle | null>
   /** Tells the user why a key did nothing. */
   readonly notify: (message: string) => void
+  /** Brings the debugger into view before a key runs or steps it: its panels may be hidden. */
+  readonly reveal?: (() => void) | undefined
 }
+
+/** The function keys' commands that move the machine: they bring the debugger into view first. */
+const MOVES: ReadonlySet<keyof DebugCommands> = new Set(['run', 'step', 'stepOver', 'stepOut'])
 
 /** The debugger's commands, by what they do. */
 export interface DebugCommands {
@@ -59,7 +64,13 @@ export function debugCommands(
 }
 
 /** Registers the debugger's keys while the calling component is mounted. */
-export function useDebugKeys({ controller, cursorAddress, strip, notify }: DebugKeysOptions): void {
+export function useDebugKeys({
+  controller,
+  cursorAddress,
+  strip,
+  notify,
+  reveal,
+}: DebugKeysOptions): void {
   const commands = useMemo(
     () => debugCommands(controller, cursorAddress, notify),
     [controller, cursorAddress, notify],
@@ -74,11 +85,12 @@ export function useDebugKeys({ controller, cursorAddress, strip, notify }: Debug
       )
       if (key === undefined) return
       event.preventDefault()
+      if (MOVES.has(key.command)) reveal?.()
       commands[key.command]()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [commands])
+  }, [commands, reveal])
 
   const keys = useMemo<KeyCommand[]>(
     () => [
@@ -89,13 +101,17 @@ export function useDebugKeys({ controller, cursorAddress, strip, notify }: Debug
         run: () => {
           if (spaceTaken() || controller.snapshot.session === null) return false
           if (controller.snapshot.running !== null) controller.pause()
-          else controller.run()
+          else {
+            reveal?.()
+            controller.run()
+          }
         },
       },
       {
         ...DEBUG_KEYS.step,
         run: () => {
           if (controller.snapshot.session === null) return false
+          reveal?.()
           commands.step()
         },
       },
@@ -117,7 +133,7 @@ export function useDebugKeys({ controller, cursorAddress, strip, notify }: Debug
         },
       },
     ],
-    [controller, commands, strip],
+    [controller, commands, strip, reveal],
   )
   useKeys(keys)
 }

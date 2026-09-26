@@ -12,6 +12,7 @@ export const PANEL_IDS = [
   'source',
   'problems',
   'library',
+  'help',
   'debug',
   'registers',
   'processes',
@@ -29,6 +30,7 @@ export const PANEL_LABELS: Readonly<Record<PanelId, string>> = {
   source: 'source',
   problems: 'problems',
   library: 'library',
+  help: 'help',
   debug: 'debug controls',
   registers: 'registers',
   processes: 'processes',
@@ -99,93 +101,113 @@ const row = (...parts: readonly (readonly [LayoutNode, number])[]) => split('row
 const column = (...parts: readonly (readonly [LayoutNode, number])[]) => split('column', ...parts)
 
 /**
- * The debugger's panels: the transport over the machine state, the registers and the processes
- * beside the memory, the watches, and the breakpoints.
+ * The debugger's panels: the controls over the machine state, the registers over the processes
+ * beside the memory (the widest: bytes and their disassembly), the watches, and the breakpoints.
  */
 function debuggerColumn(): SplitNode {
   return column(
     [panel('debug'), 0.1],
     [
       row(
-        [column([panel('registers'), 0.3], [panel('processes'), 0.7]), 0.44],
-        [column([panel('memory'), 0.6], [panel('watch'), 0.2], [panel('breakpoints'), 0.2]), 0.56],
+        [column([panel('registers'), 0.3], [panel('processes'), 0.7]), 0.4],
+        [column([panel('memory'), 0.7], [panel('watch'), 0.15], [panel('breakpoints'), 0.15]), 0.6],
       ),
       0.9,
     ],
   )
 }
 
-/** The layouts the layout menu offers. */
+/** The panels of the debugger, and the arena strip and the trace: what `writing` hides. */
+const MACHINE_PANELS = [
+  'debug',
+  'registers',
+  'processes',
+  'watch',
+  'breakpoints',
+  'memory',
+  'trace',
+  'arena',
+] as const satisfies readonly PanelId[]
+
+/** What the phone's layout hides, in the order it stacks them under the help. */
+const PHONE_HIDDEN = [
+  'debug',
+  'registers',
+  'memory',
+  'processes',
+  'watch',
+  'breakpoints',
+  'trace',
+  'arena',
+  'library',
+] as const satisfies readonly PanelId[]
+
+/**
+ * The layouts the layout menu offers, the default first. A hidden panel keeps its place in each,
+ * so shown again it comes back where it fits: the debugger right of the help, the arena strip and
+ * the trace under all.
+ */
 export const PRESETS = {
-  /**
-   * The library, the source over its problems, and the debugger; the arena strip and the trace
-   * under all.
-   */
-  default: (): Layout => ({
-    root: column(
-      [
-        row(
-          [panel('library'), 0.13],
-          [column([panel('source'), 0.8], [panel('problems'), 0.2]), 0.41],
-          [debuggerColumn(), 0.46],
-        ),
-        0.74,
-      ],
-      [row([panel('arena'), 0.72], [panel('trace'), 0.28]), 0.26],
-    ),
-    hidden: [],
-  }),
-  /** The library and the source, wide; the debugger's panels hidden. */
+  /** The library, the source over its problems, and the help beside them; the machine hidden. */
   writing: (): Layout => ({
     root: column(
       [
         row(
-          [panel('library'), 0.1],
-          [column([panel('source'), 0.8], [panel('problems'), 0.2]), 0.7],
-          [debuggerColumn(), 0.2],
+          [panel('library'), 0.13],
+          [column([panel('source'), 0.8], [panel('problems'), 0.2]), 0.6],
+          [panel('help'), 0.27],
+          [debuggerColumn(), 0.45],
         ),
         0.74,
       ],
       [row([panel('arena'), 0.72], [panel('trace'), 0.28]), 0.26],
     ),
-    hidden: ['debug', 'registers', 'processes', 'watch', 'breakpoints', 'memory', 'trace', 'arena'],
-  }),
-  /** The source narrow, the machine wide, and the arena and the trace in a column of their own. */
-  debugging: (): Layout => ({
-    root: row(
-      [column([panel('source'), 0.78], [panel('problems'), 0.22]), 0.32],
-      [debuggerColumn(), 0.42],
-      [column([panel('arena'), 0.6], [panel('trace'), 0.4]), 0.26],
-      [panel('library'), 0.1],
-    ),
-    hidden: ['library'],
+    hidden: [...MACHINE_PANELS],
   }),
   /**
-   * A phone's: one column, the source over its problems; the rest hidden under them, so a panel
-   * shown again takes a share of the column.
+   * The source over its problems beside the debugger, its memory the widest panel; the arena strip
+   * and the trace under both. The library and the help are hidden, left and right of the source.
+   */
+  debugging: (): Layout => ({
+    root: column(
+      [
+        row(
+          [panel('library'), 0.12],
+          [column([panel('source'), 0.76], [panel('problems'), 0.24]), 0.36],
+          [panel('help'), 0.2],
+          [debuggerColumn(), 0.64],
+        ),
+        0.76,
+      ],
+      [row([panel('arena'), 0.7], [panel('trace'), 0.3]), 0.24],
+    ),
+    hidden: ['library', 'help'],
+  }),
+  /**
+   * A phone's: one column, the source over its problems and the help; the rest hidden under them,
+   * the debug controls first, so a panel shown again takes a share of the column.
    */
   phone: (): Layout => ({
     root: column(
-      [panel('source'), 0.8],
-      [panel('problems'), 0.2],
-      ...PANEL_IDS.filter((id) => id !== 'source' && id !== 'problems').map(
-        (id) => [panel(id), 0.3] as const,
-      ),
+      [panel('source'), 0.62],
+      [panel('problems'), 0.14],
+      [panel('help'), 0.24],
+      ...PHONE_HIDDEN.map((id) => [panel(id), 0.3] as const),
     ),
-    hidden: PANEL_IDS.filter((id) => id !== 'source' && id !== 'problems'),
+    hidden: [...PHONE_HIDDEN],
   }),
 } as const satisfies Record<string, () => Layout>
 
 export type PresetId = keyof typeof PRESETS
 
 export const PRESET_LABELS: Readonly<Record<PresetId, string>> = {
-  default: 'default',
   writing: 'writing',
   debugging: 'debugging',
   phone: 'phone',
 }
 
-export const DEFAULT_LAYOUT: Layout = PRESETS.default()
+/** The layout a first visit gets, and a store with none: the writing one. */
+export const DEFAULT_LAYOUT: Layout = PRESETS.writing()
 
 /** `weights` scaled to add up to 1; all zero (or none) share alike. */
 function scaled(weights: readonly number[]): number[] {

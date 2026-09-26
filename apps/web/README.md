@@ -519,7 +519,7 @@ screenshot's footer pixels, and from the Worker: uptime, fights, first seen, rei
 
 ## Accessibility
 
-DESIGN_SYSTEM §8. Four Playwright specs hold it, all five themes where color matters. CI runs no
+DESIGN_SYSTEM §8. Four Playwright specs hold it, all seven themes where color matters. CI runs no
 Playwright, so run them before a change to the UI ships (about 4 minutes; the Worker ones need the
 e2e Worker, which `playwright.config.ts` starts):
 

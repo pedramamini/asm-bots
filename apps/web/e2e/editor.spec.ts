@@ -204,7 +204,7 @@ async function box(locator: Locator) {
   return found
 }
 
-test('a first visit: the templates over the new bot, the coach mark under run', async ({
+test('a first visit: the templates over the new bot, the coach mark over the help', async ({
   page,
 }) => {
   const errors = watch(page)
@@ -214,13 +214,12 @@ test('a first visit: the templates over the new bot, the coach mark under run', 
   await expect(panel).toBeVisible()
   const tip = page.getByRole('note', { name: 'tip' })
   await expect(tip).toContainText('assemble runs as you type; press F5 to debug.')
-  // The panel sits under the blank bot's five lines; the tip hangs under the run button.
+  // The panel sits under the blank bot's five lines; the tip tops the help, the debugger hidden.
   const last = await box(page.locator('.cm-line', { hasText: 'start:  jmp     start' }))
   expect((await box(panel)).y).toBeGreaterThan(last.y + last.height)
-  const run = await box(page.getByRole('button', { name: 'run', exact: true }))
-  const hint = await box(tip)
-  expect(hint.y).toBeGreaterThan(run.y + run.height)
-  expect(Math.abs(hint.x - run.x)).toBeLessThanOrEqual(1)
+  await expect(
+    page.getByRole('region', { name: 'help' }).getByRole('note', { name: 'tip' }),
+  ).toBeVisible()
   // Each template's line shows whole.
   const cut = await panel
     .getByRole('listitem')
@@ -242,7 +241,7 @@ test('a first visit: the templates over the new bot, the coach mark under run', 
   await expect(tip).toBeHidden()
   await page.reload()
   await expect(page).toHaveTitle('ASM BOTS // EDITOR')
-  await expect(page.getByRole('button', { name: 'run', exact: true })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'help' })).toBeVisible()
   await expect(tip).toBeHidden()
   expect(errors).toEqual([])
 })

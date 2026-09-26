@@ -98,14 +98,19 @@ test('? opens the key help with the global keys', async ({ page }) => {
   await openHome(page)
   await page.keyboard.press('?')
   const help = page.getByRole('dialog', { name: 'keys' })
-  for (const description of ['show the keys', 'next theme', 'search this page', 'go to arena']) {
+  for (const description of [
+    'show the keys',
+    'commands and themes',
+    'search this page',
+    'go to arena',
+  ]) {
     await expect(help.getByText(description, { exact: true })).toBeVisible()
   }
   await page.keyboard.press('Escape')
   await expect(help).toBeHidden()
 })
 
-test('t cycles the theme and the choice survives a reload', async ({ page }) => {
+test('mod+k picks a theme and the choice survives a reload', async ({ page }) => {
   await page.addInitScript(() => {
     if (sessionStorage.getItem('seeded') === null) {
       localStorage.setItem('theme', 'sentinel')
@@ -115,8 +120,11 @@ test('t cycles the theme and the choice survives a reload', async ({ page }) => 
   await openHome(page)
   const html = page.locator('html')
   await expect(html).toHaveAttribute('data-theme', 'sentinel')
-  await page.keyboard.press('t')
-  await page.keyboard.press('t')
+  await page.keyboard.press('ControlOrMeta+k')
+  const menu = page.getByRole('dialog', { name: 'commands' })
+  await menu.getByRole('combobox').fill('pedurple')
+  await page.keyboard.press('Enter')
+  await expect(menu).toBeHidden()
   await expect(html).toHaveAttribute('data-theme', 'pedurple')
   await page.reload()
   await expect(html).toHaveAttribute('data-theme', 'pedurple')

@@ -130,12 +130,6 @@ describe('useSettings', () => {
     expect(root.hasAttribute('data-motion')).toBe(false)
   })
 
-  it('cycles from the chosen theme, not a previewed one', () => {
-    document.documentElement.dataset.theme = 'ice'
-    useSettings.getState().cycleTheme()
-    expect(useSettings.getState().theme).toBe('amber')
-  })
-
   it('resets everything, and the theme follows the system again', () => {
     const settings = useSettings.getState()
     settings.setSound({ on: true })

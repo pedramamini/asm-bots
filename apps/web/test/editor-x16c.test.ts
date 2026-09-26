@@ -300,7 +300,7 @@ describe('x16c: colors', () => {
     }
   })
 
-  it('uses only kit tokens, set in all five themes, and no color of its own', () => {
+  it('uses only kit tokens, set in every theme, and no color of its own', () => {
     const css = JSON.stringify(EDITOR_THEME)
     expect(css).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(/)
     const used = new Set([

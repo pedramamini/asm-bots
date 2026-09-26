@@ -1,6 +1,6 @@
 # @asmbots/ui
 
-The UI kit of ASM Bots: the tokens of [DESIGN_SYSTEM §2](../../docs/DESIGN_SYSTEM.md#2-tokens) in five themes, the type scale of §3, and 32 primitives on React 19 and Tailwind 4. There is no component library: each primitive is ours, one file in `src/primitives/`. The gallery shows every primitive in every state, in each theme, beside the three reference layouts of §4.
+The UI kit of ASM Bots: the tokens of [DESIGN_SYSTEM §2](../../docs/DESIGN_SYSTEM.md#2-tokens) in seven themes, the type scale of §3, and 32 primitives on React 19 and Tailwind 4. There is no component library: each primitive is ours, one file in `src/primitives/`. The gallery shows every primitive in every state, in each theme, beside the three reference layouts of §4.
 
 ## Use it
 

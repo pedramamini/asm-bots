@@ -4,6 +4,9 @@
  */
 export const SITE_URL = 'https://asmbots.io'
 
+/** The repository: the header's and the footer's source link. */
+export const SOURCE_URL = 'https://github.com/pedramamini/asmbots.io'
+
 /** The origin as a person types it: `asmbots.io`. */
 export const SITE_HOST = new URL(SITE_URL).host
 

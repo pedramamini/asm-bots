@@ -1,6 +1,6 @@
 /**
  * A release's screenshots and melee recording (EXEC 4.2 task 4), from the production build and the
- * seeded e2e Worker: the arena mid-melee in all five themes, the editor's debugger, a local bracket,
+ * seeded e2e Worker: the arena mid-melee in all seven themes, the editor's debugger, a local bracket,
  * and the main hill (`<name>.png`, 1600 × 960), and 22 s of an eight-bot melee (`melee.webm`, 1280
  * × 720, Playwright's video, trimmed with ffmpeg by the release). They go in the directory
  * `RELEASE_SHOTS` names, as the release's assets, not in the repository:

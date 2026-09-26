@@ -113,13 +113,13 @@ test('write a bot and debug it', async ({ page }) => {
   await expect(toolbar.getByLabel(/^size /)).toHaveText('7 / 512 B')
   const ip = page.getByLabel('ip', { exact: true })
   const ax = page.getByLabel('ax', { exact: true })
-  await expect(ip).toHaveValue(/^[0-9A-F]{4}$/)
-  const base = Number.parseInt(await ip.inputValue(), 16)
-  const hex = (v: number) => v.toString(16).toUpperCase().padStart(4, '0')
-  // F11 steps one instruction: `mov ax, 7` then `mov bx, ax`.
+  // The writing layout hides the debugger: F11 shows it, and steps one instruction, `mov ax, 7`.
+  await expect(ip).toHaveCount(0)
   await page.keyboard.press('F11')
-  await expect(ip).toHaveValue(hex(base + 3))
   await expect(ax).toHaveValue('0007')
+  await expect(ip).toHaveValue(/^[0-9A-F]{4}$/)
+  const base = Number.parseInt(await ip.inputValue(), 16) - 3
+  const hex = (v: number) => v.toString(16).toUpperCase().padStart(4, '0')
   // F9 breaks on the cursor's line: the source's last line, `jmp start`.
   await tabTo(page, page.getByRole('textbox', { name: 'bot source' }))
   await page.keyboard.press('ControlOrMeta+End')

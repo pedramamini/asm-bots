@@ -56,6 +56,8 @@ export interface EditorProps {
   onProblems: (problems: Problem[]) => void
   /** The view once made, and null as it goes. */
   onView: (view: EditorView | null) => void
+  /** The cursor's line and its offset in it, as the view starts and after each move or edit. */
+  onCursor?: ((line: string, at: number) => void) | undefined
   commands: EditorCommands
   className?: string | undefined
 }
@@ -93,14 +95,15 @@ export function Editor({
   onChange,
   onProblems,
   onView,
+  onCursor,
   commands,
   className,
 }: EditorProps) {
   const host = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   // The view outlives renders: its keys and listeners call the latest props.
-  const latest = useRef({ onChange, onProblems, onView, commands })
-  latest.current = { onChange, onProblems, onView, commands }
+  const latest = useRef({ onChange, onProblems, onView, onCursor, commands })
+  latest.current = { onChange, onProblems, onView, onCursor, commands }
   // Read once, as the view is made.
   const start = useRef({ initial, readOnly, showListing, selection })
 
@@ -108,6 +111,11 @@ export function Editor({
     const parent = host.current
     if (parent === null) return
     const { initial, readOnly, showListing, selection } = start.current
+    const cursorOf = (state: EditorState) => {
+      const head = state.selection.main.head
+      const line = state.doc.lineAt(head)
+      latest.current.onCursor?.(line.text, head - line.from)
+    }
     const pageKeys: KeyBinding[] = [
       {
         key: SOURCE_KEYS.format.cm,
@@ -166,6 +174,7 @@ export function Editor({
           EditorView.theme({ '&': { height: '100%' }, '.cm-scroller': { overflow: 'auto' } }),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) latest.current.onChange(update.state.doc.toString())
+            if (update.docChanged || update.selectionSet) cursorOf(update.state)
             if (update.transactions.some(changesProblems)) {
               latest.current.onProblems(problemsOf(update.state))
             }
@@ -176,6 +185,7 @@ export function Editor({
     if (selection !== undefined) made.dispatch({ scrollIntoView: true })
     view.current = made
     latest.current.onView(made)
+    cursorOf(made.state)
     return () => {
       view.current = null
       latest.current.onView(null)

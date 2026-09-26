@@ -33,7 +33,8 @@ export interface KeymapOptions {
  * and the key help lists whatever is live. A binding is one key (`t`) or a chord (`g a`) whose
  * keys come within `chordWindow` ms of each other. When one sequence is both a command and the
  * start of a longer one, the command runs at once. Keys typed into a text field, and keys with
- * Ctrl, Alt, or Meta, belong to the field and the browser.
+ * Ctrl, Alt, or Meta, belong to the field and the browser, except a bound `mod+` key (`mod+k`):
+ * Cmd or Ctrl with the key, which works in a field too.
  */
 export function createKeymap({
   chordWindow = CHORD_WINDOW,
@@ -62,6 +63,13 @@ export function createKeymap({
     for (const listener of listeners) listener()
   }
 
+  /** Runs `command` for `event`, and takes the key unless the command did nothing. */
+  const take = (event: KeyboardEvent, command: KeyCommand | undefined): boolean => {
+    if (command === undefined || command.run() === false) return false
+    event.preventDefault()
+    return true
+  }
+
   return {
     register(list) {
       layers = [...layers, list]
@@ -78,7 +86,16 @@ export function createKeymap({
     },
     handle(event) {
       if (event.defaultPrevented || event.isComposing) return false
-      if (event.ctrlKey || event.altKey || event.metaKey || isEditable(event.target)) {
+      if (event.ctrlKey || event.metaKey) {
+        pending = []
+        if (event.altKey || event.shiftKey) return false
+        const mod = [`mod+${event.key.toLowerCase()}`]
+        return take(
+          event,
+          commands().find((c) => same(c.keys, mod)),
+        )
+      }
+      if (event.altKey || isEditable(event.target)) {
         pending = []
         return false
       }
@@ -89,11 +106,7 @@ export function createKeymap({
       const live = commands()
       for (const sequence of tries) {
         const command = live.find((c) => same(c.keys, sequence))
-        if (command !== undefined) {
-          if (command.run() === false) return false
-          event.preventDefault()
-          return true
-        }
+        if (command !== undefined) return take(event, command)
         if (live.some((c) => c.keys.length > sequence.length && startsWith(c.keys, sequence))) {
           pending = sequence
           pendingAt = now()

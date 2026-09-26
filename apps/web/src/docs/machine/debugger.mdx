@@ -21,16 +21,17 @@ The **arena strip** draws the debugger's battle with the arena's renderer. With 
 
 ## Your layout
 
-Each panel of the editor page (the source, problems, the library, the debug controls, the six panels above, and the arena strip) is a tile you can move, size, and hide. The page keeps your layout in this browser.
+Each panel of the editor page (the source, problems, the library, the help, the debug controls, the six panels above, and the arena strip) is a tile you can move, size, and hide. The page keeps your layout in this browser, exactly as you leave it, and a phone's apart from a wide window's. The debugger keeps its seed, its opponents, its speed, the `run N` count, and the arena strip's lock the same way. The page starts on the writing layout: the library, the source over its problems, and the help, which explains the instruction, directive, or register under the cursor and links to its page of the [language reference](/docs/reference/data).
 
 | to | do this |
 |---|---|
-| move a panel | Drag it by its title row. Drop it near another panel's edge to put it on that side, in the middle to swap the two, or along the page's edge to dock it there. Esc drops the drag. |
+| move a panel | Drag it by its title row. A lit box shows where it lands, and says so: near another panel's edge, on that side; in the middle, the two swap; along the page's edge, it docks there. Esc drops the drag. |
 | move it with keys | The grip ⠿ at the end of its title row: **move left**, **right**, **up**, or **down** swaps it with the panel next to it. |
 | size two panels | Drag the divider between them, or focus it and use the arrow keys (Shift for bigger steps). |
 | hide a panel | The grip's **hide**. The source cannot hide. <Keys>b</Keys> hides or shows the library. |
 | show it again | **layout ▾** in the toolbar lists every panel. A hidden panel comes back where it was, and keeps what it held, such as its watches. |
-| start over | **layout ▾**: **default layout**; **writing layout** for the source alone; **debugging layout** for the machine wide. |
+| start over | **layout ▾**: **writing layout** for the source and the help; **debugging layout** for the machine wide; **phone layout** for one column. |
+| debug from the writing layout | <Keys>F5</Keys>, <Keys>F10</Keys>, or <Keys>F11</Keys> open the debugging layout, then run or step. The arena's **open in debugger** opens it too. |
 
 The debug controls and the registers are as tall as their content in a column. When the window is too small for every panel, the page scrolls.
 

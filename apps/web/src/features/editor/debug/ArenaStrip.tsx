@@ -13,6 +13,9 @@ export interface ArenaStripProps {
   open: boolean
   /** The canvas's parts: the `0` key resets its zoom. */
   canvas: RefObject<ArenaCanvasHandle | null>
+  /** The viewport lock on the followed IP, and its switch: the page keeps the user's choice. */
+  lock: boolean
+  onLock: (lock: boolean) => void
   className?: string | undefined
 }
 
@@ -33,8 +36,15 @@ export function lockZoom(width: number, height: number): number {
  * (`BattleSource`: no Worker). With the viewport lock on, the view stays on the followed process's
  * IP, zoomed in. Hidden (the layout's), it draws nothing.
  */
-export function ArenaStrip({ session, state, open, canvas, className }: ArenaStripProps) {
-  const [lock, setLock] = useState(true)
+export function ArenaStrip({
+  session,
+  state,
+  open,
+  canvas,
+  lock,
+  onLock,
+  className,
+}: ArenaStripProps) {
   const [source, setSource] = useState<BattleSource | null>(null)
 
   useEffect(() => {
@@ -81,7 +91,7 @@ export function ArenaStrip({ session, state, open, canvas, className }: ArenaStr
       actions={
         <Toggle
           pressed={lock}
-          onPressedChange={setLock}
+          onPressedChange={onLock}
           title="keep the view on the followed process's IP"
         >
           lock on ip

@@ -30,7 +30,7 @@ Then open http://localhost:5173. The Worker's local database, storage, and seed:
 | `bun run build` | The web app, then the Worker bundle. |
 | `bun run golden` | Fights the roster goldens; `--update` writes `packages/bots/goldens/results.json`. |
 | `bun run lighthouse` | Lighthouse CI on five routes (`lighthouserc.json`). |
-| `bun run contrast` | WCAG contrast of the text tokens in all five themes. |
+| `bun run contrast` | WCAG contrast of the text tokens in all seven themes. |
 | `bun run bundle` | Builds the web app and checks its budgets. |
 | `bun run version` | The build's version stamp: a tagged release's, else the day and the next letter. |
 | `bun run roster-images` | The roster's prebuilt images, after a roster, assembler, or codec change. |

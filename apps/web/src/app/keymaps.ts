@@ -13,7 +13,7 @@ type Bindings = Readonly<Record<string, KeyBinding>>
 /** Every page's keys, from the frame. The `g` chords come from the nav (`goKey`). */
 export const GLOBAL_KEYS = {
   help: { keys: ['?'], description: 'show the keys', group: 'global' },
-  theme: { keys: ['t'], description: 'next theme', group: 'global' },
+  commands: { keys: ['mod+k'], description: 'commands and themes', group: 'global' },
   search: { keys: ['/'], description: 'search this page', group: 'global' },
 } as const satisfies Bindings
 

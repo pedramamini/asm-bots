@@ -3,9 +3,9 @@ import {
   cx,
   Header,
   IconButton,
+  IconLink,
   Kbd,
   KeyHelp,
-  Menu,
   Modal,
   NavButton,
   StatusBar,
@@ -14,14 +14,12 @@ import {
   type ToolbarProps,
   Tooltip,
 } from '@asmbots/ui'
-import { THEMES } from '@asmbots/ui/themes'
 import { useQueryClient } from '@tanstack/react-query'
 import { createLink, Link, useLocation, useRouter } from '@tanstack/react-router'
 import {
   BookOpen,
-  Check,
-  ChevronDown,
   CodeXml,
+  GitFork,
   Grid2x2,
   House,
   Keyboard,
@@ -54,6 +52,7 @@ import {
 } from './keys'
 import { useOnline } from './online'
 import { usePaintedAndIdle } from './paint'
+import { SOURCE_URL } from './site'
 import { useFps, useHeaderStat } from './slots'
 import { useTicker } from './ticker'
 import { BRAND, useRouteHead } from './title'
@@ -86,6 +85,9 @@ const FirstSignIn = lazy(() =>
   import('../features/account/FirstSignIn').then((m) => ({ default: m.FirstSignIn })),
 )
 
+/** The `mod+k` menu: its own chunk, loaded on the first press. */
+const CommandMenu = lazy(() => import('./CommandMenu').then((m) => ({ default: m.CommandMenu })))
+
 /** The site's footer, the hills' dither range and the links: after the page paints, in a chunk of its own. */
 const SiteFooter = lazy(() => import('./SiteFooter').then((m) => ({ default: m.SiteFooter })))
 
@@ -108,8 +110,14 @@ const ToolbarSlot = createContext<HTMLElement | null>(null)
 export function Frame({ children }: { children: ReactNode }) {
   const [toolbar, setToolbar] = useState<HTMLElement | null>(null)
   const [keysOpen, setKeysOpen] = useState(false)
+  /** The command menu's first search while it is open; null while it is closed. */
+  const [menu, setMenu] = useState<string | null>(null)
   const bindings = useKeyBindings()
-  useGlobalKeys(useCallback(() => setKeysOpen((open) => !open), []))
+  useGlobalKeys(
+    useCallback(() => setKeysOpen((open) => !open), []),
+    useCallback(() => setMenu((query) => (query === null ? '' : null)), []),
+  )
+  const openKeys = useCallback(() => setKeysOpen(true), [])
   useKeymapListener()
   const footer = hasFooter(useLocation({ select: (location) => location.pathname }))
   const idle = usePaintedAndIdle()
@@ -125,7 +133,7 @@ export function Frame({ children }: { children: ReactNode }) {
         brand={<Brand />}
         stat={<HeaderStat />}
         nav={<Nav />}
-        right={<HeaderActions onKeys={() => setKeysOpen(true)} />}
+        right={<HeaderActions onKeys={openKeys} onThemes={() => setMenu('theme')} />}
       />
       <div ref={setToolbar} className="contents" />
       <ToolbarSlot value={toolbar}>
@@ -154,6 +162,11 @@ export function Frame({ children }: { children: ReactNode }) {
       <Modal open={keysOpen} onClose={() => setKeysOpen(false)} title="keys" size="lg">
         <KeyHelp bindings={bindings} />
       </Modal>
+      {menu !== null && (
+        <Suspense fallback={null}>
+          <CommandMenu query={menu} onClose={() => setMenu(null)} onKeys={openKeys} />
+        </Suspense>
+      )}
       <Onboarding />
       <BootLayer />
     </div>
@@ -219,21 +232,20 @@ function SkipLink() {
   )
 }
 
-/** `?`, `t`, `/`, and the `g` chords. */
-function useGlobalKeys(toggleKeys: () => void): void {
+/** `?`, `mod+k`, `/`, and the `g` chords. */
+function useGlobalKeys(toggleKeys: () => void, toggleMenu: () => void): void {
   const router = useRouter()
-  const cycleTheme = useSettings((state) => state.cycleTheme)
   const commands = useMemo<KeyCommand[]>(
     () => [
       { ...GLOBAL_KEYS.help, run: toggleKeys },
-      { ...GLOBAL_KEYS.theme, run: cycleTheme },
+      { ...GLOBAL_KEYS.commands, run: toggleMenu },
       { ...GLOBAL_KEYS.search, run: focusRouteSearch },
       ...NAV.map(({ to, label, key }) => ({
         ...goKey(key, label),
         run: () => void router.navigate({ to }),
       })),
     ],
-    [router, cycleTheme, toggleKeys],
+    [router, toggleKeys, toggleMenu],
   )
   useKeys(commands)
 }
@@ -277,31 +289,25 @@ function Nav() {
   ))
 }
 
-function HeaderActions({ onKeys }: { onKeys: () => void }) {
+function HeaderActions({ onKeys, onThemes }: { onKeys: () => void; onThemes: () => void }) {
   const theme = useSettings((state) => state.theme)
-  const cycleTheme = useSettings((state) => state.cycleTheme)
-  const setTheme = useSettings((state) => state.setTheme)
   return (
     <>
-      <IconButton icon={Palette} label={`theme: ${theme}`} shortcut="t" onClick={cycleTheme} />
-      {/* Under `md` the palette button alone cycles the themes: the menu and the keys (a keyboard's
-          help) go, so the row fits a phone. */}
-      <Menu
-        placement="bottom-end"
-        trigger={
-          <IconButton icon={ChevronDown} label="pick a theme" size="sm" className="max-md:hidden" />
-        }
-        items={THEMES.map((name) => ({
-          label: name,
-          icon: name === theme ? Check : undefined,
-          onSelect: () => setTheme(name),
-        }))}
-      />
+      {/* The command menu, on its themes. Under `md` the keys (a keyboard's help) go, so the row
+          fits a phone. */}
+      <IconButton icon={Palette} label={`theme: ${theme}`} shortcut="mod+k" onClick={onThemes} />
       <IconButton
         icon={Keyboard}
         label="keys"
         shortcut="?"
         onClick={onKeys}
+        className="max-md:hidden"
+      />
+      {/* Under `md` the footer's source link stands in: the row fits a phone. */}
+      <IconLink
+        icon={GitFork}
+        label="source on github"
+        href={SOURCE_URL}
         className="max-md:hidden"
       />
       <AccountSlot />

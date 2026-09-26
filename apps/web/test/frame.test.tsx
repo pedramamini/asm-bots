@@ -11,7 +11,7 @@ import {
 } from '@tanstack/react-router'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useDom, window } from '../../../packages/ui/test/dom'
-import { FPS_WARN, Frame, FrameToolbar, hasFooter, navActive } from '../src/app/Frame'
+import { FPS_WARN, Frame, FrameToolbar, hasFooter, NAV, navActive } from '../src/app/Frame'
 import { CHORD_WINDOW, createKeymap, type KeyCommand, ROUTE_SEARCH } from '../src/app/keys'
 import { useFps, useHeaderStat, useRouteStat } from '../src/app/slots'
 import { titleHead } from '../src/app/title'
@@ -93,6 +93,19 @@ describe('createKeymap', () => {
     const checkbox = document.createElement('input')
     checkbox.type = 'checkbox'
     expect(press('t', {}, checkbox).taken).toBe(true)
+  })
+
+  it('runs a bound mod+ key with Cmd or Ctrl, in a text field too, and no other combination', () => {
+    const list = commands(['mod+k'])
+    unregister = keymap.register(list)
+    const input = document.createElement('input')
+    expect(press('k', { metaKey: true }, input)).toEqual({ taken: true, prevented: true })
+    expect(press('K', { ctrlKey: true })).toEqual({ taken: true, prevented: true })
+    expect(press('k', { metaKey: true, shiftKey: true }).taken).toBe(false)
+    expect(press('k', { ctrlKey: true, altKey: true }).taken).toBe(false)
+    expect(press('j', { metaKey: true }).taken).toBe(false)
+    expect(press('k').taken).toBe(false)
+    expect(list[0]?.run).toHaveBeenCalledTimes(2)
   })
 
   it('keeps the default when the command did nothing', () => {
@@ -325,7 +338,7 @@ describe('Frame', () => {
       .map((row) => row.textContent)
     expect(rows).toEqual([
       '?show the keys',
-      'tnext theme',
+      'mod+kcommands and themes',
       '/search this page',
       'g ogo to home',
       'g ago to arena',
@@ -338,17 +351,47 @@ describe('Frame', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
-  it('cycles through all five themes with t, and stores each', async () => {
+  it('opens the command menu with mod+k, and closes it with mod+k again', async () => {
     await renderAndWait()
-    const seen: string[] = []
-    for (const _ of THEMES) {
-      key('t')
-      const theme = document.documentElement.dataset.theme ?? ''
-      seen.push(theme)
-      expect(localStorage.getItem('theme')).toBe(theme)
-    }
-    expect(seen).toEqual([...THEMES.slice(1), THEMES[0]])
-    expect(screen.getByRole('button', { name: `theme: ${THEMES[0]}` })).toBeTruthy()
+    const mod = (init: KeyboardEventInit) =>
+      act(() => void fireEvent.keyDown(document.activeElement ?? document.body, init))
+    mod({ key: 'k', metaKey: true })
+    const dialog = await screen.findByRole('dialog', { name: 'commands' })
+    const groups = within(dialog)
+      .getAllByRole('group')
+      .map((group) => within(group).getAllByRole('option').length)
+    expect(groups).toEqual([NAV.length, THEMES.length, 3])
+    // From the menu's own field.
+    mod({ key: 'k', ctrlKey: true })
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    // `t` is a letter again: no theme key.
+    key('t')
+    expect(document.documentElement.dataset.theme).toBe('sentinel')
+  })
+
+  it('goes to a route from the command menu', async () => {
+    const router = await renderAndWait()
+    act(() => void fireEvent.keyDown(document.body, { key: 'k', metaKey: true }))
+    const field = await screen.findByRole('combobox', { name: 'search the commands' })
+    fireEvent.change(field, { target: { value: 'arena' } })
+    fireEvent.keyDown(field, { key: 'Enter' })
+    await screen.findByText('the arena')
+    expect(router.state.location.pathname).toBe('/arena')
+  })
+
+  it('picks a theme from the header palette button, the menu open on the themes', async () => {
+    await renderAndWait()
+    fireEvent.click(screen.getByRole('button', { name: 'theme: sentinel' }))
+    const field = await screen.findByRole('combobox', { name: 'search the commands' })
+    expect((field as HTMLInputElement).value).toBe('theme')
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(
+      THEMES.map((name) => (name === 'sentinel' ? `${name} (current)` : name)),
+    )
+    fireEvent.click(screen.getByRole('option', { name: 'ice' }))
+    expect(document.documentElement.dataset.theme).toBe('ice')
+    expect(localStorage.getItem('theme')).toBe('ice')
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(screen.getByRole('button', { name: 'theme: ice' })).toBeTruthy()
   })
 
   it('goes to a route with a g chord, and marks its nav link', async () => {
