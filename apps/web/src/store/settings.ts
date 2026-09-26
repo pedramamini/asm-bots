@@ -238,6 +238,9 @@ function sanitizeSound(sound: unknown): SoundSettings | null {
   return { on: sound.on, volume: Math.min(1, Math.max(0, sound.volume)), cues }
 }
 
+/** The arena's first-visit tour's id in `coachMarksSeen` (`features/arena/tour.tsx`). */
+export const ARENA_TOUR = 'arena'
+
 function isArenaConfig(value: unknown): value is ArenaConfig {
   if (!isRecord(value)) return false
   const counts = ['rounds', 'maxCycles', 'maxProcesses', 'minSpacing'] as const

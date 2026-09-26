@@ -70,6 +70,8 @@ function litPixels(page: Page): Promise<number> {
 test('a first visit: the core boots, and take tour walks every page to the first battle', async ({
   page,
 }) => {
+  // Nineteen steps across six pages, then the intro's battle to first blood.
+  test.setTimeout(90_000)
   const errors = watch(page)
   await page.goto('/?boot=1')
   const boot = page.getByRole('dialog', { name: 'asm bots' })

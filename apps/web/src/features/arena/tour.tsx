@@ -7,8 +7,8 @@
  */
 import { CoachMark, Kbd } from '@asmbots/ui'
 
-/** The tour's id in the settings' `coachMarksSeen`. */
-export const ARENA_TOUR = 'arena'
+// Its id lives with the settings, so the welcome tour can mark it seen without this page's code.
+export { ARENA_TOUR } from '../../store/settings'
 
 interface StepProps {
   onDismiss: () => void

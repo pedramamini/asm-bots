@@ -17,8 +17,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import { ARENA_TOUR } from '../../features/arena/tour'
-import { useMotionReduced, useSettings } from '../../store/settings'
+import { ARENA_TOUR, useMotionReduced, useSettings } from '../../store/settings'
 import { useBoot } from './boot'
 import { type Box, holeFor, inView, placeCard, type Size, sameBox } from './spotlight'
 import { TOUR_STEPS, type TourStep } from './tour-steps'

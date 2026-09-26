@@ -6,9 +6,7 @@
 import { Kbd } from '@asmbots/ui'
 import type { ReactNode } from 'react'
 import { NAV } from '../Frame'
-import { introSpec } from '../../features/arena/intro'
 import type { ArenaSearch } from '../../features/arena/setup/search'
-import { searchFromSetup } from '../../features/arena/setup/url'
 
 export interface TourStep {
   /** Its name in the tests and the DOM (`data-tour-step`). */
@@ -31,8 +29,21 @@ export interface TourStep {
   readonly body: ReactNode
 }
 
-/** The arena, with the intro's bots picked, so `fight` is ready. */
-const ARENA = { path: '/arena', search: searchFromSetup(introSpec()) } as const
+/**
+ * The arena, with the intro's bots picked at its seed, so `fight` is ready: `introSpec()` as the
+ * URL writes it (the tests hold the two the same). Written out, so the tour's chunk carries none
+ * of the arena's code, and the arena none of the tour's.
+ */
+export const TOUR_ARENA_SEARCH: ArenaSearch = {
+  b: 'roster:dwarf,roster:imp',
+  seed: 263,
+  rounds: 1,
+  cycles: 100_000,
+  procs: 64,
+  spacing: 1024,
+}
+
+const ARENA = { path: '/arena', search: TOUR_ARENA_SEARCH } as const
 
 /** The battle's steps: the tour starts the fight when the page shows the setup. */
 const BATTLE = { ...ARENA, open: '[data-tour="arena-fight"] button[name="fight"]' } as const

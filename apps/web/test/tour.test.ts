@@ -10,7 +10,9 @@ import {
   sameBox,
   VIEW_MARGIN,
 } from '../src/app/boot/spotlight'
-import { TOUR_STEPS } from '../src/app/boot/tour-steps'
+import { TOUR_ARENA_SEARCH, TOUR_STEPS } from '../src/app/boot/tour-steps'
+import { introSpec } from '../src/features/arena/intro'
+import { searchFromSetup } from '../src/features/arena/setup/url'
 
 const VIEW = { width: 1200, height: 800 }
 const CARD = { width: 360, height: 200 }
@@ -108,6 +110,10 @@ describe('the tour steps', () => {
     )
     expect(wanted.length).toBeGreaterThan(10)
     for (const name of wanted) expect(tagged).toContain(name)
+  })
+
+  it("go to the arena with the intro's bots and seed", () => {
+    expect(TOUR_ARENA_SEARCH).toEqual(searchFromSetup(introSpec()))
   })
 
   it('start and end in the middle of the home page', () => {
