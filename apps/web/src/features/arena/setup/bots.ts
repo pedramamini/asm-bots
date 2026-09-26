@@ -113,6 +113,32 @@ export function matchesQuery(bot: CatalogBot, query: string): boolean {
   return words.every((word) => text.includes(word))
 }
 
+/**
+ * `room` random picks from `bots`, to fill the selection: each bot that assembles once, the ones
+ * not yet in `picked` first, then repeats while room is left. Empty when no bot assembles.
+ */
+export function randomFill(
+  bots: readonly CatalogBot[],
+  picked: readonly BotRef[],
+  room: number,
+  random: () => number = Math.random,
+): BotRef[] {
+  const pool = bots.filter((bot) => errorsOf(bot).length === 0).map((bot) => bot.ref)
+  if (pool.length === 0 || room <= 0) return []
+  const shuffle = (refs: BotRef[]) => {
+    for (let i = refs.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1))
+      ;[refs[i], refs[j]] = [refs[j] as BotRef, refs[i] as BotRef]
+    }
+    return refs
+  }
+  const taken = new Set(picked.map(formatRef))
+  const fresh = pool.filter((ref) => !taken.has(formatRef(ref)))
+  const refs = [...shuffle(fresh), ...shuffle(pool.filter((ref) => taken.has(formatRef(ref))))]
+  while (refs.length < room) refs.push(...shuffle([...pool]))
+  return refs.slice(0, room)
+}
+
 /** A place in the selection, and the bot it holds, as far as the setup knows it. */
 export interface SetupBot {
   /** Its place in the selection: its bot index in the battle, and so its hue. */

@@ -193,6 +193,21 @@ describe('arena setup', () => {
     expect(picked()).toEqual(['Dwarf', 'Paper'])
   })
 
+  it('fills to 16 with random bots from the list, and then goes off', async () => {
+    await renderArena()
+    fireEvent.change(screen.getByRole('textbox', { name: 'search bots' }), {
+      target: { value: 'painter' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /random fill/ }))
+    expect(picked()).toHaveLength(16)
+    expect(new Set(picked().map((name) => name?.replace(/ \d+$/, '')))).toEqual(
+      new Set(['LCG Painter', 'Spiral Painter']),
+    )
+    expect(
+      (screen.getByRole('button', { name: /random fill/ }) as HTMLButtonElement).disabled,
+    ).toBe(true)
+  })
+
   it('filters the cards by the search', async () => {
     await renderArena()
     fireEvent.change(screen.getByRole('textbox', { name: 'search bots' }), {

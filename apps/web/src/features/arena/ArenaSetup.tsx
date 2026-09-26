@@ -14,7 +14,7 @@ import {
   Segmented,
   useToast,
 } from '@asmbots/ui'
-import { FileUp, Link, Plus, Save, Swords, X } from 'lucide-react'
+import { Dices, FileUp, Link, Plus, Save, Swords, X } from 'lucide-react'
 import {
   type ChangeEvent,
   type DragEvent,
@@ -46,6 +46,7 @@ import {
   fightStatus,
   localCatalog,
   matchesQuery,
+  randomFill,
   resolveSelection,
   rosterCatalog,
   type SetupBot,
@@ -143,6 +144,21 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight, tour }: ArenaS
     () => resolveSelection(spec.bots, { local, shared, assemble }),
     [spec.bots, local, shared, assemble],
   )
+  // My bots, assembled: null until the store is read and the assembler has loaded.
+  const mine = useMemo(
+    () =>
+      assemble === null || localBots.data === undefined
+        ? null
+        : localBots.data.map((bot) => localCatalog(bot, assemble)),
+    [localBots.data, assemble],
+  )
+  // The bots the picker lists, which `random fill` draws from.
+  const listed =
+    source === 'roster'
+      ? rosterCatalog().filter((bot) => matchesQuery(bot, query))
+      : source === 'mine'
+        ? (mine ?? []).filter((bot) => matchesQuery(bot, query))
+        : []
   const status = fightStatus(selection, spec)
   const full = spec.bots.length >= MAX_ARENA_BOTS
   // The tour's step: the roster until two bots are in, then the fight button.
@@ -163,6 +179,16 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight, tour }: ArenaS
       onSpecChange((s) => ({ ...s, bots: [...s.bots, ...refs.slice(0, room)] }))
     }
     return Math.max(0, refs.length - room)
+  }
+
+  /** Fills the selection to its cap with random picks from the bots listed. */
+  const fill = () => {
+    const room = MAX_ARENA_BOTS - latest.current.bots.length
+    const refs = randomFill(listed, latest.current.bots, room)
+    add(refs)
+    toast(`added ${refs.length} random ${refs.length === 1 ? 'bot' : 'bots'}.`, {
+      variant: 'accent',
+    })
   }
 
   const remove = (index: number) =>
@@ -317,6 +343,17 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight, tour }: ArenaS
                   }
                 />
               )}
+              {source !== 'paste' && (
+                <Button
+                  icon={Dices}
+                  size="sm"
+                  title={`fill to ${MAX_ARENA_BOTS} bots with random picks from this list`}
+                  disabled={full || !listed.some((bot) => errorsOf(bot).length === 0)}
+                  onClick={fill}
+                >
+                  random fill
+                </Button>
+              )}
               <Segmented<Source>
                 label="bot source"
                 options={SOURCES}
@@ -329,7 +366,7 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight, tour }: ArenaS
           <div className="flex flex-col gap-3">
             {source === 'roster' && (
               <BotGrid
-                bots={rosterCatalog().filter((bot) => matchesQuery(bot, query))}
+                bots={listed}
                 picked={spec.bots}
                 full={full}
                 onAdd={(bot) => add([bot.ref])}
@@ -346,7 +383,8 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight, tour }: ArenaS
             {source === 'mine' && (
               <MineGrid
                 bots={localBots.data}
-                assemble={assemble}
+                catalog={mine}
+                listed={listed}
                 query={query}
                 picked={spec.bots}
                 full={full}
@@ -593,24 +631,23 @@ function BotCard({
 /** The local bots as cards, or the one sentence that says there are none. */
 function MineGrid({
   bots,
-  assemble,
+  catalog,
+  listed,
   query,
   write,
   clearSearch,
   ...grid
 }: GridProps & {
   bots: readonly LocalBot[] | undefined
-  /** Null while the assembler loads. */
-  assemble: Assemble | null
+  /** The bots, assembled: null while the assembler loads. */
+  catalog: readonly CatalogBot[] | null
+  /** The ones that match the search. */
+  listed: readonly CatalogBot[]
   query: string
   /** The empty store's way on: the editor. */
   write: EmptyStateAction
   clearSearch: EmptyStateAction
 }) {
-  const catalog = useMemo(
-    () => (assemble === null ? null : (bots ?? []).map((bot) => localCatalog(bot, assemble))),
-    [bots, assemble],
-  )
   if (bots === undefined || (catalog === null && bots.length > 0))
     return <p className="px-1 py-6 text-center text-muted">reading my bots…</p>
   if (bots.length === 0) {
@@ -619,7 +656,7 @@ function MineGrid({
   return (
     <BotGrid
       {...grid}
-      bots={(catalog ?? []).filter((bot) => matchesQuery(bot, query))}
+      bots={listed}
       empty={<EmptyState action={clearSearch}>none of my bots matches "{query}".</EmptyState>}
     />
   )

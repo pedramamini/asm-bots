@@ -19,10 +19,12 @@ import {
   fightStatus,
   fits,
   matchesQuery,
+  randomFill,
   replaySources,
   resolveSelection,
   rosterCatalog,
   type SetupBot,
+  sharedCatalog,
   sharedSources,
 } from '../src/features/arena/setup/bots'
 import {
@@ -371,6 +373,38 @@ describe('roster catalog', () => {
 function order(tier: string | undefined): number {
   return ['showcase', 'solid', 'test'].indexOf(tier ?? '')
 }
+
+describe('randomFill', () => {
+  const roster = rosterCatalog()
+  const refs = (list: readonly BotRef[]) => list.map(formatRef)
+
+  it('fills the room with distinct bots, the ones not picked first', () => {
+    const picked: BotRef[] = [{ kind: 'roster', slug: 'dwarf' }]
+    const fill = randomFill(roster, picked, MAX_ARENA_BOTS - 1)
+    expect(fill).toHaveLength(MAX_ARENA_BOTS - 1)
+    expect(new Set(refs(fill)).size).toBe(fill.length)
+    expect(refs(fill)).not.toContain('roster:dwarf')
+  })
+
+  it('repeats bots when the list is smaller than the room', () => {
+    const two = roster.slice(0, 2)
+    const fill = randomFill(two, [], 5)
+    expect(fill).toHaveLength(5)
+    expect(new Set(refs(fill))).toEqual(new Set(refs(two.map((bot) => bot.ref))))
+  })
+
+  it('skips bots that do not assemble, and is empty with no room', () => {
+    const broken = sharedCatalog('x', 'nonsense here', assembleCached)
+    expect(randomFill([broken], [], 4)).toEqual([])
+    expect(randomFill(roster, [], 0)).toEqual([])
+  })
+
+  it('draws from the random source', () => {
+    const a = randomFill(roster, [], 5, () => 0)
+    expect(randomFill(roster, [], 5, () => 0)).toEqual(a)
+    expect(randomFill(roster, [], 5, () => 0.999)).not.toEqual(a)
+  })
+})
 
 describe('resolveSelection', () => {
   it('finds roster bots, and names a repeat Dwarf 2', () => {
