@@ -188,7 +188,8 @@ for (const theme of THEMES) {
       await expectClean(page, 'key help')
       await page.keyboard.press('Escape')
       await page.keyboard.press('ControlOrMeta+k')
-      await expect(page.getByRole('option', { name: /^paper/ })).toBeVisible()
+      // The theme, not the docs' `papers and silk`.
+      await expect(page.getByRole('option', { name: /^paper( \(current\))?$/ })).toBeVisible()
       await expectClean(page, 'command menu')
       await page.keyboard.press('Escape')
       await open(page, '/docs/start-here')

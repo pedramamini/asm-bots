@@ -5,16 +5,14 @@ import {
   BookOpen,
   Bug,
   Compass,
+  Copy,
   Keyboard,
-  Link2,
   LogIn,
   LogOut,
   Palette,
   Settings,
-  Sparkles,
   UserRound,
   Volume2,
-  Wind,
 } from 'lucide-react'
 import { useMemo } from 'react'
 import { useMe } from '../api/queries'
@@ -43,7 +41,8 @@ const KEY_GROUPS: Readonly<Record<string, string>> = { global: 'site' }
  * The `mod+k` menu: everything the site can do from here. The header's routes, the page's own
  * keys (the arena's play and step, the editor's panels) as the keymap holds them, the themes, the
  * settings, every docs page, the account, and the links out. Its own chunk: the frame loads it on
- * the first `mod+k`.
+ * the first `mod+k`. Its icons are ones the site draws already: lucide rides the vendor chunk
+ * every page loads, so a new icon here costs every page.
  */
 export function CommandMenu({ query, onClose }: CommandMenuProps) {
   const router = useRouter()
@@ -94,7 +93,7 @@ export function CommandMenu({ query, onClose }: CommandMenuProps) {
         id: `effect:${effect}`,
         group: 'settings',
         label: `turn ${effect} ${effects[effect] ? 'off' : 'on'}`,
-        icon: Sparkles,
+        icon: Settings,
         keywords: 'arena effects',
         run: () => settings.setEffect(effect, !effects[effect]),
       })),
@@ -102,7 +101,7 @@ export function CommandMenu({ query, onClose }: CommandMenuProps) {
         id: `motion:${preference}`,
         group: 'settings',
         label: `motion: ${preference}`,
-        icon: Wind,
+        icon: Settings,
         keywords: 'reduced animation',
         current: preference === motion,
         run: () => settings.setMotion(preference),
@@ -155,7 +154,7 @@ export function CommandMenu({ query, onClose }: CommandMenuProps) {
         id: 'copy-link',
         group: 'site',
         label: "copy this page's link",
-        icon: Link2,
+        icon: Copy,
         keywords: 'share url',
         run: () => void copyLink(window.location.href, toast, 'link copied.'),
       },
