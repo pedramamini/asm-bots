@@ -35,17 +35,24 @@ export function litCells(word: string, cols: number): boolean[][] {
   )
 }
 
-/** A fixed byte for an unlit cell: mostly the empty core's zeros, now and then something written. */
-function darkByte(row: number, col: number): string {
-  const n = Math.sin(row * 91.7 + col * 13.3) * 43758.5453
-  const r = n - Math.floor(n)
-  return r < 0.72
-    ? '00'
-    : Math.floor(r * 4096)
-        .toString(16)
-        .slice(-2)
-        .toUpperCase()
-        .padStart(2, '0')
+/** Pedram's GitHub bio, https://github.com/pedramamini: what the unlit cells spell for anyone who decodes them. */
+const BIO = 'Repeat cyber security founder, investor, and advisor. Vibing on @RunMaestro.'
+
+/** The bio as bytes, `00` in place of each space and at the end, so the words read as C strings. */
+const BIO_BYTES = [...BIO.replaceAll(' ', '\0'), '\0'].map((char) =>
+  char.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'),
+)
+
+/** Each cell's byte and whether it is lit: the imp's bytes in the letters, the bio in reading order around them. */
+export function bandBytes(word: string, cols: number): { byte: string; on: boolean }[][] {
+  let imp = 0
+  let bio = 0
+  return litCells(word, cols).map((row) =>
+    row.map((on) => ({
+      byte: (on ? IMP[imp++ % IMP.length] : BIO_BYTES[bio++ % BIO_BYTES.length]) ?? '00',
+      on,
+    })),
+  )
 }
 
 export interface HexBandProps {
@@ -60,12 +67,11 @@ export interface HexBandProps {
 
 /**
  * A core dump whose lit bytes spell a word (DESIGN_SYSTEM §10): the imp's `A5 90` copied into
- * the shape of the letters, among the empty core's zeros. SVG text in the tokens, so it follows
+ * the shape of the letters, the dim bytes around them a bio in ASCII. SVG text in the tokens, so it follows
  * the theme with no script; drawing, not content, so hidden from assistive tech.
  */
 export function HexBand({ word, cols = 64, base = 0x0400, className }: HexBandProps) {
-  const lit = litCells(word, cols)
-  let imp = 0
+  const cells = bandBytes(word, cols)
   return (
     <svg
       viewBox={`0 0 ${ADDRESS_WIDTH + cols * BYTE_WIDTH} ${ROWS * ROW_HEIGHT + 4}`}
@@ -73,17 +79,17 @@ export function HexBand({ word, cols = 64, base = 0x0400, className }: HexBandPr
       className={cx('block h-auto w-full font-mono', className)}
       fontSize={10}
     >
-      {lit.map((row, r) => (
+      {cells.map((row, r) => (
         <text key={r} y={(r + 1) * ROW_HEIGHT} className="fill-dim">
           <tspan x={0}>{(base + r * cols).toString(16).toUpperCase().padStart(4, '0')}</tspan>
-          {row.map((on, c) => (
+          {row.map(({ byte, on }, c) => (
             <tspan
               key={c}
               x={ADDRESS_WIDTH + c * BYTE_WIDTH}
               className={on ? 'fill-accent-fg' : undefined}
               fillOpacity={on ? 1 : 0.55}
             >
-              {on ? IMP[imp++ % IMP.length] : darkByte(r, c)}
+              {byte}
             </tspan>
           ))}
         </text>

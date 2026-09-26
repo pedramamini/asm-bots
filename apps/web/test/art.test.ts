@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test'
 import { hasFooter } from '../src/app/Frame'
 import { arenaFloor, bracket, disk, manual, summit, terminal } from '../src/art/banners'
 import { BRIGHT, ditherCells, LIT, OFF, ON, type Scene } from '../src/art/dither'
-import { litCells } from '../src/art/HexBand'
+import { bandBytes, litCells } from '../src/art/HexBand'
 import { tracePoints } from '../src/art/ScopeTrace'
 import {
   chip,
@@ -105,6 +105,24 @@ describe('litCells', () => {
 
   it('lights nothing for a letter it has no glyph for', () => {
     expect(litCells('?', 8).flat().some(Boolean)).toBe(false)
+  })
+})
+
+describe('bandBytes', () => {
+  const cells = bandBytes('ASM BOTS', 64).flat()
+
+  it("fills the letters with the imp's A5 90, in order", () => {
+    const lit = cells.filter((cell) => cell.on).map((cell) => cell.byte)
+    expect(lit.slice(0, 4)).toEqual(['A5', '90', 'A5', '90'])
+  })
+
+  it('spells the bio in the dim bytes, a 00 between words', () => {
+    const text = cells
+      .filter((cell) => !cell.on)
+      .map((cell) => String.fromCharCode(Number.parseInt(cell.byte, 16)))
+      .join('')
+    expect(text.startsWith('Repeat\0cyber\0security\0founder,')).toBe(true)
+    expect(text).toContain('@RunMaestro.\0Repeat\0')
   })
 })
 

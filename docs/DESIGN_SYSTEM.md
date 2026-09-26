@@ -141,7 +141,7 @@ The site's pictures are drawn by code from the machine's own parts, in the theme
 | Dither plate | 1-bit ordered (Bayer 4 × 4) scenes: the accent, `--text-bright` for a flag or a gleam, 3 px cells (2 px on small plates) with a 1 px gap. Scenes: `footer` (the hills, a flag each for `tiny`, `main`, `melee`), `climb`, `trophy`, `chip`; the section banners `summit` (hills), `bracket` (tournaments), `disk` (bots), `arena` (the arena's setup); `terminal` (a profile), `manual` (the docs home). | The footer, the home page, the championship panel, each section's intro, a profile, the docs home |
 | Schematic | Hairline technical drawings of the VM: boxes, a bus, a dimension line, UPPER callouts, a drawing number. | Home `the core`; docs |
 | Scope trace | Bots' process counts as phosphor traces on a graticule, on the arena's black, in the bots' hues. | Home `fight` |
-| Hex band | A core dump whose lit bytes, the imp's `A5 90`, spell a word in a 5 × 7 face among the empty core's zeros. | Home, over the tour |
+| Hex band | A core dump whose lit bytes, the imp's `A5 90`, spell a word in a 5 × 7 face; the dim bytes around them hold Pedram's GitHub bio in ASCII, `00` between words. | Home, over the tour |
 
 Rules:
 
