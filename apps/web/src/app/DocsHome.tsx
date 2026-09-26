@@ -13,6 +13,7 @@ import {
 import { Plate } from '../art/Plate'
 import { DOCS, type DocSection, docEntries } from '../docs'
 import { sectionAnchor, sectionMeta } from '../docs/sections'
+import { DocsAside } from './DocsFrame'
 import { focusRouteSearch } from './keys'
 
 const FOCUS = 'focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent'
@@ -72,13 +73,22 @@ const AGENT_FILES = [
 ] as const
 
 /**
+ * The sections whose card stands in the left column under the sidebar, not in the grid: short
+ * ones a reader looks up rather than reads through.
+ */
+const ASIDE_SECTIONS: ReadonlySet<string> = new Set(['changelog'])
+
+/**
  * `/docs`: the docs home. A short header with the search, four ways in, then a card for each
- * section (its sentence, its first pages, and a link to read it all), and the files for AI agents.
+ * section (its sentence, its first pages, and a link to read it all). The changelog's card and
+ * the files for AI agents stand under the sidebar (`DocsAside`), so the grid's rows stay full.
  * The sidebar lists every page; this page only points the way.
  */
 export function DocsHome({ docs = DOCS }: { docs?: readonly DocSection[] }) {
   const pages = docEntries(docs).length
   const sections = docs.filter(({ pages }) => pages.length > 0)
+  const grid = sections.filter(({ title }) => !ASIDE_SECTIONS.has(title))
+  const aside = sections.filter(({ title }) => ASIDE_SECTIONS.has(title))
   return (
     <section aria-label="docs home" className="flex flex-col gap-3">
       <Panel>
@@ -126,7 +136,7 @@ export function DocsHome({ docs = DOCS }: { docs?: readonly DocSection[] }) {
           sections
         </h2>
         <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {sections.map((section) => (
+          {grid.map((section) => (
             <li key={section.title} className="flex">
               <SectionCard section={section} />
             </li>
@@ -134,7 +144,12 @@ export function DocsHome({ docs = DOCS }: { docs?: readonly DocSection[] }) {
         </ul>
       </section>
 
-      <AgentsRow />
+      <DocsAside>
+        {aside.map((section) => (
+          <SectionCard key={section.title} section={section} />
+        ))}
+        <AgentsPanel />
+      </DocsAside>
     </section>
   )
 }
@@ -214,18 +229,19 @@ function SectionCard({ section }: { section: DocSection }) {
   )
 }
 
-/** One row for an AI agent: the docs as files it reads, the skill, and the page that explains them. */
-function AgentsRow() {
+/** The files an AI agent reads, the skill, and the page that explains them, one to a line. */
+function AgentsPanel() {
   return (
-    <section
-      aria-labelledby="for-agents"
-      className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md border border-border bg-panel px-3 py-2 text-data"
+    <Panel
+      aria-label="for AI agents"
+      title={
+        <span className="flex items-center gap-2">
+          <Bot aria-hidden="true" className="size-3.5 shrink-0" />
+          for AI agents
+        </span>
+      }
     >
-      <h2 id="for-agents" className="flex items-center gap-2 text-panel-title text-accent-fg">
-        <Bot aria-hidden="true" className="size-3.5 shrink-0" />
-        for AI agents
-      </h2>
-      <ul className="flex flex-wrap items-center gap-x-4 gap-y-1">
+      <ul className="flex flex-col gap-1 text-body">
         {AGENT_FILES.map((file) => (
           <li key={file.href}>
             <a href={file.href} className={TEXT_LINK}>
@@ -239,6 +255,6 @@ function AgentsRow() {
           </Link>
         </li>
       </ul>
-    </section>
+    </Panel>
   )
 }
