@@ -115,6 +115,15 @@ export function middleOf(view: Size): Box {
   return { x: view.width / 2, y: view.height / 2, width: 0, height: 0 }
 }
 
+/**
+ * How far a slide of `ms` has gone at frame time `now`, eased out, 0..1. A frame's time can come
+ * before `start` (it is when the frame began): that is 0, not a step backward past the start.
+ */
+export function slideShare(now: number, start: number, ms: number): number {
+  const t = Math.min(1, Math.max(0, (now - start) / ms))
+  return 1 - (1 - t) ** 3
+}
+
 /** The box `t` of the way from `from` to `to` (0 is `from`, 1 is `to`). */
 export function mixBox(from: Box, to: Box, t: number): Box {
   const mix = (a: number, b: number) => a + (b - a) * t

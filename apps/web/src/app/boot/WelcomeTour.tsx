@@ -32,6 +32,7 @@ import {
   placeCard,
   type Size,
   sameBox,
+  slideShare,
 } from './spotlight'
 import { TOUR_STEPS, type TourStep } from './tour-steps'
 
@@ -182,8 +183,8 @@ function useEased(to: Box, slide: boolean): Box {
     const start = performance.now()
     let frame = 0
     const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / SLIDE_MS)
-      at.current = mixBox(from, to, 1 - (1 - t) ** 3)
+      const t = slideShare(now, start, SLIDE_MS)
+      at.current = mixBox(from, to, t)
       setBox(at.current)
       if (t < 1) frame = requestAnimationFrame(tick)
     }

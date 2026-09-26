@@ -10,6 +10,7 @@ import {
   mixBox,
   placeCard,
   sameBox,
+  slideShare,
   VIEW_MARGIN,
 } from '../src/app/boot/spotlight'
 import { TOUR_ARENA_SEARCH, TOUR_STEPS } from '../src/app/boot/tour-steps'
@@ -82,6 +83,23 @@ describe('inView and sameBox', () => {
       sameBox({ x: 1.2, y: 2, width: 3, height: 4 }, { x: 1.4, y: 2, width: 3, height: 4 }),
     ).toBe(true)
     expect(sameBox({ x: 1, y: 2, width: 3, height: 4 }, null)).toBe(false)
+  })
+})
+
+describe('slideShare', () => {
+  it('eases out from 0 to 1, and a frame from before the start is 0, never less', () => {
+    expect(slideShare(100, 100, 200)).toBe(0)
+    expect(slideShare(300, 100, 200)).toBe(1)
+    expect(slideShare(900, 100, 200)).toBe(1)
+    expect(slideShare(200, 100, 200)).toBeCloseTo(0.875, 9)
+    // A frame that began before the slide did: a hole growing from the middle keeps a size >= 0.
+    expect(slideShare(90, 100, 200)).toBe(0)
+    const grown = mixBox(
+      middleOf({ width: 800, height: 600 }),
+      { x: 0, y: 0, width: 80, height: 40 },
+      slideShare(90, 100, 200),
+    )
+    expect(grown.width).toBeGreaterThanOrEqual(0)
   })
 })
 
