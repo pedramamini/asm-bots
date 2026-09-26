@@ -101,7 +101,7 @@ Every code block has `copy` and `open in editor`.
 
 ## 8. Settings `/settings`
 
-Theme (seven swatches, live preview), arena effects (bloom, scanlines, vignette, reduced motion), sound, keyboard map (view), account (GitHub link/unlink, handle), data (export my bots as a zip, delete account).
+Theme (nine swatches, live preview), arena effects (bloom, scanlines, vignette, reduced motion), sound, keyboard map (view), account (GitHub link/unlink, handle), data (export my bots as a zip, delete account).
 
 ## 9. Auth and onboarding
 
@@ -127,5 +127,5 @@ Theme (seven swatches, live preview), arena effects (bloom, scanlines, vignette,
 - Cold load ≤ 250 KB JS gzipped on `/arena` (engine + renderer + shell; editor lazy).
 - Zero console errors on every route in Playwright.
 - Every roster bot assembles, formats idempotently, and has a golden.
-- All seven themes pass the contrast script.
+- All nine themes pass the contrast script.
 - `bun run golden` reproduces identical results in Bun, Chrome, and Miniflare.

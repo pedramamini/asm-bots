@@ -14,7 +14,7 @@ export interface ThemePost {
 }
 
 /**
- * Bloom's strength per theme; scanlines and the vignette on the dark themes, off on paper
+ * Bloom's strength per theme; scanlines and the vignette on the dark themes, off on the light ones
  * (DESIGN_SYSTEM §5).
  */
 export const THEME_POST: Readonly<Record<Theme, ThemePost>> = {
@@ -23,7 +23,9 @@ export const THEME_POST: Readonly<Record<Theme, ThemePost>> = {
   pedurple: { bloom: 1, scanlines: true, vignette: true },
   ice: { bloom: 0.85, scanlines: true, vignette: true },
   'tokyo-night': { bloom: 0.85, scanlines: true, vignette: true },
-  catppuccin: { bloom: 0.85, scanlines: true, vignette: true },
+  dracula: { bloom: 0.85, scanlines: true, vignette: true },
+  nord: { bloom: 0.8, scanlines: true, vignette: true },
+  'catppuccin-latte': { bloom: 0.6, scanlines: false, vignette: false },
   paper: { bloom: 0.6, scanlines: false, vignette: false },
 }
 

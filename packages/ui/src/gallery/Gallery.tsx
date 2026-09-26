@@ -76,7 +76,7 @@ export function Gallery() {
                 ASM BOTS <span className="text-muted">{'// gallery'}</span>
               </>
             }
-            stat="33 primitives · 3 layouts · 7 themes"
+            stat="33 primitives · 3 layouts · 9 themes"
             nav={SECTIONS.map(({ id, label, icon }) => (
               <NavButton key={id} href={`#${id}`} icon={icon}>
                 {label}

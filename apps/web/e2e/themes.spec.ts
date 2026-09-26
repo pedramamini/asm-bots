@@ -1,5 +1,5 @@
 /**
- * The three main routes (`/`, `/arena`, `/editor`) in all seven themes, against the production build
+ * The three main routes (`/`, `/arena`, `/editor`) in all nine themes, against the production build
  * and the seeded e2e Worker (PRODUCT_SPEC §11): each compared with its committed baseline in
  * `e2e/__snapshots__/themes.spec.ts/`, 0.2% of the pixels at most may differ. A first visit, under
  * reduced motion, so the home demo is a still and nothing moves. The main hill's standings and

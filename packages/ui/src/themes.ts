@@ -1,7 +1,7 @@
 import { parseHex } from './color'
 
 /**
- * The seven themes (DESIGN_SYSTEM §2); tokyo-night and catppuccin (Mocha) after Maestro's. tokens.css holds every token of every theme. This module
+ * The nine themes (DESIGN_SYSTEM §2); tokyo-night, dracula, nord, and catppuccin-latte after Maestro's. tokens.css holds every token of every theme. This module
  * holds what code needs without a stylesheet: the names, the switch, and the colors that the arena
  * renderer uploads as a uniform.
  */
@@ -11,7 +11,9 @@ export const THEMES = [
   'pedurple',
   'ice',
   'tokyo-night',
-  'catppuccin',
+  'dracula',
+  'nord',
+  'catppuccin-latte',
   'paper',
 ] as const
 export type Theme = (typeof THEMES)[number]
@@ -54,7 +56,9 @@ export const BOT_HUES: Readonly<Record<Theme, readonly string[]>> = {
   pedurple: HUES,
   ice: HUES,
   'tokyo-night': HUES,
-  catppuccin: HUES,
+  dracula: HUES,
+  nord: HUES,
+  'catppuccin-latte': HUES,
   paper: HUES,
 }
 
@@ -75,7 +79,9 @@ export const ARENA_COLORS: Readonly<Record<Theme, ArenaColors>> = {
   pedurple: arena('#120C1C', '#4A3A6A'),
   ice: arena('#081218', '#2A5A6A'),
   'tokyo-night': arena('#10111A', '#414868'),
-  catppuccin: arena('#0F0F18', '#585B70'),
+  dracula: arena('#14151C', '#44475A'),
+  nord: arena('#1A1E26', '#4C566A'),
+  'catppuccin-latte': arena('#111111', '#666666'),
   paper: arena('#111111', '#666666'),
 }
 

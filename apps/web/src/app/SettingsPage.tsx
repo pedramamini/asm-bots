@@ -98,7 +98,7 @@ function ThemePanel() {
       <div
         role="radiogroup"
         aria-label="theme"
-        className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7"
+        className="grid grid-cols-2 gap-3 sm:grid-cols-5 lg:grid-cols-9"
       >
         {THEMES.map((name) => (
           <ThemeSwatch

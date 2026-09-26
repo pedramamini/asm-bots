@@ -186,7 +186,7 @@ asmbots golden [--update]
 | asm | every roster bot assembles with zero diagnostics; round trip `asm(dis(bytes)) == bytes`; formatter idempotent; lint fixtures |
 | bots | goldens: `(roster matchup, seed) → survivors, cycle of last death, score`; `golden --update` regenerates with a review diff |
 | tourney | bracket shapes for 3..32 entrants; hill insertion/eviction; scoring vs pMARS table |
-| ui | `bun test` in jsdom with Testing Library (the DOM loads in a preload, `packages/ui/test/dom/preload.ts`): each primitive's DOM snapshot, ARIA roles, keyboard and pointer behavior; every class a primitive renders compiles in Tailwind; tokens match DESIGN_SYSTEM §2 and §3; WCAG contrast of the text tokens in all seven themes |
+| ui | `bun test` in jsdom with Testing Library (the DOM loads in a preload, `packages/ui/test/dom/preload.ts`): each primitive's DOM snapshot, ARIA roles, keyboard and pointer behavior; every class a primitive renders compiles in Tailwind; tokens match DESIGN_SYSTEM §2 and §3; WCAG contrast of the text tokens in all nine themes |
 | web | Playwright e2e: load two bots, run to completion, winner overlay visible; editor: type a bot, see lint, step in debugger; theme switch persists |
 | api | Vitest with `@cloudflare/vitest-pool-workers`: auth flow, submit bot, hill run completes, replay fetch |
 | perf | `bench` in CI with a floor (fail under 15 M instr/sec on the CI runner); Lighthouse CI ≥ 95 performance/accessibility/best-practices on `/` and `/arena` |

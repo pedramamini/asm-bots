@@ -23,26 +23,26 @@ describe('check-contrast', () => {
     const lines: string[] = []
     expect(await main({ log: (line) => lines.push(line) })).toBe(0)
     expect(lines[0]).toBe(
-      'Theme        Token           --bg  --panel  --panel-2  --accent-10  --accent-25  --accent-45  Floor',
+      'Theme             Token           --bg  --panel  --panel-2  --accent-10  --accent-25  --accent-45  Floor',
     )
-    expect(lines.slice(1, 71)).toHaveLength(70)
+    expect(lines.slice(1, 91)).toHaveLength(90)
     expect(lines).toContain(
-      'sentinel     --text          9.71     8.93       9.38         7.13            -            -    4.5  ok',
-    )
-    expect(lines).toContain(
-      'pedurple     --accent-fg     6.36     5.97       6.16         5.48         4.57            -    4.5  ok',
+      'sentinel          --text          9.71     8.93       9.38         7.13            -            -    4.5  ok',
     )
     expect(lines).toContain(
-      'paper        --text-dim      2.30     2.59       2.18            -            -            -      -',
+      'pedurple          --accent-fg     6.36     5.97       6.16         5.48         4.57            -    4.5  ok',
+    )
+    expect(lines).toContain(
+      'paper             --text-dim      2.30     2.59       2.18            -            -            -      -',
     )
     expect(lines.at(-1)).toBe(
-      'contrast: all 63 checks meet their floor in packages/ui/src/tokens.css.',
+      'contrast: all 81 checks meet their floor in packages/ui/src/tokens.css.',
     )
   })
 
   it('measures each token on the three surfaces and on its fills, against its floor', () => {
     const rows = measure(CSS)
-    expect(rows).toHaveLength(70)
+    expect(rows).toHaveLength(90)
     expect(SURFACES).toEqual(['--bg', '--panel', '--panel-2'])
     expect(FILLS).toEqual([10, 25, 45])
     expect(Object.fromEntries(CHECKS.map((c) => [c.token, [c.floor, c.fills]]))).toEqual({
@@ -68,7 +68,7 @@ describe('check-contrast', () => {
     )
     expect(code).toBe(1)
     expect(lines).toContain(
-      'pedurple     --text-muted    4.20     3.94       4.07         3.62            -            -    4.5  FAIL',
+      'pedurple          --text-muted    4.20     3.94       4.07         3.62            -            -    4.5  FAIL',
     )
     expect(lines.at(-1)).toBe(
       'contrast: pedurple --text-muted is 3.62:1 on --accent-10 over --panel, under its floor of 4.5:1.',
@@ -107,7 +107,7 @@ describe('check-contrast', () => {
     )
     expect(code).toBe(1)
     expect(lines).toContain(
-      'paper        --text-bright   4.52     5.09       4.28         3.76         3.06         2.27    4.5  FAIL',
+      'paper             --text-bright   4.52     5.09       4.28         3.76         3.06         2.27    4.5  FAIL',
     )
     expect(lines.at(-1)).toBe(
       'contrast: paper --text-bright is 2.27:1 on --accent-45 over --panel-2, under its floor of 4.5:1.',

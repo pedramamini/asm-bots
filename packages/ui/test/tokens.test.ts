@@ -91,7 +91,8 @@ describe('tokens.css', () => {
     for (const theme of THEMES) {
       const block = CSS.slice(CSS.indexOf(`:root[data-theme="${theme}"]`))
       const scheme = /color-scheme:\s*(\w+)/.exec(block)?.[1]
-      expect({ theme, scheme }).toEqual({ theme, scheme: theme === 'paper' ? 'light' : 'dark' })
+      const light = theme === 'paper' || theme === 'catppuccin-latte'
+      expect({ theme, scheme }).toEqual({ theme, scheme: light ? 'light' : 'dark' })
     }
   })
 

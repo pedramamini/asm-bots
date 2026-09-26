@@ -60,14 +60,16 @@ function browser({ stored, light = false, blocked = false }: BrowserOptions = {}
 }
 
 describe('THEMES', () => {
-  it('lists the seven themes, sentinel first and paper last', () => {
+  it('lists the nine themes, sentinel first and paper last', () => {
     expect([...THEMES]).toEqual([
       'sentinel',
       'amber',
       'pedurple',
       'ice',
       'tokyo-night',
-      'catppuccin',
+      'dracula',
+      'nord',
+      'catppuccin-latte',
       'paper',
     ])
     expect([DEFAULT_THEME, LIGHT_THEME]).toEqual(['sentinel', 'paper'])
