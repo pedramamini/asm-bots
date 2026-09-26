@@ -94,7 +94,7 @@ describe('armBoot', () => {
 })
 
 describe('the boot screen', () => {
-  it('shows the logo, the boot log, and `take tour` with the focus, over an inert page', async () => {
+  it('shows the logo, the boot log, and `enter site` with the focus, over an inert page', async () => {
     useBoot.setState({ phase: 'boot' })
     await open()
     const boot = screen.getByRole('dialog', { name: 'asm bots' })
@@ -102,9 +102,9 @@ describe('the boot screen', () => {
     const log = within(boot).getByRole('list', { name: 'boot log' })
     expect(within(log).getAllByRole('listitem')).toHaveLength(BOOT_LOG.length)
     expect(log.textContent).toContain('zeroing core')
-    const tour = within(boot).getByRole('button', { name: 'take tour' })
-    expect(document.activeElement).toBe(tour)
-    expect(within(boot).getByRole('button', { name: 'enter site' })).toBeTruthy()
+    const enter = within(boot).getByRole('button', { name: 'enter site' })
+    expect(document.activeElement).toBe(enter)
+    expect(within(boot).getByRole('button', { name: 'take tour' })).toBeTruthy()
   })
 
   it('first visit: `take tour` opens the tour, which walks the site and ends on the first battle', async () => {

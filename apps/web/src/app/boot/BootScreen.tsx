@@ -28,11 +28,11 @@ export const BOOT_LOG: readonly { label: string; value: string; at: number }[] =
 /**
  * The boot screen: the logo and the boot log on a panel in the middle of a core dump that boots
  * behind it (`core-dump.ts`). A modal dialog, so the page under it is inert until the user goes in.
- * Every load gets `take tour` (with the focus, so Enter takes it) beside `enter site` (Escape).
+ * Every load gets `take tour` beside `enter site` (with the focus, so Enter takes it; Escape too).
  */
 export function BootScreen() {
   const dialog = useRef<HTMLDialogElement>(null)
-  const tourButton = useRef<HTMLButtonElement>(null)
+  const enterButton = useRef<HTMLButtonElement>(null)
   const reduced = useMotionReduced()
   const openTour = useBoot((state) => state.openTour)
   const skip = useBoot((state) => state.skip)
@@ -44,7 +44,7 @@ export function BootScreen() {
     if (node === null) return
     if (typeof node.showModal === 'function') node.showModal()
     else node.setAttribute('open', '')
-    tourButton.current?.focus()
+    enterButton.current?.focus()
     return () => {
       if (node.open && typeof node.close === 'function') node.close()
     }
@@ -112,18 +112,18 @@ export function BootScreen() {
             </li>
           ))}
         </ol>
-        {/* Two equal halves: the tour (which has the focus) and straight in. */}
+        {/* Two equal halves: the tour and straight in (which has the focus). */}
         <div className="grid grid-cols-2 gap-2">
-          <Button
-            ref={tourButton}
-            variant="primary"
-            icon={Compass}
-            className="justify-center"
-            onClick={() => leave(openTour)}
-          >
+          <Button icon={Compass} className="justify-center" onClick={() => leave(openTour)}>
             take tour
           </Button>
-          <Button icon={CornerDownLeft} className="justify-center" onClick={() => leave(skip)}>
+          <Button
+            ref={enterButton}
+            variant="primary"
+            icon={CornerDownLeft}
+            className="justify-center"
+            onClick={() => leave(skip)}
+          >
             enter site
           </Button>
         </div>

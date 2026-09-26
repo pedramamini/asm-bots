@@ -168,7 +168,7 @@ for (const theme of THEMES) {
         )
         .toBe(true)
       await expectClean(page, 'boot screen')
-      await page.keyboard.press('Enter')
+      await boot.getByRole('button', { name: 'take tour' }).click()
       const tour = page.getByRole('dialog', { name: 'the tour' })
       const card = tour.getByRole('region')
       const steps = 19

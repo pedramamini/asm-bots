@@ -84,9 +84,9 @@ test('a first visit: the core boots, and take tour walks every page to the first
   await expect(boot).toBeVisible()
   // The URL drops the ask, so a reload does not ask again.
   await expect(page).toHaveURL(/\/$/)
-  await expect(boot.getByRole('button', { name: 'take tour' })).toBeFocused()
+  await expect(boot.getByRole('button', { name: 'enter site' })).toBeFocused()
   await expect(boot.getByRole('list', { name: 'boot log' })).toContainText('live')
-  await expect(boot.getByRole('button', { name: 'enter site' })).toBeVisible()
+  await expect(boot.getByRole('button', { name: 'take tour' })).toBeVisible()
   // The dump behind the panel draws, and keeps drawing: the bots run.
   await expect.poll(() => litPixels(page)).toBeGreaterThan(2_000)
   const before = await page.locator('[data-boot] canvas').screenshot()
@@ -94,7 +94,7 @@ test('a first visit: the core boots, and take tour walks every page to the first
   const after = await page.locator('[data-boot] canvas').screenshot()
   expect(after.equals(before)).toBe(false)
 
-  await page.keyboard.press('Enter')
+  await boot.getByRole('button', { name: 'take tour' }).click()
   await expect(boot).toBeHidden()
   const tour = page.getByRole('dialog', { name: 'the tour' })
   await expect(tour).toContainText(`1 / ${STEPS.length} · welcome`)
@@ -136,15 +136,18 @@ test('a first visit: the core boots, and take tour walks every page to the first
   expect(errors).toEqual([])
 })
 
-test('enter site: in at once, and the next load boots with the same choice', async ({ page }) => {
+test('enter site: Enter goes in at once, and the next load boots with the same choice', async ({
+  page,
+}) => {
   await page.goto('/?boot=1')
   const boot = page.getByRole('dialog', { name: 'asm bots' })
-  await boot.getByRole('button', { name: 'enter site' }).click()
+  await expect(boot.getByRole('button', { name: 'enter site' })).toBeFocused()
+  await page.keyboard.press('Enter')
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page.getByRole('heading', { level: 1, name: 'ASM BOTS' })).toBeVisible()
 
   await page.goto('/?boot=1')
-  await expect(boot.getByRole('button', { name: 'take tour' })).toBeFocused()
+  await expect(boot.getByRole('button', { name: 'enter site' })).toBeFocused()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog')).toHaveCount(0)
 
