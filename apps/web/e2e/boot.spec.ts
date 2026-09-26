@@ -42,14 +42,20 @@ const STEPS: readonly (readonly [id: string, lit: boolean])[] = [
 /** Whether the tour's hole, where it ends its slide, has its middle on the part the step lights. */
 function holeOnTarget(page: Page): Promise<boolean> {
   return page.evaluate(() => {
-    const ring = document.querySelector<HTMLElement>('[data-tour-hole]')
+    const to = document.querySelector('[data-tour-hole]')?.getAttribute('data-to')
     const selector = document.querySelector('[data-tour-target]')?.getAttribute('data-tour-target')
     const target = selector ? document.querySelector(selector)?.getBoundingClientRect() : undefined
-    if (!ring || !target) return false
-    const x = Number.parseFloat(ring.style.left) + Number.parseFloat(ring.style.width) / 2
-    const y = Number.parseFloat(ring.style.top) + Number.parseFloat(ring.style.height) / 2
+    if (!to || !target) return false
+    const [left = 0, top = 0, width = 0, height = 0] = to.split(' ').map(Number)
+    const x = left + width / 2
+    const y = top + height / 2
     return x >= target.left && x <= target.right && y >= target.top && y <= target.bottom
   })
+}
+
+/** The nav link of the page the browser is on: its label. */
+function currentPage(page: Page): Promise<string> {
+  return page.locator('header nav[aria-label="primary"] [aria-current="page"]').innerText()
 }
 
 /** The pixels of the boot's core dump brighter than its black: what it has drawn. */
@@ -98,6 +104,12 @@ test('a first visit: the core boots, and take tour walks every page to the first
     await expect(tour).toContainText(`${index + 1} / ${STEPS.length}`)
     await expect(page.locator('[data-tour-hole]'), id).toHaveCount(lit ? 1 : 0)
     if (lit) await expect.poll(() => holeOnTarget(page), { message: id }).toBe(true)
+    // The nav is never dimmed, and a ring marks the page the tour stands on.
+    await expect(page.locator('[data-tour-page]'), id).toHaveCount(1)
+    const here = await currentPage(page)
+    await expect(page.locator('[data-tour-page-label]'), id).toHaveText(`on the page: ${here}`, {
+      ignoreCase: true,
+    })
     if (id === 'arena-roster') await expect(page).toHaveURL(/\/arena\?/)
     if (id === 'arena-core') await expect(page.locator('[data-tour="arena-core"]')).toBeVisible()
     if (id === 'editor-source') await expect(page).toHaveURL(/\/editor/)

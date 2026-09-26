@@ -6,6 +6,8 @@ import {
   HOLE_PAD,
   holeFor,
   inView,
+  middleOf,
+  mixBox,
   placeCard,
   sameBox,
   VIEW_MARGIN,
@@ -76,10 +78,21 @@ describe('inView and sameBox', () => {
     expect(inView({ x: 10, y: 10, width: 100, height: 100 }, VIEW)).toBe(true)
     expect(inView({ x: 10, y: 750, width: 100, height: 100 }, VIEW)).toBe(false)
     expect(sameBox(null, null)).toBe(true)
-    expect(sameBox({ x: 1.2, y: 2, width: 3, height: 4 }, { x: 1.4, y: 2, width: 3, height: 4 })).toBe(
-      true,
-    )
+    expect(
+      sameBox({ x: 1.2, y: 2, width: 3, height: 4 }, { x: 1.4, y: 2, width: 3, height: 4 }),
+    ).toBe(true)
     expect(sameBox({ x: 1, y: 2, width: 3, height: 4 }, null)).toBe(false)
+  })
+})
+
+describe('mixBox and middleOf', () => {
+  it('eases a hole from one box to the next, and closes to the middle', () => {
+    const a = { x: 0, y: 0, width: 100, height: 40 }
+    const b = { x: 200, y: 100, width: 50, height: 20 }
+    expect(mixBox(a, b, 0)).toEqual(a)
+    expect(mixBox(a, b, 1)).toEqual(b)
+    expect(mixBox(a, b, 0.5)).toEqual({ x: 100, y: 50, width: 75, height: 30 })
+    expect(middleOf(VIEW)).toEqual({ x: 600, y: 400, width: 0, height: 0 })
   })
 })
 

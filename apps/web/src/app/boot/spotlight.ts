@@ -109,3 +109,19 @@ export function placeCard(
   }
   return { x: alongX, y: clamp(maxY, VIEW_MARGIN, maxY), side: 'inside' }
 }
+
+/** The point in the middle of the view: where the hole closes to on a step that lights nothing. */
+export function middleOf(view: Size): Box {
+  return { x: view.width / 2, y: view.height / 2, width: 0, height: 0 }
+}
+
+/** The box `t` of the way from `from` to `to` (0 is `from`, 1 is `to`). */
+export function mixBox(from: Box, to: Box, t: number): Box {
+  const mix = (a: number, b: number) => a + (b - a) * t
+  return {
+    x: mix(from.x, to.x),
+    y: mix(from.y, to.y),
+    width: mix(from.width, to.width),
+    height: mix(from.height, to.height),
+  }
+}

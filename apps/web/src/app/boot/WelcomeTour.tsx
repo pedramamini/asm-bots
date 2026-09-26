@@ -2,7 +2,8 @@
  * The welcome tour (PRODUCT_SPEC §9): the boot screen's `take tour`, or the home page's `take the
  * tour`. It walks the whole site (`tour-steps.tsx`). Each step goes to its page, dims all of it,
  * cuts a hole around one part, and puts a card beside the hole that says what the part is for; the
- * hole slides from one part to the next. Enter or `next` goes on, the arrows and `back` walk the
+ * hole slides from one part to the next. The header's nav stays out of the dim the whole way, its
+ * current page ringed, so the user always sees where the tour stands. Enter or `next` goes on, the arrows and `back` walk the
  * steps, Escape and `skip the tour` leave. The last step leaves the whole page in view, or starts
  * the arena's guided first battle.
  */
@@ -13,13 +14,25 @@ import {
   type KeyboardEvent,
   type RefObject,
   useEffect,
+  useId,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react'
 import { ARENA_TOUR, useMotionReduced, useSettings } from '../../store/settings'
+import { NAV } from '../Frame'
 import { useBoot } from './boot'
-import { type Box, holeFor, inView, placeCard, type Size, sameBox } from './spotlight'
+import {
+  type Box,
+  holeFor,
+  inView,
+  middleOf,
+  mixBox,
+  placeCard,
+  type Size,
+  sameBox,
+} from './spotlight'
 import { TOUR_STEPS, type TourStep } from './tour-steps'
 
 /** How long a step looks for its target before its card goes to the middle, ms. */
@@ -31,8 +44,17 @@ const OPEN_EVERY_MS = 300
 /** How long the hole slides from one part to the next, ms; after that it follows its part. */
 const SLIDE_MS = 300
 
-/** The dim over everything but the hole. */
+/** The dim over everything but the holes. */
 const DIM = 'rgb(0 0 0 / 0.72)'
+
+/** The header's nav: never dimmed while the tour runs. */
+const NAV_SELECTOR = 'header nav[aria-label="primary"]'
+
+/** The nav's link to the page the tour stands on. */
+const CURRENT_SELECTOR = `${NAV_SELECTOR} [aria-current="page"]`
+
+/** Room between a nav link and its ring, px. */
+const CURRENT_PAD = 3
 
 /** Where a step stands: which step, its hole (none: the middle), and whether it has looked. */
 interface Spot {
@@ -53,7 +75,9 @@ function useSpot(step: TourStep, reduced: boolean): Spot | null {
   const [spot, setSpot] = useState<Spot | null>(null)
   useEffect(() => {
     const show = (hole: Box | null) =>
-      setSpot((was) => (was?.id === step.id && sameBox(was.hole, hole) ? was : { id: step.id, hole }))
+      setSpot((was) =>
+        was?.id === step.id && sameBox(was.hole, hole) ? was : { id: step.id, hole },
+      )
     if (router.state.location.pathname !== step.path) {
       const { path: to, search } = step
       void router.navigate(search === undefined ? { to } : { to, search })
@@ -74,7 +98,8 @@ function useSpot(step: TourStep, reduced: boolean): Spot | null {
       if (target === null || !target.isConnected) {
         target = here ? document.querySelector(selector) : null
         if (target === null) {
-          const open = step.open === undefined ? null : document.querySelector<HTMLElement>(step.open)
+          const open =
+            step.open === undefined ? null : document.querySelector<HTMLElement>(step.open)
           if (here && open !== null && now - pressed > OPEN_EVERY_MS) {
             open.click()
             pressed = now
@@ -100,6 +125,62 @@ function useSpot(step: TourStep, reduced: boolean): Spot | null {
     return () => cancelAnimationFrame(frame)
   }, [step, router, reduced])
   return spot?.id === step.id ? spot : null
+}
+
+/**
+ * The box of what `selector` finds, with `pad` px around it, every frame (null while it finds
+ * nothing): the nav and its current link follow the page as it lays out.
+ */
+function useLiveBox(selector: string, pad: number): Box | null {
+  const [box, setBox] = useState<Box | null>(null)
+  useEffect(() => {
+    let frame = 0
+    const tick = () => {
+      frame = requestAnimationFrame(tick)
+      const rect = document.querySelector(selector)?.getBoundingClientRect()
+      const next =
+        rect === undefined || rect.width <= 0
+          ? null
+          : {
+              x: rect.x - pad,
+              y: rect.y - pad,
+              width: rect.width + 2 * pad,
+              height: rect.height + 2 * pad,
+            }
+      setBox((was) => (sameBox(was, next) ? was : next))
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+  }, [selector, pad])
+  return box
+}
+
+/**
+ * `to`, eased in from where it was over `SLIDE_MS` while `slide` holds; else `to` at once, so a
+ * hole that has found its part follows it with no lag.
+ */
+function useEased(to: Box, slide: boolean): Box {
+  const [box, setBox] = useState(to)
+  const at = useRef(to)
+  useEffect(() => {
+    if (!slide) {
+      at.current = to
+      setBox(to)
+      return
+    }
+    const from = at.current
+    const start = performance.now()
+    let frame = 0
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / SLIDE_MS)
+      at.current = mixBox(from, to, 1 - (1 - t) ** 3)
+      setBox(at.current)
+      if (t < 1) frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+  }, [to, slide])
+  return box
 }
 
 /**
@@ -169,6 +250,12 @@ export function WelcomeTour() {
   const hole = held.current
   const place = placeCard(hole, size, view)
   const sliding = useSliding(spot?.id ?? null)
+  const middle = useMemo(() => middleOf(view), [view])
+  const shown = useEased(hole ?? middle, sliding && !reduced)
+  const nav = useLiveBox(NAV_SELECTOR, 0)
+  const current = useLiveBox(CURRENT_SELECTOR, CURRENT_PAD)
+  const mask = useId()
+  const page = NAV.find(({ to }) => to === step.path)
 
   useLayoutEffect(() => {
     const node = dialog.current
@@ -207,7 +294,6 @@ export function WelcomeTour() {
     event.preventDefault()
   }
 
-  const ring = hole === null ? `0 0 0 200vmax ${DIM}` : `0 0 0 2px var(--accent), 0 0 0 200vmax ${DIM}`
   return (
     <dialog
       ref={dialog}
@@ -223,23 +309,48 @@ export function WelcomeTour() {
       onKeyDown={onKeyDown}
       className="fixed inset-0 z-modal m-0 size-full max-h-none max-w-none overflow-hidden border-0 bg-transparent p-0 text-body text-text backdrop:bg-transparent"
     >
-      {/* The hole: its shadow is the dim over the rest of the window, and it slides from one part
-          to the next. With no part, it closes to a point in the middle: the whole page dims. */}
-      <div
-        aria-hidden="true"
-        data-tour-hole={hole === null ? undefined : ''}
-        className={cx(
-          'pointer-events-none fixed rounded-md',
-          sliding && !reduced && 'transition-[left,top,width,height,box-shadow] ease-out',
+      {/* The dim, with two holes: the step's part, which slides from one part to the next (with
+          no part it closes to a point in the middle), and the header's nav, which never dims. The
+          step's part gets the accent ring; the nav's current page, a ring of its own. */}
+      <svg aria-hidden="true" className="pointer-events-none fixed inset-0 size-full">
+        <defs>
+          <mask id={mask}>
+            <rect width="100%" height="100%" fill="white" />
+            {nav !== null && (
+              <rect x={nav.x} y={nav.y} width={nav.width} height={nav.height} rx={6} />
+            )}
+            <rect x={shown.x} y={shown.y} width={shown.width} height={shown.height} rx={6} />
+          </mask>
+        </defs>
+        <rect width="100%" height="100%" fill={DIM} mask={`url(#${mask})`} />
+        {hole !== null && (
+          <rect
+            data-tour-hole=""
+            data-to={`${hole.x} ${hole.y} ${hole.width} ${hole.height}`}
+            x={shown.x}
+            y={shown.y}
+            width={shown.width}
+            height={shown.height}
+            rx={6}
+            fill="none"
+            stroke="var(--accent)"
+            strokeWidth={2}
+          />
         )}
-        style={{
-          transitionDuration: `${SLIDE_MS}ms`,
-          boxShadow: ring,
-          ...(hole === null
-            ? { left: view.width / 2, top: view.height / 2, width: 0, height: 0 }
-            : { left: hole.x, top: hole.y, width: hole.width, height: hole.height }),
-        }}
-      />
+        {current !== null && (
+          <rect
+            data-tour-page=""
+            x={current.x}
+            y={current.y}
+            width={current.width}
+            height={current.height}
+            rx={4}
+            fill="none"
+            stroke="var(--accent)"
+            strokeWidth={2}
+          />
+        )}
+      </svg>
       <section
         ref={card}
         aria-labelledby="tour-title"
@@ -251,9 +362,26 @@ export function WelcomeTour() {
         style={{ left: place.x, top: place.y }}
       >
         <div className="flex flex-col gap-2">
-          <p id="tour-title" aria-live="polite" className="text-panel-title text-accent-fg">
-            {index + 1} / {TOUR_STEPS.length} · {step.title}
-          </p>
+          <div className="flex items-baseline gap-3">
+            <p id="tour-title" aria-live="polite" className="text-panel-title text-accent-fg">
+              {index + 1} / {TOUR_STEPS.length} · {step.title}
+            </p>
+            {page !== undefined && (
+              <p
+                data-tour-page-label=""
+                className="ml-auto flex shrink-0 items-center gap-1 text-panel-status text-muted"
+              >
+                <page.icon
+                  aria-hidden="true"
+                  size={12}
+                  strokeWidth={1.75}
+                  className="text-accent"
+                />
+                <span className="sr-only">on the page: </span>
+                {page.label}
+              </p>
+            )}
+          </div>
           <div aria-hidden="true" className="h-0.5 overflow-hidden rounded-full bg-border-strong">
             <div
               className={cx('h-full bg-accent', !reduced && 'transition-[width] duration-300')}
