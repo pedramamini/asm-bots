@@ -53,7 +53,7 @@ export function Transport({
   const setSpeed = (next: number) => client.speed(next)
 
   return (
-    <div className="flex h-6 shrink-0 items-center gap-2">
+    <div className="flex h-6 shrink-0 items-center gap-2" data-tour="arena-transport">
       <IconButton
         icon={StepBack}
         label="step back"

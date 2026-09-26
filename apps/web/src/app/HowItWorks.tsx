@@ -197,7 +197,12 @@ const CONCEPTS: readonly Concept[] = [
 export function HowItWorks() {
   const openTour = useBoot((state) => state.openTour)
   return (
-    <Panel className="col-span-12" title="how it works" status="core war, in 8086">
+    <Panel
+      className="col-span-12"
+      title="how it works"
+      status="core war, in 8086"
+      data-tour="how-it-works"
+    >
       <ol className="flex flex-col">
         {CONCEPTS.map((concept, index) => (
           <li

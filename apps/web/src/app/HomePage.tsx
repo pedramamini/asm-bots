@@ -186,6 +186,7 @@ function MainHill() {
     <Panel
       className="col-span-12 xl:col-span-6"
       title="main hill"
+      data-tour="home-hill"
       status={readStatus(data, error, (d) => `${d.standings.length} of ${d.hill.size}`)}
     >
       {error !== null && data === undefined ? (

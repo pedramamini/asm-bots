@@ -91,6 +91,7 @@ export function DocsFrame({
         )}
         title="docs"
         status={`${docEntries(docs).length} pages`}
+        data-tour="docs-nav"
         dense
       >
         <DocsSidebar docs={docs} loadIndex={loadIndex} />

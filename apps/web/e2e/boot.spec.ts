@@ -1,7 +1,7 @@
 /**
  * The boot screen and the welcome tour in Chromium, against the production build (PRODUCT_SPEC
- * §9): opening `/` boots the core behind the logo, `enter` opens the tour on a first visit, and
- * the tour's last step starts the arena's guided first battle. A browser a script drives skips
+ * §9): opening `/` boots the core behind the logo, `take tour` walks the whole site with a
+ * spotlight on each part, and the tour's last step starts the arena's guided first battle. A browser a script drives skips
  * the boot unless the URL asks (`?boot=1`), so every other spec opens `/` as it always has.
  */
 import { expect, type Page, test } from '@playwright/test'
@@ -14,6 +14,42 @@ function watch(page: Page): string[] {
     if (message.type() === 'error') errors.push(message.text())
   })
   return errors
+}
+
+/** The tour's steps, in order, and whether each lights a part of its page (`tour-steps.tsx`). */
+const STEPS: readonly (readonly [id: string, lit: boolean])[] = [
+  ['welcome', false],
+  ['nav', true],
+  ['header-tools', true],
+  ['site', true],
+  ['how-it-works', true],
+  ['home-hill', true],
+  ['arena-roster', true],
+  ['arena-config', true],
+  ['arena-fight', true],
+  ['arena-core', true],
+  ['arena-transport', true],
+  ['arena-bots', true],
+  ['arena-events', true],
+  ['editor-source', true],
+  ['editor-tools', true],
+  ['tournaments', true],
+  ['hills', true],
+  ['docs', true],
+  ['done', false],
+]
+
+/** Whether the tour's hole, where it ends its slide, has its middle on the part the step lights. */
+function holeOnTarget(page: Page): Promise<boolean> {
+  return page.evaluate(() => {
+    const ring = document.querySelector<HTMLElement>('[data-tour-hole]')
+    const selector = document.querySelector('[data-tour-target]')?.getAttribute('data-tour-target')
+    const target = selector ? document.querySelector(selector)?.getBoundingClientRect() : undefined
+    if (!ring || !target) return false
+    const x = Number.parseFloat(ring.style.left) + Number.parseFloat(ring.style.width) / 2
+    const y = Number.parseFloat(ring.style.top) + Number.parseFloat(ring.style.height) / 2
+    return x >= target.left && x <= target.right && y >= target.top && y <= target.bottom
+  })
 }
 
 /** The pixels of the boot's core dump brighter than its black: what it has drawn. */
@@ -31,7 +67,7 @@ function litPixels(page: Page): Promise<number> {
   })
 }
 
-test('a first visit: the core boots, take tour opens the tour, and the tour starts the first battle', async ({
+test('a first visit: the core boots, and take tour walks every page to the first battle', async ({
   page,
 }) => {
   const errors = watch(page)
@@ -53,11 +89,23 @@ test('a first visit: the core boots, take tour opens the tour, and the tour star
   await page.keyboard.press('Enter')
   await expect(boot).toBeHidden()
   const tour = page.getByRole('dialog', { name: 'the tour' })
-  await expect(tour).toContainText('1 / 6 · the core')
-  await tour.getByRole('button', { name: 'next' }).click()
-  await expect(tour).toContainText('2 / 6 · a bot is a program')
-  for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowRight')
-  await expect(tour).toContainText('6 / 6 · where everything is')
+  await expect(tour).toContainText(`1 / ${STEPS.length} · welcome`)
+  // Enter walks every step: each goes to its page, and a lit step's hole finds its part there.
+  for (const [index, [id, lit]] of STEPS.entries()) {
+    await expect(tour).toHaveAttribute('data-tour-step', id)
+    await expect(tour).toContainText(`${index + 1} / ${STEPS.length}`)
+    await expect(page.locator('[data-tour-hole]'), id).toHaveCount(lit ? 1 : 0)
+    if (lit) await expect.poll(() => holeOnTarget(page), { message: id }).toBe(true)
+    if (id === 'arena-roster') await expect(page).toHaveURL(/\/arena\?/)
+    if (id === 'arena-core') await expect(page.locator('[data-tour="arena-core"]')).toBeVisible()
+    if (id === 'editor-source') await expect(page).toHaveURL(/\/editor/)
+    if (id === 'docs') await expect(page).toHaveURL(/\/docs/)
+    if (index < STEPS.length - 1) {
+      await expect(tour.getByRole('button', { name: 'next' })).toBeFocused()
+      await page.keyboard.press('Enter')
+    }
+  }
+  await expect(page).toHaveURL(/\/$/)
   await expect(tour.getByRole('list', { name: 'the pages' }).getByRole('listitem')).toHaveCount(6)
   await tour.getByRole('button', { name: 'watch the first battle' }).click()
 
@@ -92,7 +140,7 @@ test('enter site: in at once, and the next load boots with the same choice', asy
     .getByRole('button', { name: 'take the tour' })
     .click()
   const tour = page.getByRole('dialog', { name: 'the tour' })
-  await expect(tour).toContainText('1 / 6')
+  await expect(tour).toContainText(`1 / ${STEPS.length}`)
   await tour.getByRole('button', { name: 'skip the tour' }).click()
   await expect(tour).toBeHidden()
 })

@@ -300,6 +300,7 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight, tour }: ArenaS
         />
         <Panel
           className="col-span-12 lg:col-span-8"
+          data-tour="arena-roster"
           title={SOURCES.find((s) => s.value === source)?.label}
           status={source === 'roster' ? `${rosterCatalog().length} bots` : undefined}
           actions={
@@ -386,7 +387,10 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight, tour }: ArenaS
             </div>
           </div>
         </Panel>
-        <div className="col-span-12 flex min-w-0 flex-col gap-3 lg:col-span-4">
+        <div
+          className="col-span-12 flex min-w-0 flex-col gap-3 lg:col-span-4"
+          data-tour="arena-config"
+        >
           <Panel title="bots" status={`${selection.length} / ${MAX_ARENA_BOTS}`}>
             <Selection
               selection={selection}
@@ -407,7 +411,7 @@ export function ArenaSetup({ spec, onSpecChange, shared, onFight, tour }: ArenaS
               }
             />
           </Panel>
-          <div className="relative flex items-center gap-2">
+          <div className="relative flex items-center gap-2" data-tour="arena-fight">
             {tour !== undefined && tourStep === 'fight' && <FightStep onDismiss={tour.onDismiss} />}
             <Button
               name="fight"

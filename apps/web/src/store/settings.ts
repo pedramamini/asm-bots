@@ -10,6 +10,7 @@ import {
 } from '@asmbots/ui/themes'
 import { useCallback } from 'react'
 import { create } from 'zustand'
+import { useBoot } from '../app/boot/boot'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 
 /** The localStorage key of the persisted settings (the theme keeps its own: `THEME_STORAGE_KEY`). */
@@ -253,10 +254,12 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * A first-visit coach mark (PRODUCT_SPEC §9) by id (`arena`, `editor`): open until the user
- * dismisses it, then never again.
+ * dismisses it, then never again. It stays shut while the welcome tour walks the page.
  */
 export function useCoachMark(id: string): { open: boolean; dismiss: () => void } {
-  const open = useSettings((state) => !state.coachMarksSeen.includes(id))
+  const unseen = useSettings((state) => !state.coachMarksSeen.includes(id))
+  const touring = useBoot((state) => state.phase === 'tour')
+  const open = unseen && !touring
   const markCoachSeen = useSettings((state) => state.markCoachSeen)
   const dismiss = useCallback(() => markCoachSeen(id), [markCoachSeen, id])
   return { open, dismiss }

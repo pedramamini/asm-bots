@@ -95,6 +95,7 @@ export function EventsPanel({ client, log, filter, onFilter, coach, className }:
       dense
       className={className}
       title="events"
+      data-tour="arena-events"
       actions={
         <Segmented label="events shown" options={FILTERS} value={filter} onValueChange={onFilter} />
       }

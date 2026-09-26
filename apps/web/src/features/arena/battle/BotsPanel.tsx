@@ -136,6 +136,7 @@ export function BotsPanel({ client, log, isolated, onIsolate, className }: BotsP
       dense
       className={className}
       title="bots"
+      data-tour="arena-bots"
       status={`${count(alive)} alive${dead > 0 ? ` · ${count(dead)} dead` : ''}`}
     >
       <Table

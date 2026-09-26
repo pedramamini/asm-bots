@@ -168,8 +168,12 @@ for (const theme of THEMES) {
       await expectClean(page, 'boot screen')
       await page.keyboard.press('Enter')
       const tour = page.getByRole('dialog', { name: 'the tour' })
-      for (let step = 1; step <= 6; step++) {
-        await expect(tour).toContainText(`${step} / 6`)
+      const card = tour.getByRole('region')
+      const steps = 19
+      for (let step = 1; step <= steps; step++) {
+        await expect(tour).toContainText(`${step} / ${steps}`)
+        // The card fades in once its part is found: axe reads it whole.
+        await expect(card).toHaveCSS('opacity', '1')
         await expectClean(page, `tour, step ${step}`)
         await page.keyboard.press('ArrowRight')
       }

@@ -188,6 +188,7 @@ export function TournamentsPage({ onNew, runner = tournamentRunner() }: Tourname
       <Panel
         className="col-span-12"
         title="tournaments"
+        data-tour="tournaments-list"
         status={reading ? 'reading' : `${cards.length} of ${total}`}
         actions={newButton}
       >

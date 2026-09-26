@@ -88,6 +88,7 @@ export function HillsPage() {
       <Panel
         className="col-span-12"
         title="hills"
+        data-tour="hills-list"
         status={readStatus(data, error, (d) => `${d.hills.length} hills`)}
       >
         {error !== null && data === undefined ? (

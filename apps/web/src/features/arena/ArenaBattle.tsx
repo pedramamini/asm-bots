@@ -265,6 +265,7 @@ export function ArenaBattle({
         ref={panel}
         className="col-span-12 lg:col-span-8 lg:row-span-3"
         title="arena"
+        data-tour="arena-core"
         status={status === 'error' ? 'failed' : roundStatus}
         actions={
           <>
@@ -275,7 +276,7 @@ export function ArenaBattle({
               </Button>
             )}
             <ShareMenu {...shareTarget} />
-            <Button icon={Settings2} size="sm" onClick={onExit}>
+            <Button icon={Settings2} size="sm" onClick={onExit} data-tour="arena-exit">
               setup
             </Button>
           </>

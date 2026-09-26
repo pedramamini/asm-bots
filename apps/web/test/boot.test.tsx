@@ -7,8 +7,9 @@ import { http } from 'msw'
 import { useDom, window } from '../../../packages/ui/test/dom'
 import { BOOT_LOG } from '../src/app/boot/BootScreen'
 import { armBoot, shouldBoot, useBoot, WELCOME_TOUR } from '../src/app/boot/boot'
-import { TOUR_STEPS } from '../src/app/boot/WelcomeTour'
+import { TOUR_STEPS } from '../src/app/boot/tour-steps'
 import { INTRO_SEED } from '../src/features/arena/intro'
+import { ARENA_TOUR } from '../src/features/arena/tour'
 import { stringifySearch } from '../src/router'
 import { routeTree } from '../src/routeTree.gen'
 import { useSettings } from '../src/store/settings'
@@ -106,22 +107,35 @@ describe('the boot screen', () => {
     expect(within(boot).getByRole('button', { name: 'enter site' })).toBeTruthy()
   })
 
-  it('first visit: `take tour` opens the tour, and the tour ends on the guided first battle', async () => {
+  it('first visit: `take tour` opens the tour, which walks the site and ends on the first battle', async () => {
     useBoot.setState({ phase: 'boot' })
     const router = await open()
     const boot = screen.getByRole('dialog', { name: 'asm bots' })
     fireEvent.click(within(boot).getByRole('button', { name: 'take tour' }))
     expect(screen.queryByRole('dialog', { name: 'asm bots' })).toBeNull()
     const tour = await screen.findByRole('dialog', { name: 'the tour' })
-    expect(tour.textContent).toContain(`1 / ${TOUR_STEPS.length} · the core`)
+    const n = TOUR_STEPS.length
+    expect(tour.textContent).toContain(`1 / ${n} · welcome`)
     // Back is off on the first step; next and the arrow keys walk the steps.
     expect(within(tour).getByRole('button', { name: 'back' }).hasAttribute('disabled')).toBe(true)
     fireEvent.click(within(tour).getByRole('button', { name: 'next' }))
-    expect(tour.textContent).toContain('2 / 6 · a bot is a program')
+    expect(tour.textContent).toContain(`2 / ${n} · the pages`)
+    expect(tour.getAttribute('data-tour-step')).toBe('nav')
     fireEvent.keyDown(tour, { key: 'ArrowLeft' })
-    expect(tour.textContent).toContain('1 / 6 · the core')
-    for (let i = 0; i < TOUR_STEPS.length; i++) fireEvent.keyDown(tour, { key: 'ArrowRight' })
-    expect(tour.textContent).toContain('6 / 6 · where everything is')
+    expect(tour.textContent).toContain(`1 / ${n} · welcome`)
+    // Each step goes to its page: the roster's step, to the arena with the intro's bots picked.
+    const roster = TOUR_STEPS.findIndex((step) => step.id === 'arena-roster')
+    await act(async () => {
+      for (let i = 0; i < roster; i++) fireEvent.keyDown(tour, { key: 'ArrowRight' })
+    })
+    expect(tour.getAttribute('data-tour-step')).toBe('arena-roster')
+    expect(router.state.location.pathname).toBe('/arena')
+    expect(router.state.location.search).toMatchObject({ b: 'roster:dwarf,roster:imp' })
+    await act(async () => {
+      for (let i = 0; i < n; i++) fireEvent.keyDown(tour, { key: 'ArrowRight' })
+    })
+    expect(tour.textContent).toContain(`${n} / ${n} · where everything is`)
+    expect(router.state.location.pathname).toBe('/')
     // The last step lists every page, and hands over to the arena's intro.
     const pages = within(tour).getByRole('list', { name: 'the pages' })
     expect(
@@ -141,13 +155,25 @@ describe('the boot screen', () => {
       fireEvent.click(within(tour).getByRole('button', { name: 'watch the first battle' }))
     })
     expect(screen.queryByRole('dialog', { name: 'the tour' })).toBeNull()
-    expect(useSettings.getState().coachMarksSeen).toContain(WELCOME_TOUR)
+    // The whole tour seen: the arena's own first-visit marks have nothing left to say.
+    expect(useSettings.getState().coachMarksSeen).toEqual(
+      expect.arrayContaining([WELCOME_TOUR, ARENA_TOUR]),
+    )
     expect(router.state.location.pathname).toBe('/arena')
     // The arena took `?intro` and loaded the intro's fight: Dwarf vs Imp at its seed.
     expect(router.state.location.search).toMatchObject({
       b: 'roster:dwarf,roster:imp',
       seed: INTRO_SEED,
     })
+  })
+
+  it('`skip the tour` puts it away where it stands, and the page\'s own marks stay', async () => {
+    useBoot.setState({ phase: 'tour' })
+    await open()
+    const tour = await screen.findByRole('dialog', { name: 'the tour' })
+    fireEvent.click(within(tour).getByRole('button', { name: 'skip the tour' }))
+    expect(screen.queryByRole('dialog', { name: 'the tour' })).toBeNull()
+    expect(useSettings.getState().coachMarksSeen).toEqual([WELCOME_TOUR])
   })
 
   it('`enter site` goes in and puts the tour away for good', async () => {
