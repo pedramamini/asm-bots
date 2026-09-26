@@ -50,9 +50,6 @@ const DIM = 'rgb(0 0 0 / 0.72)'
 /** The header's nav: never dimmed while the tour runs. */
 const NAV_SELECTOR = 'header nav[aria-label="primary"]'
 
-/** The nav's link to the page the tour stands on. */
-const CURRENT_SELECTOR = `${NAV_SELECTOR} [aria-current="page"]`
-
 /** Room between a nav link and its ring, px. */
 const CURRENT_PAD = 3
 
@@ -127,32 +124,45 @@ function useSpot(step: TourStep, reduced: boolean): Spot | null {
   return spot?.id === step.id ? spot : null
 }
 
+/** The box of `node`, with `pad` px around it; null with no node, or none of it shown. */
+function boxOf(node: Element | null | undefined, pad: number): Box | null {
+  const rect = node?.getBoundingClientRect()
+  if (rect === undefined || rect.width <= 0) return null
+  return {
+    x: rect.x - pad,
+    y: rect.y - pad,
+    width: rect.width + 2 * pad,
+    height: rect.height + 2 * pad,
+  }
+}
+
+/** The header's nav, and its link to the page the tour stands on. */
+interface NavBoxes {
+  readonly nav: Box | null
+  readonly current: Box | null
+}
+
 /**
- * The box of what `selector` finds, with `pad` px around it, every frame (null while it finds
- * nothing): the nav and its current link follow the page as it lays out.
+ * The nav's box and its current link's, read in one loop a frame (a new state only when one
+ * moves): they follow the page as it lays out, and the current link as the tour goes on.
  */
-function useLiveBox(selector: string, pad: number): Box | null {
-  const [box, setBox] = useState<Box | null>(null)
+function useNavBoxes(): NavBoxes {
+  const [boxes, setBoxes] = useState<NavBoxes>({ nav: null, current: null })
   useEffect(() => {
     let frame = 0
     const tick = () => {
       frame = requestAnimationFrame(tick)
-      const rect = document.querySelector(selector)?.getBoundingClientRect()
-      const next =
-        rect === undefined || rect.width <= 0
-          ? null
-          : {
-              x: rect.x - pad,
-              y: rect.y - pad,
-              width: rect.width + 2 * pad,
-              height: rect.height + 2 * pad,
-            }
-      setBox((was) => (sameBox(was, next) ? was : next))
+      const node = document.querySelector(NAV_SELECTOR)
+      const nav = boxOf(node, 0)
+      const current = boxOf(node?.querySelector('[aria-current="page"]'), CURRENT_PAD)
+      setBoxes((was) =>
+        sameBox(was.nav, nav) && sameBox(was.current, current) ? was : { nav, current },
+      )
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
-  }, [selector, pad])
-  return box
+  }, [])
+  return boxes
 }
 
 /**
@@ -252,8 +262,7 @@ export function WelcomeTour() {
   const sliding = useSliding(spot?.id ?? null)
   const middle = useMemo(() => middleOf(view), [view])
   const shown = useEased(hole ?? middle, sliding && !reduced)
-  const nav = useLiveBox(NAV_SELECTOR, 0)
-  const current = useLiveBox(CURRENT_SELECTOR, CURRENT_PAD)
+  const { nav, current } = useNavBoxes()
   const mask = useId()
   const page = NAV.find(({ to }) => to === step.path)
 

@@ -154,6 +154,8 @@ for (const theme of THEMES) {
     })
 
     test('the boot screen, and each step of the welcome tour', async ({ page }) => {
+      // Nineteen steps across six pages, axe on each.
+      test.setTimeout(90_000)
       // `?boot=1`: a driven browser skips the boot unless asked.
       await page.goto('/?boot=1')
       const boot = page.getByRole('dialog', { name: 'asm bots' })
